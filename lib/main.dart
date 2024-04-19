@@ -252,6 +252,9 @@ void updateEntries() async {
     if (entry == null) {
       continue;
     }
+    if(entry.getlastReadIndex() + 1<entry.totalepisodes){
+      continue;
+    }
     print(
         "Checking ${entry.title}: ${entry.getlastReadIndex() + 1}/${entry.totalepisodes}");
     if (entry.getlastReadIndex() + 1 == entry.totalepisodes) {

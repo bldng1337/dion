@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dionysos/Source.dart';
@@ -9,10 +10,11 @@ import 'package:internet_file/internet_file.dart';
 class Epubreader extends StatefulWidget {
   
   final EpubSource source;
-  const Epubreader(this.source,{ super.key });
+  final bool local;
+  const Epubreader(this.source,{ super.key, this.local=false });
 
   @override
-  _EpubreaderState createState() => _EpubreaderState();
+  createState() => _EpubreaderState();
 }
 
 class _EpubreaderState extends State<Epubreader> {
@@ -20,10 +22,18 @@ class _EpubreaderState extends State<Epubreader> {
   Timer? timer;
   double progress=0;
   bool downloading=true;
-  Future<EpubBook> getEpub() async {
-  Uint8List data=await InternetFile.get(widget.source.url,progress: (receivedLength, contentLength) => setState(() {
+  Future<Uint8List> getData(){
+    if(widget.local){
+      File f = File(widget.source.url);
+      return f.readAsBytes();
+    }
+    return InternetFile.get(widget.source.url,progress: (receivedLength, contentLength) => setState(() {
     progress=(receivedLength.toDouble()/contentLength);
   }),);
+  }
+
+  Future<EpubBook> getEpub() async {
+  Uint8List data=await getData();
   setState(() {
     downloading=false;
   });

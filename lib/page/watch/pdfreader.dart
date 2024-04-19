@@ -43,8 +43,6 @@ class _PdfreaderState extends State<Pdfreader> {
   void initState() {
     if (widget.local) {
       File f = File(widget.source.url);
-      print(f.path);
-      print(f.existsSync());
       pdfController = PdfController(
         initialPage: widget.source.getEpdata().iprogress ?? 1,
         document: PdfDocument.openData(

@@ -21,14 +21,31 @@ class _VideoplayerState extends State<Videoplayer> {
 
   @override
   void initState() {
-    source=widget._source;
     super.initState();
-    player = Player(
-      configuration: PlayerConfiguration(
-        title: source.ep.name,
-      ),
-    );
+    player = Player();
     controller = VideoController(player);
+    setSource(widget._source);
+    controller.player.stream.completed.listen((event) {
+      if(!event)return;
+      source.entry.complete(source.getIndex());
+      source.entry.save();
+      source.getNext().then((value) {
+        if(mounted&&value!=null) {
+          setSource(value as M3U8Source);
+        }
+      },);
+      
+    });
+    controller.player.stream.duration.listen((event) {//TODO: Fix
+      if(event.inSeconds%10==0){
+        source.getEpdata().iprogress=event.inSeconds;
+        source.entry.save();
+      }
+    });
+  }
+
+  void setSource(M3U8Source nsource){
+    source=nsource;
     player.open(Media(source.url));
     if (VideoplayerSetting.autousesubtitle.value) {
       LanguageCodes lang = VideoplayerSetting.defaultsubtitle.value;
@@ -36,7 +53,6 @@ class _VideoplayerState extends State<Videoplayer> {
         setSubtitle(lang);
       }
     }
-    
   }
 
   void setSubtitle(LanguageCodes lang) {

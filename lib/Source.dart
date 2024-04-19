@@ -213,10 +213,8 @@ abstract class Source {
     if(list.getEpisode(episode)==null){
       return null;
     }
-    print("Loading ${episode}");
     Directory d = await saved.getDir(list, episode);
     final meta = json.decode(await d.getFile("meta.json").readAsString());
-    print(meta["name"]);
     switch (meta["name"]) {
       case "localparagraphlist":
         return ParagraphListSource(
@@ -225,8 +223,8 @@ abstract class Source {
         return PdfSource(d.getFile("src.pdf").path, saved, list.getEpisode(episode)!,local: true);
       case "localimglist":
         return ImgListSource(List.generate(meta["length"],(a)=>d.getFile("$a.jpg").path),saved,list.getEpisode(episode)!,local: true);
-      // case "localm3u8":
-      //   return M3U8Source(url, sub, saved, list.getEpisode(episode)!,local:true)
+      case "localepub":
+        return EpubSource(d.getFile("data.epub").path, saved, list.getEpisode(episode)!,local:true);
     }
     return null;
   }
@@ -321,12 +319,12 @@ class PdfSource extends Source {
 
 class EpubSource extends Source {
   final String url;
-
-  EpubSource(this.url, super.entry, super.ep);
+  final bool local;
+  EpubSource(this.url, super.entry, super.ep, {this.local=false});
 
   @override
   Widget _navReader() {
-    return Epubreader(this);
+    return Epubreader(this,local:local);
   }
 
   factory EpubSource.fromJSON(
