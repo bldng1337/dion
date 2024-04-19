@@ -4,9 +4,9 @@ import 'dart:math';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/Utils/file_utils.dart';
-import 'package:dionysos/Utils/utils.dart';
-import 'package:dionysos/activity.dart';
+import 'package:dionysos/util/file_utils.dart';
+import 'package:dionysos/util/utils.dart';
+import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
@@ -18,30 +18,47 @@ import 'package:isar/isar.dart';
 part 'Entry.g.dart';
 
 extension Mediafunc on MediaType {
+  String getAction() {
+    return switch (this) {
+      MediaType.video => "Watched",
+      MediaType.comic => "Read",
+      MediaType.audio => "Listened to",
+      MediaType.book => "Read",
+      _ => "Consumed"
+    };
+  }
+
+  String getEpName({bool multi=false}) {
+    return switch (this) {
+      MediaType.video => multi ? "Episode" : "Episodes",
+      MediaType.comic => "Chapter",
+      MediaType.audio => multi ? "Episode" : "Episodes",
+      MediaType.book => "Chapter",
+      _ => multi ? "Episode" : "Episodes"
+    };
+  }
+
   IconData icon() {
     return switch (this) {
       MediaType.video => Icons.video_camera_back_outlined,
       MediaType.comic => Icons.image,
       MediaType.audio => Icons.audio_file,
       MediaType.book => Icons.menu_book_sharp,
+      _ => Icons.question_mark
     };
   }
+
   named() {
     return toString().replaceAll("MediaType.", "");
   }
 }
 
-enum MediaType {
-  video,
-  comic,
-  audio,
-  book,
-}
+enum MediaType { video, comic, audio, book, unknown }
 
 MediaType getMediaType(String type) {
   return MediaType.values
           .firstWhereOrNull((p0) => p0.toString().contains(type)) ??
-      MediaType.video;
+      MediaType.unknown;
 }
 
 @embedded
@@ -73,210 +90,6 @@ class AEpisodeList {
   Episode? getEpisode(int index) {
     return episodes[index];
   }
-}
-
-/// Represents a downloaded list of episodes for a specific entry.
-/// Contains information about the downloaded episodes, such as their titles and URLs.
-/// Provides methods to refresh the downloaded episode list and manage the download settings.
-// @embedded
-// class EpisodeListDownloaded extends AEpisodeList {
-//   @ignore
-//   Map<int, Episode> downloaded = {};
-//   int dependentIndex = 0;
-//   bool autodownload = false;
-//   int predownloadChapters = 1;
-//   bool autodelete = false;
-//   int chapterDelete = 1;
-
-//   @override
-//   Episode? getEpisode(int index) {
-//     return downloaded[index] ?? episodes[index];
-//   }
-
-//   /// Refreshes the downloaded episode list based on the given saved entry.
-//   /// If the saved entry has fewer episodes than the dependent index,
-//   /// the title and episodes of the downloaded list will be set to "Unknown" and an empty list, respectively.
-//   /// Otherwise, the title will be set to the title of the dependent episode list appended with " - Download",
-//   /// and the episodes will be set to the episodes of the dependent episode list.
-//   ///
-//   /// @param saved The saved entry to refresh the downloaded episode list from.
-//   Future<void> refresh(EntrySaved saved) async {
-//     if (saved.episodes.length < dependentIndex) {
-//       title = "Unknown";
-//       episodes = [];
-//     } else {
-//       title = "${saved.episodes[dependentIndex].title} - Download";
-//       episodes = saved.episodes[dependentIndex].episodes;
-//     }
-//     await checkdownloads(saved);
-//   }
-
-//   Future<void> delete(int episode, EntrySaved saved) async {
-//     if (isDownloaded(episode)) {
-//       String spath =
-//           "downloads/${encodeFilename(saved.extname)}/${encodeFilename(saved.url)}/$episode";
-//       await (await getPath(spath)).delete(recursive: true);
-//       downloaded.remove(episode);
-//     }
-//   }
-
-//   Future<bool> download(int episode, EntrySaved saved) async {
-//     if (episodes.length < episode) {
-//       return false;
-//     }
-//     if (isDownloaded(episode)) {
-//       return true;
-//     }
-//     //TODO check wifi
-//     Episode e = episodes[episode];
-//     Source? s = await saved.source(e);
-//     if (s == null) {
-//       return false;
-//     }
-//     String path =
-//         "downloads/${encodeFilename(saved.extname)}/${encodeFilename(saved.url)}/${episode}";
-//     SourceMeta sm = s.getdownload();
-//     File fn = (await getPath(path)).getFile("meta.json");
-//     if (await fn.exists()) {
-//       await fn.delete();
-//     }
-//     fn.create(recursive: true);
-//     fn.writeAsString(json.encode({...sm.data, "name": sm.name}));
-//     for (var f in sm.files) {
-//       if (f.isdata) {
-//         File fn = (await getPath(path)).getFile(f.filename);
-//         if (await fn.exists()) {
-//           await fn.delete();
-//         }
-//         fn.create(recursive: true);
-//         fn.writeAsBytes(f.data!.toList());
-//       } else {
-//         print(f.url!);
-//         final task = DownloadTask(
-//             url: f.url!,
-//             filename: f.filename,
-//             group: encodeFilename(saved.url + e.url),
-//             displayName: episodes[episode].name,
-//             directory: "dion/$path",
-//             requiresWiFi: true,
-//             allowPause: true,
-//             updates: Updates.statusAndProgress,
-//             baseDirectory: BaseDirectory.applicationDocuments);
-//         await FileDownloader().enqueue(task);
-//       }
-//     }
-//     return true;
-//   }
-
-//   Future<List<TaskRecord>> getDownloads(int episode, EntrySaved saved) async {
-//     if (episodes.length < episode) {
-//       return [];
-//     }
-//     Episode e = episodes[episode];
-//     return await FileDownloader()
-//         .database
-//         .allRecords(group: encodeFilename(saved.url + e.url));
-//   }
-
-//   bool isDownloaded(int index) {
-//     return downloaded.containsKey(index);
-//   }
-
-//   Future<void> checkdownloads(EntrySaved saved) async {
-//     if (autodownload) {
-//       for (int i = saved.getlastReadIndex();
-//           i < saved.getlastReadIndex() + predownloadChapters;
-//           i++) {
-//         await download(i, saved);
-//       }
-//     }
-//     if (autodelete) {
-//       for (int i = 0; i < saved.getlastReadIndex() - chapterDelete; i++) {
-//         await delete(i, saved);
-//       }
-//     }
-//     String spath =
-//         "downloads/${encodeFilename(saved.extname)}/${encodeFilename(saved.url)}";
-//     Directory d = await getPath(spath);
-//     Map<int, Episode> newdownloaded = {};
-//     print("Searching $spath");
-//     await for (final file in d.list()) {
-//       if (file is Directory) {
-//         print("checking ${file.path}");
-//         Directory d = file;
-//         int index = int.parse(d.name);
-//         if (episodes.length < index) {
-//           continue;
-//         }
-//         newdownloaded[index] = episodes[index].clone(url: "local:${d.path}");
-//         print("Found ${newdownloaded[index]!.name}");
-//       }
-//     }
-//     print("replacing");
-//     downloaded = newdownloaded;
-//     print("Download ${downloaded.length}");
-//   }
-// }
-
-class DownloadUtils{
-  static String getDownloadpath(EntrySaved saved,AEpisodeList list, int episode){
-    return "downloads/${encodeFilename(saved.extname)}/${encodeFilename(saved.url)}/${encodeFilename(list.title)}/$episode";
-  }
-  static Future<Directory> getDownloadDir(EntrySaved saved,AEpisodeList list, int episode) async {
-    Directory d = await getPath(getDownloadpath(saved,list,episode),create: false);
-    return d;
-  }
-
-  static Future<List<TaskRecord>> getDownloads(EntrySaved saved,AEpisodeList list, int episode) async {
-    return await FileDownloader()
-        .database
-        .allRecords(group: getDownloadpath(saved,list,episode));
-  }
-
-  static Future<bool> download(EntrySaved saved,AEpisodeList list, int episode) async {
-    print("Downloading ${list.getEpisode(episode)?.name}");
-    Directory dir=await getDownloadDir(saved,list,episode);
-    // if (await dir.exists()) {TODO: Clean dir
-    // }
-    //TODO check wifi
-    Episode? e = list.getEpisode(episode);
-    if(e==null){
-      return false;
-    }
-    Source? s = await saved.source(list,episode);
-    if (s == null) {
-      return false;
-    }
-    SourceMeta sm = s.getdownload();
-    File fn = dir.getFile("meta.json");
-    await fn.create(recursive: true);
-    await fn.writeAsString(json.encode({...sm.data, "name": sm.name}));
-    for (var f in sm.files) {
-      if (f.isdata) {
-        File fn = dir.getFile(f.filename);
-        if (await fn.exists()) {
-          await fn.delete();
-        }
-        fn.create(recursive: true);
-        fn.writeAsBytes(f.data!.toList());
-      } else {
-        print("Downloading file ${f.url!}");
-        final task = DownloadTask(
-            url: f.url!,
-            filename: f.filename,
-            group: getDownloadpath(saved,list,episode),
-            displayName: e.name,
-            directory: "dion/${getDownloadpath(saved,list,episode)}",
-            requiresWiFi: true,
-            allowPause: true,
-            updates: Updates.statusAndProgress,
-            baseDirectory: BaseDirectory.applicationDocuments);
-        await FileDownloader().enqueue(task);
-      }
-    }
-    return true;
-  }
-  
 }
 
 @embedded
@@ -370,7 +183,7 @@ class EntryDetail extends Entry {
   @enumerated
   final Status status;
   final String? description;
-  int episodeindex = 0;
+  int episodeindex = 0; //TODO Save which Source is selected
 
   @Ignore()
   bool refreshing = false;
@@ -427,7 +240,7 @@ class EntryDetail extends Entry {
   void complete(int chapter, {bool date = true}) {}
 
   Future<Source?> source(AEpisodeList list, int episode) async {
-    if (list.episodes.length<episode) {
+    if (list.episodes.length < episode) {
       return null;
     }
     return await ext!.source(list.episodes[episode], this);
@@ -449,16 +262,6 @@ class EpisodeData {
     if (date) {
       readdate = DateTime.now();
     }
-  }
-
-  int getIProgress(int def) {
-    iprogress ??= def;
-    return iprogress ?? def;
-  }
-
-  String getSProgress(String def) {
-    sprogress ??= def;
-    return sprogress ?? def;
   }
 
   applyJSON(json) {
@@ -505,28 +308,73 @@ class EntrySaved extends EntryDetail {
       super.genres,
       super.status,
       super.description);
-
-
-  Future<Directory> getDir(AEpisodeList list,int episode){
-    return DownloadUtils.getDownloadDir(this,list, episode);
-  }
-  Future<bool> isDownloaded(AEpisodeList list,int episode) async {
-    return (await DownloadUtils.getDownloadDir(this,list, episode)).exists();
-  }
-  Future<List<TaskRecord>> getDownloads(AEpisodeList list,int episode){
-    return DownloadUtils.getDownloads(this, list, episode);
-  }
-  Future<bool> download(AEpisodeList list,int episode){
-    return DownloadUtils.download(this, list, episode);
+  //Download
+  String getDownloadpath(AEpisodeList list, int episode) {
+    return "downloads/${encodeFilename(extname)}/${encodeFilename(url)}/${encodeFilename(list.title)}/$episode";
   }
 
-  Future<void> delete(AEpisodeList list,int episode) async{
-    Directory dir=await getDir(list, episode);
+  Future<Directory> getDir(AEpisodeList list, int episode) async {
+    return await getPath(getDownloadpath(list, episode), create: false);
+  }
+
+  Future<bool> isDownloaded(AEpisodeList list, int episode) async {
+    return (await getDir(list, episode)).exists();
+  }
+
+  Future<List<TaskRecord>> getDownloads(AEpisodeList list, int episode) async {
+    return await FileDownloader()
+        .database
+        .allRecords(group: getDownloadpath(list, episode));
+  }
+
+  Future<bool> download(AEpisodeList list, int episode) async {
+    print("Downloading ${list.getEpisode(episode)?.name}");
+    Directory dir = await getDir(list, episode);
+    // if (await dir.exists()) {TODO: Clean dir
+    // }
+    //TODO check wifi
+    Episode? e = list.getEpisode(episode);
+    if (e == null) {
+      return false;
+    }
+    Source? s = await source(list, episode);
+    if (s == null) {
+      return false;
+    }
+    SourceMeta sm = s.getdownload();
+    File fn = dir.getFile("meta.json");
+    await fn.create(recursive: true);
+    await fn.writeAsString(json.encode({...sm.data, "name": sm.name}));
+    for (var f in sm.files) {
+      if (f.isdata) {
+        File fn = dir.getFile(f.filename);
+        if (await fn.exists()) {
+          await fn.delete();
+        }
+        fn.create(recursive: true);
+        fn.writeAsBytes(f.data!.toList());
+      } else {
+        print("Downloading file ${f.url!}");
+        final task = DownloadTask(
+            url: f.url!,
+            filename: f.filename,
+            group: getDownloadpath(list, episode),
+            displayName: e.name,
+            directory: "dion/${getDownloadpath(list, episode)}",
+            requiresWiFi: true,
+            allowPause: true,
+            updates: Updates.statusAndProgress,
+            baseDirectory: BaseDirectory.applicationDocuments);
+        await FileDownloader().enqueue(task);
+      }
+    }
+    return true;
+  }
+
+  Future<void> delete(AEpisodeList list, int episode) async {
+    Directory dir = await getDir(list, episode);
     await dir.delete(recursive: true);
   }
-
-  // List<EpisodeListDownloaded> download = List.empty(growable: true);
-  // final List<EpisodeList> generated; TODO
 
   @Backlink(to: 'entries')
   final category = IsarLinks<Category>();
@@ -603,12 +451,12 @@ class EntrySaved extends EntryDetail {
 
   @override
   Future<Source?> source(AEpisodeList list, int episode) async {
-    if (list.episodes.length<episode) {
+    if (list.episodes.length < episode) {
       return null;
     }
-    if(await isDownloaded(list, episode)){
-      Source? s=await Source.resolve(this,list, episode);
-      if(s==null){
+    if (await isDownloaded(list, episode)) {
+      Source? s = await Source.resolve(this, list, episode);
+      if (s == null) {
         delete(list, episode);
       }
       return s;

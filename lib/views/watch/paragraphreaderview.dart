@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/Utils/utils.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/main.dart';
-import 'package:dionysos/page/settings.dart';
-import 'package:dionysos/widgets/huge.dart';
+import 'package:dionysos/views/settingsview.dart';
+import 'package:dionysos/widgets/hugelist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +32,7 @@ Widget toText(BuildContext context, String paragraph) {
         color: Theme.of(context).textTheme.displaySmall?.color,
         fontWeight: FontWeight.values.firstWhere((element) => element
             .toString()
-            .contains(prefs.getString("rparagraphbionichighlight") ?? "w500")),
+            .contains(TextReaderSettings.bionichighlight.value)),
       ),
     );
   }
@@ -387,7 +387,7 @@ class _ParagraphReaderState extends State<ParagraphReader> {
                 return Container();
               },
               initialScrollIndex:
-                  max(widget.source.getEpdata().getIProgress(0), 0),
+                  max(widget.source.getEpdata().iprogress??0, 0),
               itemCount: widget.source.paragraphs.length + 2,
             ),
           ),

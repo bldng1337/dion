@@ -1,9 +1,8 @@
-import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:dionysos/Entry.dart';
-import 'package:dionysos/Utils/utils.dart';
+import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
@@ -222,7 +221,7 @@ class SettingsNavTile extends Tile {
 class SimpleChoiceTile extends SettingTile<String> {
   final List<String> choices;
   const SimpleChoiceTile(super.name, super.description, super.setting,
-      {required this.choices,super.icon});
+      {required this.choices, super.icon});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -248,7 +247,7 @@ class SimpleChoiceTile extends SettingTile<String> {
 }
 
 class BooleanTile extends SettingTile<bool> {
-  const BooleanTile(super.name, super.description, super.setting,{super.icon});
+  const BooleanTile(super.name, super.description, super.setting, {super.icon});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -290,7 +289,7 @@ class DoubleTile extends SettingTile<double> {
   final double min;
   final double max;
   const DoubleTile(super.name, super.description, super.setting,
-      {this.min = 0, this.max = 1,super.icon});
+      {this.min = 0, this.max = 1, super.icon});
 
   double round(double value) {
     return ((value * 100).round().toDouble()) / 100.0;
@@ -325,7 +324,7 @@ class DoubleTile extends SettingTile<double> {
 class ConditionalTile extends Tile {
   final Setting<bool> setting;
   final Tile child;
-  const ConditionalTile(this.setting, this.child,{super.icon}) : super("", "");
+  const ConditionalTile(this.setting, this.child, {super.icon}) : super("", "");
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -338,7 +337,8 @@ class ConditionalTile extends Tile {
 }
 
 class DirectoryTile extends OptionalSettingTile<Directory> {
-  const DirectoryTile(super.name, super.description, super.setting,{super.icon});
+  const DirectoryTile(super.name, super.description, super.setting,
+      {super.icon});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -362,7 +362,8 @@ class DirectoryTile extends OptionalSettingTile<Directory> {
 }
 
 class LanguageTile extends SettingTile<LanguageCodes> {
-  const LanguageTile(super.name, super.description, super.setting,{super.icon});
+  const LanguageTile(super.name, super.description, super.setting,
+      {super.icon});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -392,7 +393,7 @@ class LanguageTile extends SettingTile<LanguageCodes> {
 }
 
 class TitleTile extends Tile {
-  const TitleTile(super.name, super.description,{super.icon});
+  const TitleTile(super.name, super.description, {super.icon});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -467,7 +468,7 @@ class SortingTile extends Tile {
 }
 
 class CategoryTile extends Tile {
-  const CategoryTile(super.name, super.description,{super.icon});
+  const CategoryTile(super.name, super.description, {super.icon});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -548,7 +549,9 @@ class _SettingsPage extends StatefulWidget {
   final List<Tile> settings;
   final Function? onupdate;
   final String title;
-  const _SettingsPage(this.title, this.settings, this.onupdate, {super.key});
+  final bool bare;
+  const _SettingsPage(this.title, this.settings, this.onupdate,
+      {this.bare=false});
 
   @override
   State<_SettingsPage> createState() => _SettingsPageState();
@@ -564,18 +567,23 @@ class _SettingsPageState extends State<_SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.bare) {
+      return ListView.builder(
+        itemCount: widget.settings.length,
+        itemBuilder: (context, index) =>
+            widget.settings[index].render(context, update),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
       body: ListView.builder(
         itemCount: widget.settings.length,
-      itemBuilder: (context, index) =>
-          widget.settings[index].render(context, update),
-    ),
+        itemBuilder: (context, index) =>
+            widget.settings[index].render(context, update),
+      ),
     );
-    
-    
   }
 }
 
@@ -587,5 +595,9 @@ class SettingPageBuilder {
 
   Widget build(Function? update) {
     return _SettingsPage(title, settings, update);
+  }
+
+  Widget barebuild(Function? update) {
+    return _SettingsPage(title, settings, update, bare: true);
   }
 }

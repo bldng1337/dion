@@ -1,21 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
-import 'package:dionysos/Entry.dart';
-import 'package:dionysos/Utils/file_utils.dart';
+import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/util/file_utils.dart';
 import 'package:dionysos/extension/jsextension.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:flutter/material.dart';
 import 'package:flutter_js/quickjs/ffi.dart';
 
-StreamController<void> controller = StreamController<void>.broadcast();
 
 class ExtensionManager {
   static final ExtensionManager _instance = ExtensionManager._internal();
   List<Extension> loaded = List.empty(growable: true);
-  bool isinit = false;
   late Future<void> finit;
 
   ExtensionManager._internal() {
@@ -24,7 +19,6 @@ class ExtensionManager {
 
   Future<void> init() async {
     await reload();
-    isinit = true;
   }
 
   Future<void> reload() async {
@@ -43,7 +37,6 @@ class ExtensionManager {
       e.dispose();
     }
     loaded = newloaded;
-    controller.add(null);
   }
 
   Stream<List<Entry>> browse(int page, SortMode sort,
@@ -99,31 +92,5 @@ class ExtensionManager {
     File newf = (await getPath("extension")).getFile("${data["name"]}.dion.js");
     await newf.writeAsString(src);
     await reload();
-  }
-}
-
-class ExtensionManagerBrace extends StatelessWidget {
-  final Widget child;
-  const ExtensionManagerBrace({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: controller.stream,
-      builder: (context, snapshot) => FutureBuilder<void>(
-          future: ExtensionManager().finit,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Text(
-                'Error loading Extensions: ${snapshot.error}',
-                style: Theme.of(context).textTheme.headlineMedium,
-              );
-            } else if (snapshot.connectionState == ConnectionState.done) {
-              return child;
-            } else {
-              return const Center(child: CircularProgressIndicator());
-            }
-          }),
-    );
   }
 }

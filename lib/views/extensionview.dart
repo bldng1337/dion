@@ -8,28 +8,28 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class Extensionview extends StatefulWidget {
-  const Extensionview({Key? key}) : super(key: key);
+  const Extensionview({super.key});
 
   @override
-  _ExtensionviewState createState() => _ExtensionviewState();
+  createState() => _ExtensionviewState();
 }
 
 class _ExtensionviewState extends State<Extensionview> {
   bool dragging = false;
-  bool loading=false;
+  bool loading = false;
   @override
   Widget build(BuildContext context) {
     return Nav(
         actions: [
           IconButton(
               onPressed: () async {
-                loading=true;
+                loading = true;
                 setState(() {});
                 await ExtensionManager().reload();
-                if(!mounted){
+                if (!mounted) {
                   return;
                 }
-                loading=false;
+                loading = false;
                 setState(() {});
               },
               icon: const Icon(Icons.refresh)),
@@ -39,11 +39,11 @@ class _ExtensionviewState extends State<Extensionview> {
                   label: 'images',
                   extensions: <String>['dion.js'],
                 );
-                final List<XFile> files =
-                    await openFiles(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
-                for(final file in files){
+                final List<XFile> files = await openFiles(
+                    acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+                for (final file in files) {
                   await ExtensionManager()
-                    .installString(await file.readAsString());
+                      .installString(await file.readAsString());
                 }
                 if (!mounted) {
                   return;
@@ -52,50 +52,51 @@ class _ExtensionviewState extends State<Extensionview> {
               },
               icon: const Icon(Icons.install_desktop))
         ],
-        child: ExtensionManagerBrace(
-          child: 
-          loading?const Center(child: CircularProgressIndicator(),):
-          DropTarget(
-            enable: true,
-            onDragEntered: (details) => setState(() {
-              dragging = true;
-            }),
-            onDragExited: (details) => setState(() {
-              dragging = false;
-            }),
-            onDragDone: (details) {
-              details.files.forEach((element) {
-                ExtensionManager()
-                    .installlocal(element.path)
-                    .then((value) => setState(() {}));
-              });
-            },
-            child: Stack(
-              children: [
-                Row(children: [
-                  Expanded(
-                      child: ListView.builder(
-                    itemBuilder: (BuildContext context, int index) {
-                      if (ExtensionManager().loaded.length <= index) {
-                        return null;
-                      }
-                      return ExtensionItem(ExtensionManager().loaded[index]);
-                    },
-                    itemCount: ExtensionManager().loaded.length,
-                  )),
-                ]),
-                if (dragging)
-                  Container(
-                    color: Theme.of(context)
-                        .scaffoldBackgroundColor
-                        .withOpacity(0.8),
-                    child: const Center(
-                        child: Text("Drop Here to install Extension")),
-                  ),
-              ],
-            ),
-          ),
-        ));
+        child: loading
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : DropTarget(
+                enable: true,
+                onDragEntered: (details) => setState(() {
+                  dragging = true;
+                }),
+                onDragExited: (details) => setState(() {
+                  dragging = false;
+                }),
+                onDragDone: (details) {
+                  for (var element in details.files) {
+                    ExtensionManager()
+                        .installlocal(element.path)
+                        .then((value) => setState(() {}));
+                  }
+                },
+                child: Stack(
+                  children: [
+                    Row(children: [
+                      Expanded(
+                          child: ListView.builder(
+                        itemBuilder: (BuildContext context, int index) {
+                          if (ExtensionManager().loaded.length <= index) {
+                            return null;
+                          }
+                          return ExtensionItem(
+                              ExtensionManager().loaded[index]);
+                        },
+                        itemCount: ExtensionManager().loaded.length,
+                      )),
+                    ]),
+                    if (dragging)
+                      Container(
+                        color: Theme.of(context)
+                            .scaffoldBackgroundColor
+                            .withOpacity(0.8),
+                        child: const Center(
+                            child: Text("Drop Here to install Extension")),
+                      ),
+                  ],
+                ),
+              ));
   }
 }
 

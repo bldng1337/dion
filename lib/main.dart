@@ -2,19 +2,19 @@ import 'dart:io';
 
 import 'package:restart_app/restart_app.dart';
 import 'package:background_downloader/background_downloader.dart';
-import 'package:dionysos/Entry.dart';
-import 'package:dionysos/Utils/file_utils.dart';
-import 'package:dionysos/Utils/utils.dart';
-import 'package:dionysos/activity.dart';
+import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/util/file_utils.dart';
+import 'package:dionysos/util/utils.dart';
+import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
-import 'package:dionysos/page/DetailedEntryView.dart';
-import 'package:dionysos/page/EntryView.dart';
-import 'package:dionysos/page/activity.dart';
-import 'package:dionysos/page/extensionsetting.dart';
-import 'package:dionysos/page/extensionview.dart';
-import 'package:dionysos/page/library.dart';
-import 'package:dionysos/page/loadingscreen.dart';
+import 'package:dionysos/views/detailedentryview.dart';
+import 'package:dionysos/views/entrybrowseview.dart';
+import 'package:dionysos/views/activityview.dart';
+import 'package:dionysos/views/extensionsettingview.dart';
+import 'package:dionysos/views/extensionview.dart';
+import 'package:dionysos/views/libraryview.dart';
+import 'package:dionysos/views/loadingscreenview.dart';
 import 'package:dionysos/sync.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +24,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nanoid/nanoid.dart';
 
-import 'page/settings.dart';
+import 'views/settingsview.dart';
 
 late final SharedPreferences prefs;
 late final Isar isar;
@@ -36,46 +36,6 @@ void main() async {
     FlutterError.presentError(details);
     if (kReleaseMode) exit(1);
   };
-  // final isarpath = (await getPath("data"));
-  // prefs = await SharedPreferences.getInstance();
-
-  // if (!(await isarpath.getFile("default.isar").exists())) {
-  //   prefs.setString("deviceid", nanoid());
-  // }
-  // deviceId = prefs.getString("deviceid") ?? nanoid();
-  // prefs.setString("deviceid", deviceId);
-  // await ExtensionManager().finit;
-  // await FileDownloader().trackTasks();
-  // FileDownloader().updates.listen((update) {
-  //   switch (update) {
-  //     case TaskStatusUpdate _:
-  //       // process the TaskStatusUpdate, e.g.
-  //       switch (update.status) {
-  //         case TaskStatus.complete:
-  //           print('Task ${update.task.displayName} success!');
-  //         case TaskStatus.canceled:
-  //           print('Download was canceled');
-  //         case TaskStatus.paused:
-  //           print('Download was paused');
-  //         default:
-  //           print('Download not successful');
-  //       }
-  //     case TaskProgressUpdate _:
-  //       print("${update.task.displayName} ${update.progress}");
-  //   }
-  // });
-  // isar = await Isar.open(
-  //   [EntrySavedSchema, ActivitySchema, CategorySchema],
-  //   name: "default",
-  //   directory: (await getPath("data")).path,
-  //   inspector: true,
-  // );
-  // dosync();
-  // int now = DateTime.now().day;
-  // if (now != (prefs.getInt("lasttime") ?? 32)) {
-  //   prefs.setInt("lasttime", now);
-  //   updateEntries();
-  // }
   return runApp(const AppLoader());
 }
 
@@ -110,7 +70,6 @@ class _AppLoaderState extends State<AppLoader> {
     }, "ExtensionManager"),
     LoadTask(() async {
       await FileDownloader().trackTasks();
-      print(await FileDownloader().allTaskIds());
       await FileDownloader().cancelTasksWithIds(await FileDownloader().allTaskIds());
       FileDownloader().updates.listen((update) {
         switch (update) {
@@ -181,15 +140,15 @@ class _AppLoaderState extends State<AppLoader> {
                   final isardb = (await getPath("data")).getFile("${Isar.defaultName}.isar");
                   final isardblock = (await getPath("data")).getFile("${Isar.defaultName}.isar");
                   Isar.getInstance()?.close();
-                  print(isardb.path);
                   if(await isardblock.exists()) {
                     await isardblock.delete();
                   }
                   if(await isardb.exists()){
                     await isardb.delete();
                   }
+                  await prefs.clear();
                   Restart.restartApp();
-                }, "Delete Database"),
+                }, "Delete Data"),
                 LoadTask(() async {
                   Restart.restartApp();
                 }, "Retry")
@@ -244,7 +203,6 @@ class ErrorScreen extends StatelessWidget {
     );
   }
 }
-
 void updateEntries() async {
   print("Checking Entries");
   for (int i = 0; i < await isar.entrySaveds.count(); i++) {
@@ -261,19 +219,6 @@ void updateEntries() async {
       print("Reloading...");
       await entry.refresh();
     }
-  }
-}
-
-void enav(BuildContext context, Widget w) {
-  context.push("/any", extra: w);
-}
-
-class Any extends StatelessWidget {
-  const Any({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return (GoRouterState.of(context).extra! as Widget);
   }
 }
 
@@ -390,7 +335,7 @@ final _router = GoRouter(
           path: "/settings",
           pageBuilder: (context, state) => CustomTransitionPage<void>(
             key: state.pageKey,
-            child: settingspage.build(null),
+            child: Nav(child:settingspage.barebuild(null)),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) =>
                     FadeTransition(opacity: animation, child: child),
@@ -420,36 +365,6 @@ final _router = GoRouter(
     ),
   ],
 );
-
-
-class FutureLoader<T> extends StatelessWidget {
-  final Future<T> future;
-  final Widget Function(BuildContext context,T data) success;
-  final Widget Function(BuildContext context,Object error)? error;
-  final Widget Function(BuildContext context)? loading;
-  const FutureLoader(this.future,{super.key, required this.success, this.error, this.loading});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(future: future, builder: (context, snapshot) {
-      if(snapshot.hasError){
-        if(error!=null){
-          return error!(context,snapshot.error!);
-        }
-        return Container();
-      }
-      if(snapshot.hasData){
-        return success(context,snapshot.data!);
-      }
-      if(loading!=null){
-        return loading!(context);
-      }
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    },);
-  }
-}
 
 
 class Destination {

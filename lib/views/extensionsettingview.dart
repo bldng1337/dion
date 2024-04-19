@@ -8,7 +8,7 @@ class Extensionsetting extends StatefulWidget {
   const Extensionsetting(this.ext, {super.key});
 
   @override
-  _ExtensionsettingState createState() => _ExtensionsettingState();
+  createState() => _ExtensionsettingState();
 }
 
 class _ExtensionsettingState extends State<Extensionsetting> {

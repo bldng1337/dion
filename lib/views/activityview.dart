@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:dionysos/Entry.dart';
-import 'package:dionysos/activity.dart';
+import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/main.dart';
 import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
 import 'package:flutter/material.dart';
@@ -51,23 +51,6 @@ EntryDetail? resolveEntry(dynamic entrydata) {
   return isar.entrySaveds.getSync(entrydata["id"] as int);
 }
 
-String getAction(MediaType m) {
-  return switch (m) {
-    MediaType.video => "Watched",
-    MediaType.comic => "Read",
-    MediaType.audio => "Listened to",
-    MediaType.book => "Read",
-  };
-}
-
-String getEpName(MediaType m) {
-  return switch (m) {
-    MediaType.video => "Episodes",
-    MediaType.comic => "Chapter",
-    MediaType.audio => "Episodes",
-    MediaType.book => "Chapter",
-  };
-}
 
 class ActivityCard extends StatelessWidget {
   final Activity act;
@@ -89,9 +72,9 @@ class ActivityCard extends StatelessWidget {
               options: const HumanizeOptions(
                   units: [Units.hour, Units.minute, Units.second])),
           if ((data["episodesread"] as List).isNotEmpty)
-            "${getAction(entry?.type ?? MediaType.video)} ${(data["episodesread"] as List).length} ${getEpName(entry?.type ?? MediaType.video)}",
+            "${entry?.type.getAction()} ${(data["episodesread"] as List).length} ${entry?.type.getEpName()}",
           if ((data["episodesmarked"] as List).isNotEmpty)
-            "Marked ${(data["episodesmarked"] as List).length} ${getEpName(entry?.type ?? MediaType.video)}",
+            "Marked ${(data["episodesmarked"] as List).length} ${entry?.type.getEpName()}",
         ];
 
         return ListTile(

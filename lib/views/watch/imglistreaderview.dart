@@ -4,11 +4,10 @@ import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/Utils/utils.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/main.dart';
-import 'package:dionysos/page/settings.dart';
-import 'package:dionysos/widgets/huge.dart';
-import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
+import 'package:dionysos/views/settingsview.dart';
+import 'package:dionysos/widgets/hugelist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -16,13 +15,13 @@ import 'package:huge_listview/huge_listview.dart' as huge;
 import 'package:quiver/collection.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+//TODO: Work in progress
 class Imglistreader extends StatefulWidget {
   final ImgListSource source;
   const Imglistreader(this.source, {super.key});
 
   @override
-  _ImglistreaderState createState() => _ImglistreaderState();
+  createState() => _ImglistreaderState();
 }
 
 class _ImglistreaderState extends State<Imglistreader> {
@@ -141,7 +140,7 @@ class ImgList extends StatefulWidget {
   const ImgList({super.key, required this.source});
 
   @override
-  _ImgListState createState() => _ImgListState();
+  createState() => _ImgListState();
 }
 
 class _ImgListState extends State<ImgList> {
@@ -184,12 +183,18 @@ class _ImgListState extends State<ImgList> {
             errorWidget: (context, url, error) => const Icon(Icons.error),
           );
         },
-        initialScrollIndex: max(widget.source.getEpdata().getIProgress(0), 0),
+        initialScrollIndex: max(widget.source.getEpdata().iprogress??0, 0),
         itemCount: widget.source.urls.length,
       ),
     );
   }
 }
+
+
+
+
+
+
 
 class PaginatedImgListViewer extends StatefulWidget {
   final ImgListSource source;
@@ -231,16 +236,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
       return;
     }
     nav = true;
-    // Source? prev = await widget.source.getPrevious();
-    // if (!mounted) {
-    //   nav = false;
-    //   return;
-    // }
-    // if (prev == null) {
-    //   return;
-    // }
     navreplaceSource(context, widget.source.getPrevious());
-    // context.pushReplacement("/any", extra: prev.navReader());
   }
 
   bool nav = false;
@@ -248,23 +244,14 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
     if (!mounted) {
       return;
     }
-    if (nav) {
-      return;
-    }
     if (!widget.source.hasNext()) {
       return;
     }
+    if (nav) {
+      return;
+    }
     nav = true;
-    // Source? next = await widget.source.getNext();
-    // if (!mounted) {
-    //   return;
-    // }
-    // if (next == null) {
-    //   nav = false;
-    //   return;
-    // }
     navreplaceSource(context, widget.source.getNext());
-    // context.pushReplacement("/any", extra: next.navReader());
     widget.source.entry.complete(widget.source.getIndex());
     widget.source.entry.save();
   }
@@ -395,7 +382,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
                 return Container();
               },
               initialScrollIndex:
-                  max(widget.source.getEpdata().getIProgress(0), 0),
+                  max(widget.source.getEpdata().iprogress??0, 0),
               itemCount: widget.source.urls.length + 2,
             ),
           ),

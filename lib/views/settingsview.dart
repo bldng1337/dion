@@ -1,13 +1,9 @@
-import 'dart:math';
 
-import 'package:dionysos/Entry.dart';
-import 'package:dionysos/Utils/settingsapi.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/util/settingsapi.dart';
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
 import 'package:language_code/language_code.dart';
 
-import '../main.dart';
 
 const SettingsCategory library = SettingsCategory("library");
 

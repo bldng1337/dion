@@ -1,8 +1,8 @@
 import 'package:contained_tab_bar_view/contained_tab_bar_view.dart';
-import 'package:dionysos/Entry.dart';
+import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/main.dart';
-import 'package:dionysos/page/EntryView.dart';
-import 'package:dionysos/page/settings.dart';
+import 'package:dionysos/views/entrybrowseview.dart';
+import 'package:dionysos/views/settingsview.dart';
 import 'package:dionysos/sync.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
@@ -21,7 +21,6 @@ class _LibraryState extends State<Library> {
     super.initState();
 
     isar.entrySaveds.watchLazy().listen((event) {
-      print("got change");
       if (!mounted) {
         return;
       }
@@ -227,7 +226,7 @@ class _LibraryState extends State<Library> {
                             title: const Text("Set categories"),
                             content: StatefulBuilder(
                               builder: (context, setState) {
-                                return Container(
+                                return SizedBox(
                                   height: double.maxFinite,
                                   width: double.maxFinite,
                                   child: ListView.builder(
@@ -257,25 +256,6 @@ class _LibraryState extends State<Library> {
                 ],
               ),
             ),
-      actions: [
-        TextButton(onPressed: () {}, child: Text("Reload UI")),
-        TextButton(
-            onPressed: () async {
-              print("updating");
-              EntrySaved e = (await isar.entrySaveds
-                  .where()
-                  .filter()
-                  .titleEqualTo("Death Sutra")
-                  .findFirst())!;
-              e.getEpdata(e.getlastReadIndex() + 1).completed = true;
-              print(e.getlastReadIndex());
-              print(e.title);
-              isar.writeTxn(() async {
-                isar.entrySaveds.put(e);
-              });
-            },
-            child: Text("change"))
-      ],
       child: StreamBuilder(
         stream: isar.categorys.where().anyId().watch().asBroadcastStream(),
         initialData: isar.categorys.where().anyId().findAllSync(),
@@ -301,94 +281,3 @@ class _LibraryState extends State<Library> {
     );
   }
 }
-
-// class CategoryView extends StatefulWidget {
-//   final Category? category;
-//   const CategoryView({this.category, super.key});
-
-//   @override
-//   State<CategoryView> createState() => _CategoryViewState();
-// }
-
-// class _CategoryViewState extends State<CategoryView> {
-//   QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortQuery(
-//       QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> q) {
-//     bool desc = LibrarySetting.getsortdesc() ?? false;
-//     switch (LibrarySetting.getsortcategory() ?? "") {
-//       case "epsuncompleted":
-//         if (desc) {
-//           return q.sortByEpisodesnotcompletedDesc();
-//         }
-//         return q.sortByEpisodesnotcompleted();
-//       case "epscompleted":
-//         if (desc) {
-//           return q.sortByEpisodescompletedDesc();
-//         }
-//         return q.sortByEpisodescompleted();
-//       case "epstotal":
-//         if (desc) {
-//           return q.sortByTotalepisodesDesc();
-//         }
-//         return q.sortByTotalepisodes();
-//     }
-//     return q.sortByTotalepisodes();
-//   }
-//   late final QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> filtered;
-//   final EndlessPaginationController<EntrySaved> controller=EndlessPaginationController();
-//   @override
-//   void initState() {
-//     super.initState();
-//     if (widget.category == null) {
-//       filtered = isar.entrySaveds.where().filter().categoryIsEmpty();
-//     } else {
-//       filtered = isar.entrySaveds
-//           .where()
-//           .filter()
-//           .category((q) => q.nameEqualTo(widget.category!.name));
-//     }
-//     filtered.watchLazy().listen((event) {
-//       controller.reload();
-//     },);
-//   }
-
-//   final pagesize = 20;
-//   @override
-//   Widget build(BuildContext context) {
-//     return EndlessPaginationGridView<EntrySaved>(
-//         controller: controller,
-//         loadMore: (index) => sortQuery(filtered
-//             .optional(
-//                 LibrarySetting.getfiltermediatypet() ?? false,
-//                 (q) => q.anyOf(
-//                     prefs.getStringList(LibrarySetting.filtermediatype) ?? [],
-//                     (q, element) => q.typeEqualTo(getMediaType(element))))
-//             .optional(
-//                 LibrarySetting.getfilterstatust() ?? false,
-//                 (q) => q.statusEqualTo(getStatus(prefs
-//                         .getString(LibrarySetting.filterstatus) ??
-//                     "")))).offset(index * pagesize).limit(pagesize).findAll(),
-//         itemBuilder: (context,
-//                 {required index, required item, required totalItems}) =>
-//             EntryCard(
-//               selected: selected.contains(item),
-//               selection: selected.isNotEmpty,
-//               onselect: () {
-//                 setState(() {
-//                   if (selected.contains(item)) {
-//                     selected.remove(item);
-//                   } else {
-//                     selected.add(item);
-//                   }
-//                 });
-//               },
-//               entry: item,
-//             ),
-//         paginationDelegate: EndlessPaginationDelegate(
-//           pageSize: pagesize,
-//         ),
-//         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-//           childAspectRatio: 0.69,
-//           maxCrossAxisExtent: 220,
-//         ));
-//   }
-// }

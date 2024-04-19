@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dionysos/Entry.dart';
-import 'package:dionysos/Utils/utils.dart';
+import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/main.dart';
-import 'package:dionysos/page/settings.dart';
+import 'package:dionysos/views/settingsview.dart';
 import 'package:isar/isar.dart';
-import 'Utils/file_utils.dart';
+import 'util/file_utils.dart';
 
 Future<Directory?> getSyncPath() {
   Directory? dir=SyncSetting.dir.value;
@@ -24,8 +24,7 @@ void dosync() async {
   }
   File f = d.getFile("$deviceId.sync");
   await for (final file in d.list()) {
-    if (file is! File || file.getExtension() != ".sync" || f.getBasename() == file.getBasename()) {
-      print("Skipping ${file}");
+    if (file is! File || file.getExtension() != ".sync" || f.getBasePath() == file.getBasePath()) {
       continue;
     }
     final jsonsync = json.decode(await file.readAsString());

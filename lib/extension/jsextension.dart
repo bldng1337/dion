@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart' as dio;
-import 'package:dionysos/Entry.dart';
+import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/Utils/file_utils.dart';
-import 'package:dionysos/Utils/network_manager.dart';
+import 'package:dionysos/util/file_utils.dart';
+import 'package:dionysos/util/network_manager.dart';
 import 'package:flutter_js/flutter_js.dart';
 import "package:async_locks/async_locks.dart";
 class ExtensionData {
@@ -17,11 +17,11 @@ class ExtensionData {
   final String? giturl;
   final String? url;
   final String? icon;
-  final double? minimum_api_version;
+  final double? minApiVersion;
   final double? version;
 
   ExtensionData(this.type, this.desc, this.author, this.authorurl, this.giturl,
-      this.url, this.icon, this.minimum_api_version, this.version, this.name);
+      this.url, this.icon, this.minApiVersion, this.version, this.name);
 
   factory ExtensionData.fromJson(Map<String, dynamic> json) {
     return ExtensionData(

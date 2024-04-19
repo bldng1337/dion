@@ -9,7 +9,7 @@ extension FileUtils on File {
     return File("${parent.absolute.path}/$name");
   }
 
-  String getBasename() {
+  String getBasePath() {
     return parent.absolute.path+p.basenameWithoutExtension(path);
   }
 
@@ -18,15 +18,15 @@ extension FileUtils on File {
   }
 
   Future<File> ctwin(String name) {
-    return File("${getBasename()}$name").create(recursive: true);
+    return File("${getBasePath()}$name").create(recursive: true);
   }
 
   File twin(String name) {
-    return File("${getBasename()}$name");
+    return File("${getBasePath()}$name");
   }
 }
 
-extension PathUtils on Directory {
+extension DirUtils on Directory {
   Future<Directory> sub(String path) async {
     Directory dir = Directory("${absolute.path}/$path/");
     return dir;

@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'dart:math';
 
-import 'package:dionysos/Entry.dart';
+import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/main.dart';
 import 'package:isar/isar.dart';
 
 part 'activity.g.dart';
-
+//TODO: Will get reworked down the line
 enum ReadType { read, started, marked }
 
 Duration act = const Duration(minutes: 30);

@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:dionysos/Entry.dart';
+import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';

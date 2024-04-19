@@ -3,15 +3,15 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_js/quickjs/ffi.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:language_code/language_code.dart';
 import 'package:share_plus/share_plus.dart';
 
-extension FileUtils on Map {
+extension MapUtils on Map {
   Map<K,V> where<K, V>(bool Function(K, V) test){
     Map<K,V> temp=Map.from(this);
     temp.removeWhere((a,b)=>!test(a,b));
-    print(temp);
     return temp;
   }
 }
@@ -25,25 +25,27 @@ String formatNumber(int num) {
   final formatter = NumberFormat.compact(locale: "en_US", explicitSign: false);
   return formatter.format(num);
 }
-
-String getPlatform() {
+enum CPlatform{
+  ios,android,macos,windows,fuchsia,unknown
+}
+CPlatform getPlatform() {
   if (Platform.isIOS) {
-    return "IOS";
+    return CPlatform.ios;
   } else if (Platform.isAndroid) {
-    return "ANDROID";
+    return CPlatform.android;
   } else if (Platform.isMacOS) {
-    return "MACOS";
+    return CPlatform.macos;
   } else if (Platform.isWindows) {
-    return "WINDOWS";
+    return CPlatform.windows;
   } else if (Platform.isFuchsia) {
-    return "FUCHSIA";
+    return CPlatform.fuchsia;
   } else {
-    return "UNKWON";
+    return CPlatform.unknown;
   }
 }
 
 void share(String s) async {
-  if (getPlatform() == "WINDOWS") {
+  if (getPlatform() == CPlatform.windows) {
     await Clipboard.setData(ClipboardData(text: s));
   }
   Share.share(s);
@@ -136,15 +138,17 @@ class SwipeDetector extends StatelessWidget {
 
         // dy < 0 => UP -- dx > 0 => RIGHT
         if (isHorizontalMainAxis) {
-          if (dx > 0)
+          if (dx > 0) {
             onSwipeRight?.call();
-          else
+          } else {
             onSwipeLeft?.call();
+          }
         } else {
-          if (dy < 0)
+          if (dy < 0) {
             onSwipeUp?.call();
-          else
+          } else {
             onSwipeDown?.call();
+          }
         }
       },
     );
@@ -168,3 +172,59 @@ LanguageCodes? stringtoLang(String? ilang) {
 
 List<T> listcast<T>(List<dynamic> list) => list.map((e) => e as T).toList();
 List<T>? mlistcast<T>(List<dynamic>? list) => list?.map((e) => e as T).toList();
+
+
+class BareScaffold extends StatelessWidget {
+  final Widget child;
+  const BareScaffold(this.child,{super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: child,
+    );
+  }
+}
+
+class FutureLoader<T> extends StatelessWidget {
+  final Future<T> future;
+  final Widget Function(BuildContext context,T data) success;
+  final Widget Function(BuildContext context,Object error)? error;
+  final Widget Function(BuildContext context)? loading;
+  const FutureLoader(this.future,{super.key, required this.success, this.error, this.loading});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(future: future, builder: (context, snapshot) {
+      if(snapshot.hasError){
+        if(error!=null){
+          return error!(context,snapshot.error!);
+        }
+        return Container();
+      }
+      if(snapshot.hasData){
+        return success(context,snapshot.data as T);
+      }
+      if(loading!=null){
+        return loading!(context);
+      }
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    },);
+  }
+}
+
+void enav(BuildContext context, Widget w) {
+  context.push("/any", extra: w);
+}
+
+class Any extends StatelessWidget {
+  const Any({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return (GoRouterState.of(context).extra! as Widget);
+  }
+}

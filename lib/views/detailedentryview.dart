@@ -1,10 +1,7 @@
-import 'dart:convert';
-import 'dart:math';
-
-import 'package:dionysos/Entry.dart';
+import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/Utils/utils.dart';
-import 'package:dionysos/activity.dart';
+import 'package:dionysos/util/utils.dart';
+import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/sync.dart';
 import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
@@ -112,7 +109,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
         .map((e) => e.$1)
         .toList();
 
-    return Container(
+    return SizedBox(
       height: MediaQuery.of(context).size.height,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,6 +321,9 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                     context: context,
                     builder: (context) => AlertDialog(
                       backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      surfaceTintColor: Colors.transparent,
+                      iconColor: Colors.transparent,
                       content: FancyShimmerImage(
                         height: double.maxFinite,
                         width: double.maxFinite,
@@ -439,94 +439,10 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
         return "Continue Listening";
       case MediaType.book:
         return "Continue Reading";
+      case MediaType.unknown:
+        return "Continue";
     }
   }
-
-  // Future<void> showDownloadPopup(BuildContext context, EntrySaved saved,
-  //     EpisodeListDownloaded eplist) async {
-  //   const int minval = 1;
-  //   const int maxval = 40;
-  //   await showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       actions: [
-  //         TextButton(
-  //             onPressed: () {
-  //               Navigator.of(context).pop();
-  //             },
-  //             child: const Text("Done"))
-  //       ],
-  //       title: const Text("Edit:"),
-  //       content: Container(
-  //         height: double.maxFinite,
-  //         width: double.maxFinite,
-  //         child: StatefulBuilder(
-  //           builder: (context, setState) => ListView(
-  //             children: [
-  //               DropdownMenu<int>(
-  //                 dropdownMenuEntries: saved.episodes.indexed
-  //                     .map((e) =>
-  //                         DropdownMenuEntry(label: e.$2.title, value: e.$1))
-  //                     .toList(),
-  //                 enableSearch: false,
-  //                 requestFocusOnTap: false,
-  //                 initialSelection: episodeindex,
-  //                 onSelected: (i) {
-  //                   setState(() {
-  //                     eplist.dependentIndex = i ?? 0;
-  //                   });
-  //                 },
-  //               ),
-  //               CheckboxListTile(
-  //                 value: eplist.autodelete,
-  //                 onChanged: (value) =>
-  //                     setState(() => eplist.autodelete = value ?? false),
-  //                 title: const Text("Auto Delete Read Chapters"),
-  //               ),
-  //               if (eplist.autodelete)
-  //                 ListTile(
-  //                   title:
-  //                       Text("Read Chapters to keep: ${eplist.chapterDelete}"),
-  //                   isThreeLine: true,
-  //                   subtitle: Slider(
-  //                       min: minval.toDouble(),
-  //                       max: maxval.toDouble(),
-  //                       value: min(max(eplist.chapterDelete, minval), maxval)
-  //                           .toDouble(),
-  //                       divisions: maxval - minval,
-  //                       onChanged: (value) => setState(
-  //                             () => eplist.chapterDelete = value.toInt(),
-  //                           )),
-  //                 ),
-  //               CheckboxListTile(
-  //                 value: eplist.autodownload,
-  //                 onChanged: (value) =>
-  //                     setState(() => eplist.autodownload = value ?? false),
-  //                 title: const Text("Auto Download Chapters"),
-  //               ),
-  //               if (eplist.autodownload)
-  //                 ListTile(
-  //                   title: Text(
-  //                       "Chapters to download: ${eplist.predownloadChapters}"),
-  //                   isThreeLine: true,
-  //                   subtitle: Slider(
-  //                       min: minval.toDouble(),
-  //                       max: maxval.toDouble(),
-  //                       value:
-  //                           min(max(eplist.predownloadChapters, minval), maxval)
-  //                               .toDouble(),
-  //                       divisions: maxval - minval,
-  //                       onChanged: (value) => setState(
-  //                             () => eplist.predownloadChapters = value.toInt(),
-  //                           )),
-  //                 ),
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
 
   Widget display(EntryDetail entry) {
     eplist ??= entry.episodes[0];
@@ -750,54 +666,43 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
   @override
   Widget build(BuildContext context) {
     _entry ??= (GoRouterState.of(context).extra! as Entry).detailed();
-
-    return FutureBuilder<EntryDetail?>(
-        future: _entry,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text(
-              'Error loading Detailedview: ${snapshot.error}',
-              style: Theme.of(context).textTheme.headlineMedium,
-            );
-          }
-          if (!snapshot.hasData) {
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text("Loading..."),
-              ),
-              body: const Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.data == null) {
-            return Text(
-              'Error loading Detailedview: ${snapshot.error}',
-              style: Theme.of(context).textTheme.headlineMedium,
-            );
-          }
-          if (snapshot.data! is EntrySaved) {
-            return StreamBuilder(
-              stream: isar.entrySaveds
-                  .watchObject((snapshot.data! as EntrySaved).id)
-                  .asBroadcastStream(),
-              initialData: snapshot.data!,
-              builder: (context, snapshot) {
-                EntrySaved? ent =
-                    isar.entrySaveds.getSync((snapshot.data! as EntrySaved).id);
-                if (ent == null) {
-                  return Scaffold(
-                    appBar: AppBar(
-                      title: const Text("Loading..."),
-                    ),
-                    body: const Center(child: CircularProgressIndicator()),
-                  );
-                }
-                _entry = Future.value(ent);
-                return display(ent);
-              },
-            );
-          }
-          EntryDetail entry = snapshot.data!;
-          return display(entry);
-        });
+    return FutureLoader(
+      _entry!,
+      error: (context, error) => BareScaffold(Text(
+        'Error loading Detailedview: $error',
+        style: Theme.of(context).textTheme.headlineMedium,
+      )),
+      loading: (context) => Scaffold(
+        appBar: AppBar(
+          title: const Text("Loading..."),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      success: (context, data) {
+        if (data! is EntrySaved) {
+          return StreamBuilder(
+            stream: isar.entrySaveds
+                .watchObject((data as EntrySaved).id)
+                .asBroadcastStream(),
+            initialData: data,
+            builder: (context, snapshot) {
+              EntrySaved? ent = isar.entrySaveds.getSync(data.id);
+              if (ent == null) {
+                return Scaffold(
+                  appBar: AppBar(
+                    title: const Text("Loading..."),
+                  ),
+                  body: const Center(child: CircularProgressIndicator()),
+                );
+              }
+              _entry = Future.value(ent);
+              return display(ent);
+            },
+          );
+        }
+        EntryDetail entry = data;
+        return display(entry);
+      },
+    );
   }
 }

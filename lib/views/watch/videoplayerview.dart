@@ -1,5 +1,5 @@
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/page/settings.dart';
+import 'package:dionysos/views/settingsview.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:language_code/language_code.dart';

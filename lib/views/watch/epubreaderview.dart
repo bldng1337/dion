@@ -59,10 +59,8 @@ void initState() {
   super.initState();
   timer = Timer.periodic(const Duration(seconds: 15), (timer) => save());
   _epubController = EpubController(
-    // Load document
     document: getEpub(),
-    // Set start point
-    epubCfi: widget.source.getEpdata().getSProgress(""),
+    epubCfi: widget.source.getEpdata().sprogress??"",
   );
   
 }
@@ -82,7 +80,6 @@ Widget build(BuildContext context) {
   }
   return Scaffold(
   appBar: AppBar(
-    // Show actual chapter name
     title: EpubViewActualChapter(
       controller: _epubController,
       builder: (chapterValue) => Text(
@@ -91,13 +88,11 @@ Widget build(BuildContext context) {
       )
     ),
   ),
-  // Show table of contents
   // drawer: Drawer(
   //   child: EpubViewTableOfContents(
   //     controller: _epubController,
   //   ),
   // ),
-  // Show epub document
   body: EpubView(
     controller: _epubController,
   ),
