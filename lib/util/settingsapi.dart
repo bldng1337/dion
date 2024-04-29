@@ -200,6 +200,18 @@ abstract class OptionalSettingTile<T> extends Tile {
       {super.icon});
 }
 
+class WidgetTile extends Tile {
+  final Widget w;
+  const WidgetTile(this.w):super("","");
+
+  
+  @override
+  Widget render(BuildContext context, Function update) {
+    return w;
+  }
+  
+}
+
 class SettingsNavTile extends Tile {
   final SettingPageBuilder builder;
 

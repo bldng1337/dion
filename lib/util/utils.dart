@@ -9,9 +9,9 @@ import 'package:language_code/language_code.dart';
 import 'package:share_plus/share_plus.dart';
 
 extension MapUtils on Map {
-  Map<K,V> where<K, V>(bool Function(K, V) test){
-    Map<K,V> temp=Map.from(this);
-    temp.removeWhere((a,b)=>!test(a,b));
+  Map<K, V> where<K, V>(bool Function(K, V) test) {
+    Map<K, V> temp = Map.from(this);
+    temp.removeWhere((a, b) => !test(a, b));
     return temp;
   }
 }
@@ -25,9 +25,9 @@ String formatNumber(int num) {
   final formatter = NumberFormat.compact(locale: "en_US", explicitSign: false);
   return formatter.format(num);
 }
-enum CPlatform{
-  ios,android,macos,windows,fuchsia,unknown
-}
+
+enum CPlatform { ios, android, macos, windows, fuchsia, unknown }
+
 CPlatform getPlatform() {
   if (Platform.isIOS) {
     return CPlatform.ios;
@@ -156,27 +156,30 @@ class SwipeDetector extends StatelessWidget {
 }
 
 LanguageCodes? stringtoLang(String? ilang) {
-  if(ilang==null){
+  if (ilang == null) {
     return null;
   }
-  String lang=ilang.toLowerCase();
-  
+  String lang = ilang.toLowerCase();
+
   return LanguageCodes.values.firstWhereOrNull((p0) =>
-      lang==p0.code.toLowerCase() ||
-      p0.englishNames.map((e) => lang.contains(e.toLowerCase())).contains(true) ||
-      p0.nativeNames.map((e) => lang.contains(e.toLowerCase())).contains(true) ||
-      lang==p0.locale.countryCode?.toLowerCase() ||
-      lang==p0.locale.languageCode.toLowerCase()||
-      lang==p0.locale.scriptCode?.toLowerCase());
+      lang == p0.code.toLowerCase() ||
+      p0.englishNames
+          .map((e) => lang.contains(e.toLowerCase()))
+          .contains(true) ||
+      p0.nativeNames
+          .map((e) => lang.contains(e.toLowerCase()))
+          .contains(true) ||
+      lang == p0.locale.countryCode?.toLowerCase() ||
+      lang == p0.locale.languageCode.toLowerCase() ||
+      lang == p0.locale.scriptCode?.toLowerCase());
 }
 
 List<T> listcast<T>(List<dynamic> list) => list.map((e) => e as T).toList();
 List<T>? mlistcast<T>(List<dynamic>? list) => list?.map((e) => e as T).toList();
 
-
 class BareScaffold extends StatelessWidget {
   final Widget child;
-  const BareScaffold(this.child,{super.key});
+  const BareScaffold(this.child, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -189,30 +192,34 @@ class BareScaffold extends StatelessWidget {
 
 class FutureLoader<T> extends StatelessWidget {
   final Future<T> future;
-  final Widget Function(BuildContext context,T data) success;
-  final Widget Function(BuildContext context,Object error)? error;
+  final Widget Function(BuildContext context, T data) success;
+  final Widget Function(BuildContext context, Object error)? error;
   final Widget Function(BuildContext context)? loading;
-  const FutureLoader(this.future,{super.key, required this.success, this.error, this.loading});
+  const FutureLoader(this.future,
+      {super.key, required this.success, this.error, this.loading});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(future: future, builder: (context, snapshot) {
-      if(snapshot.hasError){
-        if(error!=null){
-          return error!(context,snapshot.error!);
+    return FutureBuilder(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          if (error != null) {
+            return error!(context, snapshot.error!);
+          }
+          return Container();
         }
-        return Container();
-      }
-      if(snapshot.hasData){
-        return success(context,snapshot.data as T);
-      }
-      if(loading!=null){
-        return loading!(context);
-      }
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    },);
+        if (snapshot.hasData) {
+          return success(context, snapshot.data as T);
+        }
+        if (loading != null) {
+          return loading!(context);
+        }
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
   }
 }
 
@@ -226,5 +233,22 @@ class Any extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return (GoRouterState.of(context).extra! as Widget);
+  }
+}
+
+class ConstructionWarning extends StatelessWidget {
+  const ConstructionWarning({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        children: [
+          Icon(Icons.construction,size: 150,),
+          Text("Under Construction",style: TextStyle(fontSize: 30),),
+          Text("This feature is not finished",style: TextStyle(fontSize: 15),),
+        ],
+      ),
+    );
   }
 }

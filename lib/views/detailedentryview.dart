@@ -485,7 +485,9 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                       ],
                       content: StatefulBuilder(
                         builder: (context, setState) => Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
+
                             const Text("Delete Read Episodes"),
                             Checkbox(
                               value: deleteread,
@@ -506,7 +508,8 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                                       () {
                                         episodes = value.toInt();
                                       },
-                                    ))
+                                    )),
+                                    const ConstructionWarning(),
                           ],
                         ),
                       ),

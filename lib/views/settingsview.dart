@@ -1,6 +1,7 @@
 
 import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/util/settingsapi.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:language_code/language_code.dart';
 
@@ -120,7 +121,8 @@ final librarysettings = SettingPageBuilder("Manga Reader Settings", [
 
 const SettingPageBuilder syncsettings = SettingPageBuilder("Sync Settings", [
   DirectoryTile(
-      "SyncPath", "Path where the sync file should be stored", SyncSetting.dir)
+      "SyncPath", "Path where the sync file should be stored", SyncSetting.dir),
+  WidgetTile(ConstructionWarning()),
 ]);
 
 const SettingPageBuilder videoplayersettings =

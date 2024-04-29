@@ -1,4 +1,5 @@
 import 'package:dionysos/extension/jsextension.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/link.dart';
@@ -90,6 +91,7 @@ class _ExtensionsettingState extends State<Extensionsetting> {
             )
           ],
         ),
+        const ConstructionWarning(),
         ...widget.ext.settings.entries.map((e) => buildsetting(e.key, e.value))
       ]),
     );
