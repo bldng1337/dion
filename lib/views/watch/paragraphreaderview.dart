@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:bionify/bionify.dart';
 import 'package:dionysos/Source.dart';
 import 'package:dionysos/util/utils.dart';
-import 'package:dionysos/main.dart';
 import 'package:dionysos/views/settingsview.dart';
 import 'package:dionysos/widgets/hugelist.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +12,6 @@ import 'package:go_router/go_router.dart';
 import 'package:huge_listview/huge_listview.dart' as hlist;
 import 'package:quiver/collection.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:bionify/bionify.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Widget toText(BuildContext context, String paragraph) {
@@ -20,7 +19,7 @@ Widget toText(BuildContext context, String paragraph) {
     fontSize: TextReaderSettings.textsize.value,
     color: Theme.of(context).textTheme.displaySmall?.color,
     fontWeight: FontWeight.values.firstWhere((element) =>
-        element.toString().contains(TextReaderSettings.textweight.value)),
+        element.toString().contains(TextReaderSettings.textweight.value),),
   );
   if (TextReaderSettings.bionic.value) {
     return Bionify(
@@ -32,7 +31,7 @@ Widget toText(BuildContext context, String paragraph) {
         color: Theme.of(context).textTheme.displaySmall?.color,
         fontWeight: FontWeight.values.firstWhere((element) => element
             .toString()
-            .contains(TextReaderSettings.bionichighlight.value)),
+            .contains(TextReaderSettings.bionichighlight.value),),
       ),
     );
   }
@@ -48,7 +47,7 @@ class Paragraphreader extends StatefulWidget {
   const Paragraphreader({super.key, required this.source});
 
   @override
-  createState() => _ParagraphreaderState();
+  _ParagraphreaderState createState() => _ParagraphreaderState();
 }
 
 class _ParagraphreaderState extends State<Paragraphreader> {
@@ -80,7 +79,7 @@ class _ParagraphreaderState extends State<Paragraphreader> {
   }
 
   void openwebview() {
-    launchUrl(Uri.parse(source?.ep.url ?? ""));
+    launchUrl(Uri.parse(source?.ep.url ?? ''));
   }
 
   void back(BuildContext context) {}
@@ -100,21 +99,21 @@ class _ParagraphreaderState extends State<Paragraphreader> {
       child: Scaffold(
         appBar: AppBar(
             title: Text(
-              source?.ep.name ?? "Loading...",
+              source?.ep.name ?? 'Loading...',
             ),
             actions: [
               IconButton(
-                  onPressed: openwebview, icon: const Icon(Icons.web_outlined)),
+                  onPressed: openwebview, icon: const Icon(Icons.web_outlined),),
               IconButton(
                   icon: Icon(source?.getEpdata().isBookmarked ?? false
                       ? Icons.bookmark
-                      : Icons.bookmark_outline),
-                  onPressed: bookmark),
+                      : Icons.bookmark_outline,),
+                  onPressed: bookmark,),
               IconButton(
                   onPressed: () => enav(
-                      context, textreadersettings.build(() => setState(() {}))),
-                  icon: const Icon(Icons.settings)),
-            ]),
+                      context, textreadersettings.build(() => setState(() {})),),
+                  icon: const Icon(Icons.settings),),
+            ],),
         body: HugeListView(
           scrollOffsetController: sc,
           pageSize: 1,
@@ -141,18 +140,18 @@ class _ParagraphreaderState extends State<Paragraphreader> {
           thumbBuilder: hlist.DraggableScrollbarThumbs.SemicircleThumb,
           itemBuilder: (context, index, Source? entry) {
             if (entry == null) {
-              return Text("Error $index");
+              return Text('Error $index');
             }
             return Paragraph(
               source: entry as ParagraphListSource,
             );
           },
-          placeholderBuilder: (build, index) => (SizedBox(
+          placeholderBuilder: (build, index) => SizedBox(
             height: MediaQuery.of(context).size.height,
-            child: (const Center(
+            child: const Center(
               child: CircularProgressIndicator(),
-            )),
-          )),
+            ),
+          ),
           lruMap: map,
         ),
       ),
@@ -166,7 +165,7 @@ class Paragraph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double edge = (MediaQuery.of(context).size.width -
+    final double edge = (MediaQuery.of(context).size.width -
             ((TextReaderSettings.textwidth.value / 100) *
                 MediaQuery.of(context).size.width)) /
         2;
@@ -181,7 +180,7 @@ class Paragraph extends StatelessWidget {
               fontSize: 40,
             ),
           ),
-          ...source.paragraphs.map((e) => toText(context, e))
+          ...source.paragraphs.map((e) => toText(context, e)),
         ],
       ),
     );
@@ -208,16 +207,16 @@ class _ParagraphReaderState extends State<ParagraphReader> {
   }
 
   void save() {
-    int min = itemPositionsListener.itemPositions.value
+    final int min = itemPositionsListener.itemPositions.value
         .where((ItemPosition position) => position.itemTrailingEdge > 0)
         .reduce((ItemPosition min, ItemPosition position) =>
-            position.itemTrailingEdge < min.itemTrailingEdge ? position : min)
+            position.itemTrailingEdge < min.itemTrailingEdge ? position : min,)
         .index;
     widget.source.getEpdata().iprogress = min;
     widget.source.entry.save();
   }
 
-  void navPreviousChapter() async {
+  Future<void> navPreviousChapter() async {
     if (!mounted) {
       return;
     }
@@ -241,7 +240,7 @@ class _ParagraphReaderState extends State<ParagraphReader> {
   }
 
   bool nav = false;
-  void navNextChapter() async {
+  Future<void> navNextChapter() async {
     if (!mounted) {
       return;
     }
@@ -332,23 +331,23 @@ class _ParagraphReaderState extends State<ParagraphReader> {
                   onPressed: () {
                     context.pop();
                   },
-                )),
+                ),),
                 title: Text(widget.source.ep.name),
                 actions: [
                   IconButton(
                       autofocus: true,
                       onPressed: openwebview,
-                      icon: const Icon(Icons.web_outlined)),
+                      icon: const Icon(Icons.web_outlined),),
                   IconButton(
                       icon: Icon(widget.source.getEpdata().isBookmarked
                           ? Icons.bookmark
-                          : Icons.bookmark_outline),
-                      onPressed: bookmark),
+                          : Icons.bookmark_outline,),
+                      onPressed: bookmark,),
                   IconButton(
                       onPressed: () => enav(context,
-                          textreadersettings.build(() => setState(() {}))),
-                      icon: const Icon(Icons.settings)),
-                ]),
+                          textreadersettings.build(() => setState(() {})),),
+                      icon: const Icon(Icons.settings),),
+                ],),
             body: ScrollablePositionedList.builder(
               scrollOffsetController: sc,
               itemScrollController: sci,
@@ -358,27 +357,25 @@ class _ParagraphReaderState extends State<ParagraphReader> {
                   if (widget.source.hasPrevious()) {
                     return ExcludeFocus(
                         child: TextButton(
-                      autofocus: false,
                       onPressed: () {
                         navPreviousChapter();
                       },
-                      child: const Text("Previous Chapter"),
-                    ));
+                      child: const Text('Previous Chapter'),
+                    ),);
                   }
                 } else if (i <= widget.source.paragraphs.length) {
                   return Padding(
                       padding: EdgeInsets.only(left: edge, right: edge),
-                      child: toText(context, widget.source.paragraphs[i - 1]));
+                      child: toText(context, widget.source.paragraphs[i - 1]),);
                 } else {
                   if (widget.source.hasNext()) {
                     return ExcludeFocus(
                         child: TextButton(
-                      autofocus: false,
                       onPressed: () {
                         navNextChapter();
                       },
-                      child: const Text("Next Chapter"),
-                    ));
+                      child: const Text('Next Chapter'),
+                    ),);
                   } else {
                     widget.source.entry.complete(widget.source.getIndex());
                     widget.source.entry.save();
@@ -391,6 +388,6 @@ class _ParagraphReaderState extends State<ParagraphReader> {
               itemCount: widget.source.paragraphs.length + 2,
             ),
           ),
-        ));
+        ),);
   }
 }

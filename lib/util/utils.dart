@@ -10,7 +10,7 @@ import 'package:share_plus/share_plus.dart';
 
 extension MapUtils on Map {
   Map<K, V> where<K, V>(bool Function(K, V) test) {
-    Map<K, V> temp = Map.from(this);
+    final Map<K, V> temp = Map.from(this);
     temp.removeWhere((a, b) => !test(a, b));
     return temp;
   }
@@ -22,7 +22,7 @@ bool isVertical(BuildContext ctx) {
 }
 
 String formatNumber(int num) {
-  final formatter = NumberFormat.compact(locale: "en_US", explicitSign: false);
+  final formatter = NumberFormat.compact(locale: 'en_US');
   return formatter.format(num);
 }
 
@@ -44,7 +44,7 @@ CPlatform getPlatform() {
   }
 }
 
-void share(String s) async {
+Future<void> share(String s) async {
   if (getPlatform() == CPlatform.windows) {
     await Clipboard.setData(ClipboardData(text: s));
   }
@@ -94,17 +94,19 @@ class SwipeDetector extends StatelessWidget {
       onPanEnd: (endDetails) {
         if (panStartDetails == null || panUpdateDetails == null) return;
 
-        double dx = panUpdateDetails!.globalPosition.dx -
+        final double dx = panUpdateDetails!.globalPosition.dx -
             panStartDetails!.globalPosition.dx;
-        double dy = panUpdateDetails!.globalPosition.dy -
+        final double dy = panUpdateDetails!.globalPosition.dy -
             panStartDetails!.globalPosition.dy;
 
-        int panDurationMiliseconds =
+        final int panDurationMiliseconds =
             panUpdateDetails!.sourceTimeStamp!.inMilliseconds -
                 panStartDetails!.sourceTimeStamp!.inMilliseconds;
 
-        double mainDis, crossDis, mainVel;
-        bool isHorizontalMainAxis = dx.abs() > dy.abs();
+        double mainDis;
+        double crossDis;
+        double mainVel;
+        final bool isHorizontalMainAxis = dx.abs() > dy.abs();
 
         if (isHorizontalMainAxis) {
           mainDis = dx.abs();
@@ -122,17 +124,17 @@ class SwipeDetector extends StatelessWidget {
 
         if (mainDis < minMainDisplacement) {
           debugPrint(
-              "SWIPE DEBUG | Displacement too short. Real: $mainDis - Min: $minMainDisplacement");
+              'SWIPE DEBUG | Displacement too short. Real: $mainDis - Min: $minMainDisplacement',);
           return;
         }
         if (crossDis > maxCrossRatio * mainDis) {
           debugPrint(
-              "SWIPE DEBUG | Cross axis displacemnt bigger than limit. Real: $crossDis - Limit: ${mainDis * maxCrossRatio}");
+              'SWIPE DEBUG | Cross axis displacemnt bigger than limit. Real: $crossDis - Limit: ${mainDis * maxCrossRatio}',);
           return;
         }
         if (mainVel < minVelocity) {
           debugPrint(
-              "SWIPE DEBUG | Swipe velocity too slow. Real: $mainVel - Min: $minVelocity");
+              'SWIPE DEBUG | Swipe velocity too slow. Real: $mainVel - Min: $minVelocity',);
           return;
         }
 
@@ -159,7 +161,7 @@ LanguageCodes? stringtoLang(String? ilang) {
   if (ilang == null) {
     return null;
   }
-  String lang = ilang.toLowerCase();
+  final String lang = ilang.toLowerCase();
 
   return LanguageCodes.values.firstWhereOrNull((p0) =>
       lang == p0.code.toLowerCase() ||
@@ -171,7 +173,7 @@ LanguageCodes? stringtoLang(String? ilang) {
           .contains(true) ||
       lang == p0.locale.countryCode?.toLowerCase() ||
       lang == p0.locale.languageCode.toLowerCase() ||
-      lang == p0.locale.scriptCode?.toLowerCase());
+      lang == p0.locale.scriptCode?.toLowerCase(),);
 }
 
 List<T> listcast<T>(List<dynamic> list) => list.map((e) => e as T).toList();
@@ -196,7 +198,7 @@ class FutureLoader<T> extends StatelessWidget {
   final Widget Function(BuildContext context, Object error)? error;
   final Widget Function(BuildContext context)? loading;
   const FutureLoader(this.future,
-      {super.key, required this.success, this.error, this.loading});
+      {super.key, required this.success, this.error, this.loading,});
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +226,7 @@ class FutureLoader<T> extends StatelessWidget {
 }
 
 void enav(BuildContext context, Widget w) {
-  context.push("/any", extra: w);
+  context.push('/any', extra: w);
 }
 
 class Any extends StatelessWidget {
@@ -232,7 +234,7 @@ class Any extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return (GoRouterState.of(context).extra! as Widget);
+    return GoRouterState.of(context).extra! as Widget;
   }
 }
 
@@ -245,8 +247,8 @@ class ConstructionWarning extends StatelessWidget {
       child: Column(
         children: [
           Icon(Icons.construction,size: 150,),
-          Text("Under Construction",style: TextStyle(fontSize: 30),),
-          Text("This feature is not finished",style: TextStyle(fontSize: 15),),
+          Text('Under Construction',style: TextStyle(fontSize: 30),),
+          Text('This feature is not finished',style: TextStyle(fontSize: 15),),
         ],
       ),
     );

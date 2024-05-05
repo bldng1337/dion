@@ -12,9 +12,9 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 typedef HugeListViewPageFuture<T> = Future<List<T>> Function(int pageIndex);
 typedef HugeListViewItemBuilder<T> = Widget Function(
-    BuildContext context, int index, T entry);
+    BuildContext context, int index, T entry,);
 typedef HugeListViewErrorBuilder = Widget Function(
-    BuildContext context, dynamic error);
+    BuildContext context, dynamic error,);
 
 class HugeListView<T> extends StatefulWidget {
   /// An optional [ScrollablePositionedList] controller for jumping or scrolling to an item.
@@ -154,7 +154,7 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
     listViewController = widget.listViewController ??
         HugeListViewController(
             totalItemCount: widget.totalCount ??
-                -1 >>> 1); // =int.MAX, temporarily until `totalCount` removed
+                -1 >>> 1,); // =int.MAX, temporarily until `totalCount` removed
     listViewController.addListener(onChange);
     totalItemCount = listViewController.totalItemCount;
 
@@ -185,7 +185,7 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
   }
 
   void _sendScroll() {
-    int current = _currentFirst();
+    final int current = _currentFirst();
     widget.firstShown?.call(current);
     scrollKey.currentState?.setPosition(current / totalItemCount, current);
   }
@@ -262,7 +262,7 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
   void _initCache() {
     map = widget.lruMap ??
         LruMap<int, HugeListViewPageResult<T>>(
-            maximumSize: 256 ~/ widget.pageSize);
+            maximumSize: 256 ~/ widget.pageSize,);
     cache = MapCache<int, HugeListViewPageResult<T>>(map: map);
   }
 
@@ -280,7 +280,7 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
   }
 
   void _error(dynamic e, StackTrace stackTrace) {
-    if (widget.errorBuilder == null) throw e;
+    if (widget.errorBuilder == null) throw Error();
     if (mounted) setState(() => error = e);
   }
 
@@ -294,7 +294,7 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
     } else {
       SchedulerBinding.instance.scheduleFrameCallback(
           (d) => _deferredReload(context),
-          rescheduling: true);
+          rescheduling: true,);
     }
   }
 
@@ -319,17 +319,17 @@ class _MaxVelocityPhysics extends AlwaysScrollableScrollPhysics {
   final double velocityThreshold;
 
   const _MaxVelocityPhysics(
-      {required this.velocityThreshold, super.parent});
+      {required this.velocityThreshold, super.parent,});
 
   @override
   bool recommendDeferredLoading(
-      double velocity, ScrollMetrics metrics, BuildContext context) {
+      double velocity, ScrollMetrics metrics, BuildContext context,) {
     return velocity.abs() > velocityThreshold;
   }
 
   @override
   _MaxVelocityPhysics applyTo(ScrollPhysics? ancestor) {
     return _MaxVelocityPhysics(
-        velocityThreshold: velocityThreshold, parent: buildParent(ancestor));
+        velocityThreshold: velocityThreshold, parent: buildParent(ancestor),);
   }
 }

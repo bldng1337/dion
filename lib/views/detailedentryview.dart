@@ -1,9 +1,9 @@
-import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/util/utils.dart';
+import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/sync.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +32,7 @@ class DownloadButton extends StatelessWidget {
                     }
                   });
                 },
-                icon: const Icon(Icons.download_done))
+                icon: const Icon(Icons.download_done),)
             : FutureLoader(
                 entry.getDownloads(list, episode),
                 success: (context, downloadTasks) {
@@ -49,7 +49,7 @@ class DownloadButton extends StatelessWidget {
                           }
                         });
                       },
-                      icon: const Icon(Icons.download));
+                      icon: const Icon(Icons.download),);
                 },
               ),
       ),
@@ -70,8 +70,8 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
   AEpisodeList? eplist;
   Set<int> selected = {};
   ScrollPhysics scrollPhysics = const ClampingScrollPhysics();
-  var episodescrollController = ScrollController();
-  var scrollController = ScrollController();
+  ScrollController episodescrollController = ScrollController();
+  ScrollController scrollController = ScrollController();
   @override
   void initState() {
     super.initState();
@@ -104,7 +104,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
   }
 
   Widget buildEpisodes(EntryDetail entry, BuildContext context) {
-    List<int> ceplist = eplist!.episodes.indexed
+    final List<int> ceplist = eplist!.episodes.indexed
         // .where((element) => entry.getEpdata(element.$1).isBookmarked)
         .map((e) => e.$1)
         .toList();
@@ -114,7 +114,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("${ceplist.length} Chapters"),
+          Text('${ceplist.length} Chapters'),
           PopupMenuButton<AEpisodeList?>(
             itemBuilder: (BuildContext context) => [
               ...entry.episodes.map((e) => PopupMenuItem(
@@ -123,10 +123,10 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                       children: [
                         Text(e.title),
                         const Spacer(),
-                        Text("${e.episodes.length}")
+                        Text('${e.episodes.length}'),
                       ],
                     ),
-                  )),
+                  ),),
               const PopupMenuDivider(),
             ],
             onSelected: (value) {
@@ -141,12 +141,12 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
               );
             },
             // icon: const Icon(Icons.source),
-            tooltip: "Choose Source",
+            tooltip: 'Choose Source',
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.source),
-                Text("Sources - ${eplist?.title ?? "Unknown"}")
+                Text("Sources - ${eplist?.title ?? "Unknown"}"),
               ],
             ),
           ),
@@ -171,8 +171,8 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
               shrinkWrap: isVertical(context),
               itemCount: ceplist.length,
               itemBuilder: (context, cindex) {
-                int index = ceplist[cindex];
-                var ep = eplist!.getEpisode(index);
+                final int index = ceplist[cindex];
+                final ep = eplist!.getEpisode(index);
                 return ListTile(
                   isThreeLine: true,
                   contentPadding: const EdgeInsets.all(5),
@@ -204,12 +204,12 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                       ),
                     Expanded(
                         child: Text(
-                      ep?.name ?? "Unknown",
+                      ep?.name ?? 'Unknown',
                       maxLines: 1,
-                    )),
+                    ),),
                     if (entry is EntrySaved)
-                      DownloadButton(entry, eplist!, index)
-                  ]),
+                      DownloadButton(entry, eplist!, index),
+                  ],),
                   onLongPress: () {
                     setState(() {
                       if (selected.contains(index)) {
@@ -222,23 +222,23 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                   textColor: entry.getEpdata(index).completed
                       ? Theme.of(context).disabledColor
                       : null,
-                  subtitle: Text("Chapter ${index + 1}"),
+                  subtitle: Text('Chapter ${index + 1}'),
                 );
               },
-            ))
+            ),),
         ],
       ),
     );
   }
 
   Widget buttonbar(EntryDetail entry, BuildContext context) {
-    bool isinLibrary = entry is EntrySaved;
+    final bool isinLibrary = entry is EntrySaved;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         IconButton(
           icon: Icon(isinLibrary ? Icons.book : Icons.book_outlined),
-          tooltip: isinLibrary ? "Remove from Library" : "Add to Library",
+          tooltip: isinLibrary ? 'Remove from Library' : 'Add to Library',
           onPressed: () async {
             if (isinLibrary) {
               setState(() {
@@ -249,7 +249,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
               });
               savesync();
             } else {
-              EntrySaved newentry = EntrySaved.fromEntry(entry);
+              final EntrySaved newentry = EntrySaved.fromEntry(entry);
               await isar.writeTxn(() async {
                 isar.entrySaveds.put(newentry);
               });
@@ -262,14 +262,14 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
         ),
         IconButton(
           icon: const Icon(Icons.share),
-          tooltip: "Share",
-          onPressed: () => share("${entry.title}: ${entry.url}"),
+          tooltip: 'Share',
+          onPressed: () => share('${entry.title}: ${entry.url}'),
         ),
         if (isinLibrary)
           IconButton(
-            tooltip: "In Construction",
+            tooltip: 'In Construction',
             icon: const Icon(Icons.hourglass_empty),
-            onPressed: () => print("Pressed"),
+            onPressed: () => {},
           ),
       ],
     );
@@ -279,7 +279,6 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         if (entry.ext == null)
           Container(
@@ -293,9 +292,9 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                 ),
                 Expanded(
                     child: Text(
-                  "Warning Extension for this Entry seems not loaded or cant be found",
+                  'Warning Extension for this Entry seems not loaded or cant be found',
                   style: TextStyle(color: Theme.of(context).indicatorColor),
-                ))
+                ),),
               ],
             ),
           ),
@@ -303,17 +302,16 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
           height: 200,
           child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 GestureDetector(
                   child: FancyShimmerImage(
                     boxDecoration: const BoxDecoration(boxShadow: [
-                      BoxShadow(offset: Offset(0.5, 0.9), blurRadius: 3.0)
-                    ]),
+                      BoxShadow(offset: Offset(0.5, 0.9), blurRadius: 3.0),
+                    ],),
                     width: 130,
                     height: 200,
                     boxFit: BoxFit.contain,
-                    imageUrl: entry.cover ?? "",
+                    imageUrl: entry.cover ?? '',
                     cacheKey: entry.url,
                     errorWidget: const Icon(Icons.image, size: 130),
                   ),
@@ -328,14 +326,14 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                         height: double.maxFinite,
                         width: double.maxFinite,
                         boxFit: BoxFit.contain,
-                        imageUrl: entry.cover ?? "",
+                        imageUrl: entry.cover ?? '',
                         errorWidget: const Icon(Icons.image, size: 130),
                         imageBuilder: (context, imageProvider) =>
                             GestureDetector(
                           onLongPress: () =>
-                              launchUrl(Uri.parse(entry.cover ?? "")),
+                              launchUrl(Uri.parse(entry.cover ?? '')),
                           onDoubleTap: () =>
-                              launchUrl(Uri.parse(entry.cover ?? "")),
+                              launchUrl(Uri.parse(entry.cover ?? '')),
                           onTap: () => Navigator.of(context).pop(),
                           child: Image(
                             image: imageProvider,
@@ -366,7 +364,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                             if (entry.author != null &&
                                 entry.author!.isNotEmpty)
                               Text(
-                                entry.author!.join(" • "),
+                                entry.author!.join(' • '),
                                 textAlign: TextAlign.start,
                                 style: const TextStyle(
                                   fontSize: 16.0,
@@ -381,15 +379,15 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                             ),
                             if (entry.views != null)
                               Text(
-                                "${formatNumber(entry.views!)} Views",
+                                '${formatNumber(entry.views!)} Views',
                                 textAlign: TextAlign.start,
                                 style: const TextStyle(
                                   fontSize: 16.0,
                                 ),
                               ),
                           ],
-                        )))
-              ]),
+                        ),),),
+              ],),
         ),
         buttonbar(entry, context),
         SizedBox(
@@ -404,22 +402,22 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                         decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary,
                             borderRadius:
-                                const BorderRadius.all(Radius.circular(15))),
+                                const BorderRadius.all(Radius.circular(15)),),
                         child: Padding(
                             padding: const EdgeInsets.all(5),
                             child: Text(e,
                                 style: TextStyle(
                                     color: Theme.of(context)
                                         .colorScheme
-                                        .background))),
+                                        .background,),),),
                       ),
-                    ))
+                    ),)
                 .toList(),
           ),
         ),
         Text(
           maxLines: 8,
-          entry.description ?? "",
+          entry.description ?? '',
           textAlign: TextAlign.start,
           style: const TextStyle(
             fontSize: 16.0,
@@ -432,15 +430,15 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
   String getreadTooltip(EntryDetail entry, BuildContext context) {
     switch (entry.type) {
       case MediaType.video:
-        return "Continue Watching";
+        return 'Continue Watching';
       case MediaType.comic:
-        return "Continue Reading";
+        return 'Continue Reading';
       case MediaType.audio:
-        return "Continue Listening";
+        return 'Continue Listening';
       case MediaType.book:
-        return "Continue Reading";
+        return 'Continue Reading';
       case MediaType.unknown:
-        return "Continue";
+        return 'Continue';
     }
   }
 
@@ -452,7 +450,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
         actions: [
           if (entry is EntrySaved)
             IconButton(
-                tooltip: "BatchDownload",
+                tooltip: 'BatchDownload',
                 onPressed: () {
                   int episodes = 10;
                   bool deleteread = true;
@@ -481,34 +479,34 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                                 context.pop();
                               }
                             },
-                            child: const Text("Submit"))
+                            child: const Text('Submit'),),
                       ],
                       content: StatefulBuilder(
                         builder: (context, setState) => Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
 
-                            const Text("Delete Read Episodes"),
+                            const Text('Delete Read Episodes'),
                             Checkbox(
                               value: deleteread,
                               onChanged: (value) => setState(() {
                                 deleteread = value!;
                               }),
                             ),
-                            Text("How Many Episodes to download: $episodes"),
+                            Text('How Many Episodes to download: $episodes'),
                             Slider(
                                 value: episodes.toDouble(),
                                 min: 1,
                                 max: (entry.totalepisodes -
                                         entry.getlastReadIndex())
                                     .toDouble(),
-                                divisions: (entry.totalepisodes -
-                                    entry.getlastReadIndex()),
+                                divisions: entry.totalepisodes -
+                                    entry.getlastReadIndex(),
                                 onChanged: (value) => setState(
                                       () {
                                         episodes = value.toInt();
                                       },
-                                    )),
+                                    ),),
                                     const ConstructionWarning(),
                           ],
                         ),
@@ -517,38 +515,38 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                     context: context,
                   );
                 },
-                icon: const Icon(Icons.download_for_offline)),
+                icon: const Icon(Icons.download_for_offline),),
           IconButton(
-              tooltip: "Refresh Entry",
+              tooltip: 'Refresh Entry',
               onPressed: () {
                 setState(() {});
                 _entry = entry.refresh();
               },
               icon: entry.refreshing
                   ? const CircularProgressIndicator()
-                  : const Icon(Icons.refresh)),
+                  : const Icon(Icons.refresh),),
           IconButton(
-              tooltip: "Open in Browser",
+              tooltip: 'Open in Browser',
               onPressed: () {
                 launchUrl(Uri.parse(entry.url));
               },
-              icon: const Icon(Icons.web_outlined)),
+              icon: const Icon(Icons.web_outlined),),
           IconButton(
-              tooltip: "In Construction",
+              tooltip: 'In Construction',
               onPressed: () {},
-              icon: const Icon(Icons.filter_list)),
+              icon: const Icon(Icons.filter_list),),
           // PopupMenuButton()
         ],
       ),
       floatingActionButton: FloatingActionButton(
           onPressed: () => navSource(
-              context, entry.source(eplist!, entry.getlastReadIndex()))
+              context, entry.source(eplist!, entry.getlastReadIndex()),)
           // entry
           // .source(eplist!.getEpisode(entry.getlastReadIndex()))
           // .then((value) => context.push("/any", extra: value!.navReader()))
           ,
           tooltip: getreadTooltip(entry, context),
-          child: const Icon(Icons.play_arrow)),
+          child: const Icon(Icons.play_arrow),),
       body: isVertical(context)
           ? Padding(
               padding: const EdgeInsets.all(5),
@@ -567,16 +565,16 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                               width: MediaQuery.of(context).size.width,
                               child: Padding(
                                   padding: const EdgeInsets.all(5),
-                                  child: buildDescription(entry, context)),
-                            )),
+                                  child: buildDescription(entry, context),),
+                            ),),
                         SizedBox(
                           height: MediaQuery.of(context).size.height,
                           width: MediaQuery.of(context).size.width,
                           child: Padding(
                               padding: const EdgeInsets.all(5),
-                              child: buildEpisodes(entry, context)),
+                              child: buildEpisodes(entry, context),),
                         ),
-                      ])))
+                      ],),),)
           : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -590,12 +588,12 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                           child: ListView(
                             children: [buildDescription(entry, context)],
                           ),
-                        ))),
+                        ),),),
                 SizedBox(
                   width: MediaQuery.of(context).size.width / 2,
                   child: Padding(
                       padding: const EdgeInsets.all(20),
-                      child: buildEpisodes(entry, context)),
+                      child: buildEpisodes(entry, context),),
                 ),
               ],
             ),
@@ -610,8 +608,8 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                   icon: const Icon(Icons.check),
                   onPressed: () {
                     setState(() {
-                      List<int> completed = [];
-                      for (var i in selected) {
+                      final List<int> completed = [];
+                      for (final i in selected) {
                         final data = entry.getEpdata(i);
                         data.completed = !data.completed;
                         if (data.completed) {
@@ -619,21 +617,21 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                         }
                       }
                       makeconsumeActivity(
-                          entry as EntrySaved, completed, ReadType.marked);
+                          entry as EntrySaved, completed, ReadType.marked,);
                       entry.save();
                       selected.clear();
                     });
                   },
-                )),
+                ),),
                 if (selected.length == 1 && eplist != null)
                   Expanded(
                       child: IconButton(
                     icon: const Icon(Icons.web_outlined),
                     onPressed: () {
                       launchUrl(
-                          Uri.parse(eplist!.episodes[selected.first].url));
+                          Uri.parse(eplist!.episodes[selected.first].url),);
                     },
-                  )),
+                  ),),
                 if (selected.length == 1)
                   Expanded(
                       child: IconButton(
@@ -644,7 +642,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                             bottom: 0,
                             right: 0,
                             child:
-                                Icon(Icons.arrow_downward_outlined, size: 11))
+                                Icon(Icons.arrow_downward_outlined, size: 11),),
                       ],
                     ),
                     onPressed: () {
@@ -655,13 +653,13 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                         makeconsumeActivity(
                             entry as EntrySaved,
                             List.generate(selected.first, (index) => index),
-                            ReadType.marked);
+                            ReadType.marked,);
                         entry.save();
                         selected.clear();
                       });
                     },
-                  )),
-              ]),
+                  ),),
+              ],),
             ),
     );
   }
@@ -674,10 +672,10 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
       error: (context, error) => BareScaffold(Text(
         'Error loading Detailedview: $error',
         style: Theme.of(context).textTheme.headlineMedium,
-      )),
+      ),),
       loading: (context) => Scaffold(
         appBar: AppBar(
-          title: const Text("Loading..."),
+          title: const Text('Loading...'),
         ),
         body: const Center(child: CircularProgressIndicator()),
       ),
@@ -689,11 +687,11 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                 .asBroadcastStream(),
             initialData: data,
             builder: (context, snapshot) {
-              EntrySaved? ent = isar.entrySaveds.getSync(data.id);
+              final EntrySaved? ent = isar.entrySaveds.getSync(data.id);
               if (ent == null) {
                 return Scaffold(
                   appBar: AppBar(
-                    title: const Text("Loading..."),
+                    title: const Text('Loading...'),
                   ),
                   body: const Center(child: CircularProgressIndicator()),
                 );
@@ -703,7 +701,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
             },
           );
         }
-        EntryDetail entry = data;
+        final EntryDetail entry = data;
         return display(entry);
       },
     );

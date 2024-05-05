@@ -3,9 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/util/file_utils.dart';
 import 'package:dionysos/util/utils.dart';
-import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/views/loadingscreenview.dart';
 import 'package:dionysos/views/watch/epubreaderview.dart';
 import 'package:dionysos/views/watch/imglistreaderview.dart';
@@ -20,11 +20,12 @@ Future<Widget?> _nav(Future<Source?> src) async {
   return (await src)?.navReader();
 }
 
-void navSource(BuildContext context,Future<Source?> src){
-  context.push("/any",extra: LoadingScreen(_nav(src)));
+void navSource(BuildContext context, Future<Source?> src) {
+  context.push('/any', extra: LoadingScreen(_nav(src)));
 }
-void navreplaceSource(BuildContext context,Future<Source?> src){
-  context.pushReplacement("/any",extra: LoadingScreen(_nav(src)));
+
+void navreplaceSource(BuildContext context, Future<Source?> src) {
+  context.pushReplacement('/any', extra: LoadingScreen(_nav(src)));
 }
 
 enum SourceType {
@@ -34,13 +35,16 @@ enum SourceType {
 }
 
 class SourceMeta {
+  SourceMeta(this.name, this.files, this.data);
+  
   final String name;
   final List<SourceFile> files;
   final Map<String, dynamic> data;
-  SourceMeta(this.name, this.files, this.data);
 }
 
 class SourceFile {
+  SourceFile({this.data, this.url, required this.filename});
+
   bool get isdata {
     return data != null;
   }
@@ -48,22 +52,107 @@ class SourceFile {
   final Uint8List? data;
   final String? url;
   final String filename;
-
-  SourceFile({this.data, this.url, required this.filename});
 }
 
 abstract class Source {
-  final EntryDetail entry;
-  final Episode ep;
-  late final int epcount;
-  late final AEpisodeList eplist;
-  Source(this.entry, this.ep) {//TODO: Rework this mess
-    List<int> epmap = entry.episodes
+  Source(this.entry, this.ep) {
+    //TODO: Rework this mess
+    final List<int> epmap = entry.episodes
         .map((e) => e.episodes.indexWhere((p0) => p0.url == ep.url))
         .toList();
     eplist = entry.episodes[epmap.indexWhere((element) => element >= 0)];
     epcount = epmap.where((element) => element != -1).first;
   }
+
+  factory Source.videofromJson(
+      Map<String, dynamic> json, EntryDetail entry, Episode e,) {
+    final SourceType sourceType = SourceType.values.lastWhere(
+        (e) =>
+            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
+        orElse: () => SourceType.directlink,);
+    switch (sourceType) {
+      case SourceType.directlink:
+        switch (json['sourcedata']['type']) {
+          case 'm3u8':
+            return M3U8Source.fromJSON(json, entry, e);
+          default:
+            throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
+        }
+      default:
+        throw UnsupportedError('Not implemented ${sourceType.name}');
+    }
+  }
+
+  factory Source.comicFromJson(
+      Map<String, dynamic> json, EntryDetail entry, Episode e,) {
+    final SourceType sourceType = SourceType.values.lastWhere(
+        (e) =>
+            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
+        orElse: () => SourceType.directlink,);
+    switch (sourceType) {
+      case SourceType.directlink:
+        switch (json['sourcedata']['type']) {
+          case 'imagelist':
+            return ImgListSource.fromJSON(json, entry, e);
+          case 'pdf':
+            return PdfSource.fromJSON(json, entry, e);
+          default:
+            throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
+        }
+      default:
+        throw UnsupportedError('Not implemented ${sourceType.name}');
+    }
+  }
+  factory Source.bookFromJson(
+      Map<String, dynamic> json, EntryDetail entry, Episode e,) {
+    final SourceType sourceType = SourceType.values.lastWhere(
+        (e) =>
+            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
+        orElse: () => SourceType.directlink,);
+    switch (sourceType) {
+      case SourceType.data:
+        switch (json['sourcedata']['type']) {
+          case 'paragraphlist':
+            return ParagraphListSource.fromJSON(json, entry, e);
+          default:
+            throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
+        }
+      case SourceType.directlink:
+        switch (json['sourcedata']['type']) {
+          case 'epub':
+            return EpubSource.fromJSON(json, entry, e);
+          case 'pdf':
+            return PdfSource.fromJSON(json, entry, e);
+          default:
+            throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
+        }
+      default:
+        throw UnsupportedError('Not implemented ${sourceType.name}');
+    }
+  }
+
+  factory Source.fromJson(
+      Map<String, dynamic> json, EntryDetail entry, Episode e,) {
+    final MediaType mediatype = MediaType.values.lastWhere(
+        (e) =>
+            e.name.toLowerCase() == (json['mediatype'] as String).toLowerCase(),
+        orElse: () => MediaType.video,);
+    switch (mediatype) {
+      case MediaType.comic:
+        return Source.comicFromJson(json, entry, e);
+      case MediaType.book:
+        return Source.bookFromJson(json, entry, e);
+      case MediaType.video:
+        return Source.videofromJson(json, entry, e);
+      default:
+        throw UnsupportedError('Not implemented ${mediatype.name}');
+    }
+  }
+  
+  final EntryDetail entry;
+  final Episode ep;
+  late final int epcount;
+  late final AEpisodeList eplist;
 
   //Source lookup by List
   int getIndex() {
@@ -78,7 +167,10 @@ abstract class Source {
     if (index == getIndex()) {
       return this;
     }
-    return entry.ext?.source(eplist.episodes[index], entry);
+    if(entry.ext==null){
+      return null;
+    }
+    return entry.ext!.source(eplist.episodes[index], entry);
   }
 
   //Source Lookup by Jumps
@@ -116,120 +208,38 @@ abstract class Source {
 
   Widget _navReader();
 
-  factory Source.fromJson(
-      Map<String, dynamic> json, EntryDetail entry, Episode e) {
-    MediaType mediatype = MediaType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == (json['mediatype'] as String).toLowerCase(),
-        orElse: () => MediaType.video);
-    switch (mediatype) {
-      case MediaType.comic:
-        return Source.comicFromJson(json, entry, e);
-      case MediaType.book:
-        return Source.bookFromJson(json, entry, e);
-      case MediaType.video:
-        return Source.videofromJson(json, entry, e);
-      default:
-        print("Not implemented ${mediatype.name}");
-        throw Error();
-    }
-  }
-  factory Source.bookFromJson(
-      Map<String, dynamic> json, EntryDetail entry, Episode e) {
-    SourceType sourceType = SourceType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
-        orElse: () => SourceType.directlink);
-    switch (sourceType) {
-      case SourceType.data:
-        switch (json['sourcedata']['type']) {
-          case "paragraphlist":
-            return ParagraphListSource.fromJSON(json, entry, e);
-          default:
-            print("Not implemented ${json['sourcedata']['type']}");
-            throw Error();
-        }
-      case SourceType.directlink:
-        switch (json['sourcedata']['type']) {
-          case "epub":
-            return EpubSource.fromJSON(json, entry, e);
-          case "pdf":
-            return PdfSource.fromJSON(json, entry, e);
-          default:
-            print("Not implemented ${json['sourcedata']['type']}");
-            throw Error();
-        }
-      default:
-        print("Not implemented ${sourceType.name}");
-        throw Error();
-    }
-  }
-
-  factory Source.comicFromJson(
-      Map<String, dynamic> json, EntryDetail entry, Episode e) {
-    SourceType sourceType = SourceType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
-        orElse: () => SourceType.directlink);
-    switch (sourceType) {
-      case SourceType.directlink:
-        switch (json['sourcedata']['type']) {
-          case "imagelist":
-            return ImgListSource.fromJSON(json, entry, e);
-          case "pdf":
-            return PdfSource.fromJSON(json, entry, e);
-          default:
-            print("Not implemented ${json['sourcedata']['type']}");
-            throw Error();
-        }
-      default:
-        print("Not implemented ${sourceType.name}");
-        throw Error();
-    }
-  }
-
-  factory Source.videofromJson(
-      Map<String, dynamic> json, EntryDetail entry, Episode e) {
-    SourceType sourceType = SourceType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
-        orElse: () => SourceType.directlink);
-    switch (sourceType) {
-      case SourceType.directlink:
-        switch (json['sourcedata']['type']) {
-          case "m3u8":
-            return M3U8Source.fromJSON(json, entry, e);
-          default:
-            print("Not implemented ${json['sourcedata']['type']}");
-            throw Error();
-        }
-      default:
-        print("Not implemented ${sourceType.name}");
-        throw Error();
-    }
-  }
-
-  static Future<Source?> resolve(EntrySaved saved,AEpisodeList list, int episode) async {
-    if(list.getEpisode(episode)==null){
+  static Future<Source?> resolve(
+      EntrySaved saved, AEpisodeList list, int episode,) async {
+    if (list.getEpisode(episode) == null) {
       return null;
     }
-    Directory d = await saved.getDir(list, episode);
-    final meta = json.decode(await d.getFile("meta.json").readAsString());
-    switch (meta["name"]) {
-      case "localparagraphlist":
-        return ParagraphListSource(
-            await d.getFile("data.txt").readAsLines(), saved, list.getEpisode(episode)!);
-      case "localpdf":
-        return PdfSource(d.getFile("src.pdf").path, saved, list.getEpisode(episode)!,local: true);
-      case "localimglist":
-        return ImgListSource(List.generate(meta["length"],(a)=>d.getFile("$a.jpg").path),saved,list.getEpisode(episode)!,local: true);
-      case "localepub":
-        return EpubSource(d.getFile("data.epub").path, saved, list.getEpisode(episode)!,local:true);
+    final Directory d = await saved.getDir(list, episode);
+    final meta = json.decode(await d.getFile('meta.json').readAsString())
+        as Map<String, dynamic>;
+    switch (meta['name']) {
+      case 'localparagraphlist':
+        return ParagraphListSource(await d.getFile('data.txt').readAsLines(),
+            saved, list.getEpisode(episode)!,);
+      case 'localpdf':
+        return PdfSource(
+            d.getFile('src.pdf').path, saved, list.getEpisode(episode)!,
+            local: true,);
+      case 'localimglist':
+        return ImgListSource(
+            List.generate((meta['length'] as num).toInt(),
+                (a) => d.getFile('$a.jpg').path,),
+            saved,
+            list.getEpisode(episode)!,
+            local: true,);
+      case 'localepub':
+        return EpubSource(
+            d.getFile('data.epub').path, saved, list.getEpisode(episode)!,
+            local: true,);
     }
     return null;
   }
 
-  save() async {}
+  Future<void> save() async {}
 
   SourceMeta getdownload();
 }
@@ -238,59 +248,67 @@ class ImgListSource extends Source {
   final List<String> urls;
   bool local;
 
-  ImgListSource(this.urls, super.entry, super.ep,{this.local=false});
+  ImgListSource(this.urls, super.entry, super.ep, {this.local = false});
 
   factory ImgListSource.fromJSON(
-          Map<String, dynamic> json, EntryDetail entry, Episode e) =>
+          Map<String, dynamic> json, EntryDetail entry, Episode e,) =>
       ImgListSource(
           listcast<String>(json['sourcedata']['links'] as List<dynamic>),
           entry,
-          e);
+          e,);
 
   @override
   Widget _navReader() {
-    return PaginatedImgListViewer(this,local: local);
+    return PaginatedImgListViewer(this, local: local);
   }
 
   @override
   SourceMeta getdownload() {
     return SourceMeta(
-        "localimglist",
+        'localimglist',
         urls.indexed
-            .map((e) => SourceFile(filename: "${e.$1}.jpg", url: e.$2))
+            .map((e) => SourceFile(filename: '${e.$1}.jpg', url: e.$2))
             .toList(),
-        {"length": urls.length});
+        {'length': urls.length},);
   }
 }
 
 class M3U8Source extends Source {
+  M3U8Source(this.url, this.sub, super.entry, super.ep);
+
+  factory M3U8Source.fromJSON(
+          Map<String, dynamic> json, EntryDetail entry, Episode e,) =>
+      M3U8Source(
+        json['sourcedata']['link'] as String,
+        (json['sourcedata']['sub'] as List<dynamic>?)
+                ?.asMap()
+                .map((key, value) => MapEntry(
+                    stringtoLang(value['title'].toString()),
+                    value['url'].toString(),),)
+                .where((p0, p1) => p0 != null)
+                .map((key, value) =>
+                    MapEntry(key! as LanguageCodes, value! as String),) ??
+            {},
+        entry,
+        e,
+      );
+
   final String url;
   final Map<LanguageCodes, String> sub;
-  M3U8Source(this.url, this.sub, super.entry, super.ep);
 
   @override
   Widget _navReader() {
     return Videoplayer(this);
   }
 
-  factory M3U8Source.fromJSON(
-          Map<String, dynamic> json, EntryDetail entry, Episode e) =>
-      M3U8Source(
-          json['sourcedata']['link'],
-          (json['sourcedata']['sub'] as List<dynamic>?)?.asMap().map(
-                  (key, value) => MapEntry(
-                      stringtoLang(value["title"].toString()), value["url"].toString())).where((p0, p1) => p0!=null).map((key, value) => MapEntry(key as LanguageCodes, value as String)) ??
-              {},
-          entry,
-          e);
-
   @override
   SourceMeta getdownload() {
-    return SourceMeta("localm3u8", [
-      SourceFile(filename: "vid.m3u8", url: url),
-      ...sub.entries.map((e) => SourceFile(filename: "${e.key.nativeName}.sub.txt", url: e.value))
+    return SourceMeta('localm3u8', [
+      SourceFile(filename: 'vid.m3u8', url: url),
+      ...sub.entries.map((e) =>
+          SourceFile(filename: '${e.key.nativeName}.sub.txt', url: e.value),),
     ], {
-      "subtitles": sub.keys.map((e) => "${e.nativeName}.sub.txt").toList()
+      'subtitles': sub.keys.map((e) => '${e.nativeName}.sub.txt').toList(),
     });
   }
 }
@@ -299,42 +317,42 @@ class PdfSource extends Source {
   final String url;
   final bool local;
 
-  PdfSource(this.url, super.entry, super.ep, {this.local=false});
+  PdfSource(this.url, super.entry, super.ep, {this.local = false});
 
   @override
   Widget _navReader() {
-    return Pdfreader(this,local: local);
+    return Pdfreader(this, local: local);
   }
 
   factory PdfSource.fromJSON(
-          Map<String, dynamic> json, EntryDetail entry, Episode e) =>
+          Map<String, dynamic> json, EntryDetail entry, Episode e,) =>
       PdfSource(json['sourcedata']['link'] as String, entry, e);
 
   @override
   SourceMeta getdownload() {
     return SourceMeta(
-        "localpdf", [SourceFile(filename: "src.pdf", url: url)], {});
+        'localpdf', [SourceFile(filename: 'src.pdf', url: url)], {},);
   }
 }
 
 class EpubSource extends Source {
   final String url;
   final bool local;
-  EpubSource(this.url, super.entry, super.ep, {this.local=false});
+  EpubSource(this.url, super.entry, super.ep, {this.local = false});
 
   @override
   Widget _navReader() {
-    return Epubreader(this,local:local);
+    return Epubreader(this, local: local);
   }
 
   factory EpubSource.fromJSON(
-          Map<String, dynamic> json, EntryDetail entry, Episode e) =>
+          Map<String, dynamic> json, EntryDetail entry, Episode e,) =>
       EpubSource(json['sourcedata']['link'] as String, entry, e);
 
   @override
   SourceMeta getdownload() {
     return SourceMeta(
-        "localepub", [SourceFile(filename: "data.epub", url: url)], {});
+        'localepub', [SourceFile(filename: 'data.epub', url: url)], {},);
   }
 }
 
@@ -350,17 +368,17 @@ class ParagraphListSource extends Source {
   }
 
   factory ParagraphListSource.fromJSON(
-          Map<String, dynamic> json, EntryDetail entry, Episode e) =>
+          Map<String, dynamic> json, EntryDetail entry, Episode e,) =>
       ParagraphListSource(
           listcast<String>(json['sourcedata']['paragraphs'] as List<dynamic>),
           entry,
-          e);
+          e,);
 
   @override
   SourceMeta getdownload() {
-    return SourceMeta("localparagraphlist", [
+    return SourceMeta('localparagraphlist', [
       SourceFile(
-          filename: "data.txt", data: stringtoutf8(paragraphs.join("\n")))
-    ], {});
+          filename: 'data.txt', data: stringtoutf8(paragraphs.join('\n')),),
+    ], {},);
   }
 }

@@ -4,13 +4,13 @@ import 'dart:math';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:dionysos/Source.dart';
-import 'package:dionysos/util/file_utils.dart';
-import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/sync.dart';
+import 'package:dionysos/util/file_utils.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:isar/isar.dart';
@@ -20,21 +20,21 @@ part 'Entry.g.dart';
 extension Mediafunc on MediaType {
   String getAction() {
     return switch (this) {
-      MediaType.video => "Watched",
-      MediaType.comic => "Read",
-      MediaType.audio => "Listened to",
-      MediaType.book => "Read",
-      _ => "Consumed"
+      MediaType.video => 'Watched',
+      MediaType.comic => 'Read',
+      MediaType.audio => 'Listened to',
+      MediaType.book => 'Read',
+      _ => 'Consumed'
     };
   }
 
   String getEpName({bool multi=false}) {
     return switch (this) {
-      MediaType.video => multi ? "Episode" : "Episodes",
-      MediaType.comic => "Chapter",
-      MediaType.audio => multi ? "Episode" : "Episodes",
-      MediaType.book => "Chapter",
-      _ => multi ? "Episode" : "Episodes"
+      MediaType.video => multi ? 'Episode' : 'Episodes',
+      MediaType.comic => 'Chapter',
+      MediaType.audio => multi ? 'Episode' : 'Episodes',
+      MediaType.book => 'Chapter',
+      _ => multi ? 'Episode' : 'Episodes'
     };
   }
 
@@ -48,8 +48,8 @@ extension Mediafunc on MediaType {
     };
   }
 
-  named() {
-    return toString().replaceAll("MediaType.", "");
+  String named() {
+    return toString().replaceAll('MediaType.', '');
   }
 }
 
@@ -72,10 +72,10 @@ class Episode {
   Episode.init(this.name, this.url);
 
   factory Episode.fromJson(Map<String, dynamic> json) {
-    return Episode.init(json['name'], json['url']);
+    return Episode.init(json['name'] as String, json['url'] as String);
   }
   Episode clone({String? name, String? url, DateTime? timestamp}) {
-    Episode e = Episode();
+    final Episode e = Episode();
     e.name = name ?? this.name;
     e.timestamp = timestamp ?? this.timestamp;
     e.url = url ?? this.url;
@@ -102,10 +102,10 @@ class EpisodeList extends AEpisodeList {
 
   factory EpisodeList.fromJson(Map<String, dynamic> json) {
     return EpisodeList.init(
-        json['title'],
+        json['title'] as String,
         (json['episodes'] as List<dynamic>)
-            .map((e) => Episode.fromJson(e))
-            .toList());
+            .map((e) => Episode.fromJson(e as Map<String, dynamic>))
+            .toList(),);
   }
 }
 
@@ -115,7 +115,7 @@ enum Status {
 }
 
 Status getStatus(String s) {
-  return s.toLowerCase().contains("releasing")
+  return s.toLowerCase().contains('releasing')
       ? Status.releasing
       : Status.complete;
 }
@@ -139,10 +139,10 @@ class Entry {
   }
 
   Entry(this.title, this.type, this.url, this.cover, this.rating, this.views,
-      this.length, this.author, this.extname);
+      this.length, this.author, this.extname,);
 
   Future<EntryDetail?> detailed() async {
-    EntrySaved? entry =
+    final EntrySaved? entry =
         await isar.entrySaveds.where().urlEqualTo(url).findFirst();
     if (entry != null) {
       return entry;
@@ -150,7 +150,7 @@ class Entry {
     return ext?.detail(url);
   }
 
-  save() {}
+  void save() {}
 
   factory Entry.fromJson(Map<String, dynamic> json, Extension ext) {
     return Entry(
@@ -158,21 +158,21 @@ class Entry {
         MediaType.values.lastWhere(
             (e) =>
                 e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
-            orElse: () => MediaType.video),
+            orElse: () => MediaType.video,),
         json['url'] as String,
         json['cover'] as String?,
         (json['rating'] as num?)?.toDouble(),
         json['views'] as int?,
         (json['length'] as num?)?.toInt(),
         mlistcast<String>(json['author'] as List<dynamic>?),
-        ext.indentifier);
+        ext.indentifier,);
   }
 
   EpisodeData getEpdata(int episode) {
     return EpisodeData();
   }
 
-  getlastReadIndex() {
+  int getlastReadIndex() {
     return 0;
   }
 }
@@ -213,7 +213,7 @@ class EntryDetail extends Entry {
       json['title'] as String,
       MediaType.values.lastWhere(
           (e) => e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
-          orElse: () => MediaType.video),
+          orElse: () => MediaType.video,),
       json['url'] as String,
       json['cover'] as String?,
       (json['rating'] as num?)?.toDouble(),
@@ -222,13 +222,13 @@ class EntryDetail extends Entry {
       mlistcast<String>(json['author'] as List<dynamic>?),
       ext.indentifier,
       (json['episodes'] as List<dynamic>)
-          .map((e) => EpisodeList.fromJson(e))
+          .map((e) => EpisodeList.fromJson(e as Map<String, dynamic>))
           .toList(),
       listcast<String>(json['genres'] as List<dynamic>),
       Status.values.lastWhere(
           (e) =>
               e.name.toLowerCase() == (json['status'] as String).toLowerCase(),
-          orElse: () => Status.releasing),
+          orElse: () => Status.releasing,),
       json['description'] as String?,
     );
   }
@@ -255,7 +255,7 @@ class EpisodeData {
   int? iprogress;
   DateTime? readdate;
 
-  _complete({date = true}) {
+  void _complete({bool date = true}) {
     completed = true;
     sprogress = null;
     iprogress = null;
@@ -264,17 +264,17 @@ class EpisodeData {
     }
   }
 
-  applyJSON(json) {
-    isBookmarked = ((json["isBookmarked"] as bool?) ?? false) || isBookmarked;
-    completed = ((json["completed"] as bool?) ?? false) || completed;
-    readdate ??= DateTime.tryParse(json["readdate"] ?? "");
+  void applyJSON(Map<String, dynamic> json) {
+    isBookmarked = ((json['isBookmarked'] as bool?) ?? false) || isBookmarked;
+    completed = ((json['completed'] as bool?) ?? false) || completed;
+    readdate ??= DateTime.tryParse((json['readdate'] as String?) ?? '');
   }
 
-  toJSON() {
+  Map<String, Object> toJSON() {
     return {
-      "isBookmarked": isBookmarked,
-      "completed": completed,
-      if (readdate != null) "readdate": readdate!.toIso8601String(),
+      'isBookmarked': isBookmarked,
+      'completed': completed,
+      if (readdate != null) 'readdate': readdate!.toIso8601String(),
     };
   }
 }
@@ -284,7 +284,7 @@ class Category {
   Id id = Isar.autoIncrement;
   final entries = IsarLinks<EntrySaved>();
   @Index(unique: true)
-  String name = "";
+  String name = '';
 
   //TODO: Category Filter
 }
@@ -307,10 +307,10 @@ class EntrySaved extends EntryDetail {
       super.episodes,
       super.genres,
       super.status,
-      super.description);
+      super.description,);
   //Download
   String getDownloadpath(AEpisodeList list, int episode) {
-    return "downloads/${encodeFilename(extname)}/${encodeFilename(url)}/${encodeFilename(list.title)}/$episode";
+    return 'downloads/${encodeFilename(extname)}/${encodeFilename(url)}/${encodeFilename(list.title)}/$episode';
   }
 
   Future<Directory> getDir(AEpisodeList list, int episode) async {
@@ -328,43 +328,40 @@ class EntrySaved extends EntryDetail {
   }
 
   Future<bool> download(AEpisodeList list, int episode) async {
-    print("Downloading ${list.getEpisode(episode)?.name}");
-    Directory dir = await getDir(list, episode);
+    final Directory dir = await getDir(list, episode);
     // if (await dir.exists()) {TODO: Clean dir
     // }
     //TODO check wifi
-    Episode? e = list.getEpisode(episode);
+    final Episode? e = list.getEpisode(episode);
     if (e == null) {
       return false;
     }
-    Source? s = await source(list, episode);
+    final Source? s = await source(list, episode);
     if (s == null) {
       return false;
     }
-    SourceMeta sm = s.getdownload();
-    File fn = dir.getFile("meta.json");
+    final SourceMeta sm = s.getdownload();
+    final File fn = dir.getFile('meta.json');
     await fn.create(recursive: true);
-    await fn.writeAsString(json.encode({...sm.data, "name": sm.name}));
-    for (var f in sm.files) {
+    await fn.writeAsString(json.encode({...sm.data, 'name': sm.name}));
+    for (final f in sm.files) {
       if (f.isdata) {
-        File fn = dir.getFile(f.filename);
+        final File fn = dir.getFile(f.filename);
         if (await fn.exists()) {
           await fn.delete();
         }
         fn.create(recursive: true);
         fn.writeAsBytes(f.data!.toList());
       } else {
-        print("Downloading file ${f.url!}");
         final task = DownloadTask(
             url: f.url!,
             filename: f.filename,
             group: getDownloadpath(list, episode),
             displayName: e.name,
-            directory: "dion/${getDownloadpath(list, episode)}",
+            directory: 'dion/${getDownloadpath(list, episode)}',
             requiresWiFi: true,
             allowPause: true,
-            updates: Updates.statusAndProgress,
-            baseDirectory: BaseDirectory.applicationDocuments);
+            updates: Updates.statusAndProgress,);
         await FileDownloader().enqueue(task);
       }
     }
@@ -372,7 +369,7 @@ class EntrySaved extends EntryDetail {
   }
 
   Future<void> delete(AEpisodeList list, int episode) async {
-    Directory dir = await getDir(list, episode);
+    final Directory dir = await getDir(list, episode);
     await dir.delete(recursive: true);
   }
 
@@ -388,7 +385,7 @@ class EntrySaved extends EntryDetail {
   int get totalepisodes {
     return episodes
         .reduce((value, element) =>
-            value.episodes.length > element.episodes.length ? value : element)
+            value.episodes.length > element.episodes.length ? value : element,)
         .episodes
         .length;
   }
@@ -400,7 +397,7 @@ class EntrySaved extends EntryDetail {
   @override
   EpisodeData getEpdata(int episode) {
     if (epdata.length <= episode) {
-      epdata = List.from(epdata, growable: true);
+      epdata = List.from(epdata);
       epdata
           .addAll(Iterable.generate(episode - epdata.length + 1, (i) => null));
     }
@@ -419,7 +416,7 @@ class EntrySaved extends EntryDetail {
   }
 
   @override
-  save() {
+  void save() {
     isar.writeTxn(() async {
       isar.entrySaveds.put(this);
     });
@@ -430,15 +427,15 @@ class EntrySaved extends EntryDetail {
   int getlastReadIndex() {
     return min(
         epdata.lastIndexWhere((element) => element?.completed ?? false) + 1,
-        epdata.length - 1);
+        epdata.length - 1,);
   }
 
   @override
   Future<EntryDetail?> refresh() async {
     refreshing = true;
-    EntryDetail? entryref = await ext?.detail(url);
+    final EntryDetail? entryref = await ext?.detail(url);
     if (entryref != null) {
-      EntrySaved newentry = EntrySaved.fromEntry(entryref);
+      final EntrySaved newentry = EntrySaved.fromEntry(entryref);
       newentry.id = id;
       newentry.epdata = epdata;
       newentry.save();
@@ -455,7 +452,7 @@ class EntrySaved extends EntryDetail {
       return null;
     }
     if (await isDownloaded(list, episode)) {
-      Source? s = await Source.resolve(this, list, episode);
+      final Source? s = await Source.resolve(this, list, episode);
       if (s == null) {
         delete(list, episode);
       }
@@ -471,7 +468,7 @@ class EntrySaved extends EntryDetail {
 
   Future<EntryDetail?> toEntryDetailed() async {
     return EntryDetail(title, type, url, cover, rating, views, length, author,
-        extname, episodes, genres, status, description);
+        extname, episodes, genres, status, description,);
   }
 
   factory EntrySaved.fromEntry(EntryDetail e) {
@@ -488,19 +485,19 @@ class EntrySaved extends EntryDetail {
         e.episodes,
         e.genres,
         e.status,
-        e.description);
+        e.description,);
   }
 
-  toJSON() {
-    Map<String, dynamic> mjson = {};
-    List<Category> cat = category.toList();
-    mjson["url"] = url;
-    mjson["extname"] = extname;
-    Map<int, EpisodeData?> data = Map.from(epdata.asMap());
+  Map<String, dynamic> toJSON() {
+    final Map<String, dynamic> mjson = {};
+    final List<Category> cat = category.toList();
+    mjson['url'] = url;
+    mjson['extname'] = extname;
+    final Map<int, EpisodeData?> data = Map.from(epdata.asMap());
     data.removeWhere((key, value) => value == null);
-    mjson["epdata"] = Map.from(
-        data.map((key, value) => MapEntry(key.toString(), value!.toJSON())));
-    mjson["categories"] = List.generate(cat.length, (index) => cat[index].name);
+    mjson['epdata'] = Map.from(
+        data.map((key, value) => MapEntry(key.toString(), value!.toJSON())),);
+    mjson['categories'] = List.generate(cat.length, (index) => cat[index].name);
     return mjson;
   }
 }

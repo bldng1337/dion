@@ -2,13 +2,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/main.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:language_code/language_code.dart';
-
-import '../main.dart';
 //=============================================================================
 //===================================SETTINGS==================================
 //=============================================================================
@@ -67,12 +66,12 @@ class SettingString extends Setting<String> {
   const SettingString(super.id, super.defaultvalue, {super.category});
 
   @override
-  get _value {
+  String? get _value {
     return prefs.getString(key);
   }
 
   @override
-  Future<bool> setvalue(value) {
+  Future<bool> setvalue(String value) {
     return prefs.setString(key, value);
   }
 }
@@ -81,12 +80,12 @@ class SettingBoolean extends Setting<bool> {
   const SettingBoolean(super.id, super.defaultvalue, {super.category});
 
   @override
-  get _value {
+  bool? get _value {
     return prefs.getBool(key);
   }
 
   @override
-  Future<bool> setvalue(value) {
+  Future<bool> setvalue(bool value) {
     return prefs.setBool(key, value);
   }
 }
@@ -95,12 +94,12 @@ class SettingInt extends Setting<int> {
   const SettingInt(super.id, super.defaultvalue, {super.category});
 
   @override
-  get _value {
+  int? get _value {
     return prefs.getInt(key);
   }
 
   @override
-  Future<bool> setvalue(value) {
+  Future<bool> setvalue(int value) {
     return prefs.setInt(key, value);
   }
 }
@@ -109,12 +108,12 @@ class SettingDouble extends Setting<double> {
   const SettingDouble(super.id, super.defaultvalue, {super.category});
 
   @override
-  get _value {
+  double? get _value {
     return prefs.getDouble(key);
   }
 
   @override
-  Future<bool> setvalue(value) {
+  Future<bool> setvalue(double value) {
     return prefs.setDouble(key, value);
   }
 }
@@ -123,23 +122,23 @@ class SettingStringList extends Setting<List<String>> {
   const SettingStringList(super.id, super.defaultvalue, {super.category});
 
   @override
-  get _value {
+  List<String>? get _value {
     return prefs.getStringList(key);
   }
 
   @override
-  Future<bool> setvalue(value) {
+  Future<bool> setvalue(List<String> value) {
     return prefs.setStringList(key, value);
   }
 
   Future<bool> add(String value) {
-    var list = List.of(this.value, growable: true);
+    final list = List.of(this.value);
     list.add(value);
     return setvalue(list);
   }
 
   Future<bool> remove(String value) {
-    var list = List.of(this.value, growable: true);
+    final list = List.of(this.value);
     list.remove(value);
     return setvalue(list);
   }
@@ -149,8 +148,8 @@ class SettingDirectory extends OptionalSetting<Directory> {
   const SettingDirectory(super.id, {super.category});
 
   @override
-  get _value {
-    String? str = prefs.getString(key);
+  Directory? get _value {
+    final String? str = prefs.getString(key);
     if (str == null) {
       return null;
     }
@@ -197,12 +196,12 @@ abstract class SettingTile<T> extends Tile {
 abstract class OptionalSettingTile<T> extends Tile {
   final OptionalSetting<T> setting;
   const OptionalSettingTile(super.name, super.description, this.setting,
-      {super.icon});
+      {super.icon,});
 }
 
 class WidgetTile extends Tile {
   final Widget w;
-  const WidgetTile(this.w):super("","");
+  const WidgetTile(this.w):super('','');
 
   
   @override
@@ -216,7 +215,7 @@ class SettingsNavTile extends Tile {
   final SettingPageBuilder builder;
 
   const SettingsNavTile(super.name, super.description, this.builder,
-      {super.icon});
+      {super.icon,});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -226,14 +225,14 @@ class SettingsNavTile extends Tile {
           leading: icon != null ? Icon(icon) : null,
           title: Text(name),
           onTap: () => enav(context, builder.build(null)),
-        ));
+        ),);
   }
 }
 
 class SimpleChoiceTile extends SettingTile<String> {
   final List<String> choices;
   const SimpleChoiceTile(super.name, super.description, super.setting,
-      {required this.choices, super.icon});
+      {required this.choices, super.icon,});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -247,12 +246,12 @@ class SimpleChoiceTile extends SettingTile<String> {
                 .map((e) => DropdownMenuItem(
                       value: e,
                       child: Text(e),
-                    ))
+                    ),)
                 .toList(),
             value: setting.value,
             onChanged: (val) => setting
                 .setvalue(val ?? setting.defaultvalue)
-                .then((value) => update())),
+                .then((value) => update()),),
       ),
     );
   }
@@ -282,7 +281,7 @@ class ButtonTile extends Tile {
   final void Function() onpress;
 
   const ButtonTile(super.name, super.description,
-      {required super.icon, required this.onpress});
+      {required super.icon, required this.onpress,});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -301,7 +300,7 @@ class DoubleTile extends SettingTile<double> {
   final double min;
   final double max;
   const DoubleTile(super.name, super.description, super.setting,
-      {this.min = 0, this.max = 1, super.icon});
+      {this.min = 0, this.max = 1, super.icon,});
 
   double round(double value) {
     return ((value * 100).round().toDouble()) / 100.0;
@@ -336,7 +335,7 @@ class DoubleTile extends SettingTile<double> {
 class ConditionalTile extends Tile {
   final Setting<bool> setting;
   final Tile child;
-  const ConditionalTile(this.setting, this.child, {super.icon}) : super("", "");
+  const ConditionalTile(this.setting, this.child, {super.icon}) : super('', '');
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -350,7 +349,7 @@ class ConditionalTile extends Tile {
 
 class DirectoryTile extends OptionalSettingTile<Directory> {
   const DirectoryTile(super.name, super.description, super.setting,
-      {super.icon});
+      {super.icon,});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -359,23 +358,23 @@ class DirectoryTile extends OptionalSettingTile<Directory> {
       child: ListTile(
           leading: icon != null ? Icon(icon) : null,
           title: Text(name),
-          subtitle: Text(setting.value?.path ?? "Unset"),
+          subtitle: Text(setting.value?.path ?? 'Unset'),
           onTap: () async {
-            String? path = await FilePicker.platform.getDirectoryPath();
+            final String? path = await FilePicker.platform.getDirectoryPath();
             if (path == null) {
               setting.clear();
               return;
             }
             setting.setvalue(Directory(path));
             update();
-          }),
+          },),
     );
   }
 }
 
 class LanguageTile extends SettingTile<LanguageCodes> {
   const LanguageTile(super.name, super.description, super.setting,
-      {super.icon});
+      {super.icon,});
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -389,7 +388,7 @@ class LanguageTile extends SettingTile<LanguageCodes> {
                 .map((e) => DropdownMenuItem(
                       value: e,
                       child: Text(e.nativeName),
-                    ))
+                    ),)
                 .toList(),
             value: setting.value,
             onChanged: (val) {
@@ -399,7 +398,7 @@ class LanguageTile extends SettingTile<LanguageCodes> {
               }
               setting.setvalue(val).then((value) => update());
             },
-          )),
+          ),),
     );
   }
 }
@@ -431,7 +430,7 @@ class SortingTile extends Tile {
   final Setting<String> choice;
   final Setting<bool> descending;
   const SortingTile(super.name, super.description, this.choice, this.descending,
-      this.choices);
+      this.choices,);
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -439,7 +438,7 @@ class SortingTile extends Tile {
       message: description,
       child: ListTile(
         leading: const Icon(Icons.sort),
-        title: const Text("Sort"),
+        title: const Text('Sort'),
         isThreeLine: true,
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,21 +456,23 @@ class SortingTile extends Tile {
         height: siz,
         child: Row(
           children: [
-            (c.value == choice.value
-                ? Icon(
+            if(c.value == choice.value)
+            Icon(
                     descending.value
                         ? Icons.arrow_downward
                         : Icons.arrow_upward,
                     size: siz - 3,
                   )
-                : const SizedBox(
-                    width: siz - 3,
-                  )),
+            else
+              const SizedBox(
+                width: siz - 3,
+              ),
+            
             Expanded(
                 child: Text(
               name,
               style: const TextStyle(fontSize: siz / 2),
-            ))
+            ),),
           ],
         ),
       ),
@@ -495,13 +496,13 @@ class CategoryTile extends Tile {
             );
           }
           return ListTile(
-            title: const Text("Categories"),
+            title: const Text('Categories'),
             // isThreeLine: true,
             leading: IconButton(
               icon: const Icon(Icons.add),
               onPressed: () => isar
                   .writeTxn(() => isar.categorys.put(
-                      Category()..name = "Category ${Random().nextInt(999)}"))
+                      Category()..name = 'Category ${Random().nextInt(999)}',),)
                   .then((value) {
                 update();
               }),
@@ -510,7 +511,7 @@ class CategoryTile extends Tile {
               shrinkWrap: true,
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
-                Category c = snapshot.data![index];
+                final Category c = snapshot.data![index];
                 return ListTile(
                   title: Row(
                     children: [
@@ -519,28 +520,27 @@ class CategoryTile extends Tile {
                           onPressed: () => isar
                               .writeTxn(() => isar.categorys.delete(c.id))
                               .then((value) => update()),
-                          icon: const Icon(Icons.delete)),
+                          icon: const Icon(Icons.delete),),
                       IconButton(
                           onPressed: () {
                             showDialog(
                               context: context,
                               builder: (context) {
                                 return AlertDialog(
-                                  title: const Text("Edit:"),
+                                  title: const Text('Edit:'),
                                   content: TextField(
                                     controller:
                                         TextEditingController(text: c.name),
-                                    maxLines: 1,
                                     onSubmitted: (value) => isar
                                         .writeTxn(() =>
-                                            isar.categorys.put(c..name = value))
+                                            isar.categorys.put(c..name = value),)
                                         .then((value) => update()),
                                   ),
                                 );
                               },
                             );
                           },
-                          icon: const Icon(Icons.edit))
+                          icon: const Icon(Icons.edit),),
                     ],
                   ),
                 );
@@ -563,7 +563,7 @@ class _SettingsPage extends StatefulWidget {
   final String title;
   final bool bare;
   const _SettingsPage(this.title, this.settings, this.onupdate,
-      {this.bare=false});
+      {this.bare=false,});
 
   @override
   State<_SettingsPage> createState() => _SettingsPageState();
@@ -572,7 +572,7 @@ class _SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<_SettingsPage> {
   void update() {
     if (widget.onupdate != null) {
-      widget.onupdate!();
+      widget.onupdate?.call();
     }
     setState(() {});
   }

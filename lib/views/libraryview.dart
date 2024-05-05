@@ -1,18 +1,18 @@
 import 'package:contained_tab_bar_view/contained_tab_bar_view.dart';
 import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/main.dart';
+import 'package:dionysos/sync.dart';
 import 'package:dionysos/views/entrybrowseview.dart';
 import 'package:dionysos/views/settingsview.dart';
-import 'package:dionysos/sync.dart';
+import 'package:endless/endless.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
-import 'package:endless/endless.dart';
 
 class Library extends StatefulWidget {
   const Library({super.key});
 
   @override
-  createState() => _LibraryState();
+  _LibraryState createState() => _LibraryState();
 }
 
 class _LibraryState extends State<Library> {
@@ -29,20 +29,20 @@ class _LibraryState extends State<Library> {
   }
 
   QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortQuery(
-      QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> q) {
-    bool desc = LibrarySettings.sortdesc.value;
+      QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> q,) {
+    final bool desc = LibrarySettings.sortdesc.value;
     switch (LibrarySettings.sortcategory.value) {
-      case "epsuncompleted":
+      case 'epsuncompleted':
         if (desc) {
           return q.sortByEpisodesnotcompletedDesc();
         }
         return q.sortByEpisodesnotcompleted();
-      case "epscompleted":
+      case 'epscompleted':
         if (desc) {
           return q.sortByEpisodescompletedDesc();
         }
         return q.sortByEpisodescompleted();
-      case "epstotal":
+      case 'epstotal':
         if (desc) {
           return q.sortByTotalepisodesDesc();
         }
@@ -57,7 +57,7 @@ class _LibraryState extends State<Library> {
   static const pagesize = 30;
   Widget buildCategory(Category c) {
     controlmap.putIfAbsent(
-        c.name, () => EndlessPaginationController<EntrySaved>());
+        c.name, () => EndlessPaginationController<EntrySaved>(),);
     // isar.entrySaveds.where().filter().category((q) => q.nameEqualTo(c.name)).watchLazy()
     return EndlessPaginationGridView<EntrySaved>(
         controller: controlmap[c.name],
@@ -68,16 +68,16 @@ class _LibraryState extends State<Library> {
                 .optional(
                     LibrarySettings.shouldfiltermediatype.value,
                     (q) => q.anyOf([LibrarySettings.filtermediatype.value],
-                        (q, element) => q.typeEqualTo(getMediaType(element))))
+                        (q, element) => q.typeEqualTo(getMediaType(element)),),)
                 .optional(
                     LibrarySettings.shouldfilterstatus.value,
                     (q) => q.statusEqualTo(
-                        getStatus(LibrarySettings.filterstatus.value))))
+                        getStatus(LibrarySettings.filterstatus.value),),),)
             .offset(index * pagesize)
             .limit(pagesize)
             .findAll(),
         itemBuilder: (context,
-                {required index, required item, required totalItems}) =>
+                {required index, required item, required totalItems,}) =>
             EntryCard(
               selected: selected.contains(item),
               selection: selected.isNotEmpty,
@@ -98,7 +98,7 @@ class _LibraryState extends State<Library> {
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           childAspectRatio: 0.69,
           maxCrossAxisExtent: 220,
-        ));
+        ),);
   }
 
   List<EntrySaved> selected = [];
@@ -113,16 +113,16 @@ class _LibraryState extends State<Library> {
                 .optional(
                     LibrarySettings.shouldfiltermediatype.value,
                     (q) => q.anyOf([LibrarySettings.filtermediatype.value],
-                        (q, element) => q.typeEqualTo(getMediaType(element))))
+                        (q, element) => q.typeEqualTo(getMediaType(element)),),)
                 .optional(
                     LibrarySettings.shouldfilterstatus.value,
                     (q) => q.statusEqualTo(
-                        getStatus(LibrarySettings.filterstatus.value))))
+                        getStatus(LibrarySettings.filterstatus.value),),),)
             .offset(index * pagesize)
             .limit(pagesize)
             .findAll(),
         itemBuilder: (context,
-                {required index, required item, required totalItems}) =>
+                {required index, required item, required totalItems,}) =>
             EntryCard(
               selected: selected.contains(item),
               selection: selected.isNotEmpty,
@@ -143,10 +143,10 @@ class _LibraryState extends State<Library> {
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           childAspectRatio: 0.69,
           maxCrossAxisExtent: 220,
-        ));
+        ),);
   }
 
-  reload() {
+  void reload() {
     if (defaultcontrol.isMounted()) {
       defaultcontrol.reload();
     }
@@ -173,19 +173,19 @@ class _LibraryState extends State<Library> {
                       child: IconButton(
                     icon: const Icon(Icons.category),
                     onPressed: () {
-                      List<bool> categories = List.generate(
-                          isar.categorys.countSync(), (index) => false);
+                      final List<bool> categories = List.generate(
+                          isar.categorys.countSync(), (index) => false,);
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
                             actions: [
                               TextButton(
                                   onPressed: () {
-                                    for (EntrySaved e in selected) {
+                                    for (final EntrySaved e in selected) {
                                       for (int i = 0;
                                           i < categories.length;
                                           i++) {
-                                        Category c = isar.categorys
+                                        final Category c = isar.categorys
                                             .where()
                                             .offset(i)
                                             .findFirstSync()!;
@@ -196,10 +196,10 @@ class _LibraryState extends State<Library> {
                                         }
                                       }
                                     }
-                                    Category c =
+                                    final Category c =
                                         isar.categorys.where().findFirstSync()!;
                                     isar.writeTxn(() async {
-                                      for (EntrySaved e in selected) {
+                                      for (final EntrySaved e in selected) {
                                         await e.category.save();
                                         await isar.entrySaveds.put(e);
                                       }
@@ -221,9 +221,9 @@ class _LibraryState extends State<Library> {
                                     });
                                     savesync();
                                   },
-                                  child: const Text("Submit"))
+                                  child: const Text('Submit'),),
                             ],
-                            title: const Text("Set categories"),
+                            title: const Text('Set categories'),
                             content: StatefulBuilder(
                               builder: (context, setState) {
                                 return SizedBox(
@@ -232,7 +232,7 @@ class _LibraryState extends State<Library> {
                                   child: ListView.builder(
                                     itemCount: categories.length,
                                     itemBuilder: (context, index) {
-                                      Category c = isar.categorys
+                                      final Category c = isar.categorys
                                           .where()
                                           .offset(index)
                                           .findFirstSync()!;
@@ -249,10 +249,10 @@ class _LibraryState extends State<Library> {
                                   ),
                                 );
                               },
-                            )),
+                            ),),
                       );
                     },
-                  ))
+                  ),),
                 ],
               ),
             ),
@@ -266,16 +266,16 @@ class _LibraryState extends State<Library> {
           return ContainedTabBarView(tabs: [
             const Padding(
               padding: EdgeInsets.all(5),
-              child: Text("default"),
+              child: Text('default'),
             ),
             ...snapshot.data!.map((e) => Padding(
                   padding: const EdgeInsets.all(5),
                   child: Text(e.name),
-                ))
+                ),),
           ], views: [
             defaultTab(),
-            ...snapshot.data!.map((e) => buildCategory(e))
-          ]);
+            ...snapshot.data!.map((e) => buildCategory(e)),
+          ],);
         },
       ),
     );

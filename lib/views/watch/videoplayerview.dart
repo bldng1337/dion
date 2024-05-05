@@ -11,7 +11,7 @@ class Videoplayer extends StatefulWidget {
   const Videoplayer(this._source, {super.key});
 
   @override
-  createState() => _VideoplayerState();
+  _VideoplayerState createState() => _VideoplayerState();
 }
 
 class _VideoplayerState extends State<Videoplayer> {
@@ -48,7 +48,7 @@ class _VideoplayerState extends State<Videoplayer> {
     source=nsource;
     player.open(Media(source.url));
     if (VideoplayerSetting.autousesubtitle.value) {
-      LanguageCodes lang = VideoplayerSetting.defaultsubtitle.value;
+      final LanguageCodes lang = VideoplayerSetting.defaultsubtitle.value;
       if (source.sub.containsKey(lang)) {
         setSubtitle(lang);
       }
@@ -57,8 +57,8 @@ class _VideoplayerState extends State<Videoplayer> {
 
   void setSubtitle(LanguageCodes lang) {
     player.setSubtitleTrack(
-      SubtitleTrack.uri(source.sub[lang] ?? "",
-          title: lang.nativeName, language: lang.locale.countryCode
+      SubtitleTrack.uri(source.sub[lang] ?? '',
+          title: lang.nativeName, language: lang.locale.countryCode,
           // language: 'en',
           ),
     );
@@ -84,16 +84,13 @@ class _VideoplayerState extends State<Videoplayer> {
             normal: MaterialVideoControlsThemeData(
               bottomButtonBarMargin: const EdgeInsets.all(15),
               seekBarMargin: const EdgeInsets.all(15),
-              // Modify theme options:
-              buttonBarButtonSize: 24.0,
-              buttonBarButtonColor: Colors.white,
               // Modify top button bar:
               topButtonBar: [
                 IconButton(
                     onPressed: () {
                       context.pop();
                     },
-                    icon: const Icon(Icons.arrow_back)),
+                    icon: const Icon(Icons.arrow_back),),
                 const Spacer(),
                 MaterialDesktopCustomButton(
                   onPressed: () {
@@ -108,7 +105,7 @@ class _VideoplayerState extends State<Videoplayer> {
                       .map((e) => DropdownMenuItem(
                             value: e,
                             child: Text(e.nativeName),
-                          ))
+                          ),)
                       .toList(),
                   onChanged: (value) {
                     if(value!=null){

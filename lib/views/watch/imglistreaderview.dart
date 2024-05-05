@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dionysos/Source.dart';
 import 'package:dionysos/util/utils.dart';
-import 'package:dionysos/main.dart';
 import 'package:dionysos/views/settingsview.dart';
 import 'package:dionysos/widgets/hugelist.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +20,7 @@ class Imglistreader extends StatefulWidget {
   const Imglistreader(this.source, {super.key});
 
   @override
-  createState() => _ImglistreaderState();
+  _ImglistreaderState createState() => _ImglistreaderState();
 }
 
 class _ImglistreaderState extends State<Imglistreader> {
@@ -39,12 +38,12 @@ class _ImglistreaderState extends State<Imglistreader> {
 
   void scrollUp() {
     scoffset.animateScroll(
-        offset: -400, duration: const Duration(milliseconds: 100));
+        offset: -400, duration: const Duration(milliseconds: 100),);
   }
 
   void scrollDown() {
     scoffset.animateScroll(
-        offset: 400, duration: const Duration(milliseconds: 100));
+        offset: 400, duration: const Duration(milliseconds: 100),);
   }
 
   void bookmark() {
@@ -55,7 +54,7 @@ class _ImglistreaderState extends State<Imglistreader> {
   }
 
   void openwebview() {
-    launchUrl(Uri.parse(source?.ep.url ?? ""));
+    launchUrl(Uri.parse(source?.ep.url ?? ''));
   }
 
   ScrollOffsetController scoffset = ScrollOffsetController();
@@ -73,21 +72,21 @@ class _ImglistreaderState extends State<Imglistreader> {
       child: Scaffold(
         appBar: AppBar(
             title: Row(
-              children: [Text(source?.ep.name ?? "Loading...")],
+              children: [Text(source?.ep.name ?? 'Loading...')],
             ),
             actions: [
               IconButton(
-                  onPressed: openwebview, icon: const Icon(Icons.web_outlined)),
+                  onPressed: openwebview, icon: const Icon(Icons.web_outlined),),
               IconButton(
                   icon: Icon(source?.getEpdata().isBookmarked ?? false
                       ? Icons.bookmark
-                      : Icons.bookmark_outline),
-                  onPressed: bookmark),
+                      : Icons.bookmark_outline,),
+                  onPressed: bookmark,),
               IconButton(
                   onPressed: () => enav(context,
-                      mangareadersettings.build(() => setState(() {}))),
-                  icon: const Icon(Icons.settings)),
-            ]),
+                      mangareadersettings.build(() => setState(() {})),),
+                  icon: const Icon(Icons.settings),),
+            ],),
         body: HugeListView(
           scrollOffsetController: scoffset,
           pageSize: 1,
@@ -116,18 +115,18 @@ class _ImglistreaderState extends State<Imglistreader> {
           thumbBuilder: huge.DraggableScrollbarThumbs.SemicircleThumb,
           itemBuilder: (context, index, Source? entry) {
             if (entry == null) {
-              return Text("Error $index");
+              return Text('Error $index');
             }
             return ImgList(
               source: entry as ImgListSource,
             );
           },
-          placeholderBuilder: (build, index) => (SizedBox(
+          placeholderBuilder: (build, index) => SizedBox(
             height: MediaQuery.of(context).size.height,
-            child: (const Center(
+            child: const Center(
               child: CircularProgressIndicator(),
-            )),
-          )),
+            ),
+          ),
           lruMap: map,
         ),
       ),
@@ -140,7 +139,7 @@ class ImgList extends StatefulWidget {
   const ImgList({super.key, required this.source});
 
   @override
-  createState() => _ImgListState();
+  _ImgListState createState() => _ImgListState();
 }
 
 class _ImgListState extends State<ImgList> {
@@ -176,9 +175,9 @@ class _ImgListState extends State<ImgList> {
             progressIndicatorBuilder: (context, url, downloadProgress) =>
                 SizedBox(
               height: MediaQuery.of(context).size.height,
-              child: (const Center(
+              child: const Center(
                 child: CircularProgressIndicator(),
-              )),
+              ),
             ),
             errorWidget: (context, url, error) => const Icon(Icons.error),
           );
@@ -216,16 +215,16 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
   }
 
   void save() {
-    int min = itemPositionsListener.itemPositions.value
+    final int min = itemPositionsListener.itemPositions.value
         .where((ItemPosition position) => position.itemTrailingEdge > 0)
         .reduce((ItemPosition min, ItemPosition position) =>
-            position.itemTrailingEdge < min.itemTrailingEdge ? position : min)
+            position.itemTrailingEdge < min.itemTrailingEdge ? position : min,)
         .index;
     widget.source.getEpdata().iprogress = min;
     widget.source.entry.save();
   }
 
-  void navPreviousChapter() async {
+  Future<void> navPreviousChapter() async {
     if (!mounted) {
       return;
     }
@@ -240,7 +239,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
   }
 
   bool nav = false;
-  void navNextChapter() async {
+  Future<void> navNextChapter() async {
     if (!mounted) {
       return;
     }
@@ -312,7 +311,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
             bookmark();
           },
           onHorizontalDragUpdate: (details) {
-            int sensitivity = 8;
+            const int sensitivity = 8;
             if (details.delta.dx > sensitivity) {
               navPreviousChapter();
             } else if (details.delta.dx < -sensitivity) {
@@ -327,23 +326,23 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
                   onPressed: () {
                     context.pop();
                   },
-                )),
+                ),),
                 title: Text(widget.source.ep.name),
                 actions: [
                   IconButton(
                       autofocus: true,
                       onPressed: openwebview,
-                      icon: const Icon(Icons.web_outlined)),
+                      icon: const Icon(Icons.web_outlined),),
                   IconButton(
                       icon: Icon(widget.source.getEpdata().isBookmarked
                           ? Icons.bookmark
-                          : Icons.bookmark_outline),
-                      onPressed: bookmark),
+                          : Icons.bookmark_outline,),
+                      onPressed: bookmark,),
                   IconButton(
                       onPressed: () => enav(context,
-                          mangareadersettings.build(() => setState(() {}))),
-                      icon: const Icon(Icons.settings)),
-                ]),
+                          mangareadersettings.build(() => setState(() {})),),
+                      icon: const Icon(Icons.settings),),
+                ],),
             body: ScrollablePositionedList.builder(
               scrollOffsetController: sc,
               itemScrollController: sci,
@@ -353,27 +352,25 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
                   if (widget.source.hasPrevious()) {
                     return ExcludeFocus(
                         child: TextButton(
-                      autofocus: false,
                       onPressed: () {
                         navPreviousChapter();
                       },
-                      child: const Text("Previous Chapter"),
-                    ));
+                      child: const Text('Previous Chapter'),
+                    ),);
                   }
                 } else if (i <= widget.source.urls.length) {
                   return Padding(
                       padding: EdgeInsets.only(left: edge, right: edge),
-                      child: image(widget.source.urls[i - 1]));
+                      child: image(widget.source.urls[i - 1]),);
                 } else {
                   if (widget.source.hasNext()) {
                     return ExcludeFocus(
                         child: TextButton(
-                      autofocus: false,
                       onPressed: () {
                         navNextChapter();
                       },
-                      child: const Text("Next Chapter"),
-                    ));
+                      child: const Text('Next Chapter'),
+                    ),);
                   } else {
                     widget.source.entry.complete(widget.source.getIndex());
                     widget.source.entry.save();
@@ -386,7 +383,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
               itemCount: widget.source.urls.length + 2,
             ),
           ),
-        ));
+        ),);
   }
 
   Widget image(String path) {
@@ -403,11 +400,11 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
       imageUrl: path,
       progressIndicatorBuilder: (context, url, downloadProgress) => SizedBox(
         height: MediaQuery.of(context).size.height,
-        child: (Center(
+        child: Center(
           child: CircularProgressIndicator(
             value: downloadProgress.progress,
           ),
-        )),
+        ),
       ),
       errorWidget: (context, url, error) => const Icon(Icons.error),
     );

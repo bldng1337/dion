@@ -18,7 +18,7 @@ class NetworkManager {
     dio.interceptors.add(CookieManager(cookieJar));
   }
 
-  void setCookiefromHeader(String header,String url) async {
+  Future<void> setCookiefromHeader(String header,String url) async {
     await cookieJar.saveFromResponse(Uri.parse(url), [Cookie.fromSetCookieValue(header)]);
   }
 
@@ -26,7 +26,7 @@ class NetworkManager {
     return cookieJar.loadForRequest(Uri.parse(url));
   }
 
-  clearSiteCookies(String url) async {
+  Future<void> clearSiteCookies(String url) async {
     await cookieJar.delete(Uri.parse(url));
   }
 }

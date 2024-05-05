@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
-import 'package:flutter/material.dart';
 import 'package:endless/endless.dart';
-import 'dart:async';
 import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class EntryBrowseView extends StatefulWidget {
@@ -20,12 +20,12 @@ class EntryBrowseView extends StatefulWidget {
 class _EntryBrowseViewState extends State<EntryBrowseView> {
   final streamController = StreamController<List<Entry>>();
   final controller = EndlessStreamController<Entry>();
-  String search = "";
+  String search = '';
   SortMode sort = SortMode.latest;
   int count = 0;
   MediaType? filtertype;
 
-  loadmore() async {
+  Future<void> loadmore() async {
     if (search.isNotEmpty) {
       await streamController.addStream(ExtensionManager().search(
         count++,
@@ -36,7 +36,7 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
           }
           return filtertype == e.data?.type;
         },
-      ));
+      ),);
     } else {
       await streamController
           .addStream(ExtensionManager().browse(count++, sort, extfilter: (e) {
@@ -44,7 +44,7 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
           return true;
         }
         return filtertype == e.data?.type;
-      }));
+      },),);
     }
   }
 
@@ -61,17 +61,16 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
             Expanded(
                 child: SearchBar(
               trailing: [
-                DropdownButton(
+                DropdownButton<MediaType>(
                   // icon: const Icon(Icons.filter_alt_sharp),
                   items: [
                     const DropdownMenuItem(
-                      value: null,
                       child: Icon(Icons.disabled_by_default),
                     ),
                     ...MediaType.values.map((e) => DropdownMenuItem(
                           value: e,
                           child: Icon(e.icon()),
-                        ))
+                        ),),
                   ],
                   value: filtertype,
                   onChanged: (value) {
@@ -91,7 +90,7 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
                           .map((e) => DropdownMenuItem(
                                 value: e,
                                 child: Text(e.val),
-                              ))
+                              ),)
                           .toList(),
                       onChanged: (e) {
                         if (e != null && search.isEmpty) {
@@ -102,9 +101,9 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
                             loadmore();
                           });
                         }
-                      })
+                      },),
               ],
-              hintText: "Search",
+              hintText: 'Search',
               onSubmitted: (a) {
                 setState(() {
                   controller.clear(lazy: true);
@@ -113,7 +112,7 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
                   loadmore();
                 });
               },
-            )),
+            ),),
           ],
         ),
       ),
@@ -148,8 +147,8 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
           child: const Text('load more'),
           onPressed: () => controller.loadMore(),
         ),
-      ))
-    ]));
+      ),),
+    ],),);
   }
 }
 
@@ -163,12 +162,12 @@ class EntryCard extends StatelessWidget {
       required this.entry,
       this.selected = false,
       this.onselect,
-      this.selection = false});
+      this.selection = false,});
 
   @override
   Widget build(BuildContext context) {
-    double width = 300 / 1.5;
-    double height = 600 / 2;
+    const double width = 300 / 1.5;
+    const double height = 600 / 2;
     // if(entry.cover==null)
     return GestureDetector(
       onTap: () {
@@ -176,9 +175,9 @@ class EntryCard extends StatelessWidget {
           onselect!();
           return;
         }
-        context.push("/entryview", extra: entry);
+        context.push('/entryview', extra: entry);
       },
-      onLongPress: () => onselect != null ? onselect!() : null,
+      onLongPress: () => onselect?.call(),
       child: Padding(
         padding: const EdgeInsets.all(7),
         child: Stack(
@@ -186,8 +185,7 @@ class EntryCard extends StatelessWidget {
           children: [
             FancyShimmerImage(
               width: width,
-              height: height,
-              imageUrl: entry.cover ?? "",
+              imageUrl: entry.cover ?? '',
               errorWidget: Icon(Icons.image, size: min(width, height)),
             ),
             Container(
@@ -201,20 +199,18 @@ class EntryCard extends StatelessWidget {
                   colors: [
                     Colors.transparent,
                     Theme.of(context).shadowColor.withOpacity(0.3),
-                    Theme.of(context).shadowColor.withOpacity(1)
+                    Theme.of(context).shadowColor.withOpacity(1),
                   ],
                   stops: const [0, 0.75, 1],
                 ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   SizedBox(
                     width: width,
                     height: height / 2,
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (entry is EntrySaved)
@@ -227,10 +223,10 @@ class EntryCard extends StatelessWidget {
                               margin: const EdgeInsets.all(5),
                               padding: const EdgeInsets.all(4),
                               child: Text(
-                                "${(entry as EntrySaved).episodescompleted}/${(entry as EntrySaved).episodes.reduce((value, element) => value.episodes.length > element.episodes.length ? value : element).episodes.length}",
+                                '${(entry as EntrySaved).episodescompleted}/${(entry as EntrySaved).episodes.reduce((value, element) => value.episodes.length > element.episodes.length ? value : element).episodes.length}',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.labelLarge,
-                              )),
+                              ),),
                         Container(
                             decoration: BoxDecoration(
                               borderRadius:
@@ -249,8 +245,8 @@ class EntryCard extends StatelessWidget {
                                   1.45,
                               color:
                                   Theme.of(context).textTheme.labelLarge?.color,
-                            )),
-                        const Spacer()
+                            ),),
+                        const Spacer(),
                       ],
                     ),
                   ),
@@ -263,7 +259,7 @@ class EntryCard extends StatelessWidget {
                         fontSize: 13.0,
                         color: Colors.white,
                         shadows: <Shadow>[
-                          Shadow(offset: Offset(0.5, 0.9), blurRadius: 3.0)
+                          Shadow(offset: Offset(0.5, 0.9), blurRadius: 3.0),
                         ],
                       ),
                       maxLines: 4,
@@ -282,12 +278,12 @@ class EntryCard extends StatelessWidget {
                   : Colors.transparent,
             ),
             if (entry is EntrySaved && (entry as EntrySaved).refreshing)
-              Container(
+              ColoredBox(
                 color: Theme.of(context).disabledColor.withAlpha(200),
                 child: const Center(
                   child: CircularProgressIndicator(),
                 ),
-              )
+              ),
           ],
         ),
       ),

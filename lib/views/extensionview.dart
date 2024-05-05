@@ -11,7 +11,7 @@ class Extensionview extends StatefulWidget {
   const Extensionview({super.key});
 
   @override
-  createState() => _ExtensionviewState();
+  _ExtensionviewState createState() => _ExtensionviewState();
 }
 
 class _ExtensionviewState extends State<Extensionview> {
@@ -32,7 +32,7 @@ class _ExtensionviewState extends State<Extensionview> {
                 loading = false;
                 setState(() {});
               },
-              icon: const Icon(Icons.refresh)),
+              icon: const Icon(Icons.refresh),),
           IconButton(
               onPressed: () async {
                 const XTypeGroup typeGroup = XTypeGroup(
@@ -40,7 +40,7 @@ class _ExtensionviewState extends State<Extensionview> {
                   extensions: <String>['dion.js'],
                 );
                 final List<XFile> files = await openFiles(
-                    acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+                    acceptedTypeGroups: <XTypeGroup>[typeGroup],);
                 for (final file in files) {
                   await ExtensionManager()
                       .installString(await file.readAsString());
@@ -50,14 +50,13 @@ class _ExtensionviewState extends State<Extensionview> {
                 }
                 setState(() {});
               },
-              icon: const Icon(Icons.install_desktop))
+              icon: const Icon(Icons.install_desktop),),
         ],
         child: loading
             ? const Center(
                 child: CircularProgressIndicator(),
               )
             : DropTarget(
-                enable: true,
                 onDragEntered: (details) => setState(() {
                   dragging = true;
                 }),
@@ -65,7 +64,7 @@ class _ExtensionviewState extends State<Extensionview> {
                   dragging = false;
                 }),
                 onDragDone: (details) {
-                  for (var element in details.files) {
+                  for (final element in details.files) {
                     ExtensionManager()
                         .installlocal(element.path)
                         .then((value) => setState(() {}));
@@ -81,22 +80,22 @@ class _ExtensionviewState extends State<Extensionview> {
                             return null;
                           }
                           return ExtensionItem(
-                              ExtensionManager().loaded[index]);
+                              ExtensionManager().loaded[index],);
                         },
                         itemCount: ExtensionManager().loaded.length,
-                      )),
-                    ]),
+                      ),),
+                    ],),
                     if (dragging)
-                      Container(
+                      ColoredBox(
                         color: Theme.of(context)
                             .scaffoldBackgroundColor
                             .withOpacity(0.8),
                         child: const Center(
-                            child: Text("Drop Here to install Extension")),
+                            child: Text('Drop Here to install Extension'),),
                       ),
                   ],
                 ),
-              ));
+              ),);
   }
 }
 
@@ -109,7 +108,7 @@ class ExtensionItem extends StatefulWidget {
   const ExtensionItem(this.e, {super.key});
 
   @override
-  createState() => _ExtensionItemState();
+  _ExtensionItemState createState() => _ExtensionItemState();
 }
 
 class _ExtensionItemState extends State<ExtensionItem> {
@@ -117,20 +116,20 @@ class _ExtensionItemState extends State<ExtensionItem> {
   Widget build(BuildContext context) {
     return ListTile(
       isThreeLine: true,
-      subtitle: Text(widget.e.data?.desc ?? ""),
+      subtitle: Text(widget.e.data?.desc ?? ''),
       leading: FancyShimmerImage(
         width: 50,
         height: 50,
-        imageUrl: widget.e.data?.icon ?? "",
+        imageUrl: widget.e.data?.icon ?? '',
         errorWidget: const Icon(Icons.image, size: 50),
       ),
-      title: Text(widget.e.data?.name ?? "Unknown"),
+      title: Text(widget.e.data?.name ?? 'Unknown'),
       selected: widget.e.enabled,
       onTap: () => widget.e
           .setenabled(!widget.e.enabled)
           .then((value) => setState(() {})),
       onLongPress: () =>
-          context.push("/manage/extensionsettings", extra: widget.e),
+          context.push('/manage/extensionsettings', extra: widget.e),
     );
   }
 }
