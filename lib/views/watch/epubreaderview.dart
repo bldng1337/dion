@@ -14,7 +14,7 @@ class Epubreader extends StatefulWidget {
   const Epubreader(this.source,{ super.key, this.local=false });
 
   @override
-  createState() => _EpubreaderState();
+  _EpubreaderState createState() => _EpubreaderState();
 }
 
 class _EpubreaderState extends State<Epubreader> {
@@ -24,16 +24,16 @@ class _EpubreaderState extends State<Epubreader> {
   bool downloading=true;
   Future<Uint8List> getData(){
     if(widget.local){
-      File f = File(widget.source.url);
+      final File f = File(widget.source.url);
       return f.readAsBytes();
     }
     return InternetFile.get(widget.source.url,progress: (receivedLength, contentLength) => setState(() {
-    progress=(receivedLength.toDouble()/contentLength);
+    progress=receivedLength.toDouble()/contentLength;
   }),);
   }
 
   Future<EpubBook> getEpub() async {
-  Uint8List data=await getData();
+  final Uint8List data=await getData();
   setState(() {
     downloading=false;
   });
@@ -60,7 +60,7 @@ void initState() {
   timer = Timer.periodic(const Duration(seconds: 15), (timer) => save());
   _epubController = EpubController(
     document: getEpub(),
-    epubCfi: widget.source.getEpdata().sprogress??"",
+    epubCfi: widget.source.getEpdata().sprogress??'',
   );
   
 }
@@ -71,11 +71,10 @@ Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
       body: Center(child: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-      const Text("Loading"),
-      CircularProgressIndicator(value: progress,)
+      const Text('Loading'),
+      CircularProgressIndicator(value: progress,),
     ],),),);
   }
   return Scaffold(
@@ -85,7 +84,7 @@ Widget build(BuildContext context) {
       builder: (chapterValue) => Text(
         'Chapter: ${chapterValue?.chapter?.Title?.replaceAll('\n', '').trim() ?? ''}',
         textAlign: TextAlign.start,
-      )
+      ),
     ),
   ),
   // drawer: Drawer(

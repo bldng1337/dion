@@ -20,7 +20,7 @@ class LoadingScreen extends StatelessWidget {
               Future.microtask(() => context.pop(),);
               return Container();
             }
-            Future.microtask(() => context.pushReplacement("/any", extra: snapshot.data!),);
+            Future.microtask(() => context.pushReplacement('/any', extra: snapshot.data),);
             return Container();
           }
           if (snapshot.hasError) {

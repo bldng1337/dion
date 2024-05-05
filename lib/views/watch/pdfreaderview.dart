@@ -13,7 +13,7 @@ class Pdfreader extends StatefulWidget {
   const Pdfreader(this.source, {super.key, this.local = false});
 
   @override
-  createState() => _PdfreaderState();
+  _PdfreaderState createState() => _PdfreaderState();
 }
 
 class _PdfreaderState extends State<Pdfreader> {
@@ -22,8 +22,7 @@ class _PdfreaderState extends State<Pdfreader> {
   bool downloading = true;
 
   Future<Uint8List> setfinshed(Future<Uint8List> data) async {
-    Uint8List ret = await data;
-    print("finished");
+    final Uint8List ret = await data;
     if (mounted) {
       setState(() {
         downloading = false;
@@ -42,7 +41,7 @@ class _PdfreaderState extends State<Pdfreader> {
   @override
   void initState() {
     if (widget.local) {
-      File f = File(widget.source.url);
+      final File f = File(widget.source.url);
       pdfController = PdfController(
         initialPage: widget.source.getEpdata().iprogress ?? 1,
         document: PdfDocument.openData(
@@ -62,7 +61,7 @@ class _PdfreaderState extends State<Pdfreader> {
                 });
               }
             },
-          )),
+          ),),
         ),
       );
     }
@@ -83,12 +82,12 @@ class _PdfreaderState extends State<Pdfreader> {
 
   void scrollUp() {
     pdfController.previousPage(
-        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut,);
   }
 
   void scrollDown() {
     pdfController.nextPage(
-        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut,);
   }
 
   void navPreviousChapter() {
@@ -129,16 +128,16 @@ class _PdfreaderState extends State<Pdfreader> {
                 IconButton(
                     autofocus: true,
                     onPressed: openwebview,
-                    icon: const Icon(Icons.web_outlined)),
+                    icon: const Icon(Icons.web_outlined),),
                 IconButton(
                     icon: Icon(widget.source.getEpdata().isBookmarked
                         ? Icons.bookmark
-                        : Icons.bookmark_outline),
-                    onPressed: bookmark),
+                        : Icons.bookmark_outline,),
+                    onPressed: bookmark,),
                 IconButton(
                     onPressed:
                         () {}, //enav(context, parreadsettings(update: ()=>setState((){})))
-                    icon: const Icon(Icons.settings)),
+                    icon: const Icon(Icons.settings),),
               ],
             ),
             body: downloading
@@ -146,15 +145,15 @@ class _PdfreaderState extends State<Pdfreader> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Loading Data"),
+                        const Text('Loading Data'),
                         CircularProgressIndicator(
                           value: downloadprogress,
-                        )
+                        ),
                       ],
                     ),
                   )
                 : body(context),
-          ));
+          ),);
 
   Widget body(BuildContext context) => PdfView(
         pageSnapping: false,

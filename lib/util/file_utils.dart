@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 extension FileUtils on File {
   File silbling(String name) {
-    return File("${parent.absolute.path}/$name");
+    return File('${parent.absolute.path}/$name');
   }
 
   String getBasePath() {
@@ -18,17 +18,17 @@ extension FileUtils on File {
   }
 
   Future<File> ctwin(String name) {
-    return File("${getBasePath()}$name").create(recursive: true);
+    return File('${getBasePath()}$name').create(recursive: true);
   }
 
   File twin(String name) {
-    return File("${getBasePath()}$name");
+    return File('${getBasePath()}$name');
   }
 }
 
 extension DirUtils on Directory {
   Future<Directory> sub(String path) async {
-    Directory dir = Directory("${absolute.path}/$path/");
+    final Directory dir = Directory('${absolute.path}/$path/');
     return dir;
   }
   String get name{
@@ -36,24 +36,24 @@ extension DirUtils on Directory {
   }
 
   Future<Directory> csub(String path) async {
-    return Directory("${absolute.path}/$path/").create(recursive: true);
+    return Directory('${absolute.path}/$path/').create(recursive: true);
   }
 
   File getFile(String filename) {
-    return File("${absolute.path}/$filename");
+    return File('${absolute.path}/$filename');
   }
 }
 
-Future<Directory> getPath(String name,{create=true}) async {
+Future<Directory> getPath(String name,{bool create=true}) async {
   if(create){
-    return (await getApplicationDocumentsDirectory()).csub("dion/$name");
+    return (await getApplicationDocumentsDirectory()).csub('dion/$name');
   }
-  return (await getApplicationDocumentsDirectory()).sub("dion/$name");
+  return (await getApplicationDocumentsDirectory()).sub('dion/$name');
 }
 
 
 Future<Directory> getBasePath() async {
-  return (await getApplicationDocumentsDirectory()).csub("dion");
+  return (await getApplicationDocumentsDirectory()).csub('dion');
 }
 
 String utf8toString(Uint8List bytes) {
@@ -62,12 +62,12 @@ String utf8toString(Uint8List bytes) {
 
 String encodeFilename(String s) {
   return Uri.encodeComponent(s)
-      .replaceAll(".", "")
-      .replaceAll("/", "")
-      .replaceAll("%", "")
-      .replaceAll(":", "")
-      .replaceAll("https", "")
-      .replaceAll("http", "");
+      .replaceAll('.', '')
+      .replaceAll('/', '')
+      .replaceAll('%', '')
+      .replaceAll(':', '')
+      .replaceAll('https', '')
+      .replaceAll('http', '');
 }
 
 Uint8List stringtoutf8(String text) {
