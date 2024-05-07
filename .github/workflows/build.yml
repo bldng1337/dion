@@ -12,6 +12,8 @@ concurrency:
 jobs:
   # thanks https://github.com/hahouari/flutter_inno_workflows_demo/blob/dev/.github/workflows/build.yaml
   windows-installer:
+    permissions:
+      contents: write
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
