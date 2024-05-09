@@ -122,7 +122,7 @@ Future<Update?> checkUpdate() async {
       (await NetworkManager().dio.get(updateUrl)).data as Map<String, dynamic>;
   final currversion = await getVersion();
   final version = Version.parse((res['tag_name'] as String).substring(1));
-  if (version.compareTo(currversion) < 0) {
+  if (version.compareTo(currversion) <= 0) {
     return null;
   }
   final date = DateTime.parse(res['published_at'] as String);
