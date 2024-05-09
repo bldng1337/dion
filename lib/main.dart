@@ -7,6 +7,7 @@ import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/sync.dart';
 import 'package:dionysos/util/file_utils.dart';
+import 'package:dionysos/util/update.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/views/activityview.dart';
 import 'package:dionysos/views/detailedentryview.dart';
@@ -35,7 +36,11 @@ void main() async {
     FlutterError.presentError(details);
     if (kReleaseMode) exit(1);
   };
-  return runApp(const AppLoader());
+  return runApp(
+    const MaterialApp(
+      home: AppLoader(),
+    ),
+  );
 }
 
 class AppLoader extends StatefulWidget {
@@ -46,7 +51,7 @@ class AppLoader extends StatefulWidget {
 }
 
 class LoadTask {
-  final Future<void> Function() task;
+  final Future<void> Function(BuildContext context) task;
   final String name;
   LoadTask(this.task, this.name);
 }
@@ -54,19 +59,62 @@ class LoadTask {
 class _AppLoaderState extends State<AppLoader> {
   List<LoadTask> tasks = [
     LoadTask(
-      () async {
+      (context) async {
         prefs = await SharedPreferences.getInstance();
       },
       'Shared Preferences',
     ),
     LoadTask(
-      () async {
+      (context) async {
+        final update = await checkUpdate();
+        if (context.mounted &&
+            update != null &&
+            !hasNotifiedForUpdate(update.version)) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                    },
+                    child: const Text('Dont Update')),
+                TextButton(
+                    onPressed: () {
+                      
+                      showDialog(
+                          context: context,
+                          builder: (context) => UpdatingDialog(update: update,),);
+                    },
+                    child: const Text('Update')),
+              ],
+              title: const Text(
+                'New Version available!',
+                textAlign: TextAlign.center,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Current version ${update.currentversion}'),
+                  Text('Update to version ${update.version}'),
+                  const Text('Notes:'),
+                  Text(update.body),
+                ],
+              ),
+            ),
+          );
+        }
+      },
+      'Checking for Updates',
+    ),
+    LoadTask(
+      (context) async {
         await ensureJSBridgeInitialised();
       },
       'JS Extensions',
     ),
     LoadTask(
-      () async {
+      (context) async {
         final isardb =
             (await getPath('data')).getFile('${Isar.defaultName}.isar');
         if (!(await isardb.exists())) {
@@ -78,13 +126,13 @@ class _AppLoaderState extends State<AppLoader> {
       'Device ID',
     ),
     LoadTask(
-      () async {
+      (context) async {
         await ExtensionManager().finit;
       },
       'ExtensionManager',
     ),
     LoadTask(
-      () async {
+      (context) async {
         await FileDownloader().trackTasks();
         await FileDownloader()
             .cancelTasksWithIds(await FileDownloader().allTaskIds());
@@ -117,7 +165,7 @@ class _AppLoaderState extends State<AppLoader> {
       'Downloader',
     ),
     LoadTask(
-      () async {
+      (context) async {
         isar = await Isar.open(
           [EntrySavedSchema, ActivitySchema, CategorySchema],
           directory: (await getPath('data')).path,
@@ -128,16 +176,16 @@ class _AppLoaderState extends State<AppLoader> {
       'Library',
     ),
     LoadTask(
-      () async {
-        dosync();
+      (context) async {
+        await dosync();
       },
       'Starting Sync',
     ),
     LoadTask(
-      () async {
+      (context) async {
         final int now = DateTime.now().day;
         if (now != (prefs.getInt('lasttime') ?? 32)) {
-          prefs.setInt('lasttime', now);
+          await prefs.setInt('lasttime', now);
           updateEntries();
         }
       },
@@ -149,7 +197,7 @@ class _AppLoaderState extends State<AppLoader> {
   @override
   void initState() {
     super.initState();
-    current = tasks[progress].task();
+    current = tasks[progress].task(context);
   }
 
   Future<void> update() async {
@@ -157,72 +205,75 @@ class _AppLoaderState extends State<AppLoader> {
       runApp(const MyApp());
     } else {
       setState(() {
-        current = tasks[++progress].task();
+        current = tasks[++progress].task(context);
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: FutureBuilder(
-        future: current,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            try {
-              final Error e = snapshot.error! as Error;
-              return ErrorScreen(
-                e,
-                actions: [
-                  LoadTask(
-                    () async {
-                      final isardb = (await getPath('data'))
-                          .getFile('${Isar.defaultName}.isar');
-                      final isardblock = (await getPath('data'))
-                          .getFile('${Isar.defaultName}.isar');
-                      Isar.getInstance()?.close();
-                      if (await isardblock.exists()) {
-                        await isardblock.delete();
-                      }
-                      if (await isardb.exists()) {
-                        await isardb.delete();
-                      }
-                      await prefs.clear();
-                      Restart.restartApp();
-                    },
-                    'Delete Data',
-                  ),
-                  LoadTask(
-                    () async {
-                      Restart.restartApp();
-                    },
-                    'Retry',
-                  ),
-                ],
-              );
-            } catch (e) {
-              return ErrorWidget(e);
-            }
+    return FutureBuilder(
+      future: current,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          try {
+            final Error e = snapshot.error! as Error;
+            return ErrorScreen(
+              e,
+              actions: [
+                LoadTask(
+                  (context) async {
+                    final isardb = (await getPath('data'))
+                        .getFile('${Isar.defaultName}.isar');
+                    final isardblock = (await getPath('data'))
+                        .getFile('${Isar.defaultName}.isar');
+                    Isar.getInstance()?.close();
+                    if (await isardblock.exists()) {
+                      await isardblock.delete();
+                    }
+                    if (await isardb.exists()) {
+                      await isardb.delete();
+                    }
+                    await prefs.clear();
+                    Restart.restartApp();
+                  },
+                  'Delete Data',
+                ),
+                LoadTask(
+                  (context) async {
+                    Restart.restartApp();
+                  },
+                  'Retry',
+                ),
+              ],
+            );
+          } catch (e) {
+            return ErrorWidget(e);
           }
-          if (snapshot.connectionState == ConnectionState.done) {
-            Future.microtask(update);
-          }
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Padding(padding: EdgeInsets.all(25),child: Image(image: AssetImage('assets/icon/icon.png'),height: 130,)),
-                  const CircularProgressIndicator(),
-                  Text(
-                    'Loading ${tasks[progress].name} $progress/${tasks.length}',
-                  ),
-                ],
-              ),
+        }
+        if (snapshot.connectionState == ConnectionState.done) {
+          Future.microtask(update);
+        }
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Padding(
+                    padding: EdgeInsets.all(25),
+                    child: Image(
+                      image: AssetImage('assets/icon/icon.png'),
+                      height: 130,
+                    ),),
+                const CircularProgressIndicator(),
+                Text(
+                  'Loading ${tasks[progress].name} $progress/${tasks.length}',
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -251,9 +302,13 @@ class ErrorScreen extends StatelessWidget {
             if (actions != null)
               Row(
                 children: actions!
-                    .map((e) => Expanded(
-                        child:
-                            TextButton(onPressed: e.task, child: Text(e.name)),),)
+                    .map(
+                      (e) => Expanded(
+                        child: TextButton(
+                            onPressed: () => e.task(context),
+                            child: Text(e.name)),
+                      ),
+                    )
                     .toList(),
               ),
           ],
@@ -526,7 +581,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
       theme: getTheme(context),
       routerConfig: _router,
     );

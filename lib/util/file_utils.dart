@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -9,8 +10,12 @@ extension FileUtils on File {
     return File('${parent.absolute.path}/$name');
   }
 
+  String getFileName(){
+    return p.basenameWithoutExtension(path)+getExtension();
+  }
+
   String getBasePath() {
-    return parent.absolute.path+p.basenameWithoutExtension(path);
+    return '${absolute.parent.path}/${p.basenameWithoutExtension(absolute.path)}';
   }
 
   String getExtension() {
@@ -22,6 +27,7 @@ extension FileUtils on File {
   }
 
   File twin(String name) {
+    print(getBasePath());
     return File('${getBasePath()}$name');
   }
 }
@@ -46,13 +52,16 @@ extension DirUtils on Directory {
 
 Future<Directory> getPath(String name,{bool create=true}) async {
   if(create){
-    return (await getApplicationDocumentsDirectory()).csub('dion/$name');
+    return (await getBasePath()).csub(name);
   }
-  return (await getApplicationDocumentsDirectory()).sub('dion/$name');
+  return (await getBasePath()).sub(name);
 }
 
 
 Future<Directory> getBasePath() async {
+  if(kDebugMode){
+    return (await getApplicationDocumentsDirectory()).csub('diondev');
+  }
   return (await getApplicationDocumentsDirectory()).csub('dion');
 }
 

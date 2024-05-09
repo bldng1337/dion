@@ -1,0 +1,47 @@
+name: Create Release on Version Change
+
+on:
+  push:
+    paths:
+      - 'pubspec.yaml'
+  pull_request: 
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2  # Fetch the current and previous commit
+        token: ${{ secrets.PAT }}
+
+    - name: Get Previous Version
+      id: prev_version
+      run: |
+        prev_version=$(git show HEAD~1:pubspec.yaml | awk '/^version:/ { print $2 }')
+        echo "::set-output name=value::$prev_version"
+
+    - name: Get Current Version
+      id: current_version
+      run: |
+        current_version=$(awk '/^version:/ { print $2 }' pubspec.yaml)
+        echo "::set-output name=value::$current_version"
+
+    - name: Check Version Change
+      id: version_changed
+      run: |
+        if [ "${{ steps.prev_version.outputs.value }}" != "${{ steps.current_version.outputs.value }}" ]; then
+          echo "::set-output name=changed::true"
+        else
+          echo "::set-output name=changed::false"
+        fi
+    - run: echo "${{ steps.current_version.outputs.value }} ${{ steps.prev_version.outputs.value }}"
+    - name: Create and Push Tag
+      if: steps.version_changed.outputs.changed == 'true'
+      run: |
+        tag_name="v${{ steps.current_version.outputs.value }}"
+        git config --global user.email "github-actions@example.com"
+        git config --global user.name "GitHub Actions"
+        git tag "$tag_name"
+        git push origin "$tag_name"
