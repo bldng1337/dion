@@ -20,21 +20,21 @@ jobs:
       id: prev_version
       run: |
         prev_version=$(git show HEAD~1:pubspec.yaml | awk '/^version:/ { print $2 }')
-        echo "::set-output name=value::$prev_version"
+        echo "value=$prev_version" >> $GITHUB_OUTPUT
 
     - name: Get Current Version
       id: current_version
       run: |
         current_version=$(awk '/^version:/ { print $2 }' pubspec.yaml)
-        echo "::set-output name=value::$current_version"
+        echo "value=$current_version" >> $GITHUB_OUTPUT
 
     - name: Check Version Change
       id: version_changed
       run: |
         if [ "${{ steps.prev_version.outputs.value }}" != "${{ steps.current_version.outputs.value }}" ]; then
-          echo "::set-output name=changed::true"
+          echo "changed=true" >> $GITHUB_OUTPUT
         else
-          echo "::set-output name=changed::false"
+          echo "changed=false" >> $GITHUB_OUTPUT
         fi
     - run: echo "${{ steps.current_version.outputs.value }} ${{ steps.prev_version.outputs.value }}"
     - name: Create and Push Tag
