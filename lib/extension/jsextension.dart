@@ -267,9 +267,14 @@ class Bridge {
       }
       return;
     }
-    dynamic ret = methods[args[0]]!(args[2]);
-    if (ret is Future) {
-      ret = await ret;
+    dynamic ret;
+    try{
+      ret = methods[args[0]]!(args[2]);
+      if (ret is Future) {
+        ret = await ret;
+      }
+    }catch(e){
+      ret={'error':true,'reason':e.toString()};
     }
     runtime.evaluate('__onmsg(${args[1]},${json.encode(ret)})');
     runtime.executePendingJob();
