@@ -200,13 +200,14 @@ abstract class OptionalSettingTile<T> extends Tile {
 }
 
 class WidgetTile extends Tile {
-  final Widget w;
+  final Widget Function(BuildContext context) w;
+
   const WidgetTile(this.w):super('','');
 
   
   @override
   Widget render(BuildContext context, Function update) {
-    return w;
+    return w(context);
   }
   
 }
