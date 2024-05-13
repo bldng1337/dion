@@ -36,15 +36,15 @@ class Update {
 const lastver = SettingString('versionnotified', '');
 
 bool hasNotifiedForUpdate(Version version) {
-  if(kDebugMode){
+  if (kDebugMode) {
     return true;
   }
-  try{
-    final lastversion=Version.parse(lastver.value);
+  try {
+    final lastversion = Version.parse(lastver.value);
     lastver.setvalue(version.toString());
-    return lastversion.compareTo(version)==0;
-  // ignore: empty_catches
-  }catch(err){}
+    return lastversion.compareTo(version) == 0;
+    // ignore: empty_catches
+  } catch (err) {}
   lastver.setvalue(version.toString());
   return false;
 }
@@ -87,7 +87,9 @@ class _UpdatingDialogState extends State<UpdatingDialog> {
 }
 
 Future<void> doUpdate(
-    Update u, void Function(double progress) onprogress,) async {
+  Update u,
+  void Function(double progress) onprogress,
+) async {
   final file = (await (await getApplicationCacheDirectory()).csub('update'))
       .getFile('install.${u.link.split('.').last}');
   if (await file.exists()) {
@@ -118,30 +120,35 @@ Future<void> doUpdate(
 }
 
 Future<Update?> checkUpdate() async {
-  final res =
-      (await NetworkManager().dio.get(updateUrl)).data as Map<String, dynamic>;
-  final currversion = await getVersion();
-  final version = Version.parse((res['tag_name'] as String).substring(1));
-  if (version.compareTo(currversion) <= 0) {
+  try {
+    final res = (await NetworkManager().dio.get(updateUrl)).data
+        as Map<String, dynamic>;
+    final currversion = await getVersion();
+    final version = Version.parse((res['tag_name'] as String).substring(1));
+    if (version.compareTo(currversion) <= 0) {
+      return null;
+    }
+    final date = DateTime.parse(res['published_at'] as String);
+    final downloadurl = switch (getPlatform()) {
+      CPlatform.android => (res['assets'] as List<dynamic>).firstWhereOrNull(
+          (element) =>
+              (element['name'] as String).endsWith('apk') &&
+              (element['content_type'] as String) ==
+                  'application/vnd.android.package-archive',
+        )?['browser_download_url'] as String?,
+      CPlatform.windows => (res['assets'] as List<dynamic>).firstWhereOrNull(
+          (element) =>
+              (element['name'] as String).endsWith('exe') &&
+              (element['content_type'] as String) == 'raw',
+        )?['browser_download_url'] as String?,
+      _ => null,
+    };
+    if (downloadurl == null) {
+      return null;
+    }
+    return Update(
+        downloadurl, version, currversion, date, res['body'] as String);
+  } catch (e) {
     return null;
   }
-  final date = DateTime.parse(res['published_at'] as String);
-  final downloadurl = switch (getPlatform()) {
-    CPlatform.android => (res['assets'] as List<dynamic>).firstWhereOrNull(
-        (element) =>
-            (element['name'] as String).endsWith('apk') &&
-            (element['content_type'] as String) ==
-                'application/vnd.android.package-archive',
-      )?['browser_download_url'] as String?,
-    CPlatform.windows => (res['assets'] as List<dynamic>).firstWhereOrNull(
-        (element) =>
-            (element['name'] as String).endsWith('exe') &&
-            (element['content_type'] as String) == 'raw',
-      )?['browser_download_url'] as String?,
-    _ => null,
-  };
-  if (downloadurl == null) {
-    return null;
-  }
-  return Update(downloadurl, version, currversion, date, res['body'] as String);
 }
