@@ -28,7 +28,7 @@ extension Mediafunc on MediaType {
     };
   }
 
-  String getEpName({bool multi=false}) {
+  String getEpName({bool multi = false}) {
     return switch (this) {
       MediaType.video => multi ? 'Episode' : 'Episodes',
       MediaType.comic => 'Chapter',
@@ -65,14 +65,23 @@ MediaType getMediaType(String type) {
 class Episode {
   late final String name;
   late final String url;
+  late final String weburl;
+  late final String? thumbnail;
   DateTime? timestamp;
 
   Episode();
 
-  Episode.init(this.name, this.url);
+  Episode.init(
+      this.name, this.url, this.weburl, this.thumbnail, this.timestamp);
 
   factory Episode.fromJson(Map<String, dynamic> json) {
-    return Episode.init(json['name'] as String, json['url'] as String);
+    return Episode.init(
+      json['name'] as String,
+      json['id'] as String,
+      json['url'] as String,
+      json['thumbnail'] as String?,
+      DateTime.tryParse((json['timestamp'] ?? '') as String),
+    );
   }
   Episode clone({String? name, String? url, DateTime? timestamp}) {
     final Episode e = Episode();
@@ -102,17 +111,15 @@ class EpisodeList extends AEpisodeList {
 
   factory EpisodeList.fromJson(Map<String, dynamic> json) {
     return EpisodeList.init(
-        json['title'] as String,
-        (json['episodes'] as List<dynamic>)
-            .map((e) => Episode.fromJson(e as Map<String, dynamic>))
-            .toList(),);
+      json['title'] as String,
+      (json['episodes'] as List<dynamic>)
+          .map((e) => Episode.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 }
 
-enum Status {
-  releasing,
-  complete,
-}
+enum Status { releasing, complete, unknown }
 
 Status getStatus(String s) {
   return s.toLowerCase().contains('releasing')
@@ -126,6 +133,7 @@ class Entry {
   final MediaType type;
   @Index(unique: true)
   final String url;
+  final String weburl;
   final String? cover;
   final double? rating;
   final int? views;
@@ -139,7 +147,7 @@ class Entry {
   }
 
   Entry(this.title, this.type, this.url, this.cover, this.rating, this.views,
-      this.length, this.author, this.extname,);
+      this.length, this.author, this.extname, this.weburl);
 
   Future<EntryDetail?> detailed() async {
     final EntrySaved? entry =
@@ -154,18 +162,20 @@ class Entry {
 
   factory Entry.fromJson(Map<String, dynamic> json, Extension ext) {
     return Entry(
-        json['title'] as String,
-        MediaType.values.lastWhere(
-            (e) =>
-                e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
-            orElse: () => MediaType.video,),
-        json['url'] as String,
-        json['cover'] as String?,
-        (json['rating'] as num?)?.toDouble(),
-        json['views'] as int?,
-        (json['length'] as num?)?.toInt(),
-        mlistcast<String>(json['author'] as List<dynamic>?),
-        ext.indentifier,);
+      json['title'] as String,
+      MediaType.values.lastWhere(
+        (e) => e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
+        orElse: () => MediaType.video,
+      ),
+      json['id'] as String,
+      json['cover'] as String?,
+      (json['rating'] as num?)?.toDouble(),
+      json['views'] as int?,
+      (json['length'] as num?)?.toInt(),
+      mlistcast<String>(json['author'] as List<dynamic>?),
+      ext.indentifier,
+      json['url'] as String,
+    );
   }
 
   EpisodeData getEpdata(int episode) {
@@ -198,6 +208,7 @@ class EntryDetail extends Entry {
     super.length,
     super.author,
     super.extname,
+    super.weburl,
     this.episodes,
     this.genres,
     this.status,
@@ -212,23 +223,25 @@ class EntryDetail extends Entry {
     return EntryDetail(
       json['title'] as String,
       MediaType.values.lastWhere(
-          (e) => e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
-          orElse: () => MediaType.video,),
-      json['url'] as String,
+        (e) => e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
+        orElse: () => MediaType.video,
+      ),
+      json['id'] as String,
       json['cover'] as String?,
       (json['rating'] as num?)?.toDouble(),
       (json['views'] as num?)?.toInt(),
       (json['length'] as num?)?.toInt(),
       mlistcast<String>(json['author'] as List<dynamic>?),
       ext.indentifier,
+      json['url'] as String,
       (json['episodes'] as List<dynamic>)
           .map((e) => EpisodeList.fromJson(e as Map<String, dynamic>))
           .toList(),
-      listcast<String>(json['genres'] as List<dynamic>),
+      listcast<String>((json['genres'] ?? []) as List<dynamic>),
       Status.values.lastWhere(
-          (e) =>
-              e.name.toLowerCase() == (json['status'] as String).toLowerCase(),
-          orElse: () => Status.releasing,),
+        (e) => e.name.toLowerCase() == (json['status'] as String).toLowerCase(),
+        orElse: () => Status.releasing,
+      ),
       json['description'] as String?,
     );
   }
@@ -295,19 +308,21 @@ class EntrySaved extends EntryDetail {
   List<EpisodeData?> epdata = List.empty(growable: true);
 
   EntrySaved(
-      super.title,
-      super.type,
-      super.url,
-      super.cover,
-      super.rating,
-      super.views,
-      super.length,
-      super.author,
-      super.extname,
-      super.episodes,
-      super.genres,
-      super.status,
-      super.description,);
+    super.title,
+    super.type,
+    super.url,
+    super.cover,
+    super.rating,
+    super.views,
+    super.length,
+    super.author,
+    super.extname,
+    super.weburl,
+    super.episodes,
+    super.genres,
+    super.status,
+    super.description,
+  );
   //Download
   String getDownloadpath(AEpisodeList list, int episode) {
     return 'downloads/${encodeFilename(extname)}/${encodeFilename(url)}/${encodeFilename(list.title)}/$episode';
@@ -354,14 +369,15 @@ class EntrySaved extends EntryDetail {
         fn.writeAsBytes(f.data!.toList());
       } else {
         final task = DownloadTask(
-            url: f.url!,
-            filename: f.filename,
-            group: getDownloadpath(list, episode),
-            displayName: e.name,
-            directory: 'dion/${getDownloadpath(list, episode)}',
-            requiresWiFi: true,
-            allowPause: true,
-            updates: Updates.statusAndProgress,);
+          url: f.url!,
+          filename: f.filename,
+          group: getDownloadpath(list, episode),
+          displayName: e.name,
+          directory: 'dion/${getDownloadpath(list, episode)}',
+          requiresWiFi: true,
+          allowPause: true,
+          updates: Updates.statusAndProgress,
+        );
         await FileDownloader().enqueue(task);
       }
     }
@@ -384,8 +400,10 @@ class EntrySaved extends EntryDetail {
 
   int get totalepisodes {
     return episodes
-        .reduce((value, element) =>
-            value.episodes.length > element.episodes.length ? value : element,)
+        .reduce(
+          (value, element) =>
+              value.episodes.length > element.episodes.length ? value : element,
+        )
         .episodes
         .length;
   }
@@ -426,8 +444,9 @@ class EntrySaved extends EntryDetail {
   @override
   int getlastReadIndex() {
     return min(
-        epdata.lastIndexWhere((element) => element?.completed ?? false) + 1,
-        epdata.length - 1,);
+      epdata.lastIndexWhere((element) => element?.completed ?? false) + 1,
+      epdata.length - 1,
+    );
   }
 
   @override
@@ -467,25 +486,41 @@ class EntrySaved extends EntryDetail {
   }
 
   Future<EntryDetail?> toEntryDetailed() async {
-    return EntryDetail(title, type, url, cover, rating, views, length, author,
-        extname, episodes, genres, status, description,);
+    return EntryDetail(
+      title,
+      type,
+      url,
+      cover,
+      rating,
+      views,
+      length,
+      author,
+      extname,
+      weburl,
+      episodes,
+      genres,
+      status,
+      description,
+    );
   }
 
   factory EntrySaved.fromEntry(EntryDetail e) {
     return EntrySaved(
-        e.title,
-        e.type,
-        e.url,
-        e.cover,
-        e.rating,
-        e.views,
-        e.length,
-        e.author,
-        e.extname,
-        e.episodes,
-        e.genres,
-        e.status,
-        e.description,);
+      e.title,
+      e.type,
+      e.url,
+      e.cover,
+      e.rating,
+      e.views,
+      e.length,
+      e.author,
+      e.extname,
+      e.weburl,
+      e.episodes,
+      e.genres,
+      e.status,
+      e.description,
+    );
   }
 
   Map<String, dynamic> toJSON() {
@@ -496,7 +531,8 @@ class EntrySaved extends EntryDetail {
     final Map<int, EpisodeData?> data = Map.from(epdata.asMap());
     data.removeWhere((key, value) => value == null);
     mjson['epdata'] = Map.from(
-        data.map((key, value) => MapEntry(key.toString(), value!.toJSON())),);
+      data.map((key, value) => MapEntry(key.toString(), value!.toJSON())),
+    );
     mjson['categories'] = List.generate(cat.length, (index) => cat[index].name);
     return mjson;
   }

@@ -385,6 +385,14 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                                   fontSize: 16.0,
                                 ),
                               ),
+                            if(entry.rating != null)
+                              Text(
+                                '${entry.rating!*10} / 10',
+                                textAlign: TextAlign.start,
+                                style: const TextStyle(
+                                  fontSize: 16.0,
+                                ),
+                              ),
                           ],
                         ),),),
               ],),

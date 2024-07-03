@@ -7,6 +7,7 @@ import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/util/file_utils.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/views/loadingscreenview.dart';
+import 'package:dionysos/views/settingsview.dart';
 import 'package:dionysos/views/watch/epubreaderview.dart';
 import 'package:dionysos/views/watch/imglistreaderview.dart';
 import 'package:dionysos/views/watch/paragraphreaderview.dart';
@@ -63,90 +64,32 @@ abstract class Source {
     eplist = entry.episodes[epmap.indexWhere((element) => element >= 0)];
     epcount = epmap.where((element) => element != -1).first;
   }
-
-  factory Source.videofromJson(
+  
+  factory Source.fromJson(
       Map<String, dynamic> json, EntryDetail entry, Episode e,) {
-    final SourceType sourceType = SourceType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
-        orElse: () => SourceType.directlink,);
-    switch (sourceType) {
-      case SourceType.directlink:
-        switch (json['sourcedata']['type']) {
-          case 'm3u8':
-            return M3U8Source.fromJSON(json, entry, e);
-          default:
-            throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
-        }
-      default:
-        throw UnsupportedError('Not implemented ${sourceType.name}');
-    }
-  }
-
-  factory Source.comicFromJson(
-      Map<String, dynamic> json, EntryDetail entry, Episode e,) {
-    final SourceType sourceType = SourceType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
-        orElse: () => SourceType.directlink,);
-    switch (sourceType) {
-      case SourceType.directlink:
-        switch (json['sourcedata']['type']) {
-          case 'imagelist':
-            return ImgListSource.fromJSON(json, entry, e);
-          case 'pdf':
-            return PdfSource.fromJSON(json, entry, e);
-          default:
-            throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
-        }
-      default:
-        throw UnsupportedError('Not implemented ${sourceType.name}');
-    }
-  }
-  factory Source.bookFromJson(
-      Map<String, dynamic> json, EntryDetail entry, Episode e,) {
-    final SourceType sourceType = SourceType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == json['sourcetype'].toString().toLowerCase(),
-        orElse: () => SourceType.directlink,);
-    switch (sourceType) {
-      case SourceType.data:
-        switch (json['sourcedata']['type']) {
+    switch (json['sourcetype']) {
+      case 'data':
+        switch(json['sourcedata']['type']) {
           case 'paragraphlist':
             return ParagraphListSource.fromJSON(json, entry, e);
           default:
             throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
         }
-      case SourceType.directlink:
+      case 'directlink':
         switch (json['sourcedata']['type']) {
+          case 'm3u8':
+            return M3U8Source.fromJSON(json, entry, e);
           case 'epub':
             return EpubSource.fromJSON(json, entry, e);
           case 'pdf':
             return PdfSource.fromJSON(json, entry, e);
+          case 'imagelist':
+            return ImgListSource.fromJSON(json, entry, e);
           default:
             throw UnsupportedError('Not implemented ${json['sourcedata']['type']}');
         }
-      default:
-        throw UnsupportedError('Not implemented ${sourceType.name}');
     }
-  }
-
-  factory Source.fromJson(
-      Map<String, dynamic> json, EntryDetail entry, Episode e,) {
-    final MediaType mediatype = MediaType.values.lastWhere(
-        (e) =>
-            e.name.toLowerCase() == (json['mediatype'] as String).toLowerCase(),
-        orElse: () => MediaType.video,);
-    switch (mediatype) {
-      case MediaType.comic:
-        return Source.comicFromJson(json, entry, e);
-      case MediaType.book:
-        return Source.bookFromJson(json, entry, e);
-      case MediaType.video:
-        return Source.videofromJson(json, entry, e);
-      default:
-        throw UnsupportedError('Not implemented ${mediatype.name}');
-    }
+    throw UnsupportedError('Not implemented ${json['sourcetype']}');
   }
   
   final EntryDetail entry;
@@ -362,6 +305,9 @@ class ParagraphListSource extends Source {
 
   @override
   Widget _navReader() {
+    if(TextReaderSettings.reader.value == 'Infinityscroll'){
+      return InfinityParagraphreader(source: this,);
+    }
     return ParagraphReader(
       source: this,
     );

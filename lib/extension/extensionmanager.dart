@@ -35,7 +35,7 @@ class ExtensionManager {
           newloaded.add(await Extension(file).init());
         } catch (e) {
           if (kDebugMode) {
-            print(e);
+            print('Error loading extension ${file.path}: $e');
           }
         }
       }

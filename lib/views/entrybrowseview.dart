@@ -5,10 +5,13 @@ import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
-import 'package:endless/endless.dart';
+import 'package:endless/stream/endless_stream_controller.dart';
+import 'package:endless/stream/endless_stream_grid_view.dart';
 import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+
 
 class EntryBrowseView extends StatefulWidget {
   const EntryBrowseView({super.key});
@@ -34,7 +37,7 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
           if (filtertype == null) {
             return true;
           }
-          return filtertype == e.data?.type;
+          return  e.data?.type?.contains(filtertype)??false;
         },
       ),);
     } else {
@@ -186,6 +189,7 @@ class EntryCard extends StatelessWidget {
             FancyShimmerImage(
               width: width,
               imageUrl: entry.cover ?? '',
+              boxFit: BoxFit.cover,
               errorWidget: Icon(Icons.image, size: min(width, height)),
             ),
             Container(

@@ -72,7 +72,7 @@ class _ExtensionsettingState extends State<Extensionsetting> {
                     style: const TextStyle(fontSize: 30),
                   ),
                   Text(
-                    widget.ext.data?.type.toString() ?? '',
+                    widget.ext.data?.type?.map((v)=>v.toString()).reduce((a,b)=>'$a, $b') ?? '',
                     style: const TextStyle(fontSize: 20),
                   ),
                   Text(

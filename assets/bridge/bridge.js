@@ -4,7 +4,7 @@ function __isPromise(value) {
 var __dbg = (...a) => sendMessage("__dbg", JSON.stringify(a))
 var window = global = globalThis;
 var __q = []
-function __sendmsg(name, ...args) {
+function __sendmsg(name, args) {
     //  __dbg("sendmsg",name,args)
     let p = new Promise((res) => {
         __q.push(res);

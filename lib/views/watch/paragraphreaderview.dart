@@ -42,15 +42,15 @@ Widget toText(BuildContext context, String paragraph) {
 }
 
 //Infinity Scroll
-class Paragraphreader extends StatefulWidget {
+class InfinityParagraphreader extends StatefulWidget {
   final ParagraphListSource source;
-  const Paragraphreader({super.key, required this.source});
+  const InfinityParagraphreader({super.key, required this.source});
 
   @override
   _ParagraphreaderState createState() => _ParagraphreaderState();
 }
 
-class _ParagraphreaderState extends State<Paragraphreader> {
+class _ParagraphreaderState extends State<InfinityParagraphreader> {
   ParagraphListSource? source;
   final LruMap<int, hlist.HugeListViewPageResult<Source?>> map =
       LruMap(maximumSize: 3);
