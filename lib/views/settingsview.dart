@@ -238,6 +238,10 @@ const SettingPageBuilder mangareadersettings =
   ),
 ]);
 
+String FontWeightToString(FontWeight weight) {
+  return weight.toString().replaceFirst('FontWeight.', '');
+}
+
 final SettingPageBuilder textreadersettings =
     SettingPageBuilder('Textreader Settings', [
   const SimpleChoiceTile(
@@ -252,7 +256,7 @@ final SettingPageBuilder textreadersettings =
     'Textweight of characters',
     TextReaderSettings.textweight,
     choices: FontWeight.values
-        .map((e) => e.toString().replaceFirst('FontWeight.', ''))
+        .map((e) => FontWeightToString(e))
         .toSet()
         .toList(),
     icon: Icons.highlight,

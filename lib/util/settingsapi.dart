@@ -237,6 +237,11 @@ class SimpleChoiceTile extends SettingTile<String> {
 
   @override
   Widget render(BuildContext context, Function update) {
+    String value = setting.value;
+    if(!choices.contains(value)){
+      value = choices.first;
+      setting.setvalue(value);
+    }
     return Tooltip(
       message: description,
       child: ListTile(
@@ -249,7 +254,7 @@ class SimpleChoiceTile extends SettingTile<String> {
                       child: Text(e),
                     ),)
                 .toList(),
-            value: setting.value,
+            value: value,
             onChanged: (val) => setting
                 .setvalue(val ?? setting.defaultvalue)
                 .then((value) => update()),),

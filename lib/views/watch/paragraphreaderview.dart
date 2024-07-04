@@ -8,6 +8,7 @@ import 'package:dionysos/views/settingsview.dart';
 import 'package:dionysos/widgets/hugelist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:go_router/go_router.dart';
 import 'package:huge_listview/huge_listview.dart' as hlist;
 import 'package:quiver/collection.dart';
@@ -15,11 +16,12 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Widget toText(BuildContext context, String paragraph) {
+  
   final avg = TextStyle(
     fontSize: TextReaderSettings.textsize.value,
     color: Theme.of(context).textTheme.displaySmall?.color,
-    fontWeight: FontWeight.values.firstWhere((element) =>
-        element.toString().contains(TextReaderSettings.textweight.value),),
+    fontWeight: FontWeight.values.firstWhereOrNull((element) =>
+        element.toString().contains(TextReaderSettings.textweight.value),)??FontWeight.normal,
   );
   if (TextReaderSettings.bionic.value) {
     return Bionify(

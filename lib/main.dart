@@ -34,7 +34,7 @@ void main() async {
   MediaKit.ensureInitialized();
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    if (kReleaseMode) exit(1);
+    // if (kReleaseMode) exit(1);
   };
   return runApp(
     const MaterialApp(
