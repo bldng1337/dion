@@ -21,7 +21,6 @@ def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
-
 android {
     namespace "com.example.dionysos"
     compileSdkVersion flutter.compileSdkVersion
@@ -51,18 +50,10 @@ android {
         versionName flutterVersionName
     }
 
-    signingConfigs {
-        release {
-            keyAlias 'dion'
-            keyPassword System.env.KEY_PWD ?: ''
-            storeFile file('../keystore.jks')
-            storePassword System.env.KEYSTORE_PWD ?: ''
-        }
-    }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig null
         }
     }
 }

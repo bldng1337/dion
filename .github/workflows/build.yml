@@ -62,10 +62,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       - run: echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
-      - env:
-          KEY_PWD: ${{ secrets.KEY_PASSWORD }}
-          KEYSTORE_PWD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: flutter build apk --release
+      - run: echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
+      - run: echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
+      - run: flutter build apk --release
+      - run: jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-release.apk dion
+      - run: jarsigner -verify -certs build/app/outputs/flutter-apk/app-release.apk
       - run: |
           cd build/app/outputs/flutter-apk
           mv app-release.apk dion${{ github.ref_name }}.apk
