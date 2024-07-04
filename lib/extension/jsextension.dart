@@ -268,6 +268,7 @@ class Extension {
     if (ret == null) return null;
     return Source.fromJson(ret as Map<String, dynamic>, entry, ep);
   }
+
 }
 
 class Bridge {

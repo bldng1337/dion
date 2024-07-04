@@ -1,3 +1,4 @@
+import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
@@ -92,6 +93,9 @@ class _ExtensionsettingState extends State<Extensionsetting> {
               ),
             ],
           ),
+          TextButton(onPressed: () {
+            ExtensionManager().uninstall(widget.ext);
+          }, child: const Text('Uninstall'),),
           const ConstructionWarning(),
           ...widget.ext.settings.entries
               .map((e) => buildsetting(e.key, e.value)),

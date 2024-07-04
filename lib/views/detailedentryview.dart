@@ -536,7 +536,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
           IconButton(
               tooltip: 'Open in Browser',
               onPressed: () {
-                launchUrl(Uri.parse(entry.url));
+                launchUrl(Uri.parse(entry.weburl));
               },
               icon: const Icon(Icons.web_outlined),),
           IconButton(
@@ -637,7 +637,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                     icon: const Icon(Icons.web_outlined),
                     onPressed: () {
                       launchUrl(
-                          Uri.parse(eplist!.episodes[selected.first].url),);
+                          Uri.parse(eplist!.episodes[selected.first].weburl),);
                     },
                   ),),
                 if (selected.length == 1)

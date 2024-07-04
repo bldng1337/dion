@@ -54,7 +54,7 @@ class _ImglistreaderState extends State<Imglistreader> {
   }
 
   void openwebview() {
-    launchUrl(Uri.parse(source?.ep.url ?? ''));
+    launchUrl(Uri.parse(source?.ep.weburl ?? ''));
   }
 
   ScrollOffsetController scoffset = ScrollOffsetController();
@@ -277,7 +277,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
   }
 
   void openwebview() {
-    launchUrl(Uri.parse(widget.source.ep.url));
+    launchUrl(Uri.parse(widget.source.ep.weburl));
   }
 
   ItemScrollController sci = ItemScrollController();

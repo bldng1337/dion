@@ -20,8 +20,7 @@ Widget toText(BuildContext context, String paragraph) {
   final avg = TextStyle(
     fontSize: TextReaderSettings.textsize.value,
     color: Theme.of(context).textTheme.displaySmall?.color,
-    fontWeight: FontWeight.values.firstWhereOrNull((element) =>
-        element.toString().contains(TextReaderSettings.textweight.value),)??FontWeight.normal,
+    fontWeight: stringToFontWeight(TextReaderSettings.textweight.value),
   );
   if (TextReaderSettings.bionic.value) {
     return Bionify(
@@ -31,9 +30,7 @@ Widget toText(BuildContext context, String paragraph) {
       markStyle: TextStyle(
         fontSize: TextReaderSettings.textsize.value,
         color: Theme.of(context).textTheme.displaySmall?.color,
-        fontWeight: FontWeight.values.firstWhere((element) => element
-            .toString()
-            .contains(TextReaderSettings.bionichighlight.value),),
+        fontWeight: stringToFontWeight(TextReaderSettings.bionichighlight.value),
       ),
     );
   }
@@ -81,7 +78,7 @@ class _ParagraphreaderState extends State<InfinityParagraphreader> {
   }
 
   void openwebview() {
-    launchUrl(Uri.parse(source?.ep.url ?? ''));
+    launchUrl(Uri.parse(source?.ep.weburl ?? ''));
   }
 
   void back(BuildContext context) {}
@@ -289,7 +286,7 @@ class _ParagraphReaderState extends State<ParagraphReader> {
   }
 
   void openwebview() {
-    launchUrl(Uri.parse(widget.source.ep.url));
+    launchUrl(Uri.parse(widget.source.ep.weburl));
   }
 
   ItemScrollController sci = ItemScrollController();

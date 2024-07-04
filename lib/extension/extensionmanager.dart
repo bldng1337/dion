@@ -96,4 +96,11 @@ class ExtensionManager {
     await newf.writeAsString(src);
     await reload();
   }
+
+  Future<void> uninstall(Extension ext) async {
+    ext.dispose();
+    loaded.remove(ext);
+    await ext.extensionpath.delete();
+    await ext.configpath.delete();
+  }
 }

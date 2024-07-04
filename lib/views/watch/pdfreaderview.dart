@@ -70,7 +70,7 @@ class _PdfreaderState extends State<Pdfreader> {
   }
 
   void openwebview() {
-    launchUrl(Uri.parse(widget.source.ep.url));
+    launchUrl(Uri.parse(widget.source.ep.weburl));
   }
 
   void bookmark() {
