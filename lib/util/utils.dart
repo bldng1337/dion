@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
@@ -124,17 +125,20 @@ class SwipeDetector extends StatelessWidget {
 
         if (mainDis < minMainDisplacement) {
           debugPrint(
-              'SWIPE DEBUG | Displacement too short. Real: $mainDis - Min: $minMainDisplacement',);
+            'SWIPE DEBUG | Displacement too short. Real: $mainDis - Min: $minMainDisplacement',
+          );
           return;
         }
         if (crossDis > maxCrossRatio * mainDis) {
           debugPrint(
-              'SWIPE DEBUG | Cross axis displacemnt bigger than limit. Real: $crossDis - Limit: ${mainDis * maxCrossRatio}',);
+            'SWIPE DEBUG | Cross axis displacemnt bigger than limit. Real: $crossDis - Limit: ${mainDis * maxCrossRatio}',
+          );
           return;
         }
         if (mainVel < minVelocity) {
           debugPrint(
-              'SWIPE DEBUG | Swipe velocity too slow. Real: $mainVel - Min: $minVelocity',);
+            'SWIPE DEBUG | Swipe velocity too slow. Real: $mainVel - Min: $minVelocity',
+          );
           return;
         }
 
@@ -163,17 +167,19 @@ LanguageCodes? stringtoLang(String? ilang) {
   }
   final String lang = ilang.toLowerCase();
 
-  return LanguageCodes.values.firstWhereOrNull((p0) =>
-      lang == p0.code.toLowerCase() ||
-      p0.englishNames
-          .map((e) => lang.contains(e.toLowerCase()))
-          .contains(true) ||
-      p0.nativeNames
-          .map((e) => lang.contains(e.toLowerCase()))
-          .contains(true) ||
-      lang == p0.locale.countryCode?.toLowerCase() ||
-      lang == p0.locale.languageCode.toLowerCase() ||
-      lang == p0.locale.scriptCode?.toLowerCase(),);
+  return LanguageCodes.values.firstWhereOrNull(
+    (p0) =>
+        lang == p0.code.toLowerCase() ||
+        p0.englishNames
+            .map((e) => lang.contains(e.toLowerCase()))
+            .contains(true) ||
+        p0.nativeNames
+            .map((e) => lang.contains(e.toLowerCase()))
+            .contains(true) ||
+        lang == p0.locale.countryCode?.toLowerCase() ||
+        lang == p0.locale.languageCode.toLowerCase() ||
+        lang == p0.locale.scriptCode?.toLowerCase(),
+  );
 }
 
 List<T> listcast<T>(List<dynamic> list) => list.map((e) => e as T).toList();
@@ -197,8 +203,13 @@ class FutureLoader<T> extends StatelessWidget {
   final Widget Function(BuildContext context, T data) success;
   final Widget Function(BuildContext context, Object error)? error;
   final Widget Function(BuildContext context)? loading;
-  const FutureLoader(this.future,
-      {super.key, required this.success, this.error, this.loading,});
+  const FutureLoader(
+    this.future, {
+    super.key,
+    required this.success,
+    this.error,
+    this.loading,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -246,9 +257,18 @@ class ConstructionWarning extends StatelessWidget {
     return const Center(
       child: Column(
         children: [
-          Icon(Icons.construction,size: 150,),
-          Text('Under Construction',style: TextStyle(fontSize: 30),),
-          Text('This feature is not finished',style: TextStyle(fontSize: 15),),
+          Icon(
+            Icons.construction,
+            size: 150,
+          ),
+          Text(
+            'Under Construction',
+            style: TextStyle(fontSize: 30),
+          ),
+          Text(
+            'This feature is not finished',
+            style: TextStyle(fontSize: 15),
+          ),
         ],
       ),
     );
@@ -301,4 +321,73 @@ String fontWeightToString(FontWeight weight) {
       return 'Black';
   }
   return 'Normal';
+}
+
+Widget displayJSON(dynamic jsonlike) {
+  if (jsonlike is Map<String, dynamic>) {
+    if (jsonlike.isEmpty) {
+      return Container();
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: jsonlike.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+            title: Text(jsonlike.keys.elementAt(index)),
+            subtitle: displayJSON(jsonlike.values.elementAt(index)));
+      },
+    );
+  }
+  if (jsonlike is List<dynamic>) {
+    if (jsonlike.isEmpty) {
+      return Container();
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: jsonlike.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          title: Text(index.toString()),
+          subtitle: displayJSON(jsonlike.elementAt(index)));
+      },
+    );
+  }
+  if(jsonlike is String){
+    try {
+      final dt=DateTime.parse(jsonlike);
+      return Text(durationToRelativeTime(dt.difference(DateTime.now())));
+    // ignore: empty_catches
+    }catch(e){}//This is expected
+  }
+  return Text(jsonlike.toString());
+}
+
+
+String durationToRelativeTime(Duration duration) {
+  final isago=duration.isNegative;
+  final absduration = duration.abs();
+  String result = '';
+  int value;
+
+  if (absduration.inDays >= 365) {
+    value = absduration.inDays ~/ 365;
+    result = '$value year${value > 1 ? 's' : ''}';
+  } else if (absduration.inDays >= 30) {
+    value = absduration.inDays ~/ 30;
+    result = '$value month${value > 1 ? 's' : ''}';
+  } else if (absduration.inDays > 0) {
+    value = absduration.inDays;
+    result = '$value day${value > 1 ? 's' : ''}';
+  } else if (absduration.inHours > 0) {
+    value = absduration.inHours;
+    result = '$value hour${value > 1 ? 's' : ''}';
+  } else if (absduration.inMinutes > 0) {
+    value = absduration.inMinutes;
+    result = '$value minute${value > 1 ? 's' : ''}';
+  } else {
+    value = absduration.inSeconds;
+    result = '$value second${value > 1 ? 's' : ''}';
+  }
+
+  return isago ? '$result ago' : 'in $result';
 }

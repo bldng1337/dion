@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/main.dart';
-import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
+import 'package:dionysos/widgets/image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:huge_listview/huge_listview.dart';

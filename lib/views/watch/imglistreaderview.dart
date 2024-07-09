@@ -170,6 +170,7 @@ class _ImgListState extends State<ImgList> {
         itemBuilder: (context, i) {
           return CachedNetworkImage(
             filterQuality: FilterQuality.high,
+            httpHeaders: widget.source.header,
             fit: BoxFit.fitWidth,
             imageUrl: widget.source.urls[i],
             progressIndicatorBuilder: (context, url, downloadProgress) =>
@@ -396,6 +397,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
     }
     return CachedNetworkImage(
       filterQuality: FilterQuality.high,
+      httpHeaders: widget.source.header,
       fit: BoxFit.fitWidth,
       imageUrl: path,
       progressIndicatorBuilder: (context, url, downloadProgress) => SizedBox(

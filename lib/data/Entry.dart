@@ -66,21 +66,23 @@ class Episode {
   late final String name;
   late final String url;
   late final String weburl;
+  late final String? thumbheader;
   late final String? thumbnail;
   DateTime? timestamp;
 
   Episode();
 
   Episode.init(
-      this.name, this.url, this.weburl, this.thumbnail, this.timestamp);
+      this.name, this.url, this.weburl, this.thumbnail, this.timestamp,this.thumbheader);
 
-  factory Episode.fromJson(Map<String, dynamic> json) {
+  factory Episode.fromJson(Map<String, dynamic> jsond) {
     return Episode.init(
-      json['name'] as String,
-      json['id'] as String,
-      json['url'] as String,
-      json['thumbnail'] as String?,
-      DateTime.tryParse((json['timestamp'] ?? '') as String),
+      jsond['name'] as String,
+      jsond['id'] as String,
+      jsond['url'] as String,
+      jsond['cover'] as String?,
+      DateTime.tryParse((jsond['timestamp'] ?? '') as String),
+      json.encode((jsond['coverheader'] as Map<String, dynamic>?)??{}),
     );
   }
   Episode clone({String? name, String? url, DateTime? timestamp}) {
@@ -135,6 +137,7 @@ class Entry {
   final String url;
   final String weburl;
   final String? cover;
+  final String? coverheader;
   final double? rating;
   final int? views;
   final int? length;
@@ -147,7 +150,7 @@ class Entry {
   }
 
   Entry(this.title, this.type, this.url, this.cover, this.rating, this.views,
-      this.length, this.author, this.extname, this.weburl);
+      this.length, this.author, this.extname, this.weburl, this.coverheader);
 
   Future<EntryDetail?> detailed() async {
     final EntrySaved? entry =
@@ -160,21 +163,22 @@ class Entry {
 
   void save() {}
 
-  factory Entry.fromJson(Map<String, dynamic> json, Extension ext) {
+  factory Entry.fromJson(Map<String, dynamic> jsond, Extension ext) {
     return Entry(
-      json['title'] as String,
+      jsond['title'] as String,
       MediaType.values.lastWhere(
-        (e) => e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
+        (e) => e.name.toLowerCase() == (jsond['type'] as String).toLowerCase(),
         orElse: () => MediaType.video,
       ),
-      json['id'] as String,
-      json['cover'] as String?,
-      (json['rating'] as num?)?.toDouble(),
-      json['views'] as int?,
-      (json['length'] as num?)?.toInt(),
-      mlistcast<String>(json['author'] as List<dynamic>?),
+      jsond['id'] as String,
+      jsond['cover'] as String?,
+      (jsond['rating'] as num?)?.toDouble(),
+      jsond['views'] as int?,
+      (jsond['length'] as num?)?.toInt(),
+      mlistcast<String>(jsond['author'] as List<dynamic>?),
       ext.indentifier,
-      json['url'] as String,
+      jsond['url'] as String,
+      json.encode((jsond['coverheader'] as Map<String, dynamic>?)??{}),
     );
   }
 
@@ -193,6 +197,7 @@ class EntryDetail extends Entry {
   @enumerated
   final Status status;
   final String? description;
+  final String? extradata;
   int episodeindex = 0; //TODO Save which Source is selected
 
   @Ignore()
@@ -213,36 +218,40 @@ class EntryDetail extends Entry {
     this.genres,
     this.status,
     this.description,
+    this.extradata,
+    super.coverheader,
   );
 
   EntrySaved toSaved() {
     return EntrySaved.fromEntry(this);
   }
 
-  factory EntryDetail.fromJson(Map<String, dynamic> json, Extension ext) {
+  factory EntryDetail.fromJson(Map<String, dynamic> jsond, Extension ext) {
     return EntryDetail(
-      json['title'] as String,
+      jsond['title'] as String,
       MediaType.values.lastWhere(
-        (e) => e.name.toLowerCase() == (json['type'] as String).toLowerCase(),
+        (e) => e.name.toLowerCase() == (jsond['type'] as String).toLowerCase(),
         orElse: () => MediaType.video,
       ),
-      json['id'] as String,
-      json['cover'] as String?,
-      (json['rating'] as num?)?.toDouble(),
-      (json['views'] as num?)?.toInt(),
-      (json['length'] as num?)?.toInt(),
-      mlistcast<String>(json['author'] as List<dynamic>?),
+      jsond['id'] as String,
+      jsond['cover'] as String?,
+      (jsond['rating'] as num?)?.toDouble(),
+      (jsond['views'] as num?)?.toInt(),
+      (jsond['length'] as num?)?.toInt(),
+      mlistcast<String>(jsond['author'] as List<dynamic>?),
       ext.indentifier,
-      json['url'] as String,
-      (json['episodes'] as List<dynamic>)
+      jsond['url'] as String,
+      (jsond['episodes'] as List<dynamic>)
           .map((e) => EpisodeList.fromJson(e as Map<String, dynamic>))
           .toList(),
-      listcast<String>((json['genres'] ?? []) as List<dynamic>),
+      listcast<String>((jsond['genres'] ?? []) as List<dynamic>),
       Status.values.lastWhere(
-        (e) => e.name.toLowerCase() == (json['status'] as String).toLowerCase(),
+        (e) => e.name.toLowerCase() == (jsond['status'] as String).toLowerCase(),
         orElse: () => Status.releasing,
       ),
-      json['description'] as String?,
+      jsond['description'] as String?,
+      json.encode(jsond['data']??{}),
+      json.encode((jsond['coverheader'] as Map<String, dynamic>?)??{}),
     );
   }
 
@@ -322,6 +331,8 @@ class EntrySaved extends EntryDetail {
     super.genres,
     super.status,
     super.description,
+    super.extradata,
+    super.coverheader,
   );
   //Download
   String getDownloadpath(AEpisodeList list, int episode) {
@@ -501,6 +512,8 @@ class EntrySaved extends EntryDetail {
       genres,
       status,
       description,
+      extradata,
+      coverheader,
     );
   }
 
@@ -520,6 +533,8 @@ class EntrySaved extends EntryDetail {
       e.genres,
       e.status,
       e.description,
+      e.extradata,
+      e.coverheader,
     );
   }
 

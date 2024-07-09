@@ -29,19 +29,20 @@ class ExtensionData {
   final List<MediaType>? type;
 
   ExtensionData(
-      this.repo,
-      this.name,
-      this.version,
-      this.desc,
-      this.author,
-      this.license,
-      this.tags,
-      this.nsfw,
-      this.lang,
-      this.url,
-      this.giturl,
-      this.icon,
-      this.type,);
+    this.repo,
+    this.name,
+    this.version,
+    this.desc,
+    this.author,
+    this.license,
+    this.tags,
+    this.nsfw,
+    this.lang,
+    this.url,
+    this.giturl,
+    this.icon,
+    this.type,
+  );
 
   factory ExtensionData.fromJson(Map<String, dynamic> json) {
     print(json['icon']);
@@ -58,7 +59,11 @@ class ExtensionData {
       json['url'] as String?,
       json['giturl'] as String?,
       json['icon'] as String?,
-      (json['type'] as List<dynamic>?)?.cast<String>().map((name)=>getMediaType(name)).toList().cast<MediaType>(),
+      (json['type'] as List<dynamic>?)
+          ?.cast<String>()
+          .map((name) => getMediaType(name))
+          .toList()
+          .cast<MediaType>(),
     );
   }
 }
@@ -76,9 +81,11 @@ class JSExt {
   late final JavascriptRuntime runtime;
   late final Bridge bridge;
 
-  JSExt(String src) {
+  JSExt(String src, Function(Bridge bridge) extensionregister) {
     runtime = getJavascriptRuntime();
     bridge = Bridge(runtime);
+
+    extensionregister(bridge);
 
     bridge.register('log', (a) {
       if (kDebugMode) {
@@ -93,18 +100,22 @@ class JSExt {
         final options = a['options'];
         switch ((options['method'] as String).toLowerCase()) {
           case 'get':
-            final ret = await NetworkManager().dio.get(url as String,
-                options: dio.Options(
-                    headers: options['headers'] as Map<String, dynamic>),);
+            final ret = await NetworkManager().dio.get(
+                  url as String,
+                  options: dio.Options(
+                      headers: options['headers'] as Map<String, dynamic>),
+                );
             return {
               'headers': ret.headers.map,
               'body': (ret.data is String) ? ret.data : json.encode(ret.data),
             };
           case 'post':
-            final ret = await NetworkManager().dio.post(url as String,
-                data: options['data'],
-                options: dio.Options(
-                    headers: options['headers'] as Map<String, dynamic>),);
+            final ret = await NetworkManager().dio.post(
+                  url as String,
+                  data: options['data'],
+                  options: dio.Options(
+                      headers: options['headers'] as Map<String, dynamic>),
+                );
             return {
               'headers': ret.headers.map,
               'body': (ret.data is String) ? ret.data : json.encode(ret.data),
@@ -141,7 +152,7 @@ class JSExt {
   }
 }
 
-LruMap<String, EntryDetail> extensioncache = LruMap(maximumSize:10);
+LruMap<String, EntryDetail> extensioncache = LruMap(maximumSize: 10);
 
 class Extension {
   JSExt? engine;
@@ -197,7 +208,22 @@ class Extension {
   Future<void> setenabled(bool nenabled) async {
     if (!enabled && nenabled) {
       enabled = true;
-      engine = JSExt(await extensionpath.readAsString());
+      engine = JSExt(await extensionpath.readAsString(), (bridge) {
+        print("asd");
+        bridge.register('registerSetting', (data) {
+          // settings.update(key, update)
+          print(settings);
+          var value = data['def'];
+          print(settings.containsKey(data['id'] as String));
+          if (settings.containsKey(data['id'] as String)) {
+            value = settings[data['id'] as String]['value'];
+          }
+          settings.putIfAbsent(data['id'] as String, () => data);
+          print("Registered ${data['id']} with value $value");
+          settings[data['id'] as String]!['value'] = value;
+        });
+        bridge.register('getSetting', (key) => settings[key['id']]['value']);
+      });
       // engine!.bridge.register('registerSetting',(data) => settings.putIfAbsent(data['name'] as String, () => data));
       // engine!.bridge.register('getSetting', (key)=> settings[key]); TODO: Settings system
     } else if (enabled && !nenabled) {
@@ -247,7 +273,7 @@ class Extension {
   }
 
   Future<EntryDetail?> detail(String url) async {
-    if(extensioncache.containsKey(url)){
+    if (extensioncache.containsKey(url)) {
       return extensioncache[url];
     }
     if (engine == null) {
@@ -255,7 +281,7 @@ class Extension {
     }
     final ret = await engine!.bridge.invoke('detail', {'entryid': url});
     if (ret == null) return null;
-    final ent =EntryDetail.fromJson(ret as Map<String, dynamic>, this);
+    final ent = EntryDetail.fromJson(ret as Map<String, dynamic>, this);
     extensioncache.putIfAbsent(url, () => ent);
     return ent;
   }
@@ -268,7 +294,6 @@ class Extension {
     if (ret == null) return null;
     return Source.fromJson(ret as Map<String, dynamic>, entry, ep);
   }
-
 }
 
 class Bridge {
@@ -310,7 +335,7 @@ class Bridge {
   Future<void> _invoke(args) async {
     if (!methods.containsKey(args[0])) {
       if (kDebugMode) {
-        print('Handler not registered');
+        print('Handler not registered ${args[0]}');
       }
       return;
     }

@@ -177,7 +177,9 @@ class _AppLoaderState extends State<AppLoader> {
     ),
     LoadTask(
       (context) async {
-        await dosync();
+        try{
+          await dosync();
+        }catch(e){}
       },
       'Starting Sync',
     ),

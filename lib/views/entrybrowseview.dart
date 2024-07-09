@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:dionysos/data/Entry.dart';
@@ -7,7 +8,7 @@ import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
 import 'package:endless/stream/endless_stream_controller.dart';
 import 'package:endless/stream/endless_stream_grid_view.dart';
-import 'package:fancy_shimmer_image/fancy_shimmer_image.dart';
+import 'package:dionysos/widgets/image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -189,6 +190,7 @@ class EntryCard extends StatelessWidget {
             FancyShimmerImage(
               width: width,
               imageUrl: entry.cover ?? '',
+              httpHeaders: (json.decode(entry.coverheader ?? '{}') as Map<String, dynamic>).cast(),
               boxFit: BoxFit.cover,
               errorWidget: Icon(Icons.image, size: min(width, height)),
             ),

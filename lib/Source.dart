@@ -171,6 +171,7 @@ abstract class Source {
         return ImgListSource(
             List.generate((meta['length'] as num).toInt(),
                 (a) => d.getFile('$a.jpg').path,),
+            null,
             saved,
             list.getEpisode(episode)!,
             local: true,);
@@ -189,14 +190,16 @@ abstract class Source {
 
 class ImgListSource extends Source {
   final List<String> urls;
+  final Map<String, String>? header;
   bool local;
 
-  ImgListSource(this.urls, super.entry, super.ep, {this.local = false});
+  ImgListSource(this.urls,this.header, super.entry, super.ep,  {this.local = false});
 
   factory ImgListSource.fromJSON(
           Map<String, dynamic> json, EntryDetail entry, Episode e,) =>
       ImgListSource(
           listcast<String>(json['sourcedata']['links'] as List<dynamic>),
+          (json['sourcedata']['header'] as Map<String, dynamic>?)?.cast<String, String>(),
           entry,
           e,);
 
