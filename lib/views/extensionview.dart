@@ -120,7 +120,7 @@ class _ExtensionItemState extends State<ExtensionItem> {
       leading: FancyShimmerImage(
         width: 50,
         height: 50,
-        imageUrl: widget.e.data?.icon ?? '',
+        imageUrl: widget.e.data?.icon ?? 'https://0.0.0.0/',
         errorWidget: const Icon(Icons.image, size: 50),
       ),
       title: Text(widget.e.data?.name ?? 'Unknown'),

@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:dionysos/data/Entry.dart';
@@ -78,7 +77,7 @@ class _AppLoaderState extends State<AppLoader> {
                     onPressed: () {
                       Navigator.of(context, rootNavigator: true).pop();
                     },
-                    child: const Text('Dont Update')),
+                    child: const Text('Dont Update'),),
                 TextButton(
                     onPressed: () {
                       
@@ -86,7 +85,7 @@ class _AppLoaderState extends State<AppLoader> {
                           context: context,
                           builder: (context) => UpdatingDialog(update: update,),);
                     },
-                    child: const Text('Update')),
+                    child: const Text('Update'),),
               ],
               title: const Text(
                 'New Version available!',
@@ -308,7 +307,7 @@ class ErrorScreen extends StatelessWidget {
                       (e) => Expanded(
                         child: TextButton(
                             onPressed: () => e.task(context),
-                            child: Text(e.name)),
+                            child: Text(e.name),),
                       ),
                     )
                     .toList(),
@@ -605,8 +604,6 @@ ThemeData getTheme(BuildContext context) {
   ).copyWith(
     primary: primary,
     onPrimary: lightshade,
-    background: shade,
-    onBackground: ishade,
     secondary: accent,
     onSecondary: lightshade,
     tertiary: accent,

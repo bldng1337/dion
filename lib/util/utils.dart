@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:language_code/language_code.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -23,7 +21,7 @@ bool isVertical(BuildContext ctx) {
 }
 
 String formatNumber(int num) {
-  final formatter = NumberFormat.compact(locale: 'en_US');
+  final formatter = intl.NumberFormat.compact(locale: 'en_US');
   return formatter.format(num);
 }
 
@@ -333,8 +331,9 @@ Widget displayJSON(dynamic jsonlike) {
       itemCount: jsonlike.length,
       itemBuilder: (context, index) {
         return ListTile(
-            title: Text(jsonlike.keys.elementAt(index)),
-            subtitle: displayJSON(jsonlike.values.elementAt(index)));
+          title: Text(jsonlike.keys.elementAt(index)),
+          subtitle: displayJSON(jsonlike.values.elementAt(index)),
+        );
       },
     );
   }
@@ -348,23 +347,40 @@ Widget displayJSON(dynamic jsonlike) {
       itemBuilder: (context, index) {
         return ListTile(
           title: Text(index.toString()),
-          subtitle: displayJSON(jsonlike.elementAt(index)));
+          subtitle: displayJSON(jsonlike.elementAt(index)),
+        );
       },
     );
   }
-  if(jsonlike is String){
+  if (jsonlike is String) {
     try {
-      final dt=DateTime.parse(jsonlike);
+      final dt = DateTime.parse(jsonlike);
       return Text(durationToRelativeTime(dt.difference(DateTime.now())));
-    // ignore: empty_catches
-    }catch(e){}//This is expected
+      // ignore: empty_catches
+    } catch (e) {} //This is expected
   }
   return Text(jsonlike.toString());
 }
 
+Color getIconColor(BuildContext context, {Color? color}) {
+  final IconThemeData iconTheme = IconTheme.of(context);
+  final double iconOpacity = iconTheme.opacity ?? 1.0;
+  Color iconColor = color ?? iconTheme.color!;
+  if (iconOpacity != 1.0) {
+    iconColor = iconColor.withOpacity(iconColor.opacity * iconOpacity);
+  }
+  return iconColor;
+}
+
+Size getTextSize(String text, TextStyle style) {
+    final TextPainter textPainter = TextPainter(
+        text: TextSpan(text: text, style: style), maxLines: 1, textDirection: TextDirection.ltr,)
+      ..layout();
+    return textPainter.size;
+  }
 
 String durationToRelativeTime(Duration duration) {
-  final isago=duration.isNegative;
+  final isago = duration.isNegative;
   final absduration = duration.abs();
   String result = '';
   int value;

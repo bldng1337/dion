@@ -4,8 +4,8 @@ import 'package:dionysos/util/update.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:language_code/language_code.dart';
+import 'package:simple_icons/simple_icons.dart';
 import 'package:url_launcher/link.dart';
-import "package:simple_icons/simple_icons.dart";
 
 const SettingsCategory library = SettingsCategory('library');
 

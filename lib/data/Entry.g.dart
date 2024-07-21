@@ -676,50 +676,55 @@ const EntrySavedSchema = CollectionSchema(
       name: r'genres',
       type: IsarType.stringList,
     ),
-    r'length': PropertySchema(
+    r'language': PropertySchema(
       id: 12,
+      name: r'language',
+      type: IsarType.string,
+    ),
+    r'length': PropertySchema(
+      id: 13,
       name: r'length',
       type: IsarType.long,
     ),
     r'rating': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'rating',
       type: IsarType.double,
     ),
     r'status': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'status',
       type: IsarType.byte,
       enumMap: _EntrySavedstatusEnumValueMap,
     ),
     r'title': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalepisodes': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'totalepisodes',
       type: IsarType.long,
     ),
     r'type': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'type',
       type: IsarType.byte,
       enumMap: _EntrySavedtypeEnumValueMap,
     ),
     r'url': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'url',
       type: IsarType.string,
     ),
     r'views': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'views',
       type: IsarType.long,
     ),
     r'weburl': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'weburl',
       type: IsarType.string,
     )
@@ -833,6 +838,12 @@ int _entrySavedEstimateSize(
       bytesCount += value.length * 3;
     }
   }
+  {
+    final value = object.language;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.title.length * 3;
   bytesCount += 3 + object.url.length * 3;
   bytesCount += 3 + object.weburl.length * 3;
@@ -867,15 +878,16 @@ void _entrySavedSerialize(
   writer.writeString(offsets[9], object.extname);
   writer.writeString(offsets[10], object.extradata);
   writer.writeStringList(offsets[11], object.genres);
-  writer.writeLong(offsets[12], object.length);
-  writer.writeDouble(offsets[13], object.rating);
-  writer.writeByte(offsets[14], object.status.index);
-  writer.writeString(offsets[15], object.title);
-  writer.writeLong(offsets[16], object.totalepisodes);
-  writer.writeByte(offsets[17], object.type.index);
-  writer.writeString(offsets[18], object.url);
-  writer.writeLong(offsets[19], object.views);
-  writer.writeString(offsets[20], object.weburl);
+  writer.writeString(offsets[12], object.language);
+  writer.writeLong(offsets[13], object.length);
+  writer.writeDouble(offsets[14], object.rating);
+  writer.writeByte(offsets[15], object.status.index);
+  writer.writeString(offsets[16], object.title);
+  writer.writeLong(offsets[17], object.totalepisodes);
+  writer.writeByte(offsets[18], object.type.index);
+  writer.writeString(offsets[19], object.url);
+  writer.writeLong(offsets[20], object.views);
+  writer.writeString(offsets[21], object.weburl);
 }
 
 EntrySaved _entrySavedDeserialize(
@@ -885,17 +897,17 @@ EntrySaved _entrySavedDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = EntrySaved(
-    reader.readString(offsets[15]),
-    _EntrySavedtypeValueEnumMap[reader.readByteOrNull(offsets[17])] ??
+    reader.readString(offsets[16]),
+    _EntrySavedtypeValueEnumMap[reader.readByteOrNull(offsets[18])] ??
         MediaType.video,
-    reader.readString(offsets[18]),
+    reader.readString(offsets[19]),
     reader.readStringOrNull(offsets[1]),
-    reader.readDoubleOrNull(offsets[13]),
-    reader.readLongOrNull(offsets[19]),
-    reader.readLongOrNull(offsets[12]),
+    reader.readDoubleOrNull(offsets[14]),
+    reader.readLongOrNull(offsets[20]),
+    reader.readLongOrNull(offsets[13]),
     reader.readStringList(offsets[0]),
     reader.readString(offsets[9]),
-    reader.readString(offsets[20]),
+    reader.readString(offsets[21]),
     reader.readObjectList<EpisodeList>(
           offsets[6],
           EpisodeListSchema.deserialize,
@@ -904,11 +916,12 @@ EntrySaved _entrySavedDeserialize(
         ) ??
         [],
     reader.readStringList(offsets[11]) ?? [],
-    _EntrySavedstatusValueEnumMap[reader.readByteOrNull(offsets[14])] ??
+    _EntrySavedstatusValueEnumMap[reader.readByteOrNull(offsets[15])] ??
         Status.releasing,
     reader.readStringOrNull(offsets[3]),
     reader.readStringOrNull(offsets[10]),
     reader.readStringOrNull(offsets[2]),
+    reader.readStringOrNull(offsets[12]),
   );
   object.epdata = reader.readObjectOrNullList<EpisodeData>(
         offsets[4],
@@ -964,24 +977,26 @@ P _entrySavedDeserializeProp<P>(
     case 11:
       return (reader.readStringList(offset) ?? []) as P;
     case 12:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 14:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 15:
       return (_EntrySavedstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           Status.releasing) as P;
-    case 15:
-      return (reader.readString(offset)) as P;
     case 16:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 17:
+      return (reader.readLong(offset)) as P;
+    case 18:
       return (_EntrySavedtypeValueEnumMap[reader.readByteOrNull(offset)] ??
           MediaType.video) as P;
-    case 18:
-      return (reader.readString(offset)) as P;
     case 19:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 20:
+      return (reader.readLongOrNull(offset)) as P;
+    case 21:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2824,6 +2839,157 @@ extension EntrySavedQueryFilter
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> languageIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'language',
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      languageIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'language',
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> languageEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      languageGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> languageLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> languageBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'language',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      languageStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> languageEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> languageContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'language',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> languageMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'language',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      languageIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'language',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      languageIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'language',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> lengthIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3779,6 +3945,18 @@ extension EntrySavedQuerySortBy
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortByLanguage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'language', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortByLanguageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'language', Sort.desc);
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortByLength() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'length', Sort.asc);
@@ -4001,6 +4179,18 @@ extension EntrySavedQuerySortThenBy
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> thenByLanguage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'language', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> thenByLanguageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'language', Sort.desc);
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> thenByLength() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'length', Sort.asc);
@@ -4179,6 +4369,13 @@ extension EntrySavedQueryWhereDistinct
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QDistinct> distinctByLanguage(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'language', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QDistinct> distinctByLength() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'length');
@@ -4317,6 +4514,12 @@ extension EntrySavedQueryProperty
   QueryBuilder<EntrySaved, List<String>, QQueryOperations> genresProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'genres');
+    });
+  }
+
+  QueryBuilder<EntrySaved, String?, QQueryOperations> languageProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'language');
     });
   }
 

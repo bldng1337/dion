@@ -8,7 +8,6 @@ import 'package:dionysos/views/settingsview.dart';
 import 'package:dionysos/widgets/hugelist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:go_router/go_router.dart';
 import 'package:huge_listview/huge_listview.dart' as hlist;
 import 'package:quiver/collection.dart';

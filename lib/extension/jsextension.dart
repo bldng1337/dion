@@ -11,6 +11,7 @@ import 'package:dionysos/util/network_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_js/flutter_js.dart';
+import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:quiver/collection.dart';
 
 class ExtensionData {
@@ -45,7 +46,6 @@ class ExtensionData {
   );
 
   factory ExtensionData.fromJson(Map<String, dynamic> json) {
-    print(json['icon']);
     return ExtensionData(
       json['repo'] as String,
       json['name'] as String,
@@ -103,7 +103,8 @@ class JSExt {
             final ret = await NetworkManager().dio.get(
                   url as String,
                   options: dio.Options(
-                      headers: options['headers'] as Map<String, dynamic>),
+                    headers: options['headers'] as Map<String, dynamic>,
+                  ),
                 );
             return {
               'headers': ret.headers.map,
@@ -114,7 +115,8 @@ class JSExt {
                   url as String,
                   data: options['data'],
                   options: dio.Options(
-                      headers: options['headers'] as Map<String, dynamic>),
+                    headers: options['headers'] as Map<String, dynamic>,
+                  ),
                 );
             return {
               'headers': ret.headers.map,
@@ -207,23 +209,23 @@ class Extension {
 
   Future<void> setenabled(bool nenabled) async {
     if (!enabled && nenabled) {
-      enabled = true;
       engine = JSExt(await extensionpath.readAsString(), (bridge) {
-        print("asd");
         bridge.register('registerSetting', (data) {
           // settings.update(key, update)
-          print(settings);
           var value = data['def'];
-          print(settings.containsKey(data['id'] as String));
-          if (settings.containsKey(data['id'] as String)) {
+          if (settings.containsKey(data['id'] as String) &&
+              settings[data['id'] as String] is Map<String, dynamic>) {
             value = settings[data['id'] as String]['value'];
           }
-          settings.putIfAbsent(data['id'] as String, () => data);
+          settings[data['id'] as String] = data;
           print("Registered ${data['id']} with value $value");
           settings[data['id'] as String]!['value'] = value;
         });
         bridge.register('getSetting', (key) => settings[key['id']]['value']);
+        bridge.register(
+            'setUI', (data) => settings[data['id']]['ui'] = data['ui']);
       });
+      enabled = true;
       // engine!.bridge.register('registerSetting',(data) => settings.putIfAbsent(data['name'] as String, () => data));
       // engine!.bridge.register('getSetting', (key)=> settings[key]); TODO: Settings system
     } else if (enabled && !nenabled) {
@@ -234,18 +236,18 @@ class Extension {
     save();
   }
 
-  Future<void> setsettings(String key, dynamic value) async {
-    settings[key] = value;
+  void setsettings(String key, dynamic value) {
+    settings[key]['value'] = value;
     save();
   }
 
-  void save() {
-    configpath
+  Future<void> save() async {
+    await configpath
         .writeAsString(json.encode({'enabled': enabled, 'settings': settings}));
   }
 
   Future<List<Entry>> browse(int page, SortMode sort) async {
-    if (engine == null) {
+    if (engine == null||!enabled) {
       return [];
     }
     final ret = (await engine!.bridge
@@ -259,7 +261,7 @@ class Extension {
   }
 
   Future<List<Entry>> search(int page, String filter) async {
-    if (engine == null) {
+    if (engine == null||!enabled) {
       return [];
     }
     final ret = (await engine!.bridge
@@ -276,7 +278,7 @@ class Extension {
     if (extensioncache.containsKey(url)) {
       return extensioncache[url];
     }
-    if (engine == null) {
+    if (engine == null||!enabled) {
       return null;
     }
     final ret = await engine!.bridge.invoke('detail', {'entryid': url});
@@ -287,7 +289,7 @@ class Extension {
   }
 
   Future<Source?> source(Episode ep, EntryDetail entry) async {
-    if (engine == null) {
+    if (engine == null||!enabled) {
       return null;
     }
     final ret = await engine!.bridge.invoke('source', {'epid': ep.url});
@@ -299,9 +301,18 @@ class Extension {
 class Bridge {
   Map<String, Function> methods = {};
   JavascriptRuntime runtime;
+
   Bridge(this.runtime) {
     // ignore: avoid_print
-    runtime.onMessage('__dbg', print);
+    runtime.onMessage('__dbg', (a) {
+      if ((a as List<dynamic>)
+              .cast<String>()
+              .firstWhereOrNull((a) => a.toLowerCase().contains('warning')) !=
+          null) {
+        debugPrintStack(stackTrace: StackTrace.current);
+      }
+      print(a);
+    });
     runtime.onMessage('mcall', _invoke);
 
     runtime.evaluate(bridge!);

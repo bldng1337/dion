@@ -14,6 +14,7 @@ import 'package:dionysos/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:isar/isar.dart';
+import 'package:language_code/language_code.dart';
 
 part 'Entry.g.dart';
 
@@ -73,7 +74,13 @@ class Episode {
   Episode();
 
   Episode.init(
-      this.name, this.url, this.weburl, this.thumbnail, this.timestamp,this.thumbheader);
+    this.name,
+    this.url,
+    this.weburl,
+    this.thumbnail,
+    this.timestamp,
+    this.thumbheader,
+  );
 
   factory Episode.fromJson(Map<String, dynamic> jsond) {
     return Episode.init(
@@ -82,7 +89,7 @@ class Episode {
       jsond['url'] as String,
       jsond['cover'] as String?,
       DateTime.tryParse((jsond['timestamp'] ?? '') as String),
-      json.encode((jsond['coverheader'] as Map<String, dynamic>?)??{}),
+      json.encode((jsond['coverheader'] as Map<String, dynamic>?) ?? {}),
     );
   }
   Episode clone({String? name, String? url, DateTime? timestamp}) {
@@ -139,6 +146,7 @@ class Entry {
   final String? cover;
   final String? coverheader;
   final double? rating;
+  final String? language;
   final int? views;
   final int? length;
   final List<String>? author;
@@ -149,8 +157,20 @@ class Entry {
     return ExtensionManager().searchExtension(this);
   }
 
-  Entry(this.title, this.type, this.url, this.cover, this.rating, this.views,
-      this.length, this.author, this.extname, this.weburl, this.coverheader);
+  Entry(
+    this.title,
+    this.type,
+    this.url,
+    this.cover,
+    this.rating,
+    this.views,
+    this.length,
+    this.author,
+    this.extname,
+    this.weburl,
+    this.coverheader,
+    this.language,
+  );
 
   Future<EntryDetail?> detailed() async {
     final EntrySaved? entry =
@@ -178,7 +198,8 @@ class Entry {
       mlistcast<String>(jsond['author'] as List<dynamic>?),
       ext.indentifier,
       jsond['url'] as String,
-      json.encode((jsond['coverheader'] as Map<String, dynamic>?)??{}),
+      json.encode((jsond['coverheader'] as Map<String, dynamic>?) ?? {}),
+      jsond['lang'] as String?,
     );
   }
 
@@ -220,6 +241,7 @@ class EntryDetail extends Entry {
     this.description,
     this.extradata,
     super.coverheader,
+    super.language,
   );
 
   EntrySaved toSaved() {
@@ -246,12 +268,14 @@ class EntryDetail extends Entry {
           .toList(),
       listcast<String>((jsond['genres'] ?? []) as List<dynamic>),
       Status.values.lastWhere(
-        (e) => e.name.toLowerCase() == (jsond['status'] as String).toLowerCase(),
+        (e) =>
+            e.name.toLowerCase() == (jsond['status'] as String).toLowerCase(),
         orElse: () => Status.releasing,
       ),
       jsond['description'] as String?,
-      json.encode(jsond['data']??{}),
-      json.encode((jsond['coverheader'] as Map<String, dynamic>?)??{}),
+      json.encode(jsond['data'] ?? []),
+      json.encode((jsond['coverheader'] as Map<String, dynamic>?) ?? {}),
+      jsond['lang'] as String?,
     );
   }
 
@@ -333,6 +357,7 @@ class EntrySaved extends EntryDetail {
     super.description,
     super.extradata,
     super.coverheader,
+    super.language,
   );
   //Download
   String getDownloadpath(AEpisodeList list, int episode) {
@@ -445,11 +470,11 @@ class EntrySaved extends EntryDetail {
   }
 
   @override
-  void save() {
-    isar.writeTxn(() async {
+  Future<void> save() async {
+    await isar.writeTxn(() async {
       isar.entrySaveds.put(this);
     });
-    savesync();
+    await savesync();
   }
 
   @override
@@ -463,16 +488,28 @@ class EntrySaved extends EntryDetail {
   @override
   Future<EntryDetail?> refresh() async {
     refreshing = true;
+    final ext=this.ext!;
+    bool shoulddisable=false;
+    if(!ext.enabled){
+      shoulddisable=true;
+      await ext.setenabled(true);
+    }
     final EntryDetail? entryref = await ext?.detail(url);
     if (entryref != null) {
       final EntrySaved newentry = EntrySaved.fromEntry(entryref);
       newentry.id = id;
       newentry.epdata = epdata;
-      newentry.save();
+      await newentry.save();
       refreshing = false;
+      if(shoulddisable){
+        await ext.setenabled(false);
+      }
       return newentry;
     }
     refreshing = false;
+    if(shoulddisable){
+      await ext.setenabled(false);
+    }
     return this;
   }
 
@@ -514,6 +551,7 @@ class EntrySaved extends EntryDetail {
       description,
       extradata,
       coverheader,
+      language,
     );
   }
 
@@ -535,6 +573,7 @@ class EntrySaved extends EntryDetail {
       e.description,
       e.extradata,
       e.coverheader,
+      e.language,
     );
   }
 

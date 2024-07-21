@@ -27,6 +27,7 @@ class ExtensionManager {
   }
 
   Future<void> reload() async {
+    extensioncache.clear();
     final List<Extension> newloaded = List.empty(growable: true);
     final Directory d = await getPath('extension');
     await for (final file in d.list()) {
@@ -44,6 +45,18 @@ class ExtensionManager {
       e.dispose();
     }
     loaded = newloaded;
+  }
+
+  int count({bool Function(Extension e)? extfilter,}){
+    if (extfilter != null) {
+      return loaded
+          .where((element) => element.enabled)
+          .where((element) => extfilter(element))
+          .length;
+    }
+    return loaded
+        .where((element) => element.enabled)
+        .length;
   }
 
   Stream<List<Entry>> browse(int page, SortMode sort,
@@ -73,7 +86,7 @@ class ExtensionManager {
 
   Extension? searchExtension(Entry e) {
     return loaded
-        .where((element) => element.enabled)
+        // .where((element) => element.enabled)
         .firstWhereOrNull((element) => element.entrycompat(e));
   }
 

@@ -47,8 +47,8 @@ class _VideoplayerState extends State<Videoplayer> {
   void setSource(M3U8Source nsource){
     source=nsource;
     player.open(Media(
-      source.url
-      ));
+      source.url,
+      ),);
     if (VideoplayerSetting.autousesubtitle.value) {
       final LanguageCodes lang = VideoplayerSetting.defaultsubtitle.value;
       if (source.sub.containsKey(lang)) {
@@ -111,7 +111,6 @@ class _VideoplayerState extends State<Videoplayer> {
                       .toList(),
                   onChanged: (value) {
                     if(value!=null){
-                      print("Selected subtitle: $value");
                       setSubtitle(value);
                       setState(() {});
                     }

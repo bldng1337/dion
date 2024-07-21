@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/main.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -18,29 +19,38 @@ class ActivityScreen extends StatefulWidget {
 }
 
 class _ActivityScreenState extends State<ActivityScreen> {
+  Future<Widget> page() async {
+    const int pagesize = 10;
+    final max = await isar.activitys.count();
+    return HugeListView(
+      listViewController: HugeListViewController(totalItemCount: max),
+      pageSize: pagesize,
+      startIndex: 0,
+      pageFuture: (index) {
+        return isar.activitys
+            .where(sort: Sort.asc)
+            .sortByBeginDesc()
+            .offset(index * pagesize)
+            .limit(pagesize)
+            .findAll();
+      },
+      thumbBuilder: DraggableScrollbarThumbs.SemicircleThumb,
+      itemBuilder: (context, index, entry) => ActivityCard(act: entry),
+      placeholderBuilder: (context, index) => SizedBox(
+        height: MediaQuery.of(context).size.height,
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const int pagesize = 10;
     return Nav(
-      child: HugeListView(
-        pageSize: pagesize,
-        startIndex: 0,
-        pageFuture: (index) {
-          return isar.activitys
-              .where(sort: Sort.asc)
-              .sortByBeginDesc()
-              .offset(index * pagesize)
-              .limit(pagesize)
-              .findAll();
-        },
-        thumbBuilder: DraggableScrollbarThumbs.SemicircleThumb,
-        itemBuilder: (context, index, entry) => ActivityCard(act: entry),
-        placeholderBuilder: (context, index) => SizedBox(
-          height: MediaQuery.of(context).size.height,
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
+      child: FutureLoader(
+        page(),
+        success: (BuildContext context, Widget data) => data,
       ),
     );
   }
@@ -50,7 +60,6 @@ EntryDetail? resolveEntry(dynamic entrydata) {
   //TODO: expand
   return isar.entrySaveds.getSync(entrydata['id'] as int);
 }
-
 
 class ActivityCard extends StatelessWidget {
   final Activity act;
@@ -65,9 +74,12 @@ class ActivityCard extends StatelessWidget {
         final String title = data['title'] as String;
 
         final List<String> body = [
-          humanizeDuration(act.getDuration(),
-              options: const HumanizeOptions(
-                  units: [Units.hour, Units.minute, Units.second],),),
+          humanizeDuration(
+            act.getDuration(),
+            options: const HumanizeOptions(
+              units: [Units.hour, Units.minute, Units.second],
+            ),
+          ),
           if ((data['episodesread'] as List).isNotEmpty)
             "${entry?.type.getAction()} ${(data["episodesread"] as List).length} ${entry?.type.getEpName()}",
           if ((data['episodesmarked'] as List).isNotEmpty)
@@ -81,10 +93,11 @@ class ActivityCard extends StatelessWidget {
             }
           },
           leading: FancyShimmerImage(
-              width: 30,
-              height: 60,
-              imageUrl: entry?.cover ?? '',
-              errorWidget: const Icon(Icons.image, size: 30),),
+            width: 30,
+            height: 60,
+            imageUrl: entry?.cover ?? 'https://0.0.0.0/',
+            errorWidget: const Icon(Icons.image, size: 30),
+          ),
           title: Text(title),
           subtitle: Text(body.join(' • ')),
         );

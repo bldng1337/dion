@@ -147,7 +147,7 @@ Future<Update?> checkUpdate() async {
       return null;
     }
     return Update(
-        downloadurl, version, currversion, date, res['body'] as String);
+        downloadurl, version, currversion, date, res['body'] as String,);
   } catch (e) {
     return null;
   }

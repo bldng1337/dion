@@ -1,13 +1,18 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:dionysos/Source.dart';
 import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/data/activity.dart';
+import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/sync.dart';
 import 'package:dionysos/util/utils.dart';
+import 'package:dionysos/views/entrybrowseview.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -77,6 +82,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
   ScrollPhysics scrollPhysics = const ClampingScrollPhysics();
   ScrollController episodescrollController = ScrollController();
   ScrollController scrollController = ScrollController();
+  bool refreshing = false;
   @override
   void initState() {
     super.initState();
@@ -187,8 +193,8 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                     minVerticalPadding: 2,
                     leading: ep?.thumbnail != null
                         ? FancyShimmerImage(
-                            imageUrl: ep!.thumbnail!,
-                            httpHeaders: (json.decode(ep.thumbheader ?? '{}')
+                            imageUrl: ep?.thumbnail ?? 'https://0.0.0.0/',
+                            httpHeaders: (json.decode(ep?.thumbheader ?? '{}')
                                     as Map<String, dynamic>)
                                 .cast(),
                             boxFit: BoxFit.contain,
@@ -248,7 +254,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                     subtitle: Row(
                       children: [
                         Text('Chapter ${index + 1}'),
-                        if(ep?.timestamp!=null)
+                        if (ep?.timestamp != null)
                           Text(
                             ' - ${DateFormat.yMMMd().format(ep!.timestamp!)}',
                             style: const TextStyle(
@@ -311,32 +317,69 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
     );
   }
 
+  Widget getExtensionWarning(EntryDetail entry, BuildContext context) {
+    if (entry.ext == null) {
+      return Container(
+        padding: const EdgeInsets.all(3),
+        color: Colors.red[300],
+        child: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Theme.of(context).indicatorColor,
+            ),
+            Expanded(
+              child: Text(
+                'Extension for this Entry cant be found',
+                style: TextStyle(color: Theme.of(context).indicatorColor),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (!entry.ext!.enabled) {
+      return Container(
+        padding: const EdgeInsets.all(3),
+        color: Colors.red[300],
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Icon(
+                Icons.warning,
+                color: Theme.of(context).indicatorColor,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                'Extension for this Entry is disabled',
+                style: TextStyle(color: Theme.of(context).indicatorColor),
+              ),
+            ),
+            TextButton(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.all(Colors.red[300]),
+                  foregroundColor: WidgetStateProperty.all(Colors.white),
+                ),
+                onPressed: () {
+                  entry.ext!.setenabled(true);
+                  setState(() {});
+                },
+                child: const Text('Enable'))
+          ],
+        ),
+      );
+    }
+    return Container();
+  }
+
   Widget buildDescription(EntryDetail entry, BuildContext context) {
-    print(entry.extradata);
-    print(entry.cover);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (entry.ext == null)
-          Container(
-            padding: const EdgeInsets.all(3),
-            color: Colors.red[300],
-            child: Row(
-              children: [
-                Icon(
-                  Icons.warning,
-                  color: Theme.of(context).indicatorColor,
-                ),
-                Expanded(
-                  child: Text(
-                    'Warning Extension for this Entry seems not loaded or cant be found',
-                    style: TextStyle(color: Theme.of(context).indicatorColor),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        getExtensionWarning(entry, context),
         SizedBox(
           height: 200,
           child: Row(
@@ -352,7 +395,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                   width: 130,
                   height: 200,
                   boxFit: BoxFit.contain,
-                  imageUrl: entry.cover ?? '',
+                  imageUrl: entry.cover ?? 'https://0.0.0.0/',
                   httpHeaders: (json.decode(entry.coverheader ?? '{}')
                           as Map<String, dynamic>)
                       .cast(),
@@ -370,7 +413,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                       height: double.maxFinite,
                       width: double.maxFinite,
                       boxFit: BoxFit.contain,
-                      imageUrl: entry.cover ?? '',
+                      imageUrl: entry.cover ?? 'https://0.0.0.0/',
                       errorWidget: const Icon(Icons.image, size: 130),
                       imageBuilder: (context, imageProvider) => GestureDetector(
                         onLongPress: () =>
@@ -413,13 +456,24 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                             fontSize: 16.0,
                           ),
                         ),
-                      Text(
-                        maxLines: 1,
-                        "${entry.ext?.data?.name ?? "Unkown"} • ${entry.status.name}",
-                        textAlign: TextAlign.start,
-                        style: const TextStyle(
-                          fontSize: 16.0,
-                        ),
+                      Row(
+                        children: [
+                          FancyShimmerImage(
+                            imageUrl:
+                                entry.ext?.data?.icon ?? 'https://0.0.0.0/',
+                            cacheKey: entry.ext?.data?.icon ?? '',
+                            width: 16,
+                            height: 16,
+                          ),
+                          Text(
+                            maxLines: 1,
+                            "${entry.ext?.data?.name ?? "Unkown"} • ${entry.status.name}",
+                            textAlign: TextAlign.start,
+                            style: const TextStyle(
+                              fontSize: 16.0,
+                            ),
+                          ),
+                        ],
                       ),
                       if (entry.views != null)
                         Text(
@@ -433,7 +487,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                       if (entry.rating != null)
                         Text(
                           maxLines: 1,
-                          '${entry.rating! * 10} / 10',
+                          '${(entry.rating! * 100).round()/10} / 10',
                           textAlign: TextAlign.start,
                           style: const TextStyle(
                             fontSize: 16.0,
@@ -446,8 +500,9 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
             ],
           ),
         ),
-        displayJSON(json.decode(entry.extradata ?? '{}')),
+        // Text(entry.extradata ?? ''),
         buttonbar(entry, context),
+        buildUI(json.decode(entry.extradata ?? '[]'), context, entry.ext),
         SizedBox(
           height: 40,
           child: ListView(
@@ -468,7 +523,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                         child: Text(
                           e,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.background,
+                            color: Theme.of(context).colorScheme.surface,
                           ),
                         ),
                       ),
@@ -486,6 +541,144 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget buildUI(dynamic data, BuildContext context, Extension? extension) {
+    try {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: (data as List<dynamic>)
+            .map((e) => buildWidget(e, context, extension))
+            .toList(),
+      );
+    } catch (e) {
+      debugPrint(e.toString());
+      return Container();
+    }
+  }
+
+  Size getSize(dynamic data, BuildContext context, Extension? extension) {
+    switch (data['type']) {
+      case 'text':
+        return getTextSize(
+            data['text'] as String, const TextStyle(fontSize: 14));
+      case 'image':
+        return const Size(100, 100);
+      case 'link':
+        return getTextSize(
+            data['text'] as String, const TextStyle(fontSize: 14));
+      case 'column':
+        final sizes = (data['children'] as List<dynamic>)
+            .map((e) => getSize(e, context, extension))
+            .toList();
+        return Size(
+            sizes
+                .map((a) => a.width)
+                .reduce((value, element) => max(value, element)),
+            sizes
+                .map((a) => a.height)
+                .reduce((value, element) => value + element));
+      case 'row':
+        final sizes = (data['children'] as List<dynamic>)
+            .map((e) => getSize(e, context, extension))
+            .toList();
+        return Size(
+            sizes
+                .map((a) => a.width)
+                .reduce((value, element) => value + element),
+            sizes
+                .map((a) => a.height)
+                .reduce((value, element) => max(value, element)));
+      case 'timestamp':
+        return getTextSize(
+          durationToRelativeTime(
+            DateTime.tryParse(data['timestamp'] as String)
+                    ?.difference(DateTime.now()) ??
+                Duration.zero,
+          ),
+          const TextStyle(fontSize: 14),
+        );
+      case 'entrycard':
+        return const Size(300 / 1.5, 600 / 2);
+    }
+    return getTextSize(
+        "Something ${data['type']}", const TextStyle(fontSize: 14),);
+  }
+
+  Widget buildWidget(dynamic data, BuildContext context, Extension? extension) {
+    switch (data['type']) {
+      case 'text':
+        return Text(
+          
+          data['text'] as String,
+          style: const TextStyle(fontSize: 14),
+          maxLines: 1,
+          overflow: TextOverflow.clip,
+        );
+      case 'image':
+        return FancyShimmerImage(
+          width: 100,
+          height: 100,
+          imageUrl: data['image'] as String,
+          boxFit: BoxFit.contain,
+        );
+      case 'link':
+        return TextButton(
+          onPressed: () {
+            launchUrl(Uri.parse(data['link'] as String));
+          },
+          child: Text(data['text'] as String),
+        );
+      case 'column':
+        final childsize = getSize(data, context, extension);
+        return SizedBox(
+          width: childsize.width+5,
+          child: ListView(
+            shrinkWrap: true,
+            children: (data['children'] as List<dynamic>)
+                .map((e) => buildWidget(e, context, extension))
+                .toList(),
+          ),
+        );
+      case 'row':
+      final childsize = getSize(data, context, extension);
+        return SizedBox(
+          height: childsize.height+5,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            shrinkWrap: true,
+            children: (data['children'] as List<dynamic>)
+                .map((e) => buildWidget(e, context, extension))
+                .toList(),
+          ),
+        );
+      case 'timestamp':
+        if (data['display'] == 'relative') {
+          return Text(
+            durationToRelativeTime(
+              DateTime.tryParse(data['timestamp'] as String)
+                      ?.difference(DateTime.now()) ??
+                  Duration.zero,
+            ),
+            style: const TextStyle(fontSize: 14),
+          );
+        } else {
+          return Text(
+            DateTime.tryParse(data['timestamp'] as String)?.toString() ??
+                'Unknown',
+          );
+        }
+      case 'entrycard':
+        return EntryCard(
+          entry:
+              Entry.fromJson(data['entry'] as Map<String, dynamic>, extension!),
+        );
+    }
+    return Text(
+      "Something ${data['type']}",
+      style: const TextStyle(fontSize: 14),
     );
   }
 
@@ -583,11 +776,27 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
           IconButton(
             tooltip: 'Refresh Entry',
             onPressed: () {
+              refreshing = true;
               setState(() {});
-              _entry = entry.refresh();
+              entry.refresh().then((value) {
+                refreshing = false;
+                _entry = Future.value(value ?? entry);
+                setState(() {});
+              });
+              // setState(() {
+              //   _entry = entry.refresh();
+              // });
             },
-            icon: entry.refreshing
-                ? const CircularProgressIndicator()
+            icon: (entry.refreshing || refreshing)
+                ? SizedBox(
+                    width: (IconTheme.of(context).size ?? 20) * 0.6,
+                    height: (IconTheme.of(context).size ?? 20) * 0.6,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      strokeCap: StrokeCap.round,
+                      color: getIconColor(context),
+                    ),
+                  )
                 : const Icon(Icons.refresh),
           ),
           IconButton(
