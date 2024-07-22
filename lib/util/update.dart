@@ -22,6 +22,46 @@ Future<Version> getVersion() async {
   }
 }
 
+Future<void> showUpdateDialog(BuildContext context, Update update) async {
+  await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+          },
+          child: const Text('Dont Update'),
+        ),
+        TextButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => UpdatingDialog(
+                update: update,
+              ),
+            );
+          },
+          child: const Text('Update'),
+        ),
+      ],
+      title: const Text(
+        'New Version available!',
+        textAlign: TextAlign.center,
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Current version ${update.currentversion}'),
+          Text('Update to version ${update.version}'),
+          const Text('Notes:'),
+          Text(update.body),
+        ],
+      ),
+    ),
+  );
+}
+
 const updateUrl = 'https://api.github.com/repos/bldng1337/dion/releases/latest';
 
 class Update {
@@ -147,7 +187,12 @@ Future<Update?> checkUpdate() async {
       return null;
     }
     return Update(
-        downloadurl, version, currversion, date, res['body'] as String,);
+      downloadurl,
+      version,
+      currversion,
+      date,
+      res['body'] as String,
+    );
   } catch (e) {
     return null;
   }

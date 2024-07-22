@@ -140,6 +140,12 @@ final aboutpage = SettingPageBuilder('About', [
           builder: (context, followLink) =>
               TextButton(onPressed: followLink, child: const Icon(SimpleIcons.github)),
         ),
+        TextButton(onPressed: () async {
+          final Update? update = await checkUpdate();
+          if (update != null && c.mounted) {
+            showUpdateDialog(c, update);
+          }
+        }, child: const Icon(SimpleIcons.upcloud),),
       ],
     ),
   ),

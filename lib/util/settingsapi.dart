@@ -195,50 +195,62 @@ abstract class SettingTile<T> extends Tile {
 
 abstract class OptionalSettingTile<T> extends Tile {
   final OptionalSetting<T> setting;
-  const OptionalSettingTile(super.name, super.description, this.setting,
-      {super.icon,});
+  const OptionalSettingTile(
+    super.name,
+    super.description,
+    this.setting, {
+    super.icon,
+  });
 }
 
 class WidgetTile extends Tile {
   final Widget Function(BuildContext context) w;
 
-  const WidgetTile(this.w):super('','');
+  const WidgetTile(this.w) : super('', '');
 
-  
   @override
   Widget render(BuildContext context, Function update) {
     return w(context);
   }
-  
 }
 
 class SettingsNavTile extends Tile {
   final SettingPageBuilder builder;
 
-  const SettingsNavTile(super.name, super.description, this.builder,
-      {super.icon,});
+  const SettingsNavTile(
+    super.name,
+    super.description,
+    this.builder, {
+    super.icon,
+  });
 
   @override
   Widget render(BuildContext context, Function update) {
     return Tooltip(
-        message: description,
-        child: ListTile(
-          leading: icon != null ? Icon(icon) : null,
-          title: Text(name),
-          onTap: () => enav(context, builder.build(null)),
-        ),);
+      message: description,
+      child: ListTile(
+        leading: icon != null ? Icon(icon) : null,
+        title: Text(name),
+        onTap: () => enav(context, builder.build(null)),
+      ),
+    );
   }
 }
 
 class SimpleChoiceTile extends SettingTile<String> {
   final List<String> choices;
-  const SimpleChoiceTile(super.name, super.description, super.setting,
-      {required this.choices, super.icon,});
+  const SimpleChoiceTile(
+    super.name,
+    super.description,
+    super.setting, {
+    required this.choices,
+    super.icon,
+  });
 
   @override
   Widget render(BuildContext context, Function update) {
     String value = setting.value;
-    if(!choices.contains(value)){
+    if (!choices.contains(value)) {
       value = choices.first;
       setting.setvalue(value);
     }
@@ -248,16 +260,19 @@ class SimpleChoiceTile extends SettingTile<String> {
         leading: icon != null ? Icon(icon) : null,
         title: Text(name),
         trailing: DropdownButton(
-            items: choices
-                .map((e) => DropdownMenuItem(
-                      value: e,
-                      child: Text(e),
-                    ),)
-                .toList(),
-            value: value,
-            onChanged: (val) => setting
-                .setvalue(val ?? setting.defaultvalue)
-                .then((value) => update()),),
+          items: choices
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(e),
+                ),
+              )
+              .toList(),
+          value: value,
+          onChanged: (val) => setting
+              .setvalue(val ?? setting.defaultvalue)
+              .then((value) => update()),
+        ),
       ),
     );
   }
@@ -286,8 +301,12 @@ class BooleanTile extends SettingTile<bool> {
 class ButtonTile extends Tile {
   final void Function() onpress;
 
-  const ButtonTile(super.name, super.description,
-      {required super.icon, required this.onpress,});
+  const ButtonTile(
+    super.name,
+    super.description, {
+    required super.icon,
+    required this.onpress,
+  });
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -305,8 +324,14 @@ class ButtonTile extends Tile {
 class DoubleTile extends SettingTile<double> {
   final double min;
   final double max;
-  const DoubleTile(super.name, super.description, super.setting,
-      {this.min = 0, this.max = 1, super.icon,});
+  const DoubleTile(
+    super.name,
+    super.description,
+    super.setting, {
+    this.min = 0,
+    this.max = 1,
+    super.icon,
+  });
 
   double round(double value) {
     return ((value * 100).round().toDouble()) / 100.0;
@@ -354,57 +379,69 @@ class ConditionalTile extends Tile {
 }
 
 class DirectoryTile extends OptionalSettingTile<Directory> {
-  const DirectoryTile(super.name, super.description, super.setting,
-      {super.icon,});
+  const DirectoryTile(
+    super.name,
+    super.description,
+    super.setting, {
+    super.icon,
+  });
 
   @override
   Widget render(BuildContext context, Function update) {
     return Tooltip(
       message: description,
       child: ListTile(
-          leading: icon != null ? Icon(icon) : null,
-          title: Text(name),
-          subtitle: Text(setting.value?.path ?? 'Unset'),
-          onTap: () async {
-            final String? path = await FilePicker.platform.getDirectoryPath();
-            if (path == null) {
-              setting.clear();
-              return;
-            }
-            setting.setvalue(Directory(path));
-            update();
-          },),
+        leading: icon != null ? Icon(icon) : null,
+        title: Text(name),
+        subtitle: Text(setting.value?.path ?? 'Unset'),
+        onTap: () async {
+          final String? path = await FilePicker.platform.getDirectoryPath();
+          if (path == null) {
+            setting.clear();
+            return;
+          }
+          setting.setvalue(Directory(path));
+          update();
+        },
+      ),
     );
   }
 }
 
 class LanguageTile extends SettingTile<LanguageCodes> {
-  const LanguageTile(super.name, super.description, super.setting,
-      {super.icon,});
+  const LanguageTile(
+    super.name,
+    super.description,
+    super.setting, {
+    super.icon,
+  });
 
   @override
   Widget render(BuildContext context, Function update) {
     return Tooltip(
       message: description,
       child: ListTile(
-          leading: icon != null ? Icon(icon) : null,
-          title: Text(name),
-          trailing: DropdownButton(
-            items: LanguageCodes.values
-                .map((e) => DropdownMenuItem(
-                      value: e,
-                      child: Text(e.nativeName),
-                    ),)
-                .toList(),
-            value: setting.value,
-            onChanged: (val) {
-              if (val == null) {
-                setting.clear();
-                return;
-              }
-              setting.setvalue(val).then((value) => update());
-            },
-          ),),
+        leading: icon != null ? Icon(icon) : null,
+        title: Text(name),
+        trailing: DropdownButton(
+          items: LanguageCodes.values
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(e.nativeName),
+                ),
+              )
+              .toList(),
+          value: setting.value,
+          onChanged: (val) {
+            if (val == null) {
+              setting.clear();
+              return;
+            }
+            setting.setvalue(val).then((value) => update());
+          },
+        ),
+      ),
     );
   }
 }
@@ -435,8 +472,13 @@ class SortingTile extends Tile {
   final List<Choice<String>> choices;
   final Setting<String> choice;
   final Setting<bool> descending;
-  const SortingTile(super.name, super.description, this.choice, this.descending,
-      this.choices,);
+  const SortingTile(
+    super.name,
+    super.description,
+    this.choice,
+    this.descending,
+    this.choices,
+  );
 
   @override
   Widget render(BuildContext context, Function update) {
@@ -457,28 +499,32 @@ class SortingTile extends Tile {
   Widget sorttile(Choice<String> c, Function update) {
     const double siz = 30;
     return GestureDetector(
-      onTap: () => choice.setvalue(c.value).then((value) => update()),
+      onTap: () {
+        if(c.value == choice.value){
+          descending.setvalue(!descending.value).then((value) => update());
+          return;
+        }
+        choice.setvalue(c.value).then((value) => update());
+      },
       child: SizedBox(
         height: siz,
         child: Row(
           children: [
-            if(c.value == choice.value)
-            Icon(
-                    descending.value
-                        ? Icons.arrow_downward
-                        : Icons.arrow_upward,
-                    size: siz - 3,
-                  )
+            if (c.value == choice.value)
+              Icon(
+                descending.value ? Icons.arrow_downward : Icons.arrow_upward,
+                size: siz - 3,
+              )
             else
               const SizedBox(
                 width: siz - 3,
               ),
-            
             Expanded(
-                child: Text(
-              name,
-              style: const TextStyle(fontSize: siz / 2),
-            ),),
+              child: Text(
+                c.name,
+                style: const TextStyle(fontSize: siz / 2),
+              ),
+            ),
           ],
         ),
       ),
@@ -507,8 +553,11 @@ class CategoryTile extends Tile {
             leading: IconButton(
               icon: const Icon(Icons.add),
               onPressed: () => isar
-                  .writeTxn(() => isar.categorys.put(
-                      Category()..name = 'Category ${Random().nextInt(999)}',),)
+                  .writeTxn(
+                () => isar.categorys.put(
+                  Category()..name = 'Category ${Random().nextInt(999)}',
+                ),
+              )
                   .then((value) {
                 update();
               }),
@@ -523,30 +572,34 @@ class CategoryTile extends Tile {
                     children: [
                       Expanded(child: Text(c.name)),
                       IconButton(
-                          onPressed: () => isar
-                              .writeTxn(() => isar.categorys.delete(c.id))
-                              .then((value) => update()),
-                          icon: const Icon(Icons.delete),),
+                        onPressed: () => isar
+                            .writeTxn(() => isar.categorys.delete(c.id))
+                            .then((value) => update()),
+                        icon: const Icon(Icons.delete),
+                      ),
                       IconButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: const Text('Edit:'),
-                                  content: TextField(
-                                    controller:
-                                        TextEditingController(text: c.name),
-                                    onSubmitted: (value) => isar
-                                        .writeTxn(() =>
-                                            isar.categorys.put(c..name = value),)
-                                        .then((value) => update()),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                          icon: const Icon(Icons.edit),),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title: const Text('Edit:'),
+                                content: TextField(
+                                  controller:
+                                      TextEditingController(text: c.name),
+                                  onSubmitted: (value) => isar
+                                      .writeTxn(
+                                        () =>
+                                            isar.categorys.put(c..name = value),
+                                      )
+                                      .then((value) => update()),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        icon: const Icon(Icons.edit),
+                      ),
                     ],
                   ),
                 );
@@ -568,8 +621,12 @@ class _SettingsPage extends StatefulWidget {
   final Function? onupdate;
   final String title;
   final bool bare;
-  const _SettingsPage(this.title, this.settings, this.onupdate,
-      {this.bare=false,});
+  const _SettingsPage(
+    this.title,
+    this.settings,
+    this.onupdate, {
+    this.bare = false,
+  });
 
   @override
   State<_SettingsPage> createState() => _SettingsPageState();
