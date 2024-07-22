@@ -69,39 +69,7 @@ class _AppLoaderState extends State<AppLoader> {
         if (context.mounted &&
             update != null &&
             !hasNotifiedForUpdate(update.version)) {
-          await showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.of(context, rootNavigator: true).pop();
-                    },
-                    child: const Text('Dont Update'),),
-                TextButton(
-                    onPressed: () {
-                      
-                      showDialog(
-                          context: context,
-                          builder: (context) => UpdatingDialog(update: update,),);
-                    },
-                    child: const Text('Update'),),
-              ],
-              title: const Text(
-                'New Version available!',
-                textAlign: TextAlign.center,
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Current version ${update.currentversion}'),
-                  Text('Update to version ${update.version}'),
-                  const Text('Notes:'),
-                  Text(update.body),
-                ],
-              ),
-            ),
-          );
+          await showUpdateDialog(context, update);
         }
       },
       'Checking for Updates',
