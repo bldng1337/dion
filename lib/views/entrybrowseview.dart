@@ -7,7 +7,9 @@ import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
+import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:endless/stream/endless_stream_controller.dart';
 import 'package:endless/stream/endless_stream_grid_view.dart';
 import 'package:flutter/material.dart';
@@ -190,12 +192,29 @@ class EntryCard extends StatelessWidget {
     this.selection = false,
   });
 
+  Widget makeBadge(BuildContext context, Widget child) {
+    final double badgesize =
+        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 0) * 1.3;
+    return Container(
+      height: badgesize + 9,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        color: Theme.of(context).primaryColor,
+      ),
+      margin: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(4),
+      child: Center(
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const double width = 300 / 1.5;
     const double height = 600 / 2;
     final double badgesize =
-        (Theme.of(context).textTheme.labelLarge?.fontSize ?? 0) * 1.45;
+        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 0) * 1.35;
     // if(entry.cover==null)
     return GestureDetector(
       onTap: () {
@@ -230,10 +249,11 @@ class EntryCard extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Theme.of(context).shadowColor.withOpacity(0.3),
+                    Theme.of(context).shadowColor.withOpacity(0.1),
+                    Theme.of(context).shadowColor.withOpacity(0.5),
                     Theme.of(context).shadowColor.withOpacity(1),
                   ],
-                  stops: const [0, 0.75, 1],
+                  stops: const [0, 0.6, 0.75, 1],
                 ),
               ),
               child: Column(
@@ -246,49 +266,36 @@ class EntryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (entry is EntrySaved)
-                          Container(
-                            height: badgesize + 9,
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10)),
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            margin: const EdgeInsets.all(5),
-                            padding: const EdgeInsets.all(4),
-                            child: Text(
-                              '${(entry as EntrySaved).episodescompleted}/${(entry as EntrySaved).episodes.reduce((value, element) => value.episodes.length > element.episodes.length ? value : element).episodes.length}',
+                          makeBadge(
+                            context,
+                            Text(
+                              '${(entry as EntrySaved).episodescompleted}/${(entry as EntrySaved).totalepisodes}',
                               textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.labelLarge,
+                              style: Theme.of(context).textTheme.labelMedium,
                             ),
                           ),
-                        Container(
-                          height: badgesize + 9,
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(10)),
-                            color: Theme.of(context).primaryColor,
+                        if (entry is! EntrySaved && entry.length != null)
+                          makeBadge(
+                            context,
+                            Text(
+                              '${entry.length}',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
                           ),
-                          margin: const EdgeInsets.all(5),
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(
+                        makeBadge(
+                          context,
+                          Icon(
                             entry.type.icon(),
                             size: badgesize,
                             color:
-                                Theme.of(context).textTheme.labelLarge?.color,
+                                Theme.of(context).textTheme.labelMedium?.color,
                           ),
                         ),
                         if (entry.language != null)
-                          Container(
-                            height: badgesize + 9,
-                            width: badgesize + 9,
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10)),
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            margin: const EdgeInsets.all(5),
-                            padding: const EdgeInsets.all(4),
-                            child: Center(
+                          makeBadge(
+                            context,
+                            Center(
                               child: CountryFlag.fromLanguageCode(
                                 entry.language!,
                                 height: badgesize * 0.85,
@@ -298,10 +305,57 @@ class EntryCard extends StatelessWidget {
                             ),
                           ),
                         const Spacer(),
+                        if (entry.ext != null)
+                          makeBadge(
+                            context,
+                            Center(
+                              child: FancyShimmerImage(
+                                imageUrl:
+                                    entry.ext?.data?.icon ?? 'https://0.0.0.0/',
+                                cacheKey: entry.ext?.data?.icon ?? '',
+                                width: badgesize * 0.9,
+                                height: badgesize * 0.9,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
                   const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 5, bottom: 1),
+                    child: Row(
+                      children: [
+                        if (entry.rating != null)
+                          Stardisplay(
+                            color: Colors.yellow[300]!,
+                            width: badgesize * 0.85,
+                            height: badgesize * 0.85,
+                            fill: entry.rating!,
+                          ),
+                        const Spacer(),
+                        if ((entry.views ?? 0) > 0)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                formatNumber(entry.views!),
+                                style: const TextStyle(
+                                  fontSize: 13.0,
+                                ),
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.only(left: 2),
+                                child: Icon(
+                                  Icons.remove_red_eye,
+                                  size: 15,
+                                ),
+                              ),
+                            ],
+                          )
+                      ],
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.only(left: 5, bottom: 5),
                     child: Text(

@@ -10,6 +10,7 @@ import 'package:dionysos/sync.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/views/entrybrowseview.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -125,17 +126,17 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${ceplist.length} Chapters'),
-          PopupMenuButton<AEpisodeList?>(
+          Text('${ceplist.length} Episodes'),
+          PopupMenuButton<dynamic>(
             itemBuilder: (BuildContext context) => [
-              ...entry.episodes.map(
+              ...entry.episodes.indexed.map(
                 (e) => PopupMenuItem(
-                  value: e,
+                  value: e.$1,
                   child: Row(
                     children: [
-                      Text(e.title),
+                      Text(e.$2.title),
                       const Spacer(),
-                      Text('${e.episodes.length}'),
+                      Text('${e.$2.episodes.length}'),
                     ],
                   ),
                 ),
@@ -146,12 +147,17 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
               if (value == null) {
                 return;
               }
-              setState(
-                () {
-                  selected.clear();
-                  eplist = value;
-                },
-              );
+              if (value is int) {
+                setState(
+                  () {
+                    selected.clear();
+                    eplist = entry.episodes[value];
+                    entry.episodeindex = value;
+                    entry.save();
+                  },
+                );
+                return;
+              }
             },
             // icon: const Icon(Icons.source),
             tooltip: 'Choose Source',
@@ -485,13 +491,11 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                           ),
                         ),
                       if (entry.rating != null)
-                        Text(
-                          maxLines: 1,
-                          '${(entry.rating! * 100).round()/10} / 10',
-                          textAlign: TextAlign.start,
-                          style: const TextStyle(
-                            fontSize: 16.0,
-                          ),
+                        Stardisplay(
+                          color: Colors.yellow[300]!,
+                          width: 16,
+                          height: 16,
+                          fill: entry.rating!,
                         ),
                     ],
                   ),
@@ -604,14 +608,15 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
         return const Size(300 / 1.5, 600 / 2);
     }
     return getTextSize(
-        "Something ${data['type']}", const TextStyle(fontSize: 14),);
+      "Something ${data['type']}",
+      const TextStyle(fontSize: 14),
+    );
   }
 
   Widget buildWidget(dynamic data, BuildContext context, Extension? extension) {
     switch (data['type']) {
       case 'text':
         return Text(
-          
           data['text'] as String,
           style: const TextStyle(fontSize: 14),
           maxLines: 1,
@@ -634,7 +639,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
       case 'column':
         final childsize = getSize(data, context, extension);
         return SizedBox(
-          width: childsize.width+5,
+          width: childsize.width + 5,
           child: ListView(
             shrinkWrap: true,
             children: (data['children'] as List<dynamic>)
@@ -643,9 +648,9 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
           ),
         );
       case 'row':
-      final childsize = getSize(data, context, extension);
+        final childsize = getSize(data, context, extension);
         return SizedBox(
-          height: childsize.height+5,
+          height: childsize.height + 5,
           child: ListView(
             scrollDirection: Axis.horizontal,
             shrinkWrap: true,
@@ -698,7 +703,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
   }
 
   Widget display(EntryDetail entry) {
-    eplist ??= entry.episodes[0];
+    eplist ??= entry.episodes[entry.episodeindex];
     return Scaffold(
       appBar: AppBar(
         title: Text(entry.title),

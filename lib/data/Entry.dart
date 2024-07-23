@@ -181,7 +181,7 @@ class Entry {
     return ext?.detail(url);
   }
 
-  void save() {}
+  Future<void> save() async {}
 
   factory Entry.fromJson(Map<String, dynamic> jsond, Extension ext) {
     return Entry(
@@ -435,11 +435,11 @@ class EntrySaved extends EntryDetail {
   }
 
   int get totalepisodes {
-    return episodes
-        .reduce(
-          (value, element) =>
-              value.episodes.length > element.episodes.length ? value : element,
-        )
+    return episodes[episodeindex]
+        // .reduce(
+        //   (value, element) =>
+        //       value.episodes.length > element.episodes.length ? value : element,
+        // )
         .episodes
         .length;
   }
@@ -499,6 +499,7 @@ class EntrySaved extends EntryDetail {
       final EntrySaved newentry = EntrySaved.fromEntry(entryref);
       newentry.id = id;
       newentry.epdata = epdata;
+      newentry.episodeindex=episodeindex;
       await newentry.save();
       refreshing = false;
       if(shoulddisable){

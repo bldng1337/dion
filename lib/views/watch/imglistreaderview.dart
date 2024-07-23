@@ -348,6 +348,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
               scrollOffsetController: sc,
               itemScrollController: sci,
               itemPositionsListener: itemPositionsListener,
+              minCacheExtent: 8,
               itemBuilder: (context, i) {
                 if (i == 0) {
                   if (widget.source.hasPrevious()) {
@@ -401,7 +402,7 @@ class _PaginatedImgListViewerState extends State<PaginatedImgListViewer> {
       fit: BoxFit.fitWidth,
       imageUrl: path,
       progressIndicatorBuilder: (context, url, downloadProgress) => SizedBox(
-        height: MediaQuery.of(context).size.height,
+        height: MediaQuery.of(context).size.height*0.6,
         child: Center(
           child: CircularProgressIndicator(
             value: downloadProgress.progress,
