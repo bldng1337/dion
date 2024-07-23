@@ -172,13 +172,13 @@ class Entry {
     this.language,
   );
 
-  Future<EntryDetail?> detailed() async {
+  Future<EntryDetail?> detailed({bool force = false}) async {
     final EntrySaved? entry =
         await isar.entrySaveds.where().urlEqualTo(url).findFirst();
     if (entry != null) {
       return entry;
     }
-    return ext?.detail(url);
+    return ext?.detail(url, force: force);
   }
 
   Future<void> save() async {}
@@ -280,7 +280,7 @@ class EntryDetail extends Entry {
   }
 
   Future<EntryDetail?> refresh() {
-    return detailed();
+    return detailed(force: true);
   }
 
   void complete(int chapter, {bool date = true}) {}
@@ -494,7 +494,7 @@ class EntrySaved extends EntryDetail {
       shoulddisable=true;
       await ext.setenabled(true);
     }
-    final EntryDetail? entryref = await ext?.detail(url);
+    final EntryDetail? entryref = await ext.detail(url, force: true);
     if (entryref != null) {
       final EntrySaved newentry = EntrySaved.fromEntry(entryref);
       newentry.id = id;
@@ -530,7 +530,10 @@ class EntrySaved extends EntryDetail {
   }
 
   @override
-  Future<EntryDetail?> detailed() {
+  Future<EntryDetail?> detailed({bool force = false}) {
+    if(force){
+      return ext!.detail(url, force: force);
+    }
     return Future.value(this);
   }
 

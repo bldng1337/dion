@@ -274,8 +274,8 @@ class Extension {
         .toList();
   }
 
-  Future<EntryDetail?> detail(String url) async {
-    if (extensioncache.containsKey(url)) {
+  Future<EntryDetail?> detail(String url, {bool force = false}) async {
+    if (extensioncache.containsKey(url)&&!force) {
       return extensioncache[url];
     }
     if (engine == null||!enabled) {
