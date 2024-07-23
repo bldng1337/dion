@@ -1,9 +1,11 @@
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
+import 'package:dionysos/util/settingsapi.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:url_launcher/link.dart';
 
 class Extensionsetting extends StatefulWidget {
@@ -159,12 +161,23 @@ class _ExtensionsettingState extends State<Extensionsetting> {
             child: const Text('Uninstall'),
           ),
           // const ConstructionWarning(),
-          Column(
-              children: widget.ext.settings.entries
-                  .where((e) => e.value['type'] == 'extension')
-                  .map((e) => buildsetting(e.key, e.value))
-                  .toList(),
-            )
+          const Padding(
+            padding: EdgeInsets.all(10),
+            child: Text(
+              'Settings',
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
+          ExtensionSettingPageBuilder(widget.ext, SettingType.extension)
+              .barebuild(null, nested: true)
+          // Column(
+          //   children: widget.ext.settings.entries
+          //       .where((e) => e.value['type'] == 'extension')
+          //       .map((e) => buildsetting(e.key, e.value))
+          //       .toList(),
+          // )
+          ,
+          // )
         ],
       ),
     );

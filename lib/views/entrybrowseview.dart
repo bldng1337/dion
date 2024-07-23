@@ -367,7 +367,7 @@ class EntryCard extends StatelessWidget {
                           Shadow(offset: Offset(0.5, 0.9), blurRadius: 3.0),
                         ],
                       ),
-                      maxLines: 4,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.start,
                     ),

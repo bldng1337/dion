@@ -7,6 +7,7 @@ import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/sync.dart';
+import 'package:dionysos/util/settingsapi.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/views/entrybrowseview.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -323,7 +324,8 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
     );
   }
 
-  Widget getExtensionWarning(EntryDetail entry, BuildContext context) {
+  Widget getExtensionWarning(EntryDetail entry, BuildContext context,
+      {String customText = ''}) {
     if (entry.ext == null) {
       return Container(
         padding: const EdgeInsets.all(3),
@@ -336,7 +338,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
             ),
             Expanded(
               child: Text(
-                'Extension for this Entry cant be found',
+                'Extension for this Entry cant be found $customText',
                 style: TextStyle(color: Theme.of(context).indicatorColor),
               ),
             ),
@@ -359,7 +361,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
             ),
             Expanded(
               child: Text(
-                'Extension for this Entry is disabled',
+                'Extension for this Entry is disabled $customText',
                 style: TextStyle(color: Theme.of(context).indicatorColor),
               ),
             ),
@@ -708,6 +710,42 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
       appBar: AppBar(
         title: Text(entry.title),
         actions: [
+          if (entry is EntrySaved)
+            IconButton(
+              tooltip: 'Extension Settings',
+              onPressed: () {
+                showDialog(
+                  builder: (context) => AlertDialog(
+                    title: const Text('Extension Settings'),
+                    content: Column(
+                      children: [
+                        getExtensionWarning(entry, context,
+                            customText:
+                                'Extension related Settings may be missing'),
+                        if (entry.ext != null)
+                          ExtensionSettingPageBuilder(
+                            entry.ext!,
+                            SettingType.entry,
+                          ).barebuild(null, nested: true),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          if (context.mounted) {
+                            context.pop();
+                          }
+                        },
+                        child: const Text('Submit'),
+                      ),
+                    ],
+                  ),
+                  context: context,
+                );
+                // navExtension(context, entry.ext!);
+              },
+              icon: const Icon(Icons.settings),
+            ),
           if (entry is EntrySaved)
             IconButton(
               tooltip: 'BatchDownload',

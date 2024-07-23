@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +12,53 @@ import 'package:language_code/language_code.dart';
 //=============================================================================
 //===================================SETTINGS==================================
 //=============================================================================
+
+abstract class Settingsetter {
+  const Settingsetter();
+  Future<bool> setvalue<T>(T value, String key);
+  Future<bool> clear(String key);
+  Future<T> getvalue<T>(String key);
+}
+
+enum SettingType {
+  extension,
+  entry,
+  search;
+
+  String name() {
+    switch (this) {
+      case extension:
+        return 'extension';
+      case entry:
+        return 'entry';
+      case search:
+        return 'search';
+    }
+  }
+}
+
+class ExtensionSettingsetter extends Settingsetter {
+  final Extension extension;
+  final SettingType type;
+  ExtensionSettingsetter(this.extension, this.type);
+
+  @override
+  Future<bool> clear(String key) async {
+    extension.settings[key]['value'] = extension.settings[key]['def'];
+    return true;
+  }
+
+  @override
+  Future<bool> setvalue<T>(T value, String key) async {
+    extension.setsettings(key, value);
+    return true;
+  }
+
+  @override
+  Future<T> getvalue<T>(String key) async {
+    return extension.settings[key]['value'] as T;
+  }
+}
 
 class SettingsCategory {
   final String id;
@@ -40,11 +88,32 @@ abstract class OptionalSetting<T> {
   Future<bool> setvalue(T value);
 }
 
+class ExtensionSetting<T> extends Setting<T> {
+  final Extension extension;
+  ExtensionSetting(
+    String id,
+    this.extension,
+  ) : super(id, extension.settings[id]['value'] as T, category: null);
+
+  @override
+  T? get _value => extension.settings[key]['value'] as T;
+
+  @override
+  Future<bool> setvalue(T value) async {
+    extension.setsettings(key, value);
+    return true;
+  }
+}
+
 abstract class Setting<T> {
   final String id;
   final SettingsCategory? category;
   final T defaultvalue;
-  const Setting(this.id, this.defaultvalue, {this.category});
+  const Setting(
+    this.id,
+    this.defaultvalue, {
+    this.category,
+  });
 
   String get key {
     return "${category?.id ?? ""}$id";
@@ -63,7 +132,11 @@ abstract class Setting<T> {
 }
 
 class SettingString extends Setting<String> {
-  const SettingString(super.id, super.defaultvalue, {super.category});
+  const SettingString(
+    super.id,
+    super.defaultvalue, {
+    super.category,
+  });
 
   @override
   String? get _value {
@@ -232,6 +305,47 @@ class SettingsNavTile extends Tile {
         leading: icon != null ? Icon(icon) : null,
         title: Text(name),
         onTap: () => enav(context, builder.build(null)),
+      ),
+    );
+  }
+}
+
+class ChoiceTile<T> extends SettingTile<T> {
+  final List<Choice<T>> choices;
+  const ChoiceTile(
+    super.name,
+    super.description,
+    super.setting, {
+    required this.choices,
+    super.icon,
+  });
+
+  @override
+  Widget render(BuildContext context, Function update) {
+    T value = setting.value;
+    if (!choices.contains(value)) {
+      value = choices.first.value;
+      setting.setvalue(value);
+    }
+    return Tooltip(
+      message: description,
+      child: ListTile(
+        leading: icon != null ? Icon(icon) : null,
+        title: Text(name),
+        trailing: DropdownButton(
+          items: choices
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e.value,
+                  child: Text(e.name),
+                ),
+              )
+              .toList(),
+          value: value,
+          onChanged: (val) => setting
+              .setvalue(val ?? setting.defaultvalue)
+              .then((value) => update()),
+        ),
       ),
     );
   }
@@ -500,7 +614,7 @@ class SortingTile extends Tile {
     const double siz = 30;
     return GestureDetector(
       onTap: () {
-        if(c.value == choice.value){
+        if (c.value == choice.value) {
           descending.setvalue(!descending.value).then((value) => update());
           return;
         }
@@ -621,11 +735,14 @@ class _SettingsPage extends StatefulWidget {
   final Function? onupdate;
   final String title;
   final bool bare;
+  
+  final bool nested;
   const _SettingsPage(
     this.title,
     this.settings,
     this.onupdate, {
     this.bare = false,
+    this.nested = false,
   });
 
   @override
@@ -642,11 +759,17 @@ class _SettingsPageState extends State<_SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if(widget.settings.isEmpty){
+      return Container();
+    }
     if (widget.bare) {
+      // print(context.size?.height);
       return ListView.builder(
+        shrinkWrap: widget.nested,
         itemCount: widget.settings.length,
-        itemBuilder: (context, index) =>
-            widget.settings[index].render(context, update),
+        itemBuilder: (context, index) {
+          return widget.settings[index].render(context, update);
+        },
       );
     }
     return Scaffold(
@@ -672,7 +795,70 @@ class SettingPageBuilder {
     return _SettingsPage(title, settings, update);
   }
 
-  Widget barebuild(Function? update) {
-    return _SettingsPage(title, settings, update, bare: true);
+  Widget barebuild(Function? update, {bool nested = false}) {
+    return _SettingsPage(title, settings, update, bare: true, nested: nested);
+  }
+}
+
+class ExtensionSettingPageBuilder extends SettingPageBuilder {
+  final Extension extension;
+  final SettingType type;
+
+  ExtensionSettingPageBuilder(this.extension, this.type)
+      : super(
+          extension.data!.name,
+          extension.settings.entries
+              .map((e) => buildsetting(e.key, e.value, extension))
+              .toList(),
+        );
+
+  static Tile buildsetting(String name, dynamic value, Extension extension) {
+    if (value['ui'] != null) {
+      return displayui(value['ui'], value, name, extension);
+    }
+    if (value['def'] is bool) {
+      return displayui({'type': 'checkbox'}, value, name, extension);
+    }
+    if (value['def'] is String) {
+      return displayui({'type': 'textbox'}, value, name, extension);
+    }
+    if (value['def'] is int || value['def'] is double) {
+      return displayui({'type': 'numberbox'}, value, name, extension);
+    }
+    return TitleTile(name, 'Unknown Setting');
+  }
+
+  static Tile displayui(
+      dynamic ui, dynamic value, String name, Extension extension) {
+    return switch ((ui['type'] as String).toLowerCase()) {
+      'slider' => DoubleTile(
+          (value['name'] as String?)?? name,
+          (ui['description'] as String?) ?? '',
+          ExtensionSetting(
+            name,
+            extension,
+          ),
+        ),
+      'checkbox' => BooleanTile(
+          (value['name'] as String?)?? name,
+          (ui['description'] as String?) ?? '',
+          ExtensionSetting(
+            name,
+            extension,
+          ),
+        ),
+      'dropdown' => ChoiceTile(
+          (value['name'] as String?)?? name,
+          (ui['description'] as String?) ?? '',
+          ExtensionSetting(
+            name,
+            extension,
+          ),
+          choices: (ui['choices'] as List<dynamic>)
+              .map((e) => Choice(e['name'] as String, e['value'] as String))
+              .toList(),
+        ),
+      _ => TitleTile(name, 'Unknown Setting'),
+    };
   }
 }
