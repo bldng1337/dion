@@ -7,6 +7,7 @@ import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/extension/extensionmanager.dart';
 import 'package:dionysos/extension/jsextension.dart';
 import 'package:dionysos/main.dart';
+import 'package:dionysos/util/settingsapi.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
@@ -27,6 +28,7 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
   final controller = EndlessStreamController<Entry>();
   String search = '';
   SortMode sort = SortMode.latest;
+  Extension? filterextension;
   int count = 0;
   MediaType? filtertype;
 
@@ -51,10 +53,137 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
   }
 
   bool filterExtension(Extension e) {
+    if (filterextension != null) {
+      return e == filterextension;
+    }
     if (filtertype == null) {
       return true;
     }
     return e.data?.type?.contains(filtertype) ?? false;
+  }
+
+  Widget showFilterView(BuildContext context) {
+    return StatefulBuilder(
+      builder: (context, popsetState) => ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                DropdownButton<MediaType>(
+                  // icon: const Icon(Icons.filter_alt_sharp),
+                  items: [
+                    const DropdownMenuItem(
+                      child: Icon(Icons.disabled_by_default),
+                    ),
+                    ...MediaType.values.map(
+                      (e) => DropdownMenuItem(
+                        value: e,
+                        child: Icon(e.icon()),
+                      ),
+                    ),
+                  ],
+                  value: filtertype,
+                  onChanged: (value) {
+                    setState(() {
+                      controller.clear(lazy: true);
+                      filtertype = value;
+                      count = 0;
+                      loadmore();
+                    });
+                  },
+                ),
+                if (search.isEmpty)
+                  DropdownButton(
+                    padding: const EdgeInsets.only(left: 5),
+                    value: sort,
+                    items: SortMode.values
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(e.val),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (e) {
+                      if (e != null && search.isEmpty) {
+                        setState(() {
+                          controller.clear(lazy: true);
+                          sort = e;
+                          count = 0;
+                          loadmore();
+                          popsetState(() {});
+                        });
+                      }
+                    },
+                  ),
+                DropdownButton<Extension?>(
+                  value: filterextension,
+                  items: [
+                    const DropdownMenuItem(
+                      child: Icon(Icons.disabled_by_default),
+                    ),
+                    ...ExtensionManager().loaded.map(
+                          (ext) => DropdownMenuItem(
+                            value: ext,
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 10),
+                                  child: FancyShimmerImage(
+                                    imageUrl:
+                                        ext.data?.icon ?? 'https://0.0.0.0/',
+                                    cacheKey: ext.data?.icon ?? '',
+                                    width: 24,
+                                    height: 24,
+                                    errorWidget:
+                                        const Icon(Icons.image, size: 24),
+                                  ),
+                                ),
+                                Text(
+                                  ext.data?.name ?? 'Unknown',
+                                  style: !ext.enabled
+                                      ? const TextStyle(
+                                          color: Colors.grey,
+                                        )
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                  ],
+                  onChanged: (value) => setState(() {
+                    controller.clear(lazy: true);
+                    filterextension = value;
+                    count = 0;
+                    loadmore();
+                    popsetState(() {});
+                  }),
+                ),
+              ],
+            ),
+          ),
+          if (filterextension != null)
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: ExtensionSettingPageBuilder(
+                filterextension!,
+                SettingType.search,
+              ).barebuild(
+                  () => setState(() {
+                        controller.clear(lazy: true);
+                        count = 0;
+                        loadmore();
+                        popsetState(() {});
+                      }),
+                  nested: true),
+            )
+        ],
+      ),
+    );
   }
 
   @override
@@ -70,53 +199,30 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
               children: [
                 Expanded(
                   child: SearchBar(
+                    shape: WidgetStateProperty.all(RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(3))),
                     trailing: [
-                      DropdownButton<MediaType>(
-                        // icon: const Icon(Icons.filter_alt_sharp),
-                        items: [
-                          const DropdownMenuItem(
-                            child: Icon(Icons.disabled_by_default),
-                          ),
-                          ...MediaType.values.map(
-                            (e) => DropdownMenuItem(
-                              value: e,
-                              child: Icon(e.icon()),
-                            ),
-                          ),
-                        ],
-                        value: filtertype,
-                        onChanged: (value) {
-                          setState(() {
-                            controller.clear(lazy: true);
-                            filtertype = value;
-                            count = 0;
-                            loadmore();
-                          });
+                      IconButton(
+                        icon: const Icon(Icons.filter_alt_sharp),
+                        onPressed: () {
+                          if (!context.mounted) {
+                            return;
+                          }
+                          if (isVertical(context)) {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) => showFilterView(context),
+                            );
+                          } else {
+                            showAdaptiveDialog(
+                              context: context,
+                              builder: (context) => Dialog(
+                                child: showFilterView(context),
+                              ),
+                            );
+                          }
                         },
                       ),
-                      if (search.isEmpty)
-                        DropdownButton(
-                          padding: const EdgeInsets.only(left: 5),
-                          value: sort,
-                          items: SortMode.values
-                              .map(
-                                (e) => DropdownMenuItem(
-                                  value: e,
-                                  child: Text(e.val),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (e) {
-                            if (e != null && search.isEmpty) {
-                              setState(() {
-                                controller.clear(lazy: true);
-                                sort = e;
-                                count = 0;
-                                loadmore();
-                              });
-                            }
-                          },
-                        ),
                     ],
                     hintText: 'Search',
                     onSubmitted: (a) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:contained_tab_bar_view/contained_tab_bar_view.dart';
 import 'package:dionysos/Source.dart';
 import 'package:dionysos/data/Entry.dart';
 import 'package:dionysos/data/activity.dart';
@@ -10,6 +11,8 @@ import 'package:dionysos/sync.dart';
 import 'package:dionysos/util/settingsapi.dart';
 import 'package:dionysos/util/utils.dart';
 import 'package:dionysos/views/entrybrowseview.dart';
+import 'package:dionysos/widgets/delayedbuild.dart';
+import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/cupertino.dart';
@@ -28,42 +31,45 @@ class DownloadButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StatefulBuilder(
-      builder: (context, setState) => FutureLoader(
-        entry.isDownloaded(list, episode),
-        success: (context, isDownloaded) => isDownloaded
-            ? IconButton(
-                onPressed: () {
-                  entry.delete(list, episode).then((value) {
-                    if (context.mounted) {
-                      setState(
-                        () {},
-                      );
+    return Delayedbuild(
+      duration: const Duration(milliseconds: 100),
+      child: () => StatefulBuilder(
+        builder: (context, setState) => FutureLoader(
+          entry.isDownloaded(list, episode),
+          success: (context, isDownloaded) => isDownloaded
+              ? IconButton(
+                  onPressed: () {
+                    entry.delete(list, episode).then((value) {
+                      if (context.mounted) {
+                        setState(
+                          () {},
+                        );
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.download_done),
+                )
+              : FutureLoader(
+                  entry.getDownloads(list, episode),
+                  success: (context, downloadTasks) {
+                    if (downloadTasks.isNotEmpty) {
+                      return const CircularProgressIndicator();
                     }
-                  });
-                },
-                icon: const Icon(Icons.download_done),
-              )
-            : FutureLoader(
-                entry.getDownloads(list, episode),
-                success: (context, downloadTasks) {
-                  if (downloadTasks.isNotEmpty) {
-                    return const CircularProgressIndicator();
-                  }
-                  return IconButton(
-                    onPressed: () {
-                      entry.download(list, episode).then((value) {
-                        if (context.mounted) {
-                          setState(
-                            () {},
-                          );
-                        }
-                      });
-                    },
-                    icon: const Icon(Icons.download),
-                  );
-                },
-              ),
+                    return IconButton(
+                      onPressed: () {
+                        entry.download(list, episode).then((value) {
+                          if (context.mounted) {
+                            setState(
+                              () {},
+                            );
+                          }
+                        });
+                      },
+                      icon: const Icon(Icons.download),
+                    );
+                  },
+                ),
+        ),
       ),
     );
   }
@@ -443,8 +449,9 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
               Flexible(
                 fit: FlexFit.tight,
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 15, top: 35),
+                  padding: const EdgeInsets.only(left: 10),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -452,7 +459,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                         entry.title,
                         textAlign: TextAlign.start,
                         style: const TextStyle(
-                          fontSize: 20.0,
+                          fontSize: 25.0,
                         ),
                       ),
                       if (entry.author != null && entry.author!.isNotEmpty)
@@ -508,7 +515,6 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
         ),
         // Text(entry.extradata ?? ''),
         buttonbar(entry, context),
-        buildUI(json.decode(entry.extradata ?? '[]'), context, entry.ext),
         SizedBox(
           height: 40,
           child: ListView(
@@ -539,12 +545,18 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                 .toList(),
           ),
         ),
-        Text(
-          entry.description ?? '',
+        Foldabletext(
+          maxLines: 7,
+          entry.description?.trim() ?? '',
           textAlign: TextAlign.start,
           style: const TextStyle(
             fontSize: 16.0,
           ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 15),
+          child:
+              buildUI(json.decode(entry.extradata ?? '[]'), context, entry.ext),
         ),
       ],
     );
@@ -704,11 +716,23 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
     }
   }
 
+  void refresh(EntryDetail entry) {
+    refreshing = true;
+    setState(() {});
+    entry.refresh().then((value) {
+      refreshing = false;
+      _entry = Future.value(value ?? entry);
+      setState(() {});
+    });
+  }
+
   Widget display(EntryDetail entry) {
     eplist ??= entry.episodes[entry.episodeindex];
     return Scaffold(
       appBar: AppBar(
-        title: Text(entry.title),
+        title: Text(
+          entry.title,
+        ),
         actions: [
           if (entry is EntrySaved)
             IconButton(
@@ -722,17 +746,24 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                         getExtensionWarning(entry, context,
                             customText:
                                 'Extension related Settings may be missing'),
-                        if (entry.ext != null)
-                          ExtensionSettingPageBuilder(
-                            entry.ext!,
-                            SettingType.entry,
-                          ).barebuild(null, nested: true),
+                            if (entry.ext != null)
+                              SizedBox(
+                                height: MediaQuery.of(context).size.height * 0.6,
+                                width: MediaQuery.of(context).size.width * 0.8,
+                                child: 
+                                ExtensionSettingPageBuilder(
+                                  entry.ext!,
+                                  SettingType.entry,
+                                  entry: entry,
+                                ).barebuild(null, nested: true),
+                              ),
                       ],
                     ),
                     actions: [
                       TextButton(
                         onPressed: () {
                           if (context.mounted) {
+                            refresh(entry);
                             context.pop();
                           }
                         },
@@ -819,13 +850,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
           IconButton(
             tooltip: 'Refresh Entry',
             onPressed: () {
-              refreshing = true;
-              setState(() {});
-              entry.refresh().then((value) {
-                refreshing = false;
-                _entry = Future.value(value ?? entry);
-                setState(() {});
-              });
+              refresh(entry);
               // setState(() {
               //   _entry = entry.refresh();
               // });
@@ -875,25 +900,24 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
               child: ScrollConfiguration(
                 behavior:
                     ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                child: ListView(
-                  shrinkWrap: true,
-                  controller: scrollController,
-                  children: [
-                    ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context)
-                          .copyWith(scrollbars: true),
-                      child: SizedBox(
-                        // height: MediaQuery.of(context).size.height,
-                        width: MediaQuery.of(context).size.width,
-                        child: Padding(
-                          padding: const EdgeInsets.all(5),
-                          child: buildDescription(entry, context),
-                        ),
-                      ),
+                child: ContainedTabBarView(
+                  tabs: const [
+                    Padding(
+                      padding: EdgeInsets.all(5),
+                      child: Text('Description'),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(5),
+                      child: Text('Episodes'),
+                    ),
+                  ],
+                  views: [
+                    ListView(
+                      children: [buildDescription(entry, context)],
                     ),
                     SizedBox(
                       height: MediaQuery.of(context).size.height,
-                      width: MediaQuery.of(context).size.width,
+                      width: MediaQuery.of(context).size.width / 2,
                       child: Padding(
                         padding: const EdgeInsets.all(5),
                         child: buildEpisodes(entry, context),
@@ -901,6 +925,33 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                     ),
                   ],
                 ),
+
+                //   ListView(
+                //     shrinkWrap: true,
+                //     controller: scrollController,
+                //     children: [
+                //       ScrollConfiguration(
+                //         behavior: ScrollConfiguration.of(context)
+                //             .copyWith(scrollbars: true),
+                //         child: SizedBox(
+                //           // height: MediaQuery.of(context).size.height,
+                //           width: MediaQuery.of(context).size.width,
+                //           child: Padding(
+                //             padding: const EdgeInsets.all(5),
+                //             child: buildDescription(entry, context),
+                //           ),
+                //         ),
+                //       ),
+                //       SizedBox(
+                //         height: MediaQuery.of(context).size.height,
+                //         width: MediaQuery.of(context).size.width,
+                //         child: Padding(
+                //           padding: const EdgeInsets.all(5),
+                //           child: buildEpisodes(entry, context),
+                //         ),
+                //       ),
+                //     ],
+                //   ),
               ),
             )
           : Row(

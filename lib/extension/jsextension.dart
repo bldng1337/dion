@@ -164,7 +164,10 @@ class Extension {
   late final File extensionpath;
   late final File configpath;
 
+  Map<String, dynamic> entry_settings = {};
   Map<String, dynamic> settings = {};
+  List<Map<String, dynamic>> permissions = [];
+
   bool enabled = false;
 
   String get indentifier {
@@ -177,6 +180,49 @@ class Extension {
 
   bool entrycompat(Entry e) {
     return e.extname == indentifier;
+  }
+
+  bool comparePermission(
+      Map<String, dynamic> permission, Map<String, dynamic> other) {
+    if (permission['id'] != other['id']) {
+      return false;
+    }
+    if (!permission.containsKey('args')) {
+      return true;
+    }
+    if (!other.containsKey('args')) {
+      return false;
+    }
+    final pargs = permission['args'] as Map<String, dynamic>;
+    final oargs = other['args'] as Map<String, dynamic>;
+    switch (permission['id']) {
+      case 'storage':
+        pargs.putIfAbsent('write', () => false);
+        oargs.putIfAbsent('write', () => false);
+        if (pargs['write'] as bool && !(oargs['write'] as bool)) {
+          return false;
+        }
+        pargs.putIfAbsent('path', () => '');
+        oargs.putIfAbsent('path', () => '');
+        if ((oargs['path'] as String).startsWith(pargs['path'] as String)) {
+          return true;
+        }
+    }
+    return false;
+  }
+
+  bool hasPermission(Map<String, dynamic> permission) {
+    return permissions
+            .firstWhereOrNull((e) => comparePermission(e, permission)) !=
+        null;
+  }
+
+  bool requestPermission(Map<String, dynamic> permission, String? message) {
+    if (hasPermission(permission)) {
+      return true;
+    }
+    //TODO: Request permission
+    return false;
   }
 
   Extension(File path) {
@@ -214,16 +260,116 @@ class Extension {
           // settings.update(key, update)
           var value = data['def'];
           if (settings.containsKey(data['id'] as String) &&
-              settings[data['id'] as String] is Map<String, dynamic>) {
+              settings[data['id'] as String] is Map<String, dynamic> &&
+              settings[data['id'] as String]['value'].runtimeType ==
+                  value.runtimeType) {
             value = settings[data['id'] as String]['value'];
           }
           settings[data['id'] as String] = data;
           print("Registered ${data['id']} with value $value");
           settings[data['id'] as String]!['value'] = value;
         });
-        bridge.register('getSetting', (key) => settings[key['id']]['value']);
+        bridge.register(
+          'getSetting',
+          (key) => switch (settings[key['id']]['type']) {
+            'entry' => entry_settings[key['id']] ?? settings[key['id']]['def'],
+            _ => settings[key['id']]['value'],
+          },
+        );
         bridge.register(
             'setUI', (data) => settings[data['id']]['ui'] = data['ui']);
+        bridge.register('readFile', (data) async {
+          if (requestPermission({
+                'id': 'storage',
+                'args': {'path': data['path']}
+              }, ' to read file ${data['path']}') ==
+              false) {
+            return {'error': true, 'reason': 'Permission denied'};
+          }
+          final file = File(data['path'] as String);
+          if (!await file.exists()) {
+            return {'error': true, 'reason': 'File not found'};
+          }
+          return await file.readAsString();
+        });
+        bridge.register('writeFile', (data) async {
+          if (requestPermission({
+                'id': 'storage',
+                'args': {'path': data['path']}
+              }, ' to write file ${data['path']}') ==
+              false) {
+            return {'error': true, 'reason': 'Permission denied'};
+          }
+          final file = File(data['path'] as String);
+          if (!await file.exists()) {
+            await file.create();
+          }
+          await file.writeAsString(data['data'] as String);
+        });
+        bridge.register('deleteFile', (data) async {
+          if (requestPermission({
+                'id': 'storage',
+                'args': {'path': data['path'], 'write': true}
+              }, ' to delete file ${data['path']}') ==
+              false) {
+            return {'error': true, 'reason': 'Permission denied'};
+          }
+          final file = File(data['path'] as String);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        });
+        bridge.register('getFileList', (data) async {
+          if (requestPermission(
+                {
+                  'id': 'storage',
+                  'args': {'path': data['path']},
+                },
+                ' to read file list ${data['path']}',
+              ) ==
+              false) {
+            return {'error': true, 'reason': 'Permission denied'};
+          }
+          final dir = Directory(data['path'] as String);
+          if (!await dir.exists()) {
+            return {'error': true, 'reason': 'Directory not found'};
+          }
+          return await dir.list().map((e) => e.path).toList();
+        });
+        bridge.register('getFileInfo', (data) async {
+          if (requestPermission({
+                'id': 'storage',
+                'args': {'path': data['path']}
+              }, ' to read file ${data['path']}') ==
+              false) {
+            return {'error': true, 'reason': 'Permission denied'};
+          }
+          //TODO: rework this
+          final file = File(data['path'] as String);
+          if (!await file.exists()) {
+            final dir = Directory(data['path'] as String);
+            if (!await dir.exists()) {
+              return {'error': true, 'reason': 'File not found'};
+            }
+            return {
+              'type': 'directory',
+              'size': await Stream.fromFutures(
+                      await dir.list().map((e) => e.stat()).toList())
+                  .map((a) => a.size)
+                  .reduce((a, b) => a + b),
+            };
+          }
+          return {
+            'type': 'file',
+            'size': await file.length(),
+          };
+        });
+        bridge.register('requestPermission', (data) async {
+          if (!requestPermission(data['permission'] as Map<String, dynamic>,
+              data['message'] as String,)) {
+            return {'error': true, 'reason': 'Permission denied'};
+          }
+        });
       });
       enabled = true;
       // engine!.bridge.register('registerSetting',(data) => settings.putIfAbsent(data['name'] as String, () => data));
@@ -247,7 +393,7 @@ class Extension {
   }
 
   Future<List<Entry>> browse(int page, SortMode sort) async {
-    if (engine == null||!enabled) {
+    if (engine == null || !enabled) {
       return [];
     }
     final ret = (await engine!.bridge
@@ -261,7 +407,7 @@ class Extension {
   }
 
   Future<List<Entry>> search(int page, String filter) async {
-    if (engine == null||!enabled) {
+    if (engine == null || !enabled) {
       return [];
     }
     final ret = (await engine!.bridge
@@ -274,25 +420,32 @@ class Extension {
         .toList();
   }
 
-  Future<EntryDetail?> detail(String url, {bool force = false}) async {
-    if (extensioncache.containsKey(url)&&!force) {
+  Future<EntryDetail?> detail(String url,
+      {bool force = false, EntryDetail? entry}) async {
+    if (extensioncache.containsKey(url) && !force) {
       return extensioncache[url];
     }
-    if (engine == null||!enabled) {
+    if (engine == null || !enabled) {
       return null;
+    }
+    if (entry != null) {
+      entry_settings = entry.getSettings();
     }
     final ret = await engine!.bridge.invoke('detail', {'entryid': url});
     if (ret == null) return null;
     final ent = EntryDetail.fromJson(ret as Map<String, dynamic>, this);
+    entry_settings = {};
     extensioncache.putIfAbsent(url, () => ent);
     return ent;
   }
 
   Future<Source?> source(Episode ep, EntryDetail entry) async {
-    if (engine == null||!enabled) {
+    if (engine == null || !enabled) {
       return null;
     }
+    entry_settings = entry.getSettings();
     final ret = await engine!.bridge.invoke('source', {'epid': ep.url});
+    entry_settings = {};
     if (ret == null) return null;
     return Source.fromJson(ret as Map<String, dynamic>, entry, ep);
   }

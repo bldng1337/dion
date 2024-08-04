@@ -217,6 +217,7 @@ class EntryDetail extends Entry {
   final List<String> genres;
   @enumerated
   final Status status;
+  String? settings;
   final String? description;
   final String? extradata;
   int episodeindex = 0; //TODO Save which Source is selected
@@ -242,6 +243,7 @@ class EntryDetail extends Entry {
     this.extradata,
     super.coverheader,
     super.language,
+    this.settings,
   );
 
   EntrySaved toSaved() {
@@ -276,6 +278,7 @@ class EntryDetail extends Entry {
       json.encode(jsond['data'] ?? []),
       json.encode((jsond['coverheader'] as Map<String, dynamic>?) ?? {}),
       jsond['lang'] as String?,
+      null,
     );
   }
 
@@ -290,6 +293,20 @@ class EntryDetail extends Entry {
       return null;
     }
     return await ext!.source(list.episodes[episode], this);
+  }
+
+  Map<String,dynamic> getSettings(){
+    return json.decode(settings ?? '{}') as Map<String,dynamic>;
+  }
+
+  T getSetting<T>(String key){
+    return getSettings()[key] as T ?? ext!.settings[key]['def'] as T;
+  }
+  bool setSetting(String key, dynamic value){
+    final Map<String,dynamic> settings = getSettings();
+    settings[key] = value;
+    this.settings = json.encode(settings);
+    return true;
   }
 }
 
@@ -357,7 +374,8 @@ class EntrySaved extends EntryDetail {
     super.description,
     super.extradata,
     super.coverheader,
-    super.language,
+    super.language, super.settings,
+    
   );
   //Download
   String getDownloadpath(AEpisodeList list, int episode) {
@@ -488,27 +506,28 @@ class EntrySaved extends EntryDetail {
   @override
   Future<EntryDetail?> refresh() async {
     refreshing = true;
-    final ext=this.ext!;
-    bool shoulddisable=false;
-    if(!ext.enabled){
-      shoulddisable=true;
+    final ext = this.ext!;
+    bool shoulddisable = false;
+    if (!ext.enabled) {
+      shoulddisable = true;
       await ext.setenabled(true);
     }
-    final EntryDetail? entryref = await ext.detail(url, force: true);
+    final EntryDetail? entryref = await ext.detail(url, force: true, entry: this);
     if (entryref != null) {
       final EntrySaved newentry = EntrySaved.fromEntry(entryref);
       newentry.id = id;
       newentry.epdata = epdata;
-      newentry.episodeindex=episodeindex;
+      newentry.episodeindex = episodeindex;
+      newentry.settings = settings;
       await newentry.save();
       refreshing = false;
-      if(shoulddisable){
+      if (shoulddisable) {
         await ext.setenabled(false);
       }
       return newentry;
     }
     refreshing = false;
-    if(shoulddisable){
+    if (shoulddisable) {
       await ext.setenabled(false);
     }
     return this;
@@ -531,8 +550,8 @@ class EntrySaved extends EntryDetail {
 
   @override
   Future<EntryDetail?> detailed({bool force = false}) {
-    if(force){
-      return ext!.detail(url, force: force);
+    if (force) {
+      return ext!.detail(url, force: force, entry: this);
     }
     return Future.value(this);
   }
@@ -556,6 +575,7 @@ class EntrySaved extends EntryDetail {
       extradata,
       coverheader,
       language,
+      settings,
     );
   }
 
@@ -578,6 +598,7 @@ class EntrySaved extends EntryDetail {
       e.extradata,
       e.coverheader,
       e.language,
+      e.settings,
     );
   }
 

@@ -691,40 +691,45 @@ const EntrySavedSchema = CollectionSchema(
       name: r'rating',
       type: IsarType.double,
     ),
-    r'status': PropertySchema(
+    r'settings': PropertySchema(
       id: 15,
+      name: r'settings',
+      type: IsarType.string,
+    ),
+    r'status': PropertySchema(
+      id: 16,
       name: r'status',
       type: IsarType.byte,
       enumMap: _EntrySavedstatusEnumValueMap,
     ),
     r'title': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalepisodes': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'totalepisodes',
       type: IsarType.long,
     ),
     r'type': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'type',
       type: IsarType.byte,
       enumMap: _EntrySavedtypeEnumValueMap,
     ),
     r'url': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'url',
       type: IsarType.string,
     ),
     r'views': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'views',
       type: IsarType.long,
     ),
     r'weburl': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'weburl',
       type: IsarType.string,
     )
@@ -844,6 +849,12 @@ int _entrySavedEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.settings;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.title.length * 3;
   bytesCount += 3 + object.url.length * 3;
   bytesCount += 3 + object.weburl.length * 3;
@@ -881,13 +892,14 @@ void _entrySavedSerialize(
   writer.writeString(offsets[12], object.language);
   writer.writeLong(offsets[13], object.length);
   writer.writeDouble(offsets[14], object.rating);
-  writer.writeByte(offsets[15], object.status.index);
-  writer.writeString(offsets[16], object.title);
-  writer.writeLong(offsets[17], object.totalepisodes);
-  writer.writeByte(offsets[18], object.type.index);
-  writer.writeString(offsets[19], object.url);
-  writer.writeLong(offsets[20], object.views);
-  writer.writeString(offsets[21], object.weburl);
+  writer.writeString(offsets[15], object.settings);
+  writer.writeByte(offsets[16], object.status.index);
+  writer.writeString(offsets[17], object.title);
+  writer.writeLong(offsets[18], object.totalepisodes);
+  writer.writeByte(offsets[19], object.type.index);
+  writer.writeString(offsets[20], object.url);
+  writer.writeLong(offsets[21], object.views);
+  writer.writeString(offsets[22], object.weburl);
 }
 
 EntrySaved _entrySavedDeserialize(
@@ -897,17 +909,17 @@ EntrySaved _entrySavedDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = EntrySaved(
-    reader.readString(offsets[16]),
-    _EntrySavedtypeValueEnumMap[reader.readByteOrNull(offsets[18])] ??
+    reader.readString(offsets[17]),
+    _EntrySavedtypeValueEnumMap[reader.readByteOrNull(offsets[19])] ??
         MediaType.video,
-    reader.readString(offsets[19]),
+    reader.readString(offsets[20]),
     reader.readStringOrNull(offsets[1]),
     reader.readDoubleOrNull(offsets[14]),
-    reader.readLongOrNull(offsets[20]),
+    reader.readLongOrNull(offsets[21]),
     reader.readLongOrNull(offsets[13]),
     reader.readStringList(offsets[0]),
     reader.readString(offsets[9]),
-    reader.readString(offsets[21]),
+    reader.readString(offsets[22]),
     reader.readObjectList<EpisodeList>(
           offsets[6],
           EpisodeListSchema.deserialize,
@@ -916,12 +928,13 @@ EntrySaved _entrySavedDeserialize(
         ) ??
         [],
     reader.readStringList(offsets[11]) ?? [],
-    _EntrySavedstatusValueEnumMap[reader.readByteOrNull(offsets[15])] ??
+    _EntrySavedstatusValueEnumMap[reader.readByteOrNull(offsets[16])] ??
         Status.releasing,
     reader.readStringOrNull(offsets[3]),
     reader.readStringOrNull(offsets[10]),
     reader.readStringOrNull(offsets[2]),
     reader.readStringOrNull(offsets[12]),
+    reader.readStringOrNull(offsets[15]),
   );
   object.epdata = reader.readObjectOrNullList<EpisodeData>(
         offsets[4],
@@ -983,20 +996,22 @@ P _entrySavedDeserializeProp<P>(
     case 14:
       return (reader.readDoubleOrNull(offset)) as P;
     case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
       return (_EntrySavedstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           Status.releasing) as P;
-    case 16:
-      return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 18:
+      return (reader.readLong(offset)) as P;
+    case 19:
       return (_EntrySavedtypeValueEnumMap[reader.readByteOrNull(offset)] ??
           MediaType.video) as P;
-    case 19:
-      return (reader.readString(offset)) as P;
     case 20:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 21:
+      return (reader.readLongOrNull(offset)) as P;
+    case 22:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3139,6 +3154,157 @@ extension EntrySavedQueryFilter
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> settingsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'settings',
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      settingsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'settings',
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> settingsEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'settings',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      settingsGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'settings',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> settingsLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'settings',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> settingsBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'settings',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      settingsStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'settings',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> settingsEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'settings',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> settingsContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'settings',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> settingsMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'settings',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      settingsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'settings',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition>
+      settingsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'settings',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QAfterFilterCondition> statusEqualTo(
       Status value) {
     return QueryBuilder.apply(this, (query) {
@@ -3981,6 +4147,18 @@ extension EntrySavedQuerySortBy
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortBySettings() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'settings', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortBySettingsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'settings', Sort.desc);
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> sortByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -4215,6 +4393,18 @@ extension EntrySavedQuerySortThenBy
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> thenBySettings() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'settings', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> thenBySettingsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'settings', Sort.desc);
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QAfterSortBy> thenByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -4388,6 +4578,13 @@ extension EntrySavedQueryWhereDistinct
     });
   }
 
+  QueryBuilder<EntrySaved, EntrySaved, QDistinct> distinctBySettings(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'settings', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<EntrySaved, EntrySaved, QDistinct> distinctByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'status');
@@ -4532,6 +4729,12 @@ extension EntrySavedQueryProperty
   QueryBuilder<EntrySaved, double?, QQueryOperations> ratingProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'rating');
+    });
+  }
+
+  QueryBuilder<EntrySaved, String?, QQueryOperations> settingsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'settings');
     });
   }
 

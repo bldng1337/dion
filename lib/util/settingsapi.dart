@@ -105,6 +105,24 @@ class ExtensionSetting<T> extends Setting<T> {
   }
 }
 
+class EntryExtensionSetting<T> extends ExtensionSetting<T> {
+  final EntryDetail entry;
+  EntryExtensionSetting(
+    super.id,
+    super.extension,
+    this.entry,
+  );
+
+  @override
+  T? get _value => entry.getSetting(key);
+
+  @override
+  Future<bool> setvalue(T value) async {
+    entry.setSetting(key, value);
+    return true;
+  }
+}
+
 abstract class Setting<T> {
   final String id;
   final SettingsCategory? category;
@@ -735,7 +753,7 @@ class _SettingsPage extends StatefulWidget {
   final Function? onupdate;
   final String title;
   final bool bare;
-  
+
   final bool nested;
   const _SettingsPage(
     this.title,
@@ -759,7 +777,7 @@ class _SettingsPageState extends State<_SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if(widget.settings.isEmpty){
+    if (widget.settings.isEmpty) {
       return Container();
     }
     if (widget.bare) {
@@ -803,57 +821,69 @@ class SettingPageBuilder {
 class ExtensionSettingPageBuilder extends SettingPageBuilder {
   final Extension extension;
   final SettingType type;
+  final EntryDetail? entry;
 
-  ExtensionSettingPageBuilder(this.extension, this.type)
+  ExtensionSettingPageBuilder(this.extension, this.type, {this.entry})
       : super(
           extension.data!.name,
           extension.settings.entries
-              .map((e) => buildsetting(e.key, e.value, extension))
+              .where((e) {
+                return e.value['type'] == type.name();
+              })
+              .map((e) => buildsetting(e.key, e.value, extension, entry))
               .toList(),
         );
 
-  static Tile buildsetting(String name, dynamic value, Extension extension) {
+  static Tile buildsetting(
+      String name, dynamic value, Extension extension, EntryDetail? entry) {
+    print(name);
     if (value['ui'] != null) {
-      return displayui(value['ui'], value, name, extension);
+      return displayui(value['ui'], value, name, extension, entry);
     }
     if (value['def'] is bool) {
-      return displayui({'type': 'checkbox'}, value, name, extension);
+      return displayui({'type': 'checkbox'}, value, name, extension, entry);
     }
     if (value['def'] is String) {
-      return displayui({'type': 'textbox'}, value, name, extension);
+      return displayui({'type': 'textbox'}, value, name, extension, entry);
     }
     if (value['def'] is int || value['def'] is double) {
-      return displayui({'type': 'numberbox'}, value, name, extension);
+      return displayui({'type': 'numberbox'}, value, name, extension, entry);
     }
     return TitleTile(name, 'Unknown Setting');
   }
 
+  static ExtensionSetting<T> getSetting<T>(
+    String name,
+    Extension extension,
+    EntryDetail? entry,
+  ) =>
+      switch (entry) {
+        final EntryDetail e => EntryExtensionSetting<T>(name, extension, e),
+        _ => ExtensionSetting<T>(name, extension),
+      };
+
   static Tile displayui(
-      dynamic ui, dynamic value, String name, Extension extension) {
+    dynamic ui,
+    dynamic value,
+    String name,
+    Extension extension,
+    EntryDetail? entry,
+  ) {
     return switch ((ui['type'] as String).toLowerCase()) {
       'slider' => DoubleTile(
-          (value['name'] as String?)?? name,
+          (value['name'] as String?) ?? name,
           (ui['description'] as String?) ?? '',
-          ExtensionSetting(
-            name,
-            extension,
-          ),
+          getSetting(name, extension, entry),
         ),
       'checkbox' => BooleanTile(
-          (value['name'] as String?)?? name,
+          (value['name'] as String?) ?? name,
           (ui['description'] as String?) ?? '',
-          ExtensionSetting(
-            name,
-            extension,
-          ),
+          getSetting(name, extension, entry),
         ),
       'dropdown' => ChoiceTile(
-          (value['name'] as String?)?? name,
+          (value['name'] as String?) ?? name,
           (ui['description'] as String?) ?? '',
-          ExtensionSetting(
-            name,
-            extension,
-          ),
+          getSetting(name, extension, entry),
           choices: (ui['choices'] as List<dynamic>)
               .map((e) => Choice(e['name'] as String, e['value'] as String))
               .toList(),

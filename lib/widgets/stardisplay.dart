@@ -15,14 +15,16 @@ class Stardisplay extends StatelessWidget {
       required this.width,
       required this.height,
       required this.fill,
-      this.maxstars=5,
-      this.bgcolor=Colors.grey,
+      this.maxstars = 5,
+      this.bgcolor = Colors.grey,
       this.color = Colors.white})
       : assert(fill <= 1);
 
   @override
   Widget build(BuildContext context) {
-      return ShaderMask(
+    return Tooltip(
+      message: 'Rated ${(fill*100).round()/10}/10',
+      child: ShaderMask(
         blendMode: BlendMode.srcATop,
         shaderCallback: (Rect rect) {
           return LinearGradient(
@@ -41,7 +43,8 @@ class Stardisplay extends StatelessWidget {
             ),
           ),
         ),
-      );
+      ),
+    );
     // return Row(
     //   children: List.generate(
     //     maxstars,
