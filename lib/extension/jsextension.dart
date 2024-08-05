@@ -6,9 +6,11 @@ import 'package:async_locks/async_locks.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:dionysos/Source.dart';
 import 'package:dionysos/data/Entry.dart';
+import 'package:dionysos/main.dart';
 import 'package:dionysos/util/file_utils.dart';
 import 'package:dionysos/util/network_manager.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_js/flutter_js.dart';
 import 'package:flutter_js/quickjs/ffi.dart';
@@ -183,7 +185,9 @@ class Extension {
   }
 
   bool comparePermission(
-      Map<String, dynamic> permission, Map<String, dynamic> other) {
+    Map<String, dynamic> permission,
+    Map<String, dynamic> other,
+  ) {
     if (permission['id'] != other['id']) {
       return false;
     }
@@ -217,12 +221,49 @@ class Extension {
         null;
   }
 
-  bool requestPermission(Map<String, dynamic> permission, String? message) {
+  Widget getDescription(Map<String, dynamic> permission) {
+    return switch (permission['id']) {
+      'storage' => Text(
+          'Extension ${data?.name ?? 'Unknown'} is requesting read ${((permission['args']['write'] as bool?) ?? false) ? 'and write ' : ''}access to the path and its subdirectories: ${permission['args']['path']}',
+        ),
+      _ => Text('Unknown permission: ${permission['id']}'),
+    };
+  }
+
+  Future<bool> requestPermission(
+    Map<String, dynamic> permission,
+    String? message,
+  ) async {
     if (hasPermission(permission)) {
       return true;
     }
-    //TODO: Request permission
-    return false;
+    final completer = Completer<bool>();
+    showDialog(
+      context: navigatorKey.currentContext!,
+      builder: (context) => AlertDialog(
+        title: Text('Permission Request$message'),
+        content: getDescription(permission),
+        actions: [
+          TextButton(
+            onPressed: () {
+              completer.complete(false);
+              Navigator.of(context).pop();
+            },
+            child: const Text('Deny'),
+          ),
+          TextButton(
+            onPressed: () {
+              completer.complete(true);
+              permissions.add(permission);
+              save();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Allow'),
+          ),
+        ],
+      ),
+    );
+    return await completer.future;
   }
 
   Extension(File path) {
@@ -240,6 +281,7 @@ class Extension {
     }
     final js = json.decode(filecontent) as Map<String, dynamic>;
     settings = (js['settings'] as Map<String, dynamic>?) ?? {};
+    permissions = (js['permissions'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final meta =
         (await extensionpath.readAsString()).substring(2).split('\n')[0];
     data = ExtensionData.fromJson(json.decode(meta) as Map<String, dynamic>);
@@ -277,86 +319,97 @@ class Extension {
           },
         );
         bridge.register(
-            'setUI', (data) => settings[data['id']]['ui'] = data['ui']);
+          'setUI',
+          (data) => settings[data['id']]['ui'] = data['ui'],
+        );
         bridge.register('readFile', (data) async {
-          if (requestPermission({
-                'id': 'storage',
-                'args': {'path': data['path']}
-              }, ' to read file ${data['path']}') ==
-              false) {
+          if (!(await requestPermission(
+            {
+              'id': 'storage',
+              'args': {'path': data['path']},
+            },
+            ' to read file ${data['path']}',
+          ))) {
             return {'error': true, 'reason': 'Permission denied'};
           }
-          final file = File(data['path'] as String);
+          final file = File((data['path'] as String).replaceAll('/', '\\'));
           if (!await file.exists()) {
-            return {'error': true, 'reason': 'File not found'};
+            return {'error': true, 'reason': 'readFile:File not found ${data['path']}'};
           }
           return await file.readAsString();
         });
         bridge.register('writeFile', (data) async {
-          if (requestPermission({
-                'id': 'storage',
-                'args': {'path': data['path']}
-              }, ' to write file ${data['path']}') ==
-              false) {
+          if (!(await requestPermission(
+            {
+              'id': 'storage',
+              'args': {'path': data['path']},
+            },
+            ' to write file ${data['path']}',
+          ))) {
             return {'error': true, 'reason': 'Permission denied'};
           }
-          final file = File(data['path'] as String);
+          final file = File((data['path'] as String).replaceAll('/', '\\'));
+          if(file.parent.absolute.path==configpath.parent.absolute.path){
+            return {'error': true, 'reason': 'Cannot write to config file directory'};
+          }
           if (!await file.exists()) {
             await file.create();
           }
           await file.writeAsString(data['data'] as String);
         });
         bridge.register('deleteFile', (data) async {
-          if (requestPermission({
-                'id': 'storage',
-                'args': {'path': data['path'], 'write': true}
-              }, ' to delete file ${data['path']}') ==
-              false) {
+          if (!(await requestPermission(
+            {
+              'id': 'storage',
+              'args': {'path': data['path'], 'write': true},
+            },
+            ' to delete file ${data['path']}',
+          ))) {
             return {'error': true, 'reason': 'Permission denied'};
           }
-          final file = File(data['path'] as String);
+          final file = File((data['path'] as String).replaceAll('/', '\\'));
           if (await file.exists()) {
             await file.delete();
           }
         });
         bridge.register('getFileList', (data) async {
-          if (requestPermission(
-                {
-                  'id': 'storage',
-                  'args': {'path': data['path']},
-                },
-                ' to read file list ${data['path']}',
-              ) ==
-              false) {
+          if (!(await requestPermission(
+            {
+              'id': 'storage',
+              'args': {'path': data['path']},
+            },
+            ' to read file list ${data['path']}',
+          ))) {
             return {'error': true, 'reason': 'Permission denied'};
           }
           final dir = Directory(data['path'] as String);
           if (!await dir.exists()) {
-            return {'error': true, 'reason': 'Directory not found'};
+            return {'error': true, 'reason': 'getFileList:Directory not found'};
           }
-          return await dir.list().map((e) => e.path).toList();
+          return await dir.list().map((e) => e.path.substring(e.parent.path.length + 1)).toList();
         });
         bridge.register('getFileInfo', (data) async {
-          if (requestPermission({
-                'id': 'storage',
-                'args': {'path': data['path']}
-              }, ' to read file ${data['path']}') ==
-              false) {
+          if (!(await requestPermission(
+            {
+              'id': 'storage',
+              'args': {'path': data['path']},
+            },
+            ' to read file ${data['path']}',
+          ))) {
             return {'error': true, 'reason': 'Permission denied'};
           }
           //TODO: rework this
-          final file = File(data['path'] as String);
+          final file = File((data['path'] as String).replaceAll('/', '\\'));
           if (!await file.exists()) {
-            final dir = Directory(data['path'] as String);
+            final dir = Directory((data['path'] as String).replaceAll('/', '\\'));
             if (!await dir.exists()) {
-              return {'error': true, 'reason': 'File not found'};
+              return {'error': true, 'reason': 'getFileInfo:File not found ${data['path']}'};
             }
             return {
               'type': 'directory',
               'size': await Stream.fromFutures(
-                      await dir.list().map((e) => e.stat()).toList())
-                  .map((a) => a.size)
-                  .reduce((a, b) => a + b),
+                await dir.list().map((e) => e.stat()).toList(),
+              ).map((a) => a.size).reduce((a, b) => a + b),
             };
           }
           return {
@@ -365,8 +418,10 @@ class Extension {
           };
         });
         bridge.register('requestPermission', (data) async {
-          if (!requestPermission(data['permission'] as Map<String, dynamic>,
-              data['message'] as String,)) {
+          if (!(await requestPermission(
+            data['permission'] as Map<String, dynamic>,
+            data['message'] as String,
+          ))) {
             return {'error': true, 'reason': 'Permission denied'};
           }
         });
@@ -389,7 +444,7 @@ class Extension {
 
   Future<void> save() async {
     await configpath
-        .writeAsString(json.encode({'enabled': enabled, 'settings': settings}));
+        .writeAsString(json.encode({'enabled': enabled, 'settings': settings, 'permissions': permissions}));
   }
 
   Future<List<Entry>> browse(int page, SortMode sort) async {
@@ -420,8 +475,11 @@ class Extension {
         .toList();
   }
 
-  Future<EntryDetail?> detail(String url,
-      {bool force = false, EntryDetail? entry}) async {
+  Future<EntryDetail?> detail(
+    String url, {
+    bool force = false,
+    EntryDetail? entry,
+  }) async {
     if (extensioncache.containsKey(url) && !force) {
       return extensioncache[url];
     }
@@ -458,13 +516,13 @@ class Bridge {
   Bridge(this.runtime) {
     // ignore: avoid_print
     runtime.onMessage('__dbg', (a) {
-      if ((a as List<dynamic>)
-              .cast<String>()
-              .firstWhereOrNull((a) => a.toLowerCase().contains('warning')) !=
-          null) {
-        debugPrintStack(stackTrace: StackTrace.current);
-      }
-      print(a);
+      // if ((a as List<dynamic>)
+      //         .cast<String>()
+      //         .firstWhereOrNull((a) => a.toLowerCase().contains('warning')) !=
+      //     null) {
+      //   debugPrintStack(stackTrace: StackTrace.current);
+      // }
+      print('DebugBride: $a');
     });
     runtime.onMessage('mcall', _invoke);
 
@@ -512,7 +570,7 @@ class Bridge {
     } catch (e) {
       ret = {'error': true, 'reason': e.toString()};
     }
-    runtime.evaluate('__onmsg(${args[1]},${json.encode(ret)})');
+    runtime.evaluate('__onmsg(${json.encode(args[1])},${json.encode(ret)})');
     runtime.executePendingJob();
   }
 }

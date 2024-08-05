@@ -173,14 +173,15 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
                 filterextension!,
                 SettingType.search,
               ).barebuild(
-                  () => setState(() {
-                        controller.clear(lazy: true);
-                        count = 0;
-                        loadmore();
-                        popsetState(() {});
-                      }),
-                  nested: true),
-            )
+                () => setState(() {
+                  controller.clear(lazy: true);
+                  count = 0;
+                  loadmore();
+                  popsetState(() {});
+                }),
+                nested: true,
+              ),
+            ),
         ],
       ),
     );
@@ -199,8 +200,11 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
               children: [
                 Expanded(
                   child: SearchBar(
-                    shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(3))),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
                     trailing: [
                       IconButton(
                         icon: const Icon(Icons.filter_alt_sharp),
@@ -250,7 +254,8 @@ class _EntryBrowseViewState extends State<EntryBrowseView> {
   Widget getEntryList(BuildContext context) {
     if (ExtensionManager().count(extfilter: filterExtension) == 0) {
       return const Center(
-          child: Text('No Extensions installed or loaded that fit the filter'));
+        child: Text('No Extensions installed or loaded that fit the filter'),
+      );
     }
     return EndlessStreamGridView<Entry>(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -421,6 +426,8 @@ class EntryCard extends StatelessWidget {
                                 cacheKey: entry.ext?.data?.icon ?? '',
                                 width: badgesize * 0.9,
                                 height: badgesize * 0.9,
+                                errorWidget:
+                                    Icon(Icons.image, size: badgesize * 0.9),
                               ),
                             ),
                           ),
@@ -458,7 +465,7 @@ class EntryCard extends StatelessWidget {
                                 ),
                               ),
                             ],
-                          )
+                          ),
                       ],
                     ),
                   ),

@@ -17,7 +17,7 @@ class Stardisplay extends StatelessWidget {
       required this.fill,
       this.maxstars = 5,
       this.bgcolor = Colors.grey,
-      this.color = Colors.white})
+      this.color = Colors.white,})
       : assert(fill <= 1);
 
   @override

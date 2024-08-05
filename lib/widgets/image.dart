@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fancy_shimmer_image/defaults.dart';
 import 'package:fancy_shimmer_image/widgets/default_error_widget.dart';
@@ -6,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 class FancyShimmerImage extends StatelessWidget {
-
   final String imageUrl;
   final double width;
   final double height;
@@ -44,10 +46,19 @@ class FancyShimmerImage extends StatelessWidget {
     this.imageBuilder,
   });
 
-  
-
   @override
   Widget build(BuildContext context) {
+    if (imageUrl == 'https://0.0.0.0/') {
+      return errorWidget ??
+          Icon(
+            Icons.image,
+            size: min(width, height),
+            color: Colors.grey,
+          );
+    }
+    if (imageUrl.startsWith('file:')) {
+      return Image.file(File(imageUrl.substring(7)));
+    }
     return CachedNetworkImage(
       httpHeaders: httpHeaders,
       alignment: alignment ?? Alignment.center,
@@ -70,9 +81,10 @@ class FancyShimmerImage extends StatelessWidget {
       ),
       errorWidget: (context, url, error) =>
           errorWidget ??
-          DefaultErrorWidget(
-            width: width,
-            height: height,
+          Icon(
+            Icons.image,
+            size: min(width, height),
+            color: Colors.grey,
           ),
     );
   }

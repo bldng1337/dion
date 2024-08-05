@@ -14,7 +14,6 @@ import 'package:dionysos/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:isar/isar.dart';
-import 'package:language_code/language_code.dart';
 
 part 'Entry.g.dart';
 

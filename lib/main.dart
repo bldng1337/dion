@@ -28,6 +28,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 late final SharedPreferences prefs;
 late final Isar isar;
 late String deviceId;
+final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
@@ -36,8 +37,9 @@ void main() async {
     // if (kReleaseMode) exit(1);
   };
   return runApp(
-    const MaterialApp(
-      home: AppLoader(),
+    MaterialApp(
+      navigatorKey: navigatorKey,
+      home: const AppLoader(),
     ),
   );
 }
@@ -344,6 +346,7 @@ class Redirect extends StatelessWidget {
 }
 
 final _router = GoRouter(
+  navigatorKey: navigatorKey,
   initialLocation: '/lib',
   routes: [
     GoRoute(

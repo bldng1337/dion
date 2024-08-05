@@ -15,9 +15,7 @@ import 'package:dionysos/widgets/delayedbuild.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -331,7 +329,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
   }
 
   Widget getExtensionWarning(EntryDetail entry, BuildContext context,
-      {String customText = ''}) {
+      {String customText = '',}) {
     if (entry.ext == null) {
       return Container(
         padding: const EdgeInsets.all(3),
@@ -380,7 +378,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                   entry.ext!.setenabled(true);
                   setState(() {});
                 },
-                child: const Text('Enable'))
+                child: const Text('Enable'),),
           ],
         ),
       );
@@ -581,12 +579,12 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
     switch (data['type']) {
       case 'text':
         return getTextSize(
-            data['text'] as String, const TextStyle(fontSize: 14));
+            data['text'] as String, const TextStyle(fontSize: 14),);
       case 'image':
         return const Size(100, 100);
       case 'link':
         return getTextSize(
-            data['text'] as String, const TextStyle(fontSize: 14));
+            data['text'] as String, const TextStyle(fontSize: 14),);
       case 'column':
         final sizes = (data['children'] as List<dynamic>)
             .map((e) => getSize(e, context, extension))
@@ -597,7 +595,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                 .reduce((value, element) => max(value, element)),
             sizes
                 .map((a) => a.height)
-                .reduce((value, element) => value + element));
+                .reduce((value, element) => value + element),);
       case 'row':
         final sizes = (data['children'] as List<dynamic>)
             .map((e) => getSize(e, context, extension))
@@ -608,7 +606,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                 .reduce((value, element) => value + element),
             sizes
                 .map((a) => a.height)
-                .reduce((value, element) => max(value, element)));
+                .reduce((value, element) => max(value, element)),);
       case 'timestamp':
         return getTextSize(
           durationToRelativeTime(
@@ -745,7 +743,7 @@ class _EntryDetailedViewState extends State<EntryDetailedView> {
                       children: [
                         getExtensionWarning(entry, context,
                             customText:
-                                'Extension related Settings may be missing'),
+                                'Extension related Settings may be missing',),
                             if (entry.ext != null)
                               SizedBox(
                                 height: MediaQuery.of(context).size.height * 0.6,

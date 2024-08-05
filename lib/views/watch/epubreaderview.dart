@@ -23,8 +23,11 @@ class _EpubreaderState extends State<Epubreader> {
   double progress=0;
   bool downloading=true;
   Future<Uint8List> getData(){
-    if(widget.local){
-      final File f = File(widget.source.url);
+    if(widget.local||widget.source.url.startsWith('file:')){
+      final File f = switch (widget.source.url.startsWith('file:')) {
+        true => File(widget.source.url.substring(7)),
+        false => File(widget.source.url),
+      };
       return f.readAsBytes();
     }
     return InternetFile.get(widget.source.url,progress: (receivedLength, contentLength) => setState(() {

@@ -583,11 +583,15 @@ class TitleTile extends Tile {
 
   @override
   Widget render(BuildContext context, Function update) {
-    return Tooltip(
-      message: description,
-      child: Text(
-        name,
-        style: TextStyle(color: Theme.of(context).primaryColor),
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Tooltip(
+        message: description,
+        child: Text(
+          name,
+          style: TextStyle(
+              color: Theme.of(context).colorScheme.primary, fontSize: 20,),
+        ),
       ),
     );
   }
@@ -835,8 +839,7 @@ class ExtensionSettingPageBuilder extends SettingPageBuilder {
         );
 
   static Tile buildsetting(
-      String name, dynamic value, Extension extension, EntryDetail? entry) {
-    print(name);
+      String name, dynamic value, Extension extension, EntryDetail? entry,) {
     if (value['ui'] != null) {
       return displayui(value['ui'], value, name, extension, entry);
     }
@@ -849,7 +852,7 @@ class ExtensionSettingPageBuilder extends SettingPageBuilder {
     if (value['def'] is int || value['def'] is double) {
       return displayui({'type': 'numberbox'}, value, name, extension, entry);
     }
-    return TitleTile(name, 'Unknown Setting');
+    return TitleTile('Unknown $name', 'Unknown Setting');
   }
 
   static ExtensionSetting<T> getSetting<T>(
@@ -888,7 +891,54 @@ class ExtensionSettingPageBuilder extends SettingPageBuilder {
               .map((e) => Choice(e['name'] as String, e['value'] as String))
               .toList(),
         ),
-      _ => TitleTile(name, 'Unknown Setting'),
+      'textbox' => TextTile(
+          (value['name'] as String?) ?? name,
+          (ui['description'] as String?) ?? '',
+          getSetting(name, extension, entry),
+          hint: (ui['hint'] as String?) ?? '',
+        ),
+      _ => TitleTile('Unknown $name', 'Unknown Setting'),
     };
+  }
+}
+
+class TextTile extends SettingTile<String> {
+  final String? hint;
+  const TextTile(super.name, super.description, super.setting,
+      {super.icon, this.hint,});
+
+  @override
+  Widget render(BuildContext context, Function update) {
+    final controller = TextEditingController(text: setting.value);
+    return Tooltip(
+      message: description,
+      child: ListTile(
+        // isThreeLine: true,
+        // subtitle: Text(setting.value),
+        leading: icon != null ? Icon(icon) : null,
+        title: Row(
+          children: [
+            Padding(padding: const EdgeInsets.all(10),child: Text(name),),
+            SizedBox(
+              // height: 50,
+              width: MediaQuery.of(context).size.width * 0.9 -
+                  getTextSize(name, null).width-20,
+              child: TextField(
+                controller: controller,
+                onEditingComplete: () =>
+                    setting.setvalue(controller.text).then((value) => update()),
+                onSubmitted: (value) =>
+                    setting.setvalue(controller.text).then((value) => update()),
+                onTapOutside: (event) =>
+                    setting.setvalue(controller.text).then((value) => update()),
+                decoration: InputDecoration(
+                  hintText: hint,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

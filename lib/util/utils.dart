@@ -372,7 +372,7 @@ Color getIconColor(BuildContext context, {Color? color}) {
   return iconColor;
 }
 
-Size getTextSize(String text, TextStyle style) {
+Size getTextSize(String text, TextStyle? style) {
     final TextPainter textPainter = TextPainter(
         text: TextSpan(text: text, style: style), maxLines: 1, textDirection: TextDirection.ltr,)
       ..layout();

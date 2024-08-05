@@ -40,8 +40,11 @@ class _PdfreaderState extends State<Pdfreader> {
 
   @override
   void initState() {
-    if (widget.local) {
-      final File f = File(widget.source.url);
+    if (widget.local || widget.source.url.startsWith('file:')) {
+      final File f = switch (widget.source.url.startsWith('file:')) {
+        true => File(widget.source.url.substring(7)),
+        false => File(widget.source.url),
+      };
       pdfController = PdfController(
         initialPage: widget.source.getEpdata().iprogress ?? 1,
         document: PdfDocument.openData(
@@ -52,16 +55,18 @@ class _PdfreaderState extends State<Pdfreader> {
       pdfController = PdfController(
         initialPage: widget.source.getEpdata().iprogress ?? 1,
         document: PdfDocument.openData(
-          setfinshed(InternetFile.get(
-            widget.source.url,
-            progress: (receivedLength, contentLength) {
-              if (downloading) {
-                setState(() {
-                  downloadprogress = receivedLength / contentLength;
-                });
-              }
-            },
-          ),),
+          setfinshed(
+            InternetFile.get(
+              widget.source.url,
+              progress: (receivedLength, contentLength) {
+                if (downloading) {
+                  setState(() {
+                    downloadprogress = receivedLength / contentLength;
+                  });
+                }
+              },
+            ),
+          ),
         ),
       );
     }
@@ -82,12 +87,16 @@ class _PdfreaderState extends State<Pdfreader> {
 
   void scrollUp() {
     pdfController.previousPage(
-        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut,);
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void scrollDown() {
     pdfController.nextPage(
-        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut,);
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void navPreviousChapter() {
@@ -111,49 +120,55 @@ class _PdfreaderState extends State<Pdfreader> {
 
   @override
   Widget build(BuildContext context) => CallbackShortcuts(
-          bindings: {
-            const SingleActivator(LogicalKeyboardKey.arrowUp): scrollUp,
-            const SingleActivator(LogicalKeyboardKey.arrowDown): scrollDown,
-            const SingleActivator(LogicalKeyboardKey.keyW): scrollUp,
-            const SingleActivator(LogicalKeyboardKey.keyS): scrollDown,
-            const SingleActivator(LogicalKeyboardKey.keyE): bookmark,
-            const SingleActivator(LogicalKeyboardKey.keyQ): openwebview,
-            const SingleActivator(LogicalKeyboardKey.keyD): navNextChapter,
-            const SingleActivator(LogicalKeyboardKey.keyA): navPreviousChapter,
-          },
-          child: Scaffold(
-            appBar: AppBar(
-              // Show actual chapter name
-              actions: [
-                IconButton(
-                    autofocus: true,
-                    onPressed: openwebview,
-                    icon: const Icon(Icons.web_outlined),),
-                IconButton(
-                    icon: Icon(widget.source.getEpdata().isBookmarked
-                        ? Icons.bookmark
-                        : Icons.bookmark_outline,),
-                    onPressed: bookmark,),
-                IconButton(
-                    onPressed:
-                        () {}, //enav(context, parreadsettings(update: ()=>setState((){})))
-                    icon: const Icon(Icons.settings),),
-              ],
-            ),
-            body: downloading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('Loading Data'),
-                        CircularProgressIndicator(
-                          value: downloadprogress,
-                        ),
-                      ],
-                    ),
-                  )
-                : body(context),
-          ),);
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.arrowUp): scrollUp,
+          const SingleActivator(LogicalKeyboardKey.arrowDown): scrollDown,
+          const SingleActivator(LogicalKeyboardKey.keyW): scrollUp,
+          const SingleActivator(LogicalKeyboardKey.keyS): scrollDown,
+          const SingleActivator(LogicalKeyboardKey.keyE): bookmark,
+          const SingleActivator(LogicalKeyboardKey.keyQ): openwebview,
+          const SingleActivator(LogicalKeyboardKey.keyD): navNextChapter,
+          const SingleActivator(LogicalKeyboardKey.keyA): navPreviousChapter,
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            // Show actual chapter name
+            actions: [
+              IconButton(
+                autofocus: true,
+                onPressed: openwebview,
+                icon: const Icon(Icons.web_outlined),
+              ),
+              IconButton(
+                icon: Icon(
+                  widget.source.getEpdata().isBookmarked
+                      ? Icons.bookmark
+                      : Icons.bookmark_outline,
+                ),
+                onPressed: bookmark,
+              ),
+              IconButton(
+                onPressed:
+                    () {}, //enav(context, parreadsettings(update: ()=>setState((){})))
+                icon: const Icon(Icons.settings),
+              ),
+            ],
+          ),
+          body: downloading
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Loading Data'),
+                      CircularProgressIndicator(
+                        value: downloadprogress,
+                      ),
+                    ],
+                  ),
+                )
+              : body(context),
+        ),
+      );
 
   Widget body(BuildContext context) => PdfView(
         pageSnapping: false,
