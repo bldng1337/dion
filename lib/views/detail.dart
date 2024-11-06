@@ -9,6 +9,7 @@ import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
+import 'package:dionysos/utils/time.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
@@ -22,17 +23,17 @@ class Detail extends StatefulWidget {
 }
 
 class _DetailState extends State<Detail> {
-  late Entry entry;
+  Entry? entry;
   bool loading = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    entry = GoRouterState.of(context).extra! as Entry;
+    entry ??= GoRouterState.of(context).extra! as Entry;
     if (entry is! EntryDetailed) {
       final ext = locate<SourceExtension>();
       loading = true;
-      ext.detail(entry).then((value) {
+      ext.detail(entry!).then((value) {
         entry = value;
         setState(() {});
       }).onError((e, stack) {
@@ -50,17 +51,17 @@ class _DetailState extends State<Detail> {
   Widget build(BuildContext context) {
     return PlatformScaffold(
       appBar: PlatformAppBar(
-        title: TextScroll(entry.title),
+        title: TextScroll(entry?.title ?? ''),
       ),
       body: Row(
         children: [
           SizedBox(
             width: context.width / 2,
-            child: EntryInfo(entry: entry),
+            child: EntryInfo(entry: entry!),
           ).expanded(),
           isEntryDetailed(
-            entry: entry,
-            isdetailed: (entry) => EpisodeListUI(ep: entry.episodes),
+            entry: entry!,
+            isdetailed: (entry) => EpisodeListUI(eplist: entry.episodes),
           ).expanded(),
         ],
       ),
@@ -224,13 +225,105 @@ class EntryInfo extends StatelessWidget {
   }
 }
 
-class EpisodeListUI extends StatelessWidget {
-  final List<EpisodeList> ep;
-  const EpisodeListUI({super.key, required this.ep});
+class EpisodeListUI extends StatefulWidget {
+  final List<EpisodeList> eplist;
+  const EpisodeListUI({super.key, required this.eplist});
+
+  @override
+  State<EpisodeListUI> createState() => _EpisodeListUIState();
+}
+
+class _EpisodeListUIState extends State<EpisodeListUI> {
+  int selected = 0;
+  @override
+  Widget build(BuildContext context) {
+    if (widget.eplist.isEmpty) {
+      return Center(
+        child: Text(
+          'No Episodes',
+          style: context.labelLarge,
+        ),
+      );
+    }
+    return Column(
+      children: [
+        Row(
+          children: [
+            PlatformPopupMenu(
+              options: widget.eplist.indexed
+                  .map(
+                    (ep) => PopupMenuOption(
+                      label: '${ep.$2.title} - ${ep.$2.episodes.length}',
+                      onTap: (menu) => setState(() {
+                        selected = ep.$1;
+                      }),
+                    ),
+                  )
+                  .toList(),
+              icon: const Icon(Icons.folder),
+            ),
+            Text(
+              '${widget.eplist[selected].title} - ${widget.eplist[selected].episodes.length} Episodes',
+              style: context.labelSmall,
+            ),
+          ],
+        ),
+        EpList(elist: widget.eplist[selected]).expanded(),
+      ],
+    );
+  }
+}
+
+class EpList extends StatelessWidget {
+  final EpisodeList elist;
+  const EpList({super.key, required this.elist});
 
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return ListView.builder(
+      itemCount: elist.episodes.length,
+      itemBuilder: (BuildContext context, int index) =>
+          EpisodeTile(e: elist.episodes[index]),
+    );
+  }
+}
+
+class EpisodeTile extends StatelessWidget {
+  final Episode e;
+  const EpisodeTile({super.key, required this.e});
+
+  @override
+  Widget build(BuildContext context) {
+    logger.i(DateTime.tryParse(e.timestamp!));
+    return PlatformListTile(
+      onTap: () => logger.i('Tapped'),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DionImage(
+            imageUrl: e.cover,
+            width: 90,
+            height: 60,
+            boxFit: BoxFit.contain,
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                e.name,
+                style: context.titleMedium,
+              ),
+              if (e.timestamp != null)
+                Text(
+                  DateTime.tryParse(e.timestamp!)?.formatrelative() ?? '',
+                  style: context.labelSmall,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -3,18 +3,18 @@ import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 extension EntryX on rust.Entry {
   Entry wrap(Extension e) {
-    return EntryImpl(this,e);
+    return EntryImpl(this, e);
   }
 }
 
 extension EntryDetailedX on rust.EntryDetailed {
   EntryDetailed wrap(Extension e) {
-    return EntryDetailedImpl(this,e);
+    return EntryDetailedImpl(this, e);
   }
 }
 
 extension ext on Entry {
-  bool get inLibrary => false;//TODO Library detection
+  bool get inLibrary => false; //TODO Library detection
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -71,10 +71,10 @@ abstract class Entry {
 class EntryImpl implements Entry {
   final rust.Entry _entry;
   final Extension _extension;
-  EntryImpl(this._entry,this._extension);
+  EntryImpl(this._entry, this._extension);
 
   @override
-  Extension get extension=>_extension;
+  Extension get extension => _extension;
 
   @override
   String get id => _entry.id;
@@ -113,6 +113,15 @@ class EntryImpl implements Entry {
   bool operator ==(Object other) => _entry == other;
 }
 
+class EpisodePath {
+  final EntryDetailed entry;
+  final int episodelist;
+  final int episodenumber;
+  const EpisodePath(this.entry, this.episodelist, this.episodenumber);
+  EpisodeList get eplist => entry.episodes[episodelist];
+  Episode get ep => eplist.episodes[episodenumber];
+}
+
 abstract class EntryDetailed extends Entry {
   String get ui;
   rust.ReleaseStatus get status;
@@ -127,10 +136,10 @@ abstract class EntryDetailed extends Entry {
 class EntryDetailedImpl implements EntryDetailed {
   final rust.EntryDetailed _entry;
   final Extension _extension;
-  EntryDetailedImpl(this._entry,this._extension);
+  EntryDetailedImpl(this._entry, this._extension);
 
   @override
-  Extension get extension=>_extension;
+  Extension get extension => _extension;
 
   @override
   String get id => _entry.id;
@@ -185,5 +194,4 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   List<String>? get auther => _entry.auther;
-  
 }
