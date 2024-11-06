@@ -1,30 +1,43 @@
+import 'package:dionysos/routes.dart';
+import 'package:dionysos/service/cache.dart';
+import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/app_loader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_extended_platform_widgets/flutter_extended_platform_widgets.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
+import 'package:rhttp/rhttp.dart';
 
 void main() async {
+  
   WidgetsFlutterBinding.ensureInitialized();
-
-  runApp(
-    AppLoader(
-      tasks: List.generate(
-        10,
-        (index) => LoadTask(
-          (context) async {
-            await Future.delayed(Duration(seconds: index + 1));
-          },
-          "Task $index",
-        ),
-      ),
+  register(GlobalKey<NavigatorState>());
+  initApp(
+    app: (context) => AppLoader(
+      tasks: [
+        (context) async {
+          await SourceExtension.ensureInitialized();
+        },
+        (context) async {
+          await DirectoryProvider.ensureInitialized();
+        },
+        (context) async {
+          await Rhttp.init();
+          await CacheService.ensureInitialized();
+        },
+      ],
       onComplete: (context) {
-        print("Completed");
+        register(GlobalKey<NavigatorState>());
+        initApp(route: getRoutes());
       },
     ),
   );
 }
 
-void initApp({Widget Function()? app, RouterConfig<Object>? route}) {
+void initApp(
+    {Widget Function(BuildContext context)? app, RouterConfig<Object>? route}) {
   runApp(
     PlatformProvider(
       builder: (context) {
@@ -35,7 +48,7 @@ void initApp({Widget Function()? app, RouterConfig<Object>? route}) {
         final cupertinoLightTheme =
             MaterialBasedCupertinoThemeData(materialTheme: materialLightTheme);
         return PlatformTheme(
-          themeMode: ThemeMode.system,
+          themeMode: ThemeMode.light,
           materialLightTheme: materialLightTheme,
           materialDarkTheme: materialDarkTheme,
           cupertinoLightTheme: cupertinoLightTheme,
@@ -53,13 +66,14 @@ void initApp({Widget Function()? app, RouterConfig<Object>? route}) {
               );
             }
             return PlatformApp(
+              // navigatorKey: locate<GlobalKey<NavigatorState>>(),
               localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
                 DefaultMaterialLocalizations.delegate,
                 DefaultWidgetsLocalizations.delegate,
                 DefaultCupertinoLocalizations.delegate,
               ],
               title: 'Loading...',
-              home: app!(),
+              home: app!(context),
             );
           },
         );

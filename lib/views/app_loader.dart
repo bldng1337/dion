@@ -1,15 +1,10 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_extended_platform_widgets/flutter_extended_platform_widgets.dart';
-
-class LoadTask {
-  final Future<void> Function(BuildContext context) task;
-  final String name;
-  LoadTask(this.task, this.name);
-}
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 
 class AppLoader extends StatefulWidget {
-  final List<LoadTask> tasks;
+  final List<Future<void> Function(BuildContext context)> tasks;
   final Function(BuildContext context) onComplete;
   const AppLoader({required this.tasks, required this.onComplete, super.key});
 
@@ -18,34 +13,42 @@ class AppLoader extends StatefulWidget {
 }
 
 class _AppLoaderState extends State<AppLoader> {
+  int currentTask = 0;
   @override
   Widget build(BuildContext context) {
-    return PlatformTabScaffold(
-      bodyBuilder: (context, index) => StreamBuilder(
+    logger.i('AppLoader');
+    return PlatformScaffold(
+      body: StreamBuilder(
         stream: Stream.fromFutures(
-          widget.tasks.indexed.map(
-            (e) async {
-              await e.$2.task(context);
-              return e.$1;
+          widget.tasks.map(
+            (task) async {
+              await Future.delayed(1000.milliseconds);
+              await task(context);
             },
-          ),
-        ),
+          ).toList(),
+        ).asBroadcastStream(),
         builder: (context, snapshot) {
           return snapshot.when(
             data: (data, isComplete) {
+              currentTask++;
               if (isComplete) {
+                // if(currentTask != widget.tasks.length){
+                //   throw Exception('Illegal State: Not all initial tasks are completed ($currentTask/${widget.tasks.length})');
+                // }
                 widget.onComplete(context);
-                return nil;
+                return const Center(child: CircularProgressIndicator());
               }
-              return CircularProgressIndicator(
-                value: (data / widget.tasks.length).clamp(0, 1),
-              );
+              return Center(
+                  child: CircularProgressIndicator(
+                value: (currentTask / widget.tasks.length).clamp(0, 1),
+              ),);
             },
             error: (error, stackTrace) {
-              return Text('We have an error');
+              logger.e('Error Loading App',error: error, stackTrace: stackTrace);
+              return const Center(child: Text('We have an error'));
             },
             loading: () {
-              return const CircularProgressIndicator();
+              return const Center(child: CircularProgressIndicator());
             },
           );
         },
