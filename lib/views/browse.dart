@@ -13,7 +13,7 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 
 class Browse extends StatefulWidget {
-  const Browse({Key? key}) : super(key: key);
+  const Browse({super.key});
 
   @override
   _BrowseState createState() => _BrowseState();
@@ -55,7 +55,7 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
             loadmore: () {
               return locate<SourceExtension>().browse(i, Sort.latest);
             },
-          ).expanded()
+          ).expanded(),
         ],
       ),
     );

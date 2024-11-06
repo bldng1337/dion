@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:dionysos/utils/log.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -96,13 +95,11 @@ class _RecursiveBoundsRenderObject extends RenderProxyBox {
         if (child is RenderBox) {
           Offset childOffset = currentOffset;
 
-          // Handle different types of ParentData
           final ParentData? parentData = child.parentData;
           if (parentData is BoxParentData) {
             childOffset += parentData.offset;
           }
           if (!_layoutOnlyTypes.contains(child.runtimeType)) {
-            // logger.i(child.runtimeType);
             final bounds = child.paintBounds.shift(childOffset);
             final fillPaint = Paint()
               ..color = color
@@ -114,7 +111,7 @@ class _RecursiveBoundsRenderObject extends RenderProxyBox {
                   bottomLeft: radius,
                   bottomRight: radius,
                   topLeft: radius,
-                  topRight: radius),
+                  topRight: radius,),
               fillPaint,
             );
           }
@@ -123,7 +120,6 @@ class _RecursiveBoundsRenderObject extends RenderProxyBox {
       });
     }
 
-    // Visit all children
     visitChildren(this, offset);
   }
 }

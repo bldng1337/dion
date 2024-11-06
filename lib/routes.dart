@@ -1,4 +1,3 @@
-import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/widgets/scaffold.dart';

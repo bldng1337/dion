@@ -6,7 +6,6 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/app_loader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:rhttp/rhttp.dart';
 
@@ -37,7 +36,7 @@ void main() async {
 }
 
 void initApp(
-    {Widget Function(BuildContext context)? app, RouterConfig<Object>? route}) {
+    {Widget Function(BuildContext context)? app, RouterConfig<Object>? route,}) {
   runApp(
     PlatformProvider(
       builder: (context) {

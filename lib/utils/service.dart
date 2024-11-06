@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:dionysos/utils/log.dart';
-
 class ServiceWaiter {
   late final Completer<void> wait;
   ServiceWaiter() {

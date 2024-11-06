@@ -3,10 +3,8 @@ import 'dart:io';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:rdion_runtime/rdion_runtime.dart';
 
 extension FileUtils on File {
   String get filename {
@@ -23,7 +21,7 @@ extension FileUtils on File {
 
   File twin(String name) {
     return File(
-        '${p.join(parent.path, p.basenameWithoutExtension(absolute.path))}$name');
+        '${p.join(parent.path, p.basenameWithoutExtension(absolute.path))}$name',);
   }
 }
 
@@ -84,5 +82,5 @@ class DirectoryProviderImpl extends DirectoryProvider {
   final Directory databasepath;
 
   const DirectoryProviderImpl(
-      this.basepath, this.extensionpath, this.databasepath);
+      this.basepath, this.extensionpath, this.databasepath,);
 }

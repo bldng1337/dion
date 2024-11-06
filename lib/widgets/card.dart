@@ -18,13 +18,14 @@ class Card extends StatelessWidget {
   final List<Widget>? trailingBadges;
   final Widget? bottom;
   final Function()? onTap;
-  const Card(
-      {super.key,
-      required this.imageUrl,
-      this.leadingBadges,
-      this.trailingBadges,
-      this.bottom,
-      this.onTap});
+  const Card({
+    super.key,
+    required this.imageUrl,
+    this.leadingBadges,
+    this.trailingBadges,
+    this.bottom,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +34,7 @@ class Card extends StatelessWidget {
       children: [
         if (imageUrl != null)
           DionImage(
-            imageUrl: imageUrl!,
+            imageUrl: imageUrl,
             width: width,
             height: height,
             errorWidget: Icon(Icons.image, size: min(width, height)),
@@ -107,7 +108,7 @@ class EntryCard extends StatelessWidget {
           TextScroll(
             entry.title,
             style: context.textTheme.titleSmall?.copyWith(color: Colors.white),
-          ).paddingOnly(bottom: 5,left: 5),
+          ).paddingOnly(bottom: 5, left: 5),
         ],
       ),
       onTap: () => GoRouter.of(context).push('/detail', extra: entry),

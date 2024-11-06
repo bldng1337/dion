@@ -13,7 +13,7 @@ extension EntryDetailedX on rust.EntryDetailed {
   }
 }
 
-extension ext on Entry {
+extension Ext on Entry {
   bool get inLibrary => false; //TODO Library detection
 
   Map<String, dynamic> toJson() => {
@@ -38,7 +38,7 @@ extension ReleaseStatus on rust.ReleaseStatus {
       };
 }
 
-extension extd on EntryDetailed {
+extension ExtDetail on EntryDetailed {
   Map<String, dynamic> toJson() => {
         'id': id,
         'url': url,

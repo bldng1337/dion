@@ -1,5 +1,4 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/utils/dynamic_grid.dart';
 import 'package:flutter/material.dart';
 
 class Stardisplay extends StatelessWidget {
