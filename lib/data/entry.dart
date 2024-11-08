@@ -119,7 +119,13 @@ class EpisodePath {
   final int episodenumber;
   const EpisodePath(this.entry, this.episodelist, this.episodenumber);
   EpisodeList get eplist => entry.episodes[episodelist];
-  Episode get ep => eplist.episodes[episodenumber];
+  Episode get episode => eplist.episodes[episodenumber];
+  String get name => episode.name;
+  bool get hasnext => episodenumber + 1 < eplist.episodes.length;
+  bool get hasprev => episodenumber > 0;
+  EpisodePath get next => EpisodePath(entry, episodelist, episodenumber + 1);
+  EpisodePath get prev => EpisodePath(entry, episodelist, episodenumber - 1);
+  Extension get extension => entry.extension;
 }
 
 abstract class EntryDetailed extends Entry {

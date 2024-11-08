@@ -1,6 +1,7 @@
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed;
@@ -126,10 +127,9 @@ class SourceExtensionImpl implements SourceExtension {
     rust.CancelToken? token,
   }) async {
     return SourcePath(
-        ep,
-        await getExtension(ep.entry.id)
-            ._proxy
-            .source(epid: ep.ep.id, token: token),);
+      ep,
+      await ep.extension._proxy.source(epid: ep.episode.id, token: token),
+    );
   }
 
   @override
@@ -148,6 +148,8 @@ class SourceExtensionImpl implements SourceExtension {
 
   @override
   Extension getExtension(String id) {
+    logger.i('getting extension $id');
+    logger.i(_extensions.map((e) => e.data.id).toList());
     return _extensions.firstWhere((e) => e.data.id == id);
   }
 

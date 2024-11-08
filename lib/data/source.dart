@@ -5,4 +5,5 @@ class SourcePath {
   final EpisodePath episode;
   final Source source;
   const SourcePath(this.episode, this.source);
+  String get name => episode.episode.name;
 }
