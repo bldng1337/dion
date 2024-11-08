@@ -32,23 +32,30 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    entry ??= GoRouterState.of(context).extra! as Entry;
-    if (entry is! EntryDetailed) {
-      final ext = locate<SourceExtension>();
-      loading = true;
-      ext.detail(entry!,token: tok).then((value) {
-        entry = value;
-        setState(() {});
-      }).onError((e, stack) {
-        logger.e('Error loading entry', error: e, stackTrace: stack);
-      });
+    if (entry == null) {
+      logger.i('didchangedep');
+      entry = GoRouterState.of(context).extra! as Entry;
+      if (entry is! EntryDetailed && mounted) {
+        logger.i('loading entry');
+        final ext = locate<SourceExtension>();
+        loading = true;
+        ext.detail(entry!, token: tok).then((value) {
+          if (mounted) {
+            setState(() {
+              entry = value;
+            });
+          }
+        }).onError((e, stack) {
+          logger.e('Error loading entry', error: e, stackTrace: stack);
+        });
+      }
     }
   }
 
   @override
   void initState() {
     super.initState();
-    tok=CancelToken()..disposedBy(scope);
+    tok = CancelToken()..disposedBy(scope);
   }
 
   @override
@@ -65,7 +72,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           ).expanded(),
           isEntryDetailed(
             entry: entry!,
-            isdetailed: (entry) => EpisodeListUI(eplist: entry.episodes),
+            isdetailed: (entry) => EpisodeListUI(
+              entry: entry,
+            ),
           ).expanded(),
         ],
       ),
@@ -230,8 +239,8 @@ class EntryInfo extends StatelessWidget {
 }
 
 class EpisodeListUI extends StatefulWidget {
-  final List<EpisodeList> eplist;
-  const EpisodeListUI({super.key, required this.eplist});
+  final EntryDetailed entry;
+  const EpisodeListUI({super.key, required this.entry});
 
   @override
   State<EpisodeListUI> createState() => _EpisodeListUIState();
@@ -241,7 +250,8 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
   int selected = 0;
   @override
   Widget build(BuildContext context) {
-    if (widget.eplist.isEmpty) {
+    final eplist = widget.entry.episodes;
+    if (eplist.isEmpty) {
       return Center(
         child: Text(
           'No Episodes',
@@ -254,7 +264,7 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
         Row(
           children: [
             PlatformPopupMenu(
-              options: widget.eplist.indexed
+              options: eplist.indexed
                   .map(
                     (ep) => PopupMenuOption(
                       label: '${ep.$2.title} - ${ep.$2.episodes.length}',
@@ -267,45 +277,46 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
               icon: const Icon(Icons.folder),
             ),
             Text(
-              '${widget.eplist[selected].title} - ${widget.eplist[selected].episodes.length} Episodes',
+              '${eplist[selected].title} - ${eplist[selected].episodes.length} Episodes',
               style: context.labelSmall,
             ),
           ],
         ),
-        EpList(elist: widget.eplist[selected]).expanded(),
+        EpList(entry: widget.entry, eplistindex: selected).expanded(),
       ],
     );
   }
 }
 
 class EpList extends StatelessWidget {
-  final EpisodeList elist;
-  const EpList({super.key, required this.elist});
+  final EntryDetailed entry;
+  final int eplistindex;
+  EpisodeList get elist => entry.episodes[eplistindex];
+  const EpList({super.key, required this.entry, required this.eplistindex});
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: elist.episodes.length,
       itemBuilder: (BuildContext context, int index) =>
-          EpisodeTile(e: elist.episodes[index]),
+          EpisodeTile(episodepath: EpisodePath(entry, eplistindex, index)),
     );
   }
 }
 
 class EpisodeTile extends StatelessWidget {
-  final Episode e;
-  const EpisodeTile({super.key, required this.e});
+  final EpisodePath episodepath;
+  const EpisodeTile({super.key, required this.episodepath});
 
   @override
   Widget build(BuildContext context) {
-    logger.i(DateTime.tryParse(e.timestamp!));
     return PlatformListTile(
-      onTap: () => logger.i('Tapped'),
+      onTap: () => GoRouter.of(context).push('/view', extra: episodepath),
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           DionImage(
-            imageUrl: e.cover,
+            imageUrl: episodepath.episode.cover,
             width: 90,
             height: 60,
             boxFit: BoxFit.contain,
@@ -315,12 +326,14 @@ class EpisodeTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                e.name,
+                episodepath.episode.name,
                 style: context.titleMedium,
               ),
-              if (e.timestamp != null)
+              if (episodepath.episode.timestamp != null)
                 Text(
-                  DateTime.tryParse(e.timestamp!)?.formatrelative() ?? '',
+                  DateTime.tryParse(episodepath.episode.timestamp!)
+                          ?.formatrelative() ??
+                      '',
                   style: context.labelSmall,
                 ),
             ],

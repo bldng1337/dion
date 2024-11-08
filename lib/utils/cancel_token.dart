@@ -5,13 +5,14 @@ import 'package:rhttp/rhttp.dart' as rhttp;
 extension ChangeNotifierDisposed on CancelToken {
   void disposedBy(DisposeScope scope) {
     scope.addDispose(() async {
+      if(isDisposed) return;
       await cancel();
       dispose();
     });
   }
 }
 
-extension rChangeNotifierDisposed on rhttp.CancelToken {
+extension RChangeNotifierDisposed on rhttp.CancelToken {
   void disposedBy(DisposeScope scope) {
     scope.addDispose(() async {
       await cancel();
