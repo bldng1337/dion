@@ -1,6 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/utils/service.dart';
@@ -11,6 +12,7 @@ import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:text_scroll/text_scroll.dart';
@@ -22,9 +24,10 @@ class Detail extends StatefulWidget {
   _DetailState createState() => _DetailState();
 }
 
-class _DetailState extends State<Detail> {
+class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
   bool loading = false;
+  late CancelToken tok;
 
   @override
   void didChangeDependencies() {
@@ -33,7 +36,7 @@ class _DetailState extends State<Detail> {
     if (entry is! EntryDetailed) {
       final ext = locate<SourceExtension>();
       loading = true;
-      ext.detail(entry!).then((value) {
+      ext.detail(entry!,token: tok).then((value) {
         entry = value;
         setState(() {});
       }).onError((e, stack) {
@@ -45,6 +48,7 @@ class _DetailState extends State<Detail> {
   @override
   void initState() {
     super.initState();
+    tok=CancelToken()..disposedBy(scope);
   }
 
   @override
