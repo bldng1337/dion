@@ -22,7 +22,6 @@ class Browse extends StatefulWidget {
 class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
   late final TextEditingController controller;
   late final CancelToken? token;
-  int i = 0;
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
@@ -52,7 +51,7 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
           ),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
-            loadmore: () {
+            loadmore: (i) {
               return locate<SourceExtension>().browse(i, Sort.latest);
             },
           ).expanded(),

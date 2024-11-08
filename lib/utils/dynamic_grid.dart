@@ -7,7 +7,7 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class DynamicGrid<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
-  final Stream<List<T>> Function() loadmore;
+  final Stream<List<T>> Function(int index) loadmore;
   final double preload;
   const DynamicGrid({
     super.key,
@@ -24,13 +24,14 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
     with StateDisposeScopeMixin {
   late final StreamController<List<T>> streamController;
   late final List<T> items;
+  int index = 0;
   late final ScrollController controller;
   bool loading = false;
 
   Future<void> loadMore() async {
     if (loading) return;
     loading = true;
-    await streamController.addStream(widget.loadmore());
+    await streamController.addStream(widget.loadmore(index++));
     loading = false;
   }
 
