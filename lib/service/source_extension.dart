@@ -1,8 +1,6 @@
-import 'dart:math';
-
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/file_utils.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed;
@@ -57,8 +55,10 @@ abstract class SourceExtension {
     String url, {
     rust.CancelToken? token,
   });
-  Future<rust.Source> source(rust.Episode ep, EntryDetailed entry,
-      {rust.CancelToken? token});
+  Future<SourcePath> source(
+    EpisodePath ep, {
+    rust.CancelToken? token,
+  });
 
   static Future<void> ensureInitialized() async {
     register<SourceExtension>(await SourceExtensionImpl().init());
@@ -121,12 +121,15 @@ class SourceExtensionImpl implements SourceExtension {
   }
 
   @override
-  Future<rust.Source> source(
-    rust.Episode ep,
-    EntryDetailed entry, {
+  Future<SourcePath> source(
+    EpisodePath ep, {
     rust.CancelToken? token,
-  }) {
-    return getExtension(entry.id)._proxy.source(epid: ep.id, token: token);
+  }) async {
+    return SourcePath(
+        ep,
+        await getExtension(ep.entry.id)
+            ._proxy
+            .source(epid: ep.ep.id, token: token),);
   }
 
   @override
@@ -145,8 +148,6 @@ class SourceExtensionImpl implements SourceExtension {
 
   @override
   Extension getExtension(String id) {
-    logger.i('getExtension $id');
-    _extensions.forEach((e)=>logger.i(e.data.id));
     return _extensions.firstWhere((e) => e.data.id == id);
   }
 
