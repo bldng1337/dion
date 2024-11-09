@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/cache.dart';
@@ -78,7 +79,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
   @override
   Widget build(BuildContext context) {
     if (error) {
-      return widget.errorWidget ?? nil;
+      return widget.errorWidget ?? Icon(Icons.image, size: min(widget.width, widget.height));
     }
     if (image != null) {
       return m.Image.file(
@@ -93,7 +94,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
             error: error,
             stackTrace: stackTrace,
           );
-          return widget.errorWidget ?? nil;
+          return widget.errorWidget ?? Icon(Icons.image, size: min(widget.width, widget.height));
         },
       );
     }

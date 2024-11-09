@@ -1,7 +1,8 @@
 import 'dart:math';
 
-import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
@@ -93,6 +94,7 @@ class EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    
     return Card(
       imageUrl: entry.cover,
       bottom: Column(
@@ -107,11 +109,15 @@ class EntryCard extends StatelessWidget {
             ).paddingOnly(left: 5),
           TextScroll(
             entry.title,
+            pauseBetween: 1.seconds,
+            velocity: const Velocity(pixelsPerSecond: Offset(50, 0)),
             style: context.textTheme.titleSmall?.copyWith(color: Colors.white),
           ).paddingOnly(bottom: 5, left: 5),
         ],
       ),
-      onTap: () => GoRouter.of(context).push('/detail', extra: entry),
+      onTap: () {
+        context.push('/detail', extra: entry).then((a)=>logger.i('push done'));
+      },
     );
   }
 }

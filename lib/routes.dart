@@ -1,12 +1,9 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
-import 'package:text_scroll/text_scroll.dart';
 
 final homedestinations = [
   Destination(ico: Icons.home, name: 'Home', path: '/'),
@@ -16,6 +13,7 @@ final homedestinations = [
 ];
 
 GoRouter getRoutes() => GoRouter(
+      debugLogDiagnostics: true,
       // navigatorKey: locate<GlobalKey<NavigatorState>>(),
       initialLocation: '/browse',
       routes: [

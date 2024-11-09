@@ -1,19 +1,20 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/placeholder.dart';
-import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/popupmenu.dart';
+import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:text_scroll/text_scroll.dart';
 
@@ -27,56 +28,59 @@ class Detail extends StatefulWidget {
 class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
   bool loading = false;
-  late CancelToken tok;
+  // late CancelToken tok;
+
+  // Future<void> loadEntry() async {
+  //   final ext = locate<SourceExtension>();
+  //   loading = true;
+  //   try {
+  //     entry = await ext.detail(entry!, token: tok);
+  //     if (mounted) {
+  //       setState(() {});
+  //     }
+  //   } catch (e, stack) {
+  //     logger.e('Error loading entry', error: e, stackTrace: stack);
+  //   }
+  // }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (entry == null) {
-      logger.i('didchangedep');
-      entry = GoRouterState.of(context).extra! as Entry;
-      if (entry is! EntryDetailed && mounted) {
-        logger.i('loading entry');
-        final ext = locate<SourceExtension>();
-        loading = true;
-        ext.detail(entry!, token: tok).then((value) {
-          if (mounted) {
-            setState(() {
-              entry = value;
-            });
-          }
-        }).onError((e, stack) {
-          logger.e('Error loading entry', error: e, stackTrace: stack);
-        });
-      }
-    }
+    // if (entry == null) {
+    //   entry = GoRouterState.of(context).extra! as Entry;
+    //   if (entry is! EntryDetailed && mounted) {
+    //     loadEntry();
+    //   }
+    // }
   }
 
   @override
   void initState() {
     super.initState();
-    tok = CancelToken()..disposedBy(scope);
+    // tok = CancelToken()..disposedBy(scope);
   }
 
   @override
   Widget build(BuildContext context) {
-    return PlatformScaffold(
-      appBar: PlatformAppBar(
-        title: TextScroll(entry?.title ?? ''),
-      ),
-      body: Row(
-        children: [
-          SizedBox(
-            width: context.width / 2,
-            child: EntryInfo(entry: entry!),
-          ).expanded(),
-          isEntryDetailed(
-            entry: entry!,
-            isdetailed: (entry) => EpisodeListUI(
-              entry: entry,
-            ),
-          ).expanded(),
-        ],
+    return NavScaff(
+      title: TextScroll(entry?.title ?? ''),
+      child: Container(
+        width: context.width - 200,
+        // child: Row(
+        //   mainAxisSize: MainAxisSize.min,
+        //   children: [
+        //     SizedBox(
+        //       width: context.width / 2,
+        //       child: EntryInfo(entry: entry!),
+        //     ).expanded(),
+        //     isEntryDetailed(
+        //       entry: entry!,
+        //       isdetailed: (entry) => EpisodeListUI(
+        //         entry: entry,
+        //       ),
+        //     ).expanded(),
+        //   ],
+        // ),
       ),
     );
   }
@@ -178,14 +182,14 @@ class EntryInfo extends StatelessWidget {
         ),
         isEntryDetailed(
           entry: entry,
-          isdetailed: (entry) => PlatformIconButton(
+          isdetailed: (entry) => DionIconbutton(
             icon: Icon(
               entry.inLibrary ? Icons.library_books : Icons.library_add,
               size: 30,
             ),
             onPressed: () => logger.i('asd'),
           ),
-          isnt: () => PlatformIconButton(
+          isnt: () => DionIconbutton(
             icon: Icon(
               entry.inLibrary ? Icons.library_books : Icons.library_add,
               size: 30,
@@ -263,18 +267,18 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
       children: [
         Row(
           children: [
-            PlatformPopupMenu(
-              options: eplist.indexed
+            DionPopupMenu(
+              items: eplist.indexed
                   .map(
-                    (ep) => PopupMenuOption(
-                      label: '${ep.$2.title} - ${ep.$2.episodes.length}',
-                      onTap: (menu) => setState(() {
+                    (ep) => DionPopupMenuItem(
+                      label: Text('${ep.$2.title} - ${ep.$2.episodes.length}'),
+                      onTap: () => setState(() {
                         selected = ep.$1;
                       }),
                     ),
                   )
                   .toList(),
-              icon: const Icon(Icons.folder),
+              child: const Icon(Icons.folder),
             ),
             Text(
               '${eplist[selected].title} - ${eplist[selected].episodes.length} Episodes',
@@ -310,7 +314,7 @@ class EpisodeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PlatformListTile(
+    return DionListTile(
       onTap: () => GoRouter.of(context).push('/view', extra: episodepath),
       title: Row(
         mainAxisSize: MainAxisSize.min,

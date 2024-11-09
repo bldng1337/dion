@@ -1,9 +1,9 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
 
 class SimpleParagraphlistReader extends StatelessWidget {
@@ -15,15 +15,13 @@ class SimpleParagraphlistReader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final paragraphs = sourcedata.paragraphs;
-    return PlatformScaffold(
-      appBar: PlatformAppBar(
-        title: Text(source.name),
-      ),
-      body: ListView.builder(
+    return NavScaff(
+      title: Text(source.name),
+      child: ListView.builder(
         itemBuilder: (context, index) {
           if (index == paragraphs.length) {
             if (source.episode.hasnext) {
-              return PlatformTextButton(
+              return DionTextbutton(
                 child: const Text('Next'),
                 onPressed: () => GoRouter.of(context)
                     .pushReplacement('/view', extra: source.episode.next),
@@ -34,7 +32,9 @@ class SimpleParagraphlistReader extends StatelessWidget {
           return Text(
             paragraphs[index],
             style: context.bodyLarge,
-          ).paddingOnly(bottom: 0);
+          ).paddingOnly(
+            bottom: 1,
+          );
         },
         itemCount: paragraphs.length + 1,
       ),

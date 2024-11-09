@@ -1,7 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 
 class AppLoader extends StatefulWidget {
   final List<Future<void> Function(BuildContext context)> tasks;
@@ -16,14 +16,14 @@ class _AppLoaderState extends State<AppLoader> {
   int currentTask = 0;
   @override
   Widget build(BuildContext context) {
-    logger.i('AppLoader');
-    return PlatformScaffold(
-      body: StreamBuilder(
+    return NavScaff(
+      child: StreamBuilder(
         stream: Stream.fromFutures(
           widget.tasks.map(
             (task) async {
-              await Future.delayed(1000.milliseconds);
-              await task(context);
+              if (mounted) {
+                await task(context);
+              }
             },
           ).toList(),
         ).asBroadcastStream(),
@@ -32,19 +32,18 @@ class _AppLoaderState extends State<AppLoader> {
             data: (data, isComplete) {
               currentTask++;
               if (isComplete) {
-                // if(currentTask != widget.tasks.length){
-                //   throw Exception('Illegal State: Not all initial tasks are completed ($currentTask/${widget.tasks.length})');
-                // }
                 widget.onComplete(context);
                 return const Center(child: CircularProgressIndicator());
               }
               return Center(
-                  child: CircularProgressIndicator(
-                value: (currentTask / widget.tasks.length).clamp(0, 1),
-              ),);
+                child: CircularProgressIndicator(
+                  value: (currentTask / widget.tasks.length).clamp(0, 1),
+                ),
+              );
             },
             error: (error, stackTrace) {
-              logger.e('Error Loading App',error: error, stackTrace: stackTrace);
+              logger.e('Error Loading App',
+                  error: error, stackTrace: stackTrace);
               return const Center(child: Text('We have an error'));
             },
             loading: () {

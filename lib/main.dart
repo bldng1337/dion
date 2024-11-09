@@ -3,18 +3,17 @@ import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/views/app_loader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:rhttp/rhttp.dart';
 
 void main() async {
-  
   WidgetsFlutterBinding.ensureInitialized();
   register(GlobalKey<NavigatorState>());
   initApp(
-    app: (context) => AppLoader(
+    app: () => AppLoader(
       tasks: [
         (context) async {
           await SourceExtension.ensureInitialized();
@@ -35,49 +34,26 @@ void main() async {
   );
 }
 
-void initApp(
-    {Widget Function(BuildContext context)? app, RouterConfig<Object>? route,}) {
+void initApp({
+  Widget Function()? app,
+  RouterConfig<Object>? route,
+}) {
+  const theme = DionTheme.material;
+  final isrouter = route != null;
   runApp(
-    PlatformProvider(
-      builder: (context) {
-        final materialLightTheme = getTheme(Brightness.light);
-        final materialDarkTheme = getTheme(Brightness.dark);
-        final cupertinoDarkTheme =
-            MaterialBasedCupertinoThemeData(materialTheme: materialDarkTheme);
-        final cupertinoLightTheme =
-            MaterialBasedCupertinoThemeData(materialTheme: materialLightTheme);
-        return PlatformTheme(
-          themeMode: ThemeMode.light,
-          materialLightTheme: materialLightTheme,
-          materialDarkTheme: materialDarkTheme,
-          cupertinoLightTheme: cupertinoLightTheme,
-          cupertinoDarkTheme: cupertinoDarkTheme,
-          builder: (context) {
-            if (route != null) {
-              return PlatformApp.router(
-                localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
-                  DefaultMaterialLocalizations.delegate,
-                  DefaultWidgetsLocalizations.delegate,
-                  DefaultCupertinoLocalizations.delegate,
-                ],
-                title: 'Dion',
-                routerConfig: route,
-              );
-            }
-            return PlatformApp(
-              // navigatorKey: locate<GlobalKey<NavigatorState>>(),
-              localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
-                DefaultMaterialLocalizations.delegate,
-                DefaultWidgetsLocalizations.delegate,
-                DefaultCupertinoLocalizations.delegate,
-              ],
-              title: 'Loading...',
-              home: app!(context),
-            );
-          },
-        );
-      },
-    ),
+    switch (theme.mode) {
+      DionThemeMode.material => isrouter
+          ? MaterialApp.router(
+              theme: getTheme(theme.brightness),
+              darkTheme: getTheme(Brightness.dark),
+              routerConfig: route,
+            )
+          : MaterialApp(
+              theme: getTheme(theme.brightness),
+              darkTheme: getTheme(Brightness.dark),
+              home: app!(),
+            )
+    },
   );
 }
 

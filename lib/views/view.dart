@@ -1,13 +1,12 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
+import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:go_router/go_router.dart';
 
 class ViewSource extends StatefulWidget {
@@ -25,10 +24,10 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final eppath = GoRouterState.of(context).extra! as EpisodePath;
-    if(tok?.isDisposed??true){
+    if (tok?.isDisposed ?? true) {
       tok = CancelToken()..disposedBy(scope);
     }
-    locate<SourceExtension>().source(eppath,token: tok).then((src) {
+    locate<SourceExtension>().source(eppath, token: tok).then((src) {
       setState(() {
         source = src;
       });
@@ -43,11 +42,9 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   @override
   Widget build(BuildContext context) {
     if (source == null) {
-      return PlatformScaffold(
-        appBar: PlatformAppBar(
-          title: const Text('Loading ...'),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
+      return const NavScaff(
+        title: Text('Loading ...'),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
     return getView(source!);

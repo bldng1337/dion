@@ -8,9 +8,9 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/searchbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 
 class Browse extends StatefulWidget {
   const Browse({super.key});
@@ -35,19 +35,15 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
       destination: homedestinations,
       child: Column(
         children: [
-          PlatformSearchBar(
+          DionSearchbar(
             controller: controller,
             hintText: 'Search',
             onChanged: (s) => logger.i(s),
-            textStyle: const TextStyle(fontSize: 20),
+            style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
             keyboardType: TextInputType.text,
-            hintStyle: const TextStyle(color: Colors.grey),
-            material: (context, platform) => MaterialSearchBarData(
-              onSubmitted: (s) => logger.i(s),
-            ),
-            cupertino: (context, platform) => CupertinoSearchBarData(
-              onSubmitted: (s) => logger.i(s),
-            ),
+            hintStyle:
+                const WidgetStatePropertyAll(TextStyle(color: Colors.grey)),
+            onSubmitted: (s) => logger.i(s),
           ),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
