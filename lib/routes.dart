@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/view.dart';

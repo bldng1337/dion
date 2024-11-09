@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
