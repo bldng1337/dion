@@ -24,7 +24,7 @@ class SimpleParagraphlistReader extends StatelessWidget {
               return DionTextbutton(
                 child: const Text('Next'),
                 onPressed: () => GoRouter.of(context)
-                    .pushReplacement('/view', extra: source.episode.next),
+                    .pushReplacement('/view', extra: [source.episode.next]),
               );
             }
             return nil;

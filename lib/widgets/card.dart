@@ -116,7 +116,7 @@ class EntryCard extends StatelessWidget {
         ],
       ),
       onTap: () {
-        context.push('/detail', extra: entry).then((a)=>logger.i('push done'));
+        context.push('/detail', extra: [entry]);//TODO: Hack until i implement Codec for Entry
       },
     );
   }

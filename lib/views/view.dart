@@ -23,7 +23,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final eppath = GoRouterState.of(context).extra! as EpisodePath;
+    final eppath = (GoRouterState.of(context).extra! as List<Object?>)[0]! as EpisodePath;
     if (tok?.isDisposed ?? true) {
       tok = CancelToken()..disposedBy(scope);
     }
@@ -53,15 +53,15 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   Widget getView(SourcePath source) {
     return switch (source.source) {
       final Source_Data data => switch (data.sourcedata) {
-          final DataSource_Paragraphlist plist => SimpleParagraphlistReader(
+          final DataSource_Paragraphlist _ => SimpleParagraphlistReader(
               source: source,
             ),
         },
       final Source_Directlink link => switch (link.sourcedata) {
-          final LinkSource_Epub epub => throw UnimplementedError(),
-          final LinkSource_Pdf pdf => throw UnimplementedError(),
-          final LinkSource_Imagelist imagelist => throw UnimplementedError(),
-          final LinkSource_M3u8 m3u8 => throw UnimplementedError(),
+          final LinkSource_Epub _ => throw UnimplementedError(),
+          final LinkSource_Pdf _ => throw UnimplementedError(),
+          final LinkSource_Imagelist _ => throw UnimplementedError(),
+          final LinkSource_M3u8 _ => throw UnimplementedError(),
         },
     };
   }

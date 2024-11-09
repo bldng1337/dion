@@ -1,8 +1,10 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/placeholder.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
@@ -28,36 +30,36 @@ class Detail extends StatefulWidget {
 class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
   bool loading = false;
-  // late CancelToken tok;
+  late CancelToken tok;
 
-  // Future<void> loadEntry() async {
-  //   final ext = locate<SourceExtension>();
-  //   loading = true;
-  //   try {
-  //     entry = await ext.detail(entry!, token: tok);
-  //     if (mounted) {
-  //       setState(() {});
-  //     }
-  //   } catch (e, stack) {
-  //     logger.e('Error loading entry', error: e, stackTrace: stack);
-  //   }
-  // }
+  Future<void> loadEntry() async {
+    final ext = locate<SourceExtension>();
+    loading = true;
+    try {
+      entry = await ext.detail(entry!, token: tok);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e, stack) {
+      logger.e('Error loading entry', error: e, stackTrace: stack);
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // if (entry == null) {
-    //   entry = GoRouterState.of(context).extra! as Entry;
-    //   if (entry is! EntryDetailed && mounted) {
-    //     loadEntry();
-    //   }
-    // }
+    if (entry == null) {
+      entry = (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
+      if (entry is! EntryDetailed && mounted) {
+        loadEntry();
+      }
+    }
   }
 
   @override
   void initState() {
     super.initState();
-    // tok = CancelToken()..disposedBy(scope);
+    tok = CancelToken()..disposedBy(scope);
   }
 
   @override
@@ -66,27 +68,29 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       title: TextScroll(entry?.title ?? ''),
       child: Container(
         width: context.width - 200,
-        // child: Row(
-        //   mainAxisSize: MainAxisSize.min,
-        //   children: [
-        //     SizedBox(
-        //       width: context.width / 2,
-        //       child: EntryInfo(entry: entry!),
-        //     ).expanded(),
-        //     isEntryDetailed(
-        //       entry: entry!,
-        //       isdetailed: (entry) => EpisodeListUI(
-        //         entry: entry,
-        //       ),
-        //     ).expanded(),
-        //   ],
-        // ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: context.width / 2,
+              child: EntryInfo(entry: entry!),
+            ).expanded(),
+            isEntryDetailed(
+              context: context,
+              entry: entry!,
+              isdetailed: (entry) => EpisodeListUI(
+                entry: entry,
+              ),
+            ).expanded(),
+          ],
+        ),
       ),
     );
   }
 }
 
 Widget isEntryDetailed({
+  required BuildContext context,
   required Entry entry,
   required Widget Function(EntryDetailed e) isdetailed,
   Widget Function()? isnt,
@@ -103,7 +107,10 @@ Widget isEntryDetailed({
   }
   return BoundsWidget(
     child: isnt(),
-  ).applyShimmer();
+  ).applyShimmer(
+    highlightColor: context.backgroundColor.lighten(20),
+    baseColor: context.backgroundColor,
+  );
 }
 
 class EntryInfo extends StatelessWidget {
@@ -157,6 +164,7 @@ class EntryInfo extends StatelessWidget {
                     ),
                     const Text(' • '),
                     isEntryDetailed(
+                      context: context,
                       entry: entry,
                       isdetailed: (entry) => Text(
                         entry.status.asString(),
@@ -181,6 +189,7 @@ class EntryInfo extends StatelessWidget {
           ],
         ),
         isEntryDetailed(
+          context: context,
           entry: entry,
           isdetailed: (entry) => DionIconbutton(
             icon: Icon(
@@ -200,6 +209,7 @@ class EntryInfo extends StatelessWidget {
         SizedBox(
           height: 40,
           child: isEntryDetailed(
+            context: context,
             entry: entry,
             isdetailed: (entry) => ListView(
               shrinkWrap: true,
@@ -225,6 +235,7 @@ class EntryInfo extends StatelessWidget {
           ),
         ),
         isEntryDetailed(
+          context: context,
           entry: entry,
           isdetailed: (entry) => Foldabletext(
             maxLines: 7,
@@ -315,7 +326,7 @@ class EpisodeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DionListTile(
-      onTap: () => GoRouter.of(context).push('/view', extra: episodepath),
+      onTap: () => GoRouter.of(context).push('/view', extra: [episodepath]),
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

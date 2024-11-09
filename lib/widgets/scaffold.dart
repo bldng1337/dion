@@ -61,37 +61,38 @@ class NavScaff extends StatelessWidget {
       DionThemeMode.material => Scaffold(
           body: Row(
             children: [
-              LayoutBuilder(
-                builder: (context, constraint) {
-                  return ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context)
-                        .copyWith(scrollbars: false),
-                    child: SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints:
-                            BoxConstraints(minHeight: constraint.maxHeight),
-                        child: IntrinsicHeight(
-                          child: NavigationRail(
-                            backgroundColor: Theme.of(context).highlightColor,
-                            onDestinationSelected: (i) =>
-                                context.go(destination[i].path),
-                            labelType: NavigationRailLabelType.all,
-                            destinations: destination
-                                .map(
-                                  (e) => NavigationRailDestination(
-                                    icon: Icon(e.ico),
-                                    label: Text(e.name),
-                                  ),
-                                )
-                                .toList(),
-                            selectedIndex: index >= 0 ? index : null,
+              if(destination.length>1)
+                LayoutBuilder(
+                  builder: (context, constraint) {
+                    return ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context)
+                          .copyWith(scrollbars: false),
+                      child: SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints:
+                              BoxConstraints(minHeight: constraint.maxHeight),
+                          child: IntrinsicHeight(
+                            child: NavigationRail(
+                              backgroundColor: Theme.of(context).highlightColor,
+                              onDestinationSelected: (i) =>
+                                  context.go(destination[i].path),
+                              labelType: NavigationRailLabelType.all,
+                              destinations: destination
+                                  .map(
+                                    (e) => NavigationRailDestination(
+                                      icon: Icon(e.ico),
+                                      label: Text(e.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              selectedIndex: index >= 0 ? index : null,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
               Expanded(child: child),
             ],
           ),

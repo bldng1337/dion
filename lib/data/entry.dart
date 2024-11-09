@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
+
 
 extension EntryX on rust.Entry {
   Entry wrap(Extension e) {
@@ -15,6 +19,24 @@ extension EntryDetailedX on rust.EntryDetailed {
 
 extension Ext on Entry {
   bool get inLibrary => false; //TODO Library detection
+
+  // Entry fromJson(Map<String, dynamic> json) {
+  //   return EntryImpl(
+  //     rust.Entry(
+  //       id: json['id'] as String,
+  //       url: json['url'] as String,
+  //       title: json['title'] as String,
+  //       mediaType: rust.MediaType.values[json['mediaType'] as int],
+  //       cover: json['cover'] as String?,
+  //       coverHeader: json['coverHeader'] as Map<String, String>?,
+  //       auther: ,
+  //       rating: json['rating'] as double?,
+  //       views: json['views'] as double?,
+  //       length: json['length'] as int?,
+  //     ),
+  //     locate<SourceExtension>().getExtension(json['id'] as String),
+  //   );
+  // }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -39,6 +61,7 @@ extension ReleaseStatus on rust.ReleaseStatus {
 }
 
 extension ExtDetail on EntryDetailed {
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'url': url,
@@ -51,6 +74,25 @@ extension ExtDetail on EntryDetailed {
         'views': views,
         'length': length,
         'description': description,
+        'episodelist': episodes
+            .map(
+              (e) => {
+                'title': e.hashCode,
+                'episodes': e.episodes
+                    .map(
+                      (e) => {
+                        'id': e.id,
+                        'name': e.name,
+                        'url': e.url,
+                        'cover': e.cover,
+                        'coverHeader': e.coverHeader,
+                        'timestamp': e.timestamp,
+                      },
+                    )
+                    .toList(),
+              },
+            )
+            .toList(),
       };
 }
 

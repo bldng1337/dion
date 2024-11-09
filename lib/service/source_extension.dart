@@ -114,6 +114,7 @@ class SourceExtensionImpl implements SourceExtension {
     Entry e, {
     rust.CancelToken? token,
   }) async {
+    await Future.delayed(const Duration(seconds: 1));
     return EntryDetailedImpl(
       await e.extension._proxy.detail(entryid: e.id, token: token),
       e.extension,
