@@ -87,6 +87,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         width: widget.width,
         height: widget.height,
         fit: widget.boxFit,
+        
         alignment: widget.alignment ?? Alignment.center,
         errorBuilder: (context, error, stackTrace) {
           logger.e(

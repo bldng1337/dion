@@ -1,4 +1,6 @@
+import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/theme.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class DionListTile extends StatelessWidget {
@@ -45,6 +47,13 @@ class DionListTile extends StatelessWidget {
           subtitleTextStyle: subtitleTextStyle,
           leadingAndTrailingTextStyle: leadingAndTrailingTextStyle,
         ),
+      DionThemeMode.cupertino => CupertinoListTile(
+        onTap: onTap,
+        leading: leading,
+        trailing: trailing,
+        title: title??nil,
+        subtitle: subtitle,
+      ),
     };
   }
 }

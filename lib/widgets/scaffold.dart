@@ -1,5 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/theme.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -44,6 +46,31 @@ class NavScaff extends StatelessWidget {
                 .toList(),
             onTap: (i) => context.go(destination[i].path),
           ),
+        ),
+      DionThemeMode.cupertino => CupertinoTabScaffold(
+          tabBar: CupertinoTabBar(
+            currentIndex: index >= 0 ? index : 0,
+            items: destination
+                .map(
+                  (e) => BottomNavigationBarItem(
+                    icon: Icon(e.ico),
+                    label: e.name,
+                  ),
+                )
+                .toList(),
+            onTap: (i) => context.go(destination[i].path),
+          ),
+          tabBuilder: (context, index) => CupertinoTabView(
+            builder: (context) => CupertinoPageScaffold(
+              navigationBar: CupertinoNavigationBar(
+                middle: title,
+                trailing: Row(
+                  children: actions ?? [],
+                ),
+              ),
+              child: child,
+            ),
+          ),
         )
     };
   }
@@ -54,14 +81,14 @@ class NavScaff extends StatelessWidget {
       (element) =>
           GoRouterState.of(context).fullPath?.startsWith(element.path) ?? false,
     );
-    if (!context.showNavbar) {
+    if (!context.showNavbar && destination.length > 1) {
       return bottomNavBar(context, index);
     }
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Scaffold(
           body: Row(
             children: [
-              if(destination.length>1)
+              if (destination.length > 1)
                 LayoutBuilder(
                   builder: (context, constraint) {
                     return ScrollConfiguration(
@@ -100,7 +127,47 @@ class NavScaff extends StatelessWidget {
             title: title,
             actions: actions,
           ),
-        )
+        ),
+      DionThemeMode.cupertino => CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar(
+            middle: title,
+            trailing: Row(
+              children: actions ?? [],
+            ),
+          ),
+          child: Row(
+            children: [
+              if (destination.length > 1)
+                Container(
+                  width: 130,
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      right: BorderSide(
+                        color: CupertinoColors.systemGrey4,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: destination
+                        .map(
+                          (e) => CupertinoButton(
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [Icon(e.ico).paddingAll(5), Text(e.name).expanded()],
+                            ),
+                            onPressed: () => context.go(e.path),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              child.paddingOnly(top: 65).expanded(),
+            ],
+          ),
+        ),
     };
   }
 }

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
@@ -29,61 +30,67 @@ class Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.bottomLeft,
-      children: [
-        if (imageUrl != null)
-          DionImage(
-            imageUrl: imageUrl,
-            width: width,
+    return ClipRRect(
+      borderRadius: switch (context.diontheme.mode) {
+        DionThemeMode.material => BorderRadius.zero,
+        DionThemeMode.cupertino => BorderRadius.circular(5),
+      },
+      child: Stack(
+        alignment: Alignment.bottomLeft,
+        children: [
+          if (imageUrl != null)
+            DionImage(
+              imageUrl: imageUrl,
+              width: width,
+              height: height,
+              errorWidget: Icon(Icons.image, size: min(width, height)),
+              boxFit: BoxFit.cover,
+            )
+          else
+            Icon(Icons.image, size: min(width, height)),
+          Container(
             height: height,
-            errorWidget: Icon(Icons.image, size: min(width, height)),
-            boxFit: BoxFit.cover,
-          )
-        else
-          Icon(Icons.image, size: min(width, height)),
-        Container(
-          height: height,
-          width: width,
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Theme.of(context).shadowColor.withOpacity(0.1),
-                Theme.of(context).shadowColor.withOpacity(0.5),
-                Theme.of(context).shadowColor.withOpacity(1),
+            width: width,
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Theme.of(context).shadowColor.withOpacity(0.1),
+                  Theme.of(context).shadowColor.withOpacity(0.5),
+                  Theme.of(context).shadowColor.withOpacity(1),
+                ],
+                stops: const [0, 0.6, 0.75, 1],
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ...(leadingBadges ?? []).map(
+                      (e) => DionBadge(
+                        child: e,
+                      ),
+                    ),
+                    const Spacer(),
+                    ...(trailingBadges ?? []).map(
+                      (e) => DionBadge(
+                        child: e,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                bottom ?? nil,
               ],
-              stops: const [0, 0.6, 0.75, 1],
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  ...(leadingBadges ?? []).map(
-                    (e) => DionBadge(
-                      child: e,
-                    ),
-                  ),
-                  const Spacer(),
-                  ...(trailingBadges ?? []).map(
-                    (e) => DionBadge(
-                      child: e,
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              bottom ?? nil,
-            ],
-          ),
-        ),
-      ],
-    ).onTap(onTap ?? () {}).paddingAll(4);
+        ],
+      ),
+    ).onTap(onTap ?? () {}).paddingAll(5);
   }
 }
 
@@ -93,7 +100,6 @@ class EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
     return Card(
       imageUrl: entry.cover,
       bottom: Column(
@@ -115,7 +121,8 @@ class EntryCard extends StatelessWidget {
         ],
       ),
       onTap: () {
-        context.push('/detail', extra: [entry]);//TODO: Hack until i implement Codec for Entry
+        context.push('/detail',
+            extra: [entry]); //TODO: Hack until i implement Codec for Entry
       },
     );
   }

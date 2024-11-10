@@ -44,7 +44,7 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
             hintStyle:
                 const WidgetStatePropertyAll(TextStyle(color: Colors.grey)),
             onSubmitted: (s) => logger.i(s),
-          ),
+          ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
             loadmore: (i) {

@@ -1,4 +1,5 @@
 import 'package:dionysos/utils/theme.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class DionTextbutton extends StatelessWidget {
@@ -10,6 +11,10 @@ class DionTextbutton extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => TextButton(
+          onPressed: onPressed,
+          child: child,
+        ),
+      DionThemeMode.cupertino => CupertinoButton(
           onPressed: onPressed,
           child: child,
         ),

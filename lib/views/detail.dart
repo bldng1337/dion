@@ -314,7 +314,7 @@ class EpList extends StatelessWidget {
     return ListView.builder(
       itemCount: elist.episodes.length,
       itemBuilder: (BuildContext context, int index) =>
-          EpisodeTile(episodepath: EpisodePath(entry, eplistindex, index)),
+          EpisodeTile(episodepath: EpisodePath(entry, eplistindex, index)).paddingAll(10),
     );
   }
 }
@@ -340,7 +340,7 @@ class EpisodeTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              TextScroll(
                 episodepath.episode.name,
                 style: context.titleMedium,
               ),
@@ -352,7 +352,7 @@ class EpisodeTile extends StatelessWidget {
                   style: context.labelSmall,
                 ),
             ],
-          ),
+          ).expanded(),
         ],
       ),
     );

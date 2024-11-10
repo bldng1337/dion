@@ -15,6 +15,9 @@ void main() async {
   initApp(
     app: () => AppLoader(
       tasks: [
+        // (context) async {
+        //   await Future.delayed(const Duration(seconds: 10));
+        // },
         (context) async {
           await SourceExtension.ensureInitialized();
         },
@@ -41,50 +44,32 @@ void initApp({
   const theme = DionTheme.material;
   final isrouter = route != null;
   runApp(
-    switch (theme.mode) {
-      DionThemeMode.material => isrouter
-          ? MaterialApp.router(
-              theme: getTheme(theme.brightness),
-              darkTheme: getTheme(Brightness.dark),
-              routerConfig: route,
-            )
-          : MaterialApp(
-              theme: getTheme(theme.brightness),
-              darkTheme: getTheme(Brightness.dark),
-              home: app!(),
-            )
-    },
-  );
-}
-
-ThemeData getTheme(Brightness b) {
-  const Color primary = Color(0xFF6BA368);
-  const Color lightshade = Color(0xFFF4F7F5);
-  const Color lightaccent = Color(0xFF808181);
-  const Color darkaccent = Color(0xFF796394);
-  const Color darkshade = Color.fromARGB(255, 40, 36, 40);
-  final Color shade = b == Brightness.dark ? darkshade : lightshade;
-  final Color ishade = b == Brightness.light ? darkshade : lightshade;
-  final Color accent = b == Brightness.dark ? darkaccent : lightaccent;
-  final ColorScheme colorScheme = ColorScheme.fromSeed(
-    brightness: b,
-    seedColor: primary,
-  ).copyWith(
-    primary: primary,
-    onPrimary: lightshade,
-    secondary: accent,
-    onSecondary: lightshade,
-    tertiary: accent,
-    onTertiary: lightshade,
-    surface: shade,
-    onSurface: ishade,
-  );
-  return ThemeData(
-    colorScheme: colorScheme,
-    appBarTheme: const AppBarTheme(backgroundColor: primary, elevation: 20),
-    floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: colorScheme.tertiary,
-      foregroundColor: colorScheme.onTertiary,
+    InheritedDionTheme(
+      theme: theme,
+      child: switch (theme.mode) {
+        DionThemeMode.material => isrouter
+            ? MaterialApp.router(
+                theme: getTheme(theme.brightness),
+                darkTheme: getTheme(Brightness.dark),
+                routerConfig: route,
+              )
+            : MaterialApp(
+                theme: getTheme(theme.brightness),
+                darkTheme: getTheme(Brightness.dark),
+                home: app!(),
+              ),
+        DionThemeMode.cupertino => isrouter
+            ? CupertinoApp.router(
+                theme: MaterialBasedCupertinoThemeData(
+                    materialTheme: getTheme(theme.brightness)),
+                routerConfig: route,
+              )
+            : CupertinoApp(
+                theme: MaterialBasedCupertinoThemeData(
+                    materialTheme: getTheme(theme.brightness)),
+                home: app!(),
+              ),
+      },
     ),
   );
 }

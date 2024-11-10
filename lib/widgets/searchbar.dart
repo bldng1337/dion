@@ -1,4 +1,5 @@
 import 'package:dionysos/utils/theme.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class DionSearchbar extends StatelessWidget {
@@ -32,6 +33,15 @@ class DionSearchbar extends StatelessWidget {
           hintStyle: hintStyle,
           keyboardType: keyboardType,
         ),
+      DionThemeMode.cupertino => CupertinoSearchTextField(
+        controller: controller,
+        placeholder: hintText,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        style: style?.resolve({WidgetState.focused}),
+        placeholderStyle: hintStyle?.resolve({WidgetState.focused}),
+        keyboardType: keyboardType,
+      ),
     };
   }
 }

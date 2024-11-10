@@ -67,13 +67,13 @@ jobs:
       - run: flutter build apk --release
       - run: jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-release.apk dion
       - run: jarsigner -verify -certs build/app/outputs/flutter-apk/app-release.apk
-      - run: |
-          cd build/app/outputs/flutter-apk
-          mv app-release.apk dion${{ github.ref_name }}.apk
-      - uses: actions/upload-artifact@v3
-        with:
-          path: "build/app/outputs/flutter-apk/dion*.apk"
-      - uses: ncipollo/release-action@v1
-        with:
-          artifacts: "build/app/outputs/flutter-apk/dion*.apk"
-          allowUpdates: true
+      # - run: |
+      #     cd build/app/outputs/flutter-apk
+      #     mv app-release.apk dion${{ github.ref_name }}.apk
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     path: "build/app/outputs/flutter-apk/dion*.apk"
+      # - uses: ncipollo/release-action@v1
+      #   with:
+      #     artifacts: "build/app/outputs/flutter-apk/dion*.apk"
+      #     allowUpdates: true
