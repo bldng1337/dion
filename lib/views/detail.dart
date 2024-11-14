@@ -1,5 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
@@ -29,14 +30,21 @@ class Detail extends StatefulWidget {
 
 class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
-  bool loading = false;
   late CancelToken tok;
-
   Future<void> loadEntry() async {
-    final ext = locate<SourceExtension>();
-    loading = true;
     try {
-      entry = await ext.detail(entry!, token: tok);
+      final saved = await locate<Database>().isSaved(entry!);
+      if (saved != null) {
+        entry = saved;
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    } catch (e, stack) {
+      logger.e('Error checking if entry is saved', error: e, stackTrace: stack);
+    }
+    try {
+      entry = await entry!.toDetailed(token: tok);
       if (mounted) {
         setState(() {});
       }
@@ -48,11 +56,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (entry == null) {
-      entry = (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
-      if (entry is! EntryDetailed && mounted) {
-        loadEntry();
-      }
+    entry = (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
+    if (entry is! EntryDetailed && mounted && !tok.isDisposed) {
+      loadEntry();
     }
   }
 
@@ -64,6 +70,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   @override
   Widget build(BuildContext context) {
+    if (entry == null) {
+      return const NavScaff(child: Center(child: CircularProgressIndicator()));
+    }
     return NavScaff(
       title: TextScroll(entry?.title ?? ''),
       child: Container(
@@ -141,7 +150,9 @@ class EntryInfo extends StatelessWidget {
                   pauseBetween: 1.seconds,
                 ).paddingOnly(bottom: 3),
                 TextScroll(
-                  entry.author?.reduce((a, b) => '$a • $b') ?? 'Unkown author',
+                  (entry.author != null && entry.author!.isNotEmpty)
+                      ? entry.author!.reduce((a, b) => '$a • $b')
+                      : 'Unkown author',
                   style: context.bodyLarge,
                   pauseBetween: 1.seconds,
                 ),
@@ -196,7 +207,21 @@ class EntryInfo extends StatelessWidget {
               entry.inLibrary ? Icons.library_books : Icons.library_add,
               size: 30,
             ),
-            onPressed: () => logger.i('asd'),
+            onPressed: () {
+              if (entry.inLibrary) {
+                (entry as EntrySaved).delete().then((e) {
+                  if (context.mounted) {
+                    GoRouter.of(context).replace('/detail', extra: [e]);
+                  }
+                });
+              } else {
+                entry.toSaved().then((e) {
+                  if (context.mounted) {
+                    GoRouter.of(context).replace('/detail', extra: [e]);
+                  }
+                });
+              }
+            },
           ),
           isnt: () => DionIconbutton(
             icon: Icon(
@@ -283,9 +308,13 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
                   .map(
                     (ep) => DionPopupMenuItem(
                       label: Text('${ep.$2.title} - ${ep.$2.episodes.length}'),
-                      onTap: () => setState(() {
-                        selected = ep.$1;
-                      }),
+                      onTap: () {
+                        if (mounted) {
+                          setState(() {
+                            selected = ep.$1;
+                          });
+                        }
+                      },
                     ),
                   )
                   .toList(),
@@ -312,9 +341,11 @@ class EpList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+      padding: EdgeInsets.zero,
       itemCount: elist.episodes.length,
       itemBuilder: (BuildContext context, int index) =>
-          EpisodeTile(episodepath: EpisodePath(entry, eplistindex, index)).paddingAll(10),
+          EpisodeTile(episodepath: EpisodePath(entry, eplistindex, index))
+              .paddingAll(10),
     );
   }
 }

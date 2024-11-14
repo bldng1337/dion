@@ -3,7 +3,7 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
-import 'package:dionysos/utils/dynamic_grid.dart';
+import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/card.dart';
@@ -47,9 +47,10 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
-            loadmore: (i) {
-              return locate<SourceExtension>().browse(i, Sort.latest);
-            },
+            sources: locate<SourceExtension>()
+                .getExtensions(extfilter: (e) => e.isenabled)
+                .map((e) => AsyncSource<Entry>((i) => e.browse(i, Sort.latest)))
+                .toList(),
           ).expanded(),
         ],
       ),

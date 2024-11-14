@@ -60,18 +60,24 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
       (update) {
         switch (update) {
           case final FileInfo finfo:
-            setState(() {
-              image = finfo.file;
-            });
+            if (mounted) {
+              setState(() {
+                image = finfo.file;
+              });
+            }
           case final DownloadProgress progress:
             count = progress.downloaded;
             total = progress.totalSize ?? 0;
         }
       },
-      onError: (e) => setState(() {
-        logger.e('Error downloading Image', error: e);
-        error = true;
-      }),
+      onError: (e) {
+        if (mounted) {
+          setState(() {
+            // logger.e('Error downloading Image', error: e);
+            error = true;
+          });
+        }
+      },
     );
     super.initState();
   }
@@ -79,7 +85,8 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
   @override
   Widget build(BuildContext context) {
     if (error) {
-      return widget.errorWidget ?? Icon(Icons.image, size: min(widget.width, widget.height));
+      return widget.errorWidget ??
+          Icon(Icons.image, size: min(widget.width, widget.height));
     }
     if (image != null) {
       return m.Image.file(
@@ -87,7 +94,6 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         width: widget.width,
         height: widget.height,
         fit: widget.boxFit,
-        
         alignment: widget.alignment ?? Alignment.center,
         errorBuilder: (context, error, stackTrace) {
           logger.e(
@@ -95,7 +101,8 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
             error: error,
             stackTrace: stackTrace,
           );
-          return widget.errorWidget ?? Icon(Icons.image, size: min(widget.width, widget.height));
+          return widget.errorWidget ??
+              Icon(Icons.image, size: min(widget.width, widget.height));
         },
       );
     }

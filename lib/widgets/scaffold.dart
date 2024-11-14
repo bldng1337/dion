@@ -68,7 +68,7 @@ class NavScaff extends StatelessWidget {
                   children: actions ?? [],
                 ),
               ),
-              child: child,
+              child: child.paddingOnly(top: 45),
             ),
           ),
         )
@@ -164,9 +164,9 @@ class NavScaff extends StatelessWidget {
                         .toList(),
                   ),
                 ),
-              child.paddingOnly(top: 65).expanded(),
+              child.expanded(),
             ],
-          ),
+          ).paddingOnly(top: 45),
         ),
     };
   }

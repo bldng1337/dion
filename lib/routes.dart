@@ -2,16 +2,17 @@ import 'dart:convert';
 
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
+import 'package:dionysos/views/library.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 final homedestinations = [
-  Destination(ico: Icons.home, name: 'Home', path: '/'),
-  Destination(ico: Icons.search, name: 'Search', path: '/search'),
-  Destination(ico: Icons.settings, name: 'Settings', path: '/settings'),
-  Destination(ico: Icons.help, name: 'Help', path: '/help'),
+  Destination(ico: Icons.library_books, name: 'Library', path: '/library'),
+  Destination(ico: Icons.local_activity, name: 'Activity', path: '/activity'),
+  Destination(ico: Icons.search, name: 'Browse', path: '/browse'),
+  Destination(ico: Icons.settings, name: 'Settings', path: '/browse'),
 ];
 
 GoRouter getRoutes() => GoRouter(
@@ -26,6 +27,7 @@ GoRouter getRoutes() => GoRouter(
         ),
         GoRoute(path: '/view', builder: (context, state) => const ViewSource()),
         GoRoute(path: '/detail', builder: (context, state) => const Detail()),
+        GoRoute(path: '/library', builder: (context, state) => const Library()),
       ],
     );
 

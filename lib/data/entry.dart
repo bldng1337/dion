@@ -1,4 +1,6 @@
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 extension EntryX on rust.Entry {
@@ -14,7 +16,7 @@ extension EntryDetailedX on rust.EntryDetailed {
 }
 
 extension Ext on Entry {
-  bool get inLibrary => false; //TODO Library detection
+  bool get inLibrary => this is EntrySaved; //TODO Library detection
 }
 
 extension ReleaseStatus on rust.ReleaseStatus {
@@ -23,9 +25,6 @@ extension ReleaseStatus on rust.ReleaseStatus {
         rust.ReleaseStatus.complete => 'Complete',
         rust.ReleaseStatus.unknown => 'Unknown',
       };
-}
-
-extension ExtDetail on EntryDetailed {
 }
 
 abstract class Entry {
@@ -40,6 +39,30 @@ abstract class Entry {
   double? get rating;
   double? get views;
   int? get length;
+  Future<EntryDetailed> toDetailed({CancelToken? token});
+}
+
+abstract class EntryDetailed extends Entry {
+  String get ui;
+  rust.ReleaseStatus get status;
+  String get description;
+  String get language;
+  List<rust.EpisodeList> get episodes;
+  List<String>? get genres;
+  List<String>? get alttitles;
+  List<String>? get auther;
+  Future<EntrySaved> toSaved();
+  Future<EntryDetailed> refresh({CancelToken? token});
+}
+
+abstract class EntrySaved extends EntryDetailed {
+  Future<EntrySaved> save();
+  Future<EntryDetailed> delete();
+  @override
+  Future<EntrySaved> toSaved() {
+    return Future.value(this);
+  }
+
 }
 
 class EntryImpl implements Entry {
@@ -85,6 +108,11 @@ class EntryImpl implements Entry {
 
   @override
   bool operator ==(Object other) => _entry == other;
+
+  @override
+  Future<EntryDetailed> toDetailed({CancelToken? token}) async {
+    return await locate<SourceExtension>().detail(this, token: token);
+  }
 }
 
 class EpisodePath {
@@ -92,6 +120,7 @@ class EpisodePath {
   final int episodelist;
   final int episodenumber;
   const EpisodePath(this.entry, this.episodelist, this.episodenumber);
+
   EpisodeList get eplist => entry.episodes[episodelist];
   Episode get episode => eplist.episodes[episodenumber];
   String get name => episode.name;
@@ -100,17 +129,6 @@ class EpisodePath {
   EpisodePath get next => EpisodePath(entry, episodelist, episodenumber + 1);
   EpisodePath get prev => EpisodePath(entry, episodelist, episodenumber - 1);
   Extension get extension => entry.extension;
-}
-
-abstract class EntryDetailed extends Entry {
-  String get ui;
-  rust.ReleaseStatus get status;
-  String get description;
-  String get language;
-  List<rust.EpisodeList> get episodes;
-  List<String>? get genres;
-  List<String>? get alttitles;
-  List<String>? get auther;
 }
 
 class EntryDetailedImpl implements EntryDetailed {
@@ -174,4 +192,43 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   List<String>? get auther => _entry.auther;
+
+  @override
+  Future<EntryDetailed> refresh({CancelToken? token}) {
+    return locate<SourceExtension>().detail(this, token: token);
+  }
+
+  @override
+  Future<EntryDetailed> toDetailed({CancelToken? token}) {
+    return refresh(token: token);
+  }
+
+  @override
+  Future<EntrySaved> toSaved() async {
+    final saved = EntrySavedImpl(_entry, extension);
+    await saved.save();
+    return saved;
+  }
+}
+
+class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
+  EntrySavedImpl(super.entry, super.extension);
+
+  @override
+  Future<EntrySaved> refresh({CancelToken? token}) async {
+    return await (await super.refresh(token: token)).toSaved();
+  }
+
+  @override
+  Future<EntryDetailed> delete() async {
+    await locate<Database>().removeEntry(this);
+    return EntryDetailedImpl(_entry, _extension);
+  }
+
+  @override
+  Future<EntrySaved> save() async {
+    await locate<Database>().updateEntry(this);
+    return this;
+  }
+
 }

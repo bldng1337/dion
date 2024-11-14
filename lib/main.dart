@@ -1,5 +1,6 @@
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/cache.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
@@ -18,13 +19,16 @@ void main() async {
         // (context) async {
         //   await Future.delayed(const Duration(seconds: 10));
         // },
-        (context) async {
+        () async {
+          await Database.ensureInitialized();
+        },
+        () async {
           await SourceExtension.ensureInitialized();
         },
-        (context) async {
+        () async {
           await DirectoryProvider.ensureInitialized();
         },
-        (context) async {
+        () async {
           await Rhttp.init();
           await CacheService.ensureInitialized();
         },

@@ -1,7 +1,6 @@
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/file_utils.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed;
@@ -11,6 +10,8 @@ class Extension {
   final rust.ExtensionData data;
   final rust.ExtensionProxy _proxy;
   bool isenabled;
+
+  String get id => data.id;
 
   static Future<Extension> fromProxy(rust.ExtensionProxy proxy) async {
     return Extension(await proxy.data(), proxy, await proxy.isEnabled());
@@ -31,11 +32,32 @@ class Extension {
   void dispose() {
     _proxy.dispose();
   }
+
+  Future<List<Entry>> browse(
+    int page,
+    rust.Sort sort, {
+    rust.CancelToken? token,
+  }) async {
+    final res = await _proxy.browse(page: page, sort: sort, token: token);
+    return res.map((e) => e.wrap(this)).toList();
+  }
+
+  Future<List<Entry>> search(
+    int page,
+    String filter, {
+    rust.CancelToken? token,
+  }) async {
+    final res = await _proxy.search(page: page, filter: filter, token: token);
+    return res.map((e) => e.wrap(this)).toList();
+  }
 }
 
 abstract class SourceExtension {
   Future<void> reload();
   Extension getExtension(String id);
+
+  List<Extension> getExtensions({bool Function(Extension e)? extfilter});
+
   Stream<List<Entry>> search(
     int page,
     String filter, {
@@ -83,7 +105,7 @@ class SourceExtensionImpl implements SourceExtension {
     rust.CancelToken? token,
   }) {
     return Stream.fromFutures(
-      _extensions.where((e) => e.isenabled).map(
+      getExtensions(extfilter: extfilter).where((e) => e.isenabled).map(
             (e) async =>
                 (await e._proxy.browse(page: page, sort: sort, token: token))
                     .map((ent) => ent.wrap(e))
@@ -100,12 +122,12 @@ class SourceExtensionImpl implements SourceExtension {
     rust.CancelToken? token,
   }) {
     return Stream.fromFutures(
-      _extensions.map(
-        (e) async =>
-            (await e._proxy.search(page: page, filter: filter, token: token))
+      getExtensions(extfilter: extfilter).where((e) => e.isenabled).map(
+            (e) async => (await e._proxy
+                    .search(page: page, filter: filter, token: token))
                 .map((ent) => ent.wrap(e))
                 .toList(),
-      ),
+          ),
     );
   }
 
@@ -114,7 +136,6 @@ class SourceExtensionImpl implements SourceExtension {
     Entry e, {
     rust.CancelToken? token,
   }) async {
-    await Future.delayed(const Duration(seconds: 1));
     return EntryDetailedImpl(
       await e.extension._proxy.detail(entryid: e.id, token: token),
       e.extension,
@@ -148,8 +169,6 @@ class SourceExtensionImpl implements SourceExtension {
 
   @override
   Extension getExtension(String id) {
-    logger.i('getting extension $id');
-    logger.i(_extensions.map((e) => e.data.id).toList());
     return _extensions.firstWhere((e) => e.data.id == id);
   }
 
@@ -172,5 +191,10 @@ class SourceExtensionImpl implements SourceExtension {
       await e.enable();
     }
     extmanager.dispose();
+  }
+
+  @override
+  List<Extension> getExtensions({bool Function(Extension e)? extfilter}) {
+    return _extensions.where((e) => extfilter == null || extfilter(e)).toList();
   }
 }
