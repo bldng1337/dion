@@ -1,8 +1,11 @@
 import 'dart:convert';
 
+import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/library.dart';
+import 'package:dionysos/views/settings/paragraph_reader.dart';
+import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
@@ -12,15 +15,28 @@ final homedestinations = [
   Destination(ico: Icons.library_books, name: 'Library', path: '/library'),
   Destination(ico: Icons.local_activity, name: 'Activity', path: '/activity'),
   Destination(ico: Icons.search, name: 'Browse', path: '/browse'),
-  Destination(ico: Icons.settings, name: 'Settings', path: '/browse'),
+  Destination(ico: Icons.settings, name: 'Settings', path: '/settings'),
 ];
 
 GoRouter getRoutes() => GoRouter(
       extraCodec: const MyExtraCodec(),
       debugLogDiagnostics: true,
       // navigatorKey: locate<GlobalKey<NavigatorState>>(),
-      initialLocation: '/browse',
+      initialLocation: '/library',
+      redirect: (context, state) {
+        if (state.fullPath == '/') {
+          context.go('/library');
+        }
+        return null;
+      },
       routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) {
+            context.go('/browse');
+            return nil;
+          },
+        ),
         GoRoute(
           path: '/browse',
           builder: (context, state) => const Browse(),
@@ -28,6 +44,16 @@ GoRouter getRoutes() => GoRouter(
         GoRoute(path: '/view', builder: (context, state) => const ViewSource()),
         GoRoute(path: '/detail', builder: (context, state) => const Detail()),
         GoRoute(path: '/library', builder: (context, state) => const Library()),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const Settings(),
+          routes: [
+            GoRoute(
+              path: '/paragraphreader',
+              builder: (context, state) => const ParagraphReader(),
+            ),
+          ],
+        ),
       ],
     );
 
