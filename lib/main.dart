@@ -1,6 +1,7 @@
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
@@ -16,11 +17,11 @@ void main() async {
   initApp(
     app: () => AppLoader(
       tasks: [
-        // (context) async {
-        //   await Future.delayed(const Duration(seconds: 10));
-        // },
         () async {
           await Database.ensureInitialized();
+        },
+        () async {
+          await PreferenceService.ensureInitialized();
         },
         () async {
           await SourceExtension.ensureInitialized();
