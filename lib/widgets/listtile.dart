@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class DionListTile extends StatelessWidget {
-  final Function() onTap;
+  final Function()? onTap;
   final Widget? leading;
   final Widget? title;
   final Widget? subtitle;
@@ -17,7 +17,7 @@ class DionListTile extends StatelessWidget {
   final TextStyle? leadingAndTrailingTextStyle;
   const DionListTile(
       {super.key,
-      required this.onTap,
+      this.onTap,
       this.leading,
       this.title,
       this.subtitle,
