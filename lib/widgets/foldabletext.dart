@@ -26,12 +26,17 @@ class _FoldabletextState extends State<Foldabletext> {
       duration: const Duration(milliseconds: 200),
       crossFadeState:
           _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-      firstChild: Text(
+      firstChild: Column(
+        children: [
+          Text(
         widget.text,
         maxLines: widget.maxLines,
         overflow: TextOverflow.ellipsis,
         style: widget.style,
         textAlign: widget.textAlign,
+      ),
+      Icon(Icons.keyboard_arrow_down),
+        ]
       ),
       secondChild: Text(
         widget.text,
