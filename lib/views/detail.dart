@@ -361,12 +361,13 @@ class EpisodeTile extends StatelessWidget {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          DionImage(
-            imageUrl: episodepath.episode.cover,
-            width: 90,
-            height: 60,
-            boxFit: BoxFit.contain,
-          ),
+          if(episodepath.episode.cover != null && episodepath.episode.cover!.isNotEmpty)
+            DionImage(
+              imageUrl: episodepath.episode.cover,
+              width: 90,
+              height: 60,
+              boxFit: BoxFit.contain,
+            ),
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
