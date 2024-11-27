@@ -71,7 +71,7 @@ final settings = (
         const PreferenceEnumMetaData('paragraphreader.mode', ReaderMode.values),
       )..addCollection(preferenceCollection),
       title: Setting(
-        true,
+        false,
         const PreferenceBoolMetaData('paragraphreader.title'),
         )..addCollection(preferenceCollection),
       text: (
@@ -80,15 +80,15 @@ final settings = (
           const PreferenceBoolMetaData('paragraphreader.text.adaptivewidth'),
         )..addCollection(preferenceCollection),
         linewidth: Setting(
-          10.0,
+          70.0,
           const PreferenceDoubleMetaData('paragraphreader.text.linewidth'),
         )..addCollection(preferenceCollection),
         size: Setting(
-          25,
+          24,
           const PreferenceIntMetaData('paragraphreader.text.size'),
         )..addCollection(preferenceCollection),
         weight: Setting(
-          0.1,
+          0.4,
           const PreferenceDoubleMetaData('paragraphreader.text.weight'),
         )..addCollection(preferenceCollection),
         linespacing: Setting(
@@ -96,7 +96,7 @@ final settings = (
           const PreferenceDoubleMetaData('paragraphreader.text.linespacing'),
         )..addCollection(preferenceCollection),
         paragraphspacing: Setting(
-          1.5,
+          3.0,
           const PreferenceDoubleMetaData('paragraphreader.text.paragraphspacing'),
         )..addCollection(preferenceCollection),
         selectable: Setting(
