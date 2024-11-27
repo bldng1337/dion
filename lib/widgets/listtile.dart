@@ -27,7 +27,7 @@ class DionListTile extends StatelessWidget {
       this.visualDensity,
       this.titleTextStyle,
       this.subtitleTextStyle,
-      this.leadingAndTrailingTextStyle});
+      this.leadingAndTrailingTextStyle,});
 
   @override
   Widget build(BuildContext context) {

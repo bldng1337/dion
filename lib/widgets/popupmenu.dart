@@ -24,7 +24,7 @@ class DionPopupMenu extends StatelessWidget {
                     item.onTap?.call();
                   },
                   child: item.label,
-                ))
+                ),)
             .toList(),
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),

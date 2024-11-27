@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
@@ -93,7 +92,7 @@ class DatabaseImpl implements Database {
     );
     for (final episodelist in dbepisodelists) {
       final ep = await db.query(
-          'SELECT * FROM episode WHERE episodelist = ?1', [episodelist['id']]);
+          'SELECT * FROM episode WHERE episodelist = ?1', [episodelist['id']],);
       if (ep.isEmpty) continue;
       episodelists.add(
         rust.EpisodeList(

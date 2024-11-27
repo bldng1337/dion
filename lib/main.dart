@@ -66,12 +66,12 @@ void initApp({
         DionThemeMode.cupertino => isrouter
             ? CupertinoApp.router(
                 theme: MaterialBasedCupertinoThemeData(
-                    materialTheme: getTheme(theme.brightness)),
+                    materialTheme: getTheme(theme.brightness),),
                 routerConfig: route,
               )
             : CupertinoApp(
                 theme: MaterialBasedCupertinoThemeData(
-                    materialTheme: getTheme(theme.brightness)),
+                    materialTheme: getTheme(theme.brightness),),
                 home: app!(),
               ),
       },

@@ -26,7 +26,7 @@ class Result<T> {
   }
 
   R build<R>(R Function(T value) valueMapper,
-      R Function(Exception error,StackTrace? trace) errorMapper) {
+      R Function(Exception error,StackTrace? trace) errorMapper,) {
     if (isError) {
       return errorMapper(error!,trace);
     }

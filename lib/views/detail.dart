@@ -75,7 +75,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     }
     return NavScaff(
       title: TextScroll(entry?.title ?? ''),
-      child: Container(
+      child: SizedBox(
         width: context.width - 200,
         child: Row(
           mainAxisSize: MainAxisSize.min,

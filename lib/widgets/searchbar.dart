@@ -19,7 +19,7 @@ class DionSearchbar extends StatelessWidget {
       this.onSubmitted,
       this.style,
       this.hintStyle,
-      this.keyboardType});
+      this.keyboardType,});
 
   @override
   Widget build(BuildContext context) {

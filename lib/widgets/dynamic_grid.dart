@@ -73,7 +73,7 @@ class SingleStreamSource<T> extends DataSource<T> {
       },
       onError: (e, stack) {
         streamController?.add(<Result<T>>[
-          Result.error(e as Exception, trace: stack as StackTrace)
+          Result.error(e as Exception, trace: stack as StackTrace),
         ]);
         isfinished = true;
       },
@@ -115,7 +115,7 @@ class AsyncStreamSource<T> extends DataSource<T> {
       },
       onError: (e, stack) {
         streamController?.add(<Result<T>>[
-          Result.error(e as Exception, trace: stack as StackTrace)
+          Result.error(e as Exception, trace: stack as StackTrace),
         ]);
         isfinished = true;
       },
@@ -162,7 +162,7 @@ class AsyncSource<T> extends DataSource<T> {
 class DynamicGrid<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
   final Widget Function(
-      BuildContext context, Exception error, StackTrace? trace)? errorBuilder;
+      BuildContext context, Exception error, StackTrace? trace,)? errorBuilder;
   final List<DataSource<T>> sources;
   final double preload;
   const DynamicGrid({
@@ -193,7 +193,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
       source.streamController ??= streamController;
     }
     await Future.wait(
-        widget.sources.map((source) => Future.value(source.requestMore())));
+        widget.sources.map((source) => Future.value(source.requestMore())),);
     loading = false;
     finished = widget.sources.every((e) => e.isfinished);
     if (finished) {

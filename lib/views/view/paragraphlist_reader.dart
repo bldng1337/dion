@@ -86,7 +86,7 @@ class SimpleParagraphlistReader extends StatelessWidget {
       actions: [
         DionIconbutton(
             icon: const Icon(Icons.settings),
-            onPressed: () => context.push('/settings/paragraphreader')),
+            onPressed: () => context.push('/settings/paragraphreader'),),
       ],
       child: wrapScreen(
         context,

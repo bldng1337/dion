@@ -63,9 +63,6 @@ enum ReaderMode {
   paginated,
 }
 
-final testset = Setting(true, const PreferenceBoolMetaData('test'))
-    .addCollection(preferenceCollection);
-
 final settings = (
   readerSettings: (
     paragraphreader: (

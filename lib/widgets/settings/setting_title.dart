@@ -6,7 +6,7 @@ class SettingTitle extends StatelessWidget {
   final IconData? icon;
   final List<Widget>? children;
   const SettingTitle(
-      {super.key, required this.title, this.children, this.icon});
+      {super.key, required this.title, this.children, this.icon,});
 
   @override
   Widget build(BuildContext context) {

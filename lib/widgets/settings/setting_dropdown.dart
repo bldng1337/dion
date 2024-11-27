@@ -14,7 +14,7 @@ class SettingDropdown<T extends Enum> extends StatelessWidget {
       required this.setting,
       required this.title,
       this.description,
-      this.icon});
+      this.icon,});
 
   @override
   Widget build(BuildContext context) {

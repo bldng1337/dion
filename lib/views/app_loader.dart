@@ -46,7 +46,7 @@ class _AppLoaderState extends State<AppLoader> {
             error: (error, stackTrace) {
               e = error as Error?;
               logger.e('Error Loading App',
-                  error: error, stackTrace: stackTrace);
+                  error: error, stackTrace: stackTrace,);
               return Center(child: Text(e.toString()));
             },
             loading: () {
