@@ -9,6 +9,7 @@ import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/views/app_loader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:rhttp/rhttp.dart';
 
 void main() async {
@@ -33,6 +34,9 @@ void main() async {
           await Rhttp.init();
           await CacheService.ensureInitialized();
         },
+        () async {
+          MediaKit.ensureInitialized();
+        }
       ],
       onComplete: (context) {
         register(GlobalKey<NavigatorState>());
@@ -66,12 +70,14 @@ void initApp({
         DionThemeMode.cupertino => isrouter
             ? CupertinoApp.router(
                 theme: MaterialBasedCupertinoThemeData(
-                    materialTheme: getTheme(theme.brightness),),
+                  materialTheme: getTheme(theme.brightness),
+                ),
                 routerConfig: route,
               )
             : CupertinoApp(
                 theme: MaterialBasedCupertinoThemeData(
-                    materialTheme: getTheme(theme.brightness),),
+                  materialTheme: getTheme(theme.brightness),
+                ),
                 home: app!(),
               ),
       },

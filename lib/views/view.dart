@@ -3,6 +3,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
@@ -23,14 +24,18 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final eppath = (GoRouterState.of(context).extra! as List<Object?>)[0]! as EpisodePath;
+    final extra = GoRouterState.of(context).extra;
+    if (extra is! List<Object?>) return;
+    final eppath = extra[0]! as EpisodePath;
     if (tok?.isDisposed ?? true) {
       tok = CancelToken()..disposedBy(scope);
     }
     locate<SourceExtension>().source(eppath, token: tok).then((src) {
-      setState(() {
-        source = src;
-      });
+      if (mounted) {
+        setState(() {
+          source = src;
+        });
+      }
     });
   }
 
@@ -60,7 +65,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       final Source_Directlink link => switch (link.sourcedata) {
           final LinkSource_Epub _ => throw UnimplementedError(),
           final LinkSource_Pdf _ => throw UnimplementedError(),
-          final LinkSource_Imagelist _ => throw UnimplementedError(),
+          final LinkSource_Imagelist _ => SimpleImageListReader(source: source),
           final LinkSource_M3u8 _ => throw UnimplementedError(),
         },
     };
