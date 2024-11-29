@@ -16,6 +16,7 @@ class NavScaff extends StatelessWidget {
   final List<Destination> destination;
   final List<Widget>? actions;
   final Widget? title;
+  final Widget? floatingActionButton;
 
   const NavScaff({
     super.key,
@@ -23,11 +24,13 @@ class NavScaff extends StatelessWidget {
     this.destination = const [],
     this.actions,
     this.title,
+    this.floatingActionButton,
   });
 
   Widget bottomNavBar(BuildContext context, int index) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Scaffold(
+          floatingActionButton: floatingActionButton,
           appBar: AppBar(
             title: title,
             actions: actions,
@@ -85,42 +88,47 @@ class NavScaff extends StatelessWidget {
     }
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Scaffold(
-          body: Row(
-            children: [
-              if (destination.length > 1)
-                LayoutBuilder(
-                  builder: (context, constraint) {
-                    return ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context)
-                          .copyWith(scrollbars: false),
-                      child: SingleChildScrollView(
-                        child: ConstrainedBox(
-                          constraints:
-                              BoxConstraints(minHeight: constraint.maxHeight),
-                          child: IntrinsicHeight(
-                            child: NavigationRail(
-                              backgroundColor: Theme.of(context).highlightColor,
-                              onDestinationSelected: (i) =>
-                                  context.go(destination[i].path),
-                              labelType: NavigationRailLabelType.all,
-                              destinations: destination
-                                  .map(
-                                    (e) => NavigationRailDestination(
-                                      icon: Icon(e.ico),
-                                      label: Text(e.name),
-                                    ),
-                                  )
-                                  .toList(),
-                              selectedIndex: index >= 0 ? index : null,
+          floatingActionButton: floatingActionButton,
+          body: GestureDetector(
+            onTap: ContextMenuController.removeAny,
+            child: Row(
+              children: [
+                if (destination.length > 1)
+                  LayoutBuilder(
+                    builder: (context, constraint) {
+                      return ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context)
+                            .copyWith(scrollbars: false),
+                        child: SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints:
+                                BoxConstraints(minHeight: constraint.maxHeight),
+                            child: IntrinsicHeight(
+                              child: NavigationRail(
+                                backgroundColor:
+                                    Theme.of(context).highlightColor,
+                                onDestinationSelected: (i) =>
+                                    context.go(destination[i].path),
+                                labelType: NavigationRailLabelType.all,
+                                destinations: destination
+                                    .map(
+                                      (e) => NavigationRailDestination(
+                                        icon: Icon(e.ico),
+                                        label: Text(e.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                selectedIndex: index >= 0 ? index : null,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              Expanded(child: child),
-            ],
+                      );
+                    },
+                  ),
+                Expanded(child: child),
+              ],
+            ),
           ),
           appBar: AppBar(
             title: title,
@@ -131,7 +139,10 @@ class NavScaff extends StatelessWidget {
           navigationBar: CupertinoNavigationBar(
             middle: title,
             trailing: Row(
-              children: actions ?? [],
+              children: [
+                const Spacer(),
+                if (actions != null) ...actions!,
+              ],
             ),
           ),
           child: Row(
@@ -155,7 +166,10 @@ class NavScaff extends StatelessWidget {
                             alignment: Alignment.centerLeft,
                             padding: const EdgeInsets.all(16),
                             child: Row(
-                              children: [Icon(e.ico).paddingAll(5), Text(e.name).expanded()],
+                              children: [
+                                Icon(e.ico).paddingAll(5),
+                                Text(e.name).expanded()
+                              ],
                             ),
                             onPressed: () => context.go(e.path),
                           ),
