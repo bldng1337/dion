@@ -1,6 +1,8 @@
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 extension EntryX on rust.Entry {
@@ -42,8 +44,26 @@ abstract class Entry {
   Future<EntryDetailed> toDetailed({CancelToken? token});
 }
 
+class EpisodeData {
+  bool bookmark;
+  bool finished;
+  String? progress;
+  EpisodeData({required this.bookmark, required this.finished, this.progress});
+  EpisodeData.empty() : this(bookmark: false, finished: false, progress: null);
+
+  @override
+  bool operator ==(Object other) =>
+      other is EpisodeData &&
+      bookmark == other.bookmark &&
+      finished == other.finished &&
+      progress == other.progress;
+
+  @override
+  int get hashCode => bookmark.hashCode ^ finished.hashCode ^ progress.hashCode;
+}
+
 abstract class EntryDetailed extends Entry {
-  String get ui;
+  CustomUi? get ui;
   rust.ReleaseStatus get status;
   String get description;
   String get language;
@@ -58,11 +78,18 @@ abstract class EntryDetailed extends Entry {
 abstract class EntrySaved extends EntryDetailed {
   Future<EntrySaved> save();
   Future<EntryDetailed> delete();
+  List<EpisodeData> get episodedata;
+  int get episode;
+  set episode(int value);
+  EpisodeData getEpisodeData(int episode);
+
+  int get latestEpisode;
+  int get totalEpisodes;
+
   @override
   Future<EntrySaved> toSaved() {
     return Future.value(this);
   }
-
 }
 
 class EntryImpl implements Entry {
@@ -92,7 +119,7 @@ class EntryImpl implements Entry {
   Map<String, String>? get coverHeader => _entry.coverHeader;
 
   @override
-  List<String>? get author => _entry.auther;
+  List<String>? get author => _entry.author;
 
   @override
   double? get rating => _entry.rating;
@@ -121,11 +148,45 @@ class EpisodePath {
   final int episodenumber;
   const EpisodePath(this.entry, this.episodelist, this.episodenumber);
 
+  EpisodeData get data => (entry is EntrySaved)
+      ? (entry as EntrySaved).getEpisodeData(episodenumber)
+      : EpisodeData.empty();
+
   EpisodeList get eplist => entry.episodes[episodelist];
   Episode get episode => eplist.episodes[episodenumber];
   String get name => episode.name;
   bool get hasnext => episodenumber + 1 < eplist.episodes.length;
   bool get hasprev => episodenumber > 0;
+  void goPrev(BuildContext context) {
+    if (!hasprev) return;
+    GoRouter.of(context).pushReplacement(
+      '/view',
+      extra: [prev],
+    );
+  }
+
+  Future<void> save() =>
+      entry is EntrySaved ? (entry as EntrySaved).save() : Future.value();
+
+  Future<void> goNext(BuildContext context) async {
+    if (!hasnext) return;
+    data.finished = true;
+    await save();
+    if (context.mounted) {
+      await GoRouter.of(context).pushReplacement(
+        '/view',
+        extra: [next],
+      );
+    }
+  }
+
+  void go(BuildContext context) {
+    GoRouter.of(context).push(
+      '/view',
+      extra: [this],
+    );
+  }
+
   EpisodePath get next => EpisodePath(entry, episodelist, episodenumber + 1);
   EpisodePath get prev => EpisodePath(entry, episodelist, episodenumber - 1);
   Extension get extension => entry.extension;
@@ -134,6 +195,7 @@ class EpisodePath {
 class EntryDetailedImpl implements EntryDetailed {
   final rust.EntryDetailed _entry;
   final Extension _extension;
+
   EntryDetailedImpl(this._entry, this._extension);
 
   @override
@@ -158,7 +220,7 @@ class EntryDetailedImpl implements EntryDetailed {
   Map<String, String>? get coverHeader => _entry.coverHeader;
 
   @override
-  List<String>? get author => _entry.auther;
+  List<String>? get author => _entry.author;
 
   @override
   double? get rating => _entry.rating;
@@ -170,7 +232,7 @@ class EntryDetailedImpl implements EntryDetailed {
   int? get length => _entry.length;
 
   @override
-  String get ui => _entry.ui;
+  CustomUi? get ui => _entry.ui;
 
   @override
   rust.ReleaseStatus get status => _entry.status;
@@ -191,7 +253,7 @@ class EntryDetailedImpl implements EntryDetailed {
   List<String>? get alttitles => _entry.alttitles;
 
   @override
-  List<String>? get auther => _entry.auther;
+  List<String>? get auther => _entry.author;
 
   @override
   Future<EntryDetailed> refresh({CancelToken? token}) {
@@ -205,15 +267,17 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   Future<EntrySaved> toSaved() async {
-    final saved = EntrySavedImpl(_entry, extension);
+    final saved = EntrySavedImpl(_entry, extension, List.empty());
     await saved.save();
     return saved;
   }
 }
 
 class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
-  EntrySavedImpl(super.entry, super.extension);
-
+  List<EpisodeData> episodedata;
+  EntrySavedImpl(super.entry, super.extension, this.episodedata);
+  @override
+  int episode = 0;
   @override
   Future<EntrySaved> refresh({CancelToken? token}) async {
     return await (await super.refresh(token: token)).toSaved();
@@ -226,9 +290,30 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
   }
 
   @override
+  int get latestEpisode =>
+      episodedata.lastIndexWhere((e) => e.finished == true) + 1;
+
+  @override
+  int get totalEpisodes => episodes[episode].episodes.length;
+
+  @override
   Future<EntrySaved> save() async {
     await locate<Database>().updateEntry(this);
     return this;
   }
 
+  @override
+  EpisodeData getEpisodeData(int episode) {
+    if (episodedata.length > episode) {
+      return episodedata[episode];
+    }
+    final List<EpisodeData> data = List.generate(episode + 1, (index) {
+      if (episodedata.length > index) {
+        return episodedata[index];
+      }
+      return EpisodeData.empty();
+    });
+    episodedata = data;
+    return data[episode];
+  }
 }

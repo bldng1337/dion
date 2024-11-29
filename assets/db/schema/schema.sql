@@ -18,11 +18,20 @@ CREATE TABLE "entry" (
 	PRIMARY KEY("id")
 )
 --s
+CREATE TABLE "episodedata" (
+	"episode" INTEGER NOT NULL,
+	"entryid"	TEXT NOT NULL,
+	"bookmark"	INTEGER DEFAULT 0,
+	"finished"	INTEGER DEFAULT 0,
+	"progress"	TEXT,
+	FOREIGN KEY("entryid") REFERENCES "entry"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+	PRIMARY KEY("episode", "entryid")
+)
+--s
 CREATE TABLE "entryxgenre" (
-	"id"	INTEGER,
 	"entry"	TEXT NOT NULL,
 	"genre"	INTEGER NOT NULL,
-	PRIMARY KEY("id"),
+	PRIMARY KEY("entry","genre"),
 	FOREIGN KEY("entry") REFERENCES "entry"("id") ON DELETE CASCADE ON UPDATE CASCADE,
 	FOREIGN KEY("genre") REFERENCES "genre"("id")
 )

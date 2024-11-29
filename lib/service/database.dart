@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
@@ -34,7 +35,8 @@ class DatabaseImpl implements Database {
   @override
   Future<void> init() async {
     if (kDebugMode) {
-      db = await SqliteCrdt.openInMemory(
+      db = await SqliteCrdt.open(
+        (await getBasePath()).getFile('data.db').absolute.path,
         version: 1,
         onCreate: (db, version) async {
           for (final statement
@@ -92,7 +94,9 @@ class DatabaseImpl implements Database {
     );
     for (final episodelist in dbepisodelists) {
       final ep = await db.query(
-          'SELECT * FROM episode WHERE episodelist = ?1', [episodelist['id']],);
+        'SELECT * FROM episode WHERE episodelist = ?1',
+        [episodelist['id']],
+      );
       if (ep.isEmpty) continue;
       episodelists.add(
         rust.EpisodeList(
@@ -114,12 +118,26 @@ class DatabaseImpl implements Database {
         ),
       );
     }
+    final List<EpisodeData> episodedata = List.empty(growable: true);
+    final epdatas = await db.query(
+      'SELECT * FROM episodedata WHERE entryid = ?1',
+      [dbentry['id']! as String],
+    );
+    for (final epdata in epdatas) {
+      episodedata.add(
+        EpisodeData(
+          bookmark: (epdata['bookmark']! as int) == 1,
+          finished: (epdata['finished']! as int) == 1,
+          progress: epdata['progress'] as String?,
+        ),
+      );
+    }
     return EntrySavedImpl(
       rust.EntryDetailed(
         id: dbentry['id']! as String,
         url: dbentry['url']! as String,
         title: dbentry['title']! as String,
-        ui: dbentry['ui']! as String,
+        ui: null,//dbentry['ui']! as String
         status: rust.ReleaseStatus.values
             .firstWhere((e) => e.name == dbentry['status']! as String),
         description: dbentry['description']! as String,
@@ -129,7 +147,7 @@ class DatabaseImpl implements Database {
         alttitles:
             (json.decode(dbentry['alttitles']! as String) as List<dynamic>)
                 .cast(),
-        auther:
+        author:
             (json.decode(dbentry['author']! as String) as List<dynamic>).cast(),
         cover: dbentry['cover']! as String,
         coverHeader: (json.decode(dbentry['coverheader']! as String)
@@ -139,6 +157,7 @@ class DatabaseImpl implements Database {
             .firstWhere((e) => e.name == (dbentry['mediatype']! as String)),
       ),
       extension,
+      episodedata,
     );
   }
 
@@ -164,18 +183,19 @@ class DatabaseImpl implements Database {
             entry.rating,
             entry.views,
             entry.length,
-            entry.ui,
+            '',//entry.ui,
             entry.status.name,
             entry.description,
             entry.language,
             json.encode(entry.alttitles ?? []),
           ]);
       for (final genre in entry.genres!) {
-        await db.execute('INSERT IGNORE INTO genre(genre) VALUES(?)');
+        await db
+            .execute('INSERT OR IGNORE INTO genre(genre) VALUES(?)', [genre]);
         final genreid = (await db
             .query('SELECT id FROM genre WHERE genre = ?', [genre]))[0]['id'];
         await db.execute(
-          'INSERT OR REPLACE INTO entryxgenre(entry,genre) VALUES (?,?)',
+          'INSERT OR IGNORE INTO entryxgenre(entry,genre) VALUES (?,?)',
           [entry.id, genreid],
         );
       }
@@ -201,6 +221,20 @@ class DatabaseImpl implements Database {
               json.encode(episode.coverHeader ?? {}),
               episode.timestamp,
               eplist[0]['id'],
+            ],
+          );
+        }
+      }
+      if (entry is EntrySaved) {
+        for (final epdata in entry.episodedata.indexed) {
+          await db.execute(
+            'INSERT OR REPLACE INTO episodedata(entryid,episode,bookmark,finished,progress) VALUES (?,?,?,?,?)',
+            [
+              entry.id,
+              epdata.$1,
+              if (epdata.$2.bookmark) 1 else 0,
+              if (epdata.$2.finished) 1 else 0,
+              epdata.$2.progress,
             ],
           );
         }
