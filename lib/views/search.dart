@@ -13,16 +13,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 
-class Browse extends StatefulWidget {
-  const Browse({super.key});
+class Search extends StatefulWidget {
+  const Search({super.key});
 
   @override
-  _BrowseState createState() => _BrowseState();
+  _SearchState createState() => _SearchState();
 }
 
-class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
+class _SearchState extends State<Search> with StateDisposeScopeMixin {
   late final TextEditingController controller;
   late final CancelToken? token;
+
+  @override
+  void didChangeDependencies() {
+    controller.text = GoRouterState.of(context).pathParameters['query'] ?? '';
+    super.didChangeDependencies();
+  }
+
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
@@ -50,7 +57,13 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
             sources: locate<SourceExtension>()
                 .getExtensions(extfilter: (e) => e.isenabled)
                 .map(
-                    (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular)))
+                  (e) => AsyncSource<Entry>(
+                    (i) => e.search(
+                      i,
+                      GoRouterState.of(context).pathParameters['query'] ?? '',
+                    ),
+                  ),
+                )
                 .toList(),
           ).expanded(),
         ],

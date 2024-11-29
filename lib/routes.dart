@@ -4,6 +4,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/library.dart';
+import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/view.dart';
@@ -41,6 +42,9 @@ GoRouter getRoutes() => GoRouter(
           path: '/browse',
           builder: (context, state) => const Browse(),
         ),
+        GoRoute(
+            path: '/search/:query',
+            builder: (context, state) => const Search()),
         GoRoute(path: '/view', builder: (context, state) => const ViewSource()),
         GoRoute(path: '/detail', builder: (context, state) => const Detail()),
         GoRoute(path: '/library', builder: (context, state) => const Library()),
