@@ -1,3 +1,5 @@
+import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/routes.dart';
 import 'package:flutter/material.dart';
 
 class DionBadge extends StatelessWidget {
@@ -7,16 +9,13 @@ class DionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double badgesize =
-        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 0) * 1.3;
     return Container(
-      height: badgesize + 9,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(4)),
-        color: color??Theme.of(context).primaryColor,
+        color: color??context.primaryColor,
       ),
+      padding: const EdgeInsets.all(1),
       margin: const EdgeInsets.all(3),
-      padding: const EdgeInsets.all(4),
       child: Center(
         child: child,
       ),
