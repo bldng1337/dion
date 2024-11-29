@@ -1,15 +1,20 @@
+import 'dart:math';
+
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
+import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
+import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
@@ -57,7 +62,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
     entry = (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
-    if (entry is! EntryDetailed && mounted && !tok.isDisposed) {
+    if (entry is! EntryDetailed && mounted) {
+      if (tok.isDisposed) {
+        tok = CancelToken()..disposedBy(scope);
+      }
       loadEntry();
     }
   }
@@ -74,6 +82,18 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       return const NavScaff(child: Center(child: CircularProgressIndicator()));
     }
     return NavScaff(
+      floatingActionButton: entry is EntrySaved
+          ? ActionButton(
+              onPressed: () {
+                EpisodePath(
+                  entry! as EntryDetailed,
+                  (entry! as EntrySaved).episode,
+                  (entry! as EntrySaved).latestEpisode,
+                ).go(context);
+              },
+              child: const Icon(Icons.play_arrow),
+            )
+          : null,
       title: TextScroll(entry?.title ?? ''),
       child: SizedBox(
         width: context.width - 200,
@@ -242,6 +262,7 @@ class EntryInfo extends StatelessWidget {
               children: entry.genres
                       ?.map(
                         (e) => DionBadge(
+                          color: getColor(e),
                           child: Text(e),
                         ),
                       )
@@ -289,6 +310,14 @@ class EpisodeListUI extends StatefulWidget {
 class _EpisodeListUIState extends State<EpisodeListUI> {
   int selected = 0;
   @override
+  void initState() {
+    if (widget.entry is EntrySaved) {
+      selected = (widget.entry as EntrySaved).episode;
+    }
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final eplist = widget.entry.episodes;
     if (eplist.isEmpty) {
@@ -312,17 +341,23 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
                         if (mounted) {
                           setState(() {
                             selected = ep.$1;
+                            (widget.entry as EntrySaved).episode = selected;
+                            (widget.entry as EntrySaved).save();
                           });
                         }
                       },
                     ),
                   )
                   .toList(),
-              child: const Icon(Icons.folder),
-            ),
-            Text(
-              '${eplist[selected].title} - ${eplist[selected].episodes.length} Episodes',
-              style: context.labelSmall,
+              child: Row(
+                children: [
+                  const Icon(Icons.folder),
+                  Text(
+                    '${eplist[selected].title} - ${eplist[selected].episodes.length} Episodes',
+                    style: context.labelSmall,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -332,56 +367,157 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
   }
 }
 
-class EpList extends StatelessWidget {
+class EpList extends StatefulWidget {
   final EntryDetailed entry;
   final int eplistindex;
+
   EpisodeList get elist => entry.episodes[eplistindex];
   const EpList({super.key, required this.entry, required this.eplistindex});
 
   @override
+  _EpListState createState() => _EpListState();
+}
+
+class _EpListState extends State<EpList> with StateDisposeScopeMixin {
+  late List<int> selected;
+  late ScrollController controller;
+  int? last;
+
+  @override
+  void initState() {
+    selected = List.empty(growable: true);
+    controller = ScrollController()..disposedBy(scope);
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      itemCount: elist.episodes.length,
-      itemBuilder: (BuildContext context, int index) =>
-          EpisodeTile(episodepath: EpisodePath(entry, eplistindex, index))
-              .paddingAll(10),
+    return ContextMenu(
+      active: selected.isNotEmpty && widget.entry is EntrySaved,
+      contextItems: [
+        ContextMenuItem(
+          label: 'Mark as watched',
+          onTap: () async {
+            for (final int i in selected) {
+              final data = (widget.entry as EntrySaved).getEpisodeData(i);
+              data.finished = true;
+            }
+            selected.clear();
+            await (widget.entry as EntrySaved).save();
+          },
+        ),
+        ContextMenuItem(
+          label: 'Mark as unwatched',
+          onTap: () async {
+            for (final int i in selected) {
+              final data = (widget.entry as EntrySaved).getEpisodeData(i);
+              data.finished = false;
+            }
+            selected.clear();
+            await (widget.entry as EntrySaved).save();
+            setState(() {});
+          },
+        ),
+        ContextMenuItem(
+          label: 'Mark to this episode',
+          onTap: () async {
+            for (int i = 0; i <= selected.reduce((a, b) => max(a, b)); i++) {
+              final data = (widget.entry as EntrySaved).getEpisodeData(i);
+              data.finished = true;
+            }
+            selected.clear();
+            await (widget.entry as EntrySaved).save();
+            setState(() {});
+          },
+        ),
+      ],
+      child: ListView.builder(
+        controller: controller,
+        padding: EdgeInsets.zero,
+        itemCount: widget.elist.episodes.length,
+        itemBuilder: (BuildContext context, int index) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          // onSecondaryTap: () {
+          //   logger.i('Secondary tap up $index');
+          //   last = index;
+          // },
+          child: EpisodeTile(
+            episodepath: EpisodePath(widget.entry, widget.eplistindex, index),
+            selection: selected.isNotEmpty,
+            isSelected: selected.contains(index),
+            onSelect: () {
+              if (selected.contains(index)) {
+                selected.remove(index);
+              } else {
+                selected.add(index);
+              }
+              setState(() {});
+            },
+          ),
+        ),
+      ),
     );
   }
 }
 
 class EpisodeTile extends StatelessWidget {
   final EpisodePath episodepath;
-  const EpisodeTile({super.key, required this.episodepath});
+  final bool isSelected;
+  final Function()? onSelect;
+  final bool selection;
+  const EpisodeTile({
+    super.key,
+    required this.episodepath,
+    required this.isSelected,
+    this.onSelect,
+    required this.selection,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final epdata = episodepath.data;
     return DionListTile(
-      onTap: () => GoRouter.of(context).push('/view', extra: [episodepath]),
+      selected: isSelected,
+      visualDensity: VisualDensity.comfortable,
+      onLongTap: onSelect,
+      onTap: selection ? onSelect : () => episodepath.go(context),
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if(episodepath.episode.cover != null && episodepath.episode.cover!.isNotEmpty)
+          if (episodepath.episode.cover != null &&
+              episodepath.episode.cover!.isNotEmpty)
             DionImage(
               imageUrl: episodepath.episode.cover,
+              httpHeaders: episodepath.episode.coverHeader,
               width: 90,
               height: 60,
               boxFit: BoxFit.contain,
             ),
+          if (epdata.bookmark)
+            Icon(
+              Icons.bookmark,
+              color: context.theme.colorScheme.primary,
+            )
+          else
+            (Theme.of(context).iconTheme.size ?? 24.0).widthBox,
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextScroll(
                 episodepath.episode.name,
-                style: context.titleMedium,
+                style: context.titleMedium?.copyWith(
+                  color: epdata.finished ? context.theme.disabledColor : null,
+                ),
               ),
               if (episodepath.episode.timestamp != null)
                 Text(
                   DateTime.tryParse(episodepath.episode.timestamp!)
                           ?.formatrelative() ??
                       '',
-                  style: context.labelSmall,
+                  style: context.labelSmall?.copyWith(
+                    color: epdata.finished ? context.theme.disabledColor : null,
+                  ),
                 ),
             ],
           ).expanded(),
