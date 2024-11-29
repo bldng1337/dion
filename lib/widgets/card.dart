@@ -1,13 +1,16 @@
 import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:country_flags/country_flags.dart';
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:text_scroll/text_scroll.dart';
 
 const double width = 300 / 1.5;
@@ -17,6 +20,7 @@ class Card extends StatelessWidget {
   final String? imageUrl;
   final List<Widget>? leadingBadges;
   final List<Widget>? trailingBadges;
+  final Map<String, String>? httpHeaders;
   final Widget? bottom;
   final Function()? onTap;
   const Card({
@@ -26,6 +30,7 @@ class Card extends StatelessWidget {
     this.trailingBadges,
     this.bottom,
     this.onTap,
+    this.httpHeaders,
   });
 
   @override
@@ -41,6 +46,7 @@ class Card extends StatelessWidget {
           if (imageUrl != null)
             DionImage(
               imageUrl: imageUrl,
+              httpHeaders: httpHeaders,
               width: width,
               height: height,
               errorWidget: Icon(Icons.image, size: min(width, height)),
@@ -102,15 +108,73 @@ class EntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       imageUrl: entry.cover,
+      httpHeaders: entry.coverHeader,
+      leadingBadges: [
+        if (entry is EntrySaved)
+          DionBadge(
+            child: Text(
+              '${(entry as EntrySaved).latestEpisode}/${(entry as EntrySaved).totalEpisodes}',
+              style: context.textTheme.labelSmall,
+            ),
+          ),
+        if (entry.length != null && entry is! EntrySaved)
+          DionBadge(
+            child: Text(
+              entry.length!.toString(),
+              style: context.textTheme.labelSmall,
+            ),
+          ),
+        DionBadge(
+          child: Icon(
+            switch (entry.mediaType) {
+              MediaType.audio => Icons.music_note,
+              MediaType.video => Icons.videocam,
+              MediaType.book => Icons.menu_book,
+              MediaType.comic => Icons.image,
+              MediaType.unknown => Icons.help,
+            },
+            size: 15,
+          ),
+        ),
+      ],
+      trailingBadges: [
+        if (entry is EntrySaved)
+          DionBadge(
+            child: CountryFlag.fromLanguageCode(
+              (entry as EntrySaved).language,
+              height: 15,
+              width: 15,
+            ),
+          ),
+        DionBadge(
+          child: DionImage(
+            imageUrl: entry.extension.data.icon,
+            width: 15,
+            height: 15,
+          ),
+        ),
+      ],
       bottom: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (entry.rating != null)
-            Stardisplay(
-              fill: entry.rating!,
-              width: 12,
-              height: 12,
-              color: context.theme.primaryColor,
+            Row(
+              children: [
+                Stardisplay(
+                  fill: entry.rating!,
+                  width: 12,
+                  height: 12,
+                  color: context.theme.primaryColor,
+                ),
+                const Spacer(),
+                if (entry.views != null)
+                  Text(
+                    NumberFormat.compact().format(entry.views),
+                    style: context.textTheme.titleSmall?.copyWith(
+                      color: context.theme.primaryColor,
+                    ),
+                  ),
+              ],
             ).paddingOnly(left: 5),
           TextScroll(
             entry.title,
