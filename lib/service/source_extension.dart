@@ -2,6 +2,7 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/settings.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed;
 
@@ -50,6 +51,14 @@ class Extension {
     final res = await _proxy.search(page: page, filter: filter, token: token);
     return res.map((e) => e.wrap(this)).toList();
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is Extension && other._proxy == _proxy;
+  }
+
+  @override
+  int get hashCode => _proxy.hashCode;
 }
 
 abstract class SourceExtension {
