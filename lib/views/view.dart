@@ -20,19 +20,26 @@ class ViewSource extends StatefulWidget {
 class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   SourcePath? source;
   CancelToken? tok;
+  bool loading = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final extra = GoRouterState.of(context).extra;
     if (extra is! List<Object?>) return;
+    if (extra.isEmpty) return;
+    if (extra[0]! is! EpisodePath) return;
     final eppath = extra[0]! as EpisodePath;
+    if (source != null && source!.episode == eppath) return;
+    if (loading) return;
     if (tok?.isDisposed ?? true) {
       tok = CancelToken()..disposedBy(scope);
     }
+    loading = true;
     locate<SourceExtension>().source(eppath, token: tok).then((src) {
       if (mounted) {
         setState(() {
+          loading = false;
           source = src;
         });
       }
