@@ -70,7 +70,7 @@ dependencies:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 4bfa8743c48d2a785dbf30583ff2804bf86b3364
+      ref: f155363091b59a74d37ef5af5260f8e61cbb21af
 
 dev_dependencies:
   build_runner: ^2.2.0
