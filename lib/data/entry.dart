@@ -60,6 +60,11 @@ class EpisodeData {
 
   @override
   int get hashCode => bookmark.hashCode ^ finished.hashCode ^ progress.hashCode;
+
+  @override
+  String toString() {
+    return 'EpisodeData{bookmark: $bookmark, finished: $finished, progress: $progress}';
+  }
 }
 
 abstract class EntryDetailed extends Entry {
@@ -131,10 +136,18 @@ class EntryImpl implements Entry {
   int? get length => _entry.length;
 
   @override
-  int get hashCode => _entry.hashCode;
+  int get hashCode => _entry.hashCode ^ _extension.hashCode;
 
   @override
-  bool operator ==(Object other) => _entry == other;
+  bool operator ==(Object other) =>
+      other is EntryImpl &&
+      other._entry == _entry &&
+      other._extension == _extension;
+
+  @override
+  String toString() {
+    return 'EntryImpl{_entry: $_entry, _extension: $_extension}';
+  }
 
   @override
   Future<EntryDetailed> toDetailed({CancelToken? token}) async {
@@ -190,6 +203,22 @@ class EpisodePath {
   EpisodePath get next => EpisodePath(entry, episodelist, episodenumber + 1);
   EpisodePath get prev => EpisodePath(entry, episodelist, episodenumber - 1);
   Extension get extension => entry.extension;
+
+  @override
+  String toString() {
+    return 'EpisodePath(entry: $entry, episodelist: $episodelist, episodenumber: $episodenumber)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is EpisodePath &&
+        other.entry == entry &&
+        other.episodelist == episodelist &&
+        other.episodenumber == episodenumber;
+  }
+
+  @override
+  int get hashCode => Object.hash(entry, episodelist, episodenumber);
 }
 
 class EntryDetailedImpl implements EntryDetailed {
@@ -271,6 +300,15 @@ class EntryDetailedImpl implements EntryDetailed {
     await saved.save();
     return saved;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is EntryDetailedImpl &&
+      other._entry == _entry &&
+      other._extension == _extension;
+
+  @override
+  int get hashCode => _entry.hashCode ^ _extension.hashCode;
 }
 
 class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
@@ -316,4 +354,24 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
     episodedata = data;
     return data[episode];
   }
+
+  @override
+  String toString() {
+    return 'EntrySavedImpl{_entry: $_entry, _extension: $_extension, episodedata: $episodedata, episode: $episode}';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is EntrySavedImpl &&
+      other._entry == _entry &&
+      other._extension == _extension &&
+      other.episodedata == episodedata &&
+      other.episode == episode;
+
+  @override
+  int get hashCode =>
+      _entry.hashCode ^
+      _extension.hashCode ^
+      episodedata.hashCode ^
+      episode.hashCode;
 }
