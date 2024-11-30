@@ -1,6 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/routes.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
@@ -50,7 +51,8 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
             sources: locate<SourceExtension>()
                 .getExtensions(extfilter: (e) => e.isenabled)
                 .map(
-                    (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular)))
+                  (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular))..name = e.data.name,
+                )
                 .toList(),
           ).expanded(),
         ],
