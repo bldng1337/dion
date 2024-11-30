@@ -62,7 +62,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
                       i,
                       GoRouterState.of(context).pathParameters['query'] ?? '',
                     ),
-                  ),
+                  )..name = e.data.name,
                 )
                 .toList(),
           ).expanded(),

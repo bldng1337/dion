@@ -1,4 +1,3 @@
-
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
@@ -21,6 +20,7 @@ class _LibraryState extends State<Library> {
     return NavScaff(
       destination: homedestinations,
       child: DynamicGrid<Entry>(
+        showDataSources: false,
         itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
         sources: [
           SingleStreamSource((i) => locate<Database>().getEntries(i, 25)),
