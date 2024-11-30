@@ -5,6 +5,7 @@ import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/library.dart';
 import 'package:dionysos/views/search.dart';
+import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/view.dart';
@@ -54,7 +55,11 @@ GoRouter getRoutes() => GoRouter(
           routes: [
             GoRoute(
               path: '/paragraphreader',
-              builder: (context, state) => const ParagraphReader(),
+              builder: (context, state) => const ParagraphReaderSettings(),
+            ),
+            GoRoute(
+              path: '/imagelistreader',
+              builder: (context, state) => const ImageListReaderSettings(),
             ),
           ],
         ),

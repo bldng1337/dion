@@ -65,6 +65,28 @@ enum ReaderMode {
 
 final settings = (
   readerSettings: (
+    imagelistreader: (
+      mode: Setting(
+        ReaderMode.paginated,
+        const PreferenceEnumMetaData('imagelistreader.mode', ReaderMode.values),
+      ),
+      adaptivewidth: Setting(
+        true,
+        const PreferenceBoolMetaData('paragraphreader.text.adaptivewidth'),
+      )..addCollection(preferenceCollection),
+      width: Setting(
+        70.0,
+        const PreferenceDoubleMetaData('paragraphreader.text.linewidth'),
+      )..addCollection(preferenceCollection),
+      music: Setting(
+        true,
+        const PreferenceBoolMetaData('paragraphreader.text.music'),
+      )..addCollection(preferenceCollection),
+      volume: Setting(
+        50.0,
+        const PreferenceDoubleMetaData('paragraphreader.text.volume'),
+      )..addCollection(preferenceCollection),
+    ),
     paragraphreader: (
       mode: Setting(
         ReaderMode.paginated,
@@ -73,7 +95,7 @@ final settings = (
       title: Setting(
         false,
         const PreferenceBoolMetaData('paragraphreader.title'),
-        )..addCollection(preferenceCollection),
+      )..addCollection(preferenceCollection),
       text: (
         adaptivewidth: Setting(
           true,
@@ -97,7 +119,8 @@ final settings = (
         )..addCollection(preferenceCollection),
         paragraphspacing: Setting(
           3.0,
-          const PreferenceDoubleMetaData('paragraphreader.text.paragraphspacing'),
+          const PreferenceDoubleMetaData(
+              'paragraphreader.text.paragraphspacing'),
         )..addCollection(preferenceCollection),
         selectable: Setting(
           true,

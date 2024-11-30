@@ -25,6 +25,13 @@ class Settings extends StatelessWidget {
                 ),
                 onTap: () => context.push('/settings/paragraphreader'),
               ),
+              ListTile(
+                title: Text(
+                  'Image List Reader',
+                  style: context.bodyMedium,
+                ),
+                onTap: () => context.push('/settings/imagelistreader'),
+              ),
             ],
           ),
         ],
