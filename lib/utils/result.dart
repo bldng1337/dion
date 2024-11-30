@@ -1,6 +1,6 @@
 class Result<T> {
   final T? value;
-  final Exception? error;
+  final Object? error;
   final StackTrace? trace;
   const Result(this.value, this.error, {this.trace});
   const Result.error(this.error, {this.trace}) : value = null;
@@ -26,7 +26,7 @@ class Result<T> {
   }
 
   R build<R>(R Function(T value) valueMapper,
-      R Function(Exception error,StackTrace? trace) errorMapper,) {
+      R Function(Object error,StackTrace? trace) errorMapper,) {
     if (isError) {
       return errorMapper(error!,trace);
     }
@@ -40,7 +40,7 @@ class Result<T> {
     return Result(mapper(value as T), error);
   }
 
-  Result<T> mapError(Exception Function(Exception error,StackTrace? trace) mapper) {
+  Result<T> mapError(Object Function(Object error,StackTrace? trace) mapper) {
     if (isError) {
       return Result(value, mapper(error!,trace));
     }
