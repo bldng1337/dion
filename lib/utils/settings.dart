@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class SettingCollection<T,M extends MetaData<T>> {
+class SettingCollection<T, M extends MetaData<T>> {
   final List<Setting<T, M>> settings;
   SettingCollection() : settings = [];
   void add(Setting<T, M> s) {
@@ -13,7 +13,6 @@ abstract class EnumMetaData<T extends Enum> extends MetaData<T> {
 }
 
 class MetaData<T> {
-
   const MetaData();
 }
 
@@ -30,12 +29,13 @@ class Setting<T, M extends MetaData<T>> with ChangeNotifier {
   T get value => _value;
   set value(T v) {
     if (v == _value) return;
-    notifyListeners();
     _value = v;
+    notifyListeners();
   }
 
-  void addCollection<_T,_M extends MetaData<_T>>(SettingCollection<_T,_M> collection) {
-    collection.add(this as Setting<_T,_M>);
+  void addCollection<_T, _M extends MetaData<_T>>(
+      SettingCollection<_T, _M> collection) {
+    collection.add(this as Setting<_T, _M>);
   }
 
   @override
@@ -54,9 +54,11 @@ class Setting<T, M extends MetaData<T>> with ChangeNotifier {
   int get hashCode => Object.hash(value, metadata);
 }
 
-
 extension Settings on Widget {
   Widget conditional(Setting<bool, dynamic> setting) {
-    return ListenableBuilder(listenable: setting, builder: (context, child) => Visibility(visible: setting.value, child: this));
+    return ListenableBuilder(
+        listenable: setting,
+        builder: (context, child) =>
+            Visibility(visible: setting.value, child: this));
   }
 }
