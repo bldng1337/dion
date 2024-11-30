@@ -61,13 +61,20 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    entry = (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
-    if (entry is! EntryDetailed && mounted) {
-      if (tok.isDisposed) {
-        tok = CancelToken()..disposedBy(scope);
-      }
-      loadEntry();
+    final newentry =
+        (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
+    if (newentry is EntryDetailed || newentry is EntrySaved) {
+      entry = newentry;
+      return;
     }
+    if (entry is EntryDetailed && newentry.id == entry?.id) return;
+    if (entry is EntrySaved && newentry.id == entry?.id) return;
+    if (!mounted) return;
+    entry = newentry;
+    if (tok.isDisposed) {
+      tok = CancelToken()..disposedBy(scope);
+    }
+    loadEntry();
   }
 
   @override
