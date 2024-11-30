@@ -12,7 +12,7 @@ class DionBadge extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(4)),
-        color: color??context.primaryColor,
+        color: color??context.theme.colorScheme.primary,
       ),
       padding: const EdgeInsets.all(1),
       margin: const EdgeInsets.all(3),
