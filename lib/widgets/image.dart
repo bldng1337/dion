@@ -75,7 +75,6 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
         )
         .where((e) => e is FileInfo)
         .last;
-    // await Future.delayed(const Duration(seconds: 3));
     final file = (fileinfo as FileInfo).file;
     final int lengthInBytes = await file.length();
     if (lengthInBytes == 0) {
@@ -116,10 +115,12 @@ class DionImage extends StatefulWidget {
   final Map<String, String>? httpHeaders;
   final FilterQuality? filterQuality;
   final BoxFit? boxFit;
+  final bool shouldAnimate;
   // final String? cacheKey;
   final Widget? errorWidget;
   final Color? color;
   final Alignment? alignment;
+  final Widget Function(BuildContext context)? loadingBuilder;
   const DionImage({
     super.key,
     required this.imageUrl,
@@ -131,6 +132,8 @@ class DionImage extends StatefulWidget {
     this.alignment,
     this.httpHeaders,
     this.filterQuality,
+    this.loadingBuilder,
+    this.shouldAnimate = true,
   });
 
   @override
@@ -138,51 +141,7 @@ class DionImage extends StatefulWidget {
 }
 
 class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
-  int count = 0;
-  int total = 0;
-  File? image;
-  bool error = false;
-  @override
-  void initState() {
-    // if (widget.imageUrl == null) {
-    //   error = true;
-    //   return;
-    // }
 
-    // final cache = locate<CacheService>().imgcache;
-    // cache
-    //     .getImageFile(
-    //   widget.imageUrl!,
-    //   headers: widget.httpHeaders,
-    //   maxHeight: widget.height?.toInt(),
-    //   maxWidth: widget.width?.toInt(),
-    //   withProgress: true,
-    // )
-    //     .listen(
-    //   (update) {
-    //     switch (update) {
-    //       case final FileInfo finfo:
-    //         if (mounted) {
-    //           setState(() {
-    //             image = finfo.file;
-    //           });
-    //         }
-    //       case final DownloadProgress progress:
-    //         count = progress.downloaded;
-    //         total = progress.totalSize ?? 0;
-    //     }
-    //   },
-    //   onError: (e) {
-    //     if (mounted) {
-    //       setState(() {
-    //         // logger.e('Error downloading Image', error: e);
-    //         error = true;
-    //       });
-    //     }
-    //   },
-    // );
-    super.initState();
-  }
 
   Widget noImage(BuildContext context) {
     return FittedBox(
@@ -190,6 +149,17 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
       child: widget.errorWidget ??
           Icon(Icons.image, size: min(widget.width ?? 24, widget.height ?? 24)),
     );
+  }
+
+  Widget getLoading(BuildContext context) {
+    if (widget.loadingBuilder != null) {
+      return widget.loadingBuilder!(context);
+    }
+    return Container(
+      color: Colors.red,
+      width: widget.width,
+      height: widget.height,
+    ).applyShimmer(highlightColor: widget.color);
   }
 
   @override
@@ -201,7 +171,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         child: noImage(context),
       );
     }
-    
+
     return Image(
       image: DionNetworkImage(
         widget.imageUrl!,
@@ -227,61 +197,21 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         );
       },
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded || frame != null) {
-          return child;
+        final isloaded = wasSynchronouslyLoaded || frame != null;
+        if (!widget.shouldAnimate) {
+          if (isloaded) {
+            return child;
+          }
+          return getLoading(context);
         }
-        return child.applyShimmer();
+        return AnimatedCrossFade(
+          firstChild: child,
+          secondChild: getLoading(context),
+          crossFadeState:
+              isloaded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          duration: 400.milliseconds,
+        );
       },
     );
-    // if (error) {
-    //   return FittedBox(
-    //     fit: widget.boxFit ?? BoxFit.contain,
-    //     child: widget.errorWidget ??
-    //         Icon(Icons.image,
-    //             size: min(widget.width ?? 24, widget.height ?? 24)),
-    //   );
-    // }
-    // if (image != null) {
-    //   return m.Image.file(
-    //     image!,
-    //     filterQuality: widget.filterQuality ?? FilterQuality.medium,
-    //     width: widget.width,
-    //     height: widget.height,
-    //     fit: widget.boxFit ?? BoxFit.contain,
-    //     alignment: widget.alignment ?? Alignment.center,
-    //     errorBuilder: (context, error, stackTrace) {
-    //       logger.e(
-    //         'Error loading image ${widget.imageUrl}',
-    //         error: error,
-    //         stackTrace: stackTrace,
-    //       );
-    //       return widget.errorWidget ??
-    //           Icon(
-    //             Icons.image,
-    //             size: min(widget.width ?? 24, widget.height ?? 24),
-    //           );
-    //     },
-    //   );
-    // }
-    // final progress = (count.toDouble()) / (total.toDouble() + 0.00001);
-    // return FittedBox(
-    //   fit: widget.boxFit ?? BoxFit.contain,
-    //   child: SizedBox(
-    //     width: widget.width,
-    //     height: widget.height,
-    //     child: Stack(
-    //       children: [
-    //         SizedBox(width: widget.width, height: widget.height)
-    //             .applyShimmer(highlightColor: widget.color),
-    //         if (progress >= 0 && progress <= 1)
-    //           Center(
-    //             child: CircularProgressIndicator(
-    //               value: progress,
-    //             ),
-    //           ),
-    //       ],
-    //     ),
-    //   ),
-    // );
   }
 }
