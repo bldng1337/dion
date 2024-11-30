@@ -6,8 +6,8 @@ import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/material.dart';
 
-class ParagraphReader extends StatelessWidget {
-  const ParagraphReader({super.key});
+class ParagraphReaderSettings extends StatelessWidget {
+  const ParagraphReaderSettings({super.key});
 
   @override
   Widget build(BuildContext context) {
