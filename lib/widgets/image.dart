@@ -141,8 +141,6 @@ class DionImage extends StatefulWidget {
 }
 
 class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
-
-
   Widget noImage(BuildContext context) {
     return FittedBox(
       fit: widget.boxFit ?? BoxFit.contain,
@@ -196,21 +194,16 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
           message: 'Failed to load image ${widget.imageUrl}',
         );
       },
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        final isloaded = wasSynchronouslyLoaded || frame != null;
-        if (!widget.shouldAnimate) {
-          if (isloaded) {
-            return child;
-          }
-          return getLoading(context);
+      frameBuilder: (context, image, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded) {
+          return image;
         }
-        return AnimatedCrossFade(
-          firstChild: child,
-          secondChild: getLoading(context),
-          crossFadeState:
-              isloaded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-          duration: 400.milliseconds,
-        );
+        final isloaded = frame != null;
+        final child = isloaded ? image : getLoading(context);
+        if (!widget.shouldAnimate) {
+          return child;
+        }
+        return AnimatedSwitcher(duration: 400.milliseconds, child: child);
       },
     );
   }
