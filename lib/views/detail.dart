@@ -21,9 +21,11 @@ import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/popupmenu.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
+import 'package:dionysos/widgets/tabbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:text_scroll/text_scroll.dart';
 
 class Detail extends StatefulWidget {
@@ -87,6 +89,36 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Widget build(BuildContext context) {
     if (entry == null) {
       return const NavScaff(child: Center(child: CircularProgressIndicator()));
+    }
+    if (context.width < 800) {
+      return NavScaff(
+        floatingActionButton: entry is EntrySaved
+            ? ActionButton(
+                onPressed: () {
+                  EpisodePath(
+                    entry! as EntryDetailed,
+                    (entry! as EntrySaved).episode,
+                    (entry! as EntrySaved).latestEpisode,
+                  ).go(context);
+                },
+                child: const Icon(Icons.play_arrow),
+              )
+            : null,
+        title: TextScroll(entry?.title ?? ''),
+        child: DionTabBar(
+          tabs: [
+            DionTab(
+              tab: const TextScroll('Info'),
+              child: EntryInfo(entry: entry!),
+            ),
+            if (entry is EntryDetailed)
+              DionTab(
+                tab: const TextScroll('Episodes'),
+                child: EpisodeListUI(entry: entry! as EntryDetailed),
+              ),
+          ],
+        ),
+      );
     }
     return NavScaff(
       floatingActionButton: entry is EntrySaved
@@ -163,41 +195,40 @@ class EntryInfo extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             DionImage(
+              alignment: Alignment.topCenter,
               imageUrl: entry.cover,
-              width: 130,
-              height: 200,
-            ),
+              width: 140,
+              height: 220,
+            ).paddingAll(3),
             Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextScroll(
                   entry.title,
                   style: context.headlineMedium,
                   pauseBetween: 1.seconds,
-                ).paddingOnly(bottom: 3),
+                ),
                 TextScroll(
-                  (entry.author != null && entry.author!.isNotEmpty)
-                      ? entry.author!.reduce((a, b) => '$a • $b')
-                      : 'Unkown author',
-                  style: context.bodyLarge,
+                  'by ${(entry.author != null && entry.author!.isNotEmpty) ? entry.author!.map(
+                        (e) => e.trim().replaceAll('\n', ''),
+                      ).reduce((a, b) => '$a • $b') : 'Unkown author'}',
+                  style: context.labelLarge,
                   pauseBetween: 1.seconds,
                 ),
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     DionImage(
                       imageUrl: entry.extension.data.icon,
-                      width: 20,
-                      height: 20,
+                      width: 15,
+                      height: 15,
                       errorWidget: const Icon(
                         Icons.image,
                         size: 20,
                       ),
-                    ),
+                    ).paddingOnly(right: 5),
                     TextScroll(
                       entry.extension.data.name,
-                      style: context.bodyLarge,
+                      style: context.bodyMedium,
                       pauseBetween: 1.seconds,
                     ),
                     const Text(' • '),
@@ -206,11 +237,11 @@ class EntryInfo extends StatelessWidget {
                       entry: entry,
                       isdetailed: (entry) => Text(
                         entry.status.asString(),
-                        style: context.bodyLarge,
+                        style: context.bodyMedium,
                       ),
                       isnt: () => Text(
                         'Releasing',
-                        style: context.bodyLarge,
+                        style: context.bodyMedium,
                       ),
                     ),
                   ],
@@ -221,6 +252,11 @@ class EntryInfo extends StatelessWidget {
                     height: 20,
                     fill: entry.rating!,
                     color: Colors.yellow[500]!,
+                  ),
+                if (entry.views != null)
+                  Text(
+                    NumberFormat.compact().format(entry.views),
+                    style: context.bodyMedium,
                   ),
               ],
             ).paddingAll(5).expanded(),
@@ -523,7 +559,7 @@ class EpisodeTile extends StatelessWidget {
                           ?.formatrelative() ??
                       '',
                   style: context.labelSmall?.copyWith(
-                    color: epdata.finished ? context.theme.disabledColor : null,
+                    color: context.theme.disabledColor,
                   ),
                 ),
             ],
