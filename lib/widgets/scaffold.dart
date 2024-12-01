@@ -36,17 +36,18 @@ class NavScaff extends StatelessWidget {
             actions: actions,
           ),
           body: child,
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: index >= 0 ? index : 0,
-            items: destination
+          bottomNavigationBar: NavigationBar(
+            backgroundColor: context.backgroundColor,
+            selectedIndex: index >= 0 ? index : 0,
+            destinations: destination
                 .map(
-                  (e) => BottomNavigationBarItem(
+                  (e) => NavigationDestination(
                     icon: Icon(e.ico),
                     label: e.name,
                   ),
                 )
                 .toList(),
-            onTap: (i) => context.go(destination[i].path),
+            onDestinationSelected: (i) => context.go(destination[i].path),
           ),
         ),
       DionThemeMode.cupertino => CupertinoTabScaffold(
