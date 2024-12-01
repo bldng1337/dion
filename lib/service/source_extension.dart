@@ -2,7 +2,6 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/utils/settings.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed;
 

@@ -137,7 +137,6 @@ class DatabaseImpl implements Database {
         id: dbentry['id']! as String,
         url: dbentry['url']! as String,
         title: dbentry['title']! as String,
-        ui: null,//dbentry['ui']! as String
         status: rust.ReleaseStatus.values
             .firstWhere((e) => e.name == dbentry['status']! as String),
         description: dbentry['description']! as String,

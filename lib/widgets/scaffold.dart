@@ -169,7 +169,7 @@ class NavScaff extends StatelessWidget {
                             child: Row(
                               children: [
                                 Icon(e.ico).paddingAll(5),
-                                Text(e.name).expanded()
+                                Text(e.name).expanded(),
                               ],
                             ),
                             onPressed: () => context.go(e.path),

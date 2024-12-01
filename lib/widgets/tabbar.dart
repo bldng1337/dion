@@ -1,5 +1,4 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/routes.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/material.dart';
 

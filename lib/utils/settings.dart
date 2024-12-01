@@ -34,7 +34,7 @@ class Setting<T, M extends MetaData<T>> with ChangeNotifier {
   }
 
   void addCollection<_T, _M extends MetaData<_T>>(
-      SettingCollection<_T, _M> collection) {
+      SettingCollection<_T, _M> collection,) {
     collection.add(this as Setting<_T, _M>);
   }
 
@@ -59,6 +59,6 @@ extension Settings on Widget {
     return ListenableBuilder(
         listenable: setting,
         builder: (context, child) =>
-            Visibility(visible: setting.value, child: this));
+            Visibility(visible: setting.value, child: this),);
   }
 }

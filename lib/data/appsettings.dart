@@ -120,7 +120,7 @@ final settings = (
         paragraphspacing: Setting(
           3.0,
           const PreferenceDoubleMetaData(
-              'paragraphreader.text.paragraphspacing'),
+              'paragraphreader.text.paragraphspacing',),
         )..addCollection(preferenceCollection),
         selectable: Setting(
           true,

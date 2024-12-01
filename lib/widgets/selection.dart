@@ -1,5 +1,4 @@
 import 'package:dionysos/utils/theme.dart';
-import 'package:flutter/cupertino.dart' as cupertino;
 import 'package:flutter/material.dart';
 
 class Selection extends StatelessWidget {

@@ -33,7 +33,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   void initState() {
     final epdata = widget.source.episode.data;
     controller = ScrollController(
-        initialScrollOffset: double.tryParse(epdata.progress ?? '0') ?? 0)
+        initialScrollOffset: double.tryParse(epdata.progress ?? '0') ?? 0,)
       ..disposedBy(scope);
     controller.addListener(
       () {

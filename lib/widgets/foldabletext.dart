@@ -35,8 +35,8 @@ class _FoldabletextState extends State<Foldabletext> {
         style: widget.style,
         textAlign: widget.textAlign,
       ),
-      Icon(Icons.keyboard_arrow_down),
-        ]
+      const Icon(Icons.keyboard_arrow_down),
+        ],
       ),
       secondChild: Text(
         widget.text,

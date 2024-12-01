@@ -312,6 +312,7 @@ class EntryDetailedImpl implements EntryDetailed {
 }
 
 class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
+  @override
   List<EpisodeData> episodedata;
   EntrySavedImpl(super.entry, super.extension, this.episodedata);
   @override

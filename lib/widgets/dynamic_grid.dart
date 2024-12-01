@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/result.dart';
 import 'package:dionysos/widgets/badge.dart';
@@ -214,6 +213,7 @@ class AsyncSource<T> extends DataSource<T> {
   @override
   bool isfinished = false;
   int index = 0;
+  @override
   bool requesting = false;
   AsyncSource(this.loadmore);
 

@@ -9,14 +9,13 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart' as m;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 @immutable
 class DionNetworkImage extends ImageProvider<DionNetworkImage> {
   const DionNetworkImage(this.url,
-      {this.width, this.height, this.httpHeaders, this.scale = 1.0});
+      {this.width, this.height, this.httpHeaders, this.scale = 1.0,});
 
   final String url;
 

@@ -1,10 +1,8 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';

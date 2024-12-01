@@ -45,7 +45,7 @@ GoRouter getRoutes() => GoRouter(
         ),
         GoRoute(
             path: '/search/:query',
-            builder: (context, state) => const Search()),
+            builder: (context, state) => const Search(),),
         GoRoute(path: '/view', builder: (context, state) => const ViewSource()),
         GoRoute(path: '/detail', builder: (context, state) => const Detail()),
         GoRoute(path: '/library', builder: (context, state) => const Library()),
