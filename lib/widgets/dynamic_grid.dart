@@ -15,6 +15,7 @@ abstract class DataSource<T> {
   Future<void> requestMore();
   bool get isfinished;
   bool get requesting;
+  void reset();
 }
 
 class StreamSource<T> extends DataSource<T> {
@@ -53,6 +54,30 @@ class StreamSource<T> extends DataSource<T> {
     );
     await completer.future;
   }
+
+  @override
+  void reset() {
+    index = 0;
+    isfinished = false;
+    requesting = false;
+  }
+
+  @override
+  String toString() {
+    return 'AsyncStreamSource{loadmore: $loadmore, index: $index, isfinished: $isfinished, requesting: $requesting}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AsyncStreamSource<T> &&
+        other.loadmore == loadmore &&
+        other.index == index &&
+        other.isfinished == isfinished &&
+        other.requesting == requesting;
+  }
+
+  @override
+  int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
 }
 
 class SingleStreamSource<T> extends DataSource<T> {
@@ -94,6 +119,30 @@ class SingleStreamSource<T> extends DataSource<T> {
     );
     await completer.future;
   }
+
+  @override
+  void reset() {
+    index = 0;
+    isfinished = false;
+    requesting = false;
+  }
+
+  @override
+  String toString() {
+    return 'SingleStreamSource{loadmore: $loadmore, index: $index, isfinished: $isfinished, requesting: $requesting}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SingleStreamSource<T> &&
+        other.loadmore == loadmore &&
+        other.index == index &&
+        other.isfinished == isfinished &&
+        other.requesting == requesting;
+  }
+
+  @override
+  int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
 }
 
 class AsyncStreamSource<T> extends DataSource<T> {
@@ -134,6 +183,30 @@ class AsyncStreamSource<T> extends DataSource<T> {
     );
     await completer.future;
   }
+
+  @override
+  void reset() {
+    index = 0;
+    isfinished = false;
+    requesting = false;
+  }
+
+  @override
+  String toString() {
+    return 'AsyncSource{loadmore: $loadmore, index: $index, isfinished: $isfinished, requesting: $requesting}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AsyncSource<T> &&
+        other.loadmore == loadmore &&
+        other.index == index &&
+        other.isfinished == isfinished &&
+        other.requesting == requesting;
+  }
+
+  @override
+  int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
 }
 
 class AsyncSource<T> extends DataSource<T> {
@@ -164,7 +237,33 @@ class AsyncSource<T> extends DataSource<T> {
     }
     requesting = false;
   }
+
+  @override
+  void reset() {
+    index = 0;
+    isfinished = false;
+    requesting = false;
+  }
+
+  @override
+  String toString() {
+    return 'DataSource{loadmore: $loadmore, index: $index, isfinished: $isfinished, requesting: $requesting}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AsyncSource<T> &&
+        other.loadmore == loadmore &&
+        other.index == index &&
+        other.isfinished == isfinished &&
+        other.requesting == requesting;
+  }
+
+  @override
+  int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
 }
+
+//TODO: Make a Controller mechanism to mitigate reloading when the state gets rebuilt
 
 class DynamicGrid<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
@@ -216,18 +315,20 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
     if (mounted) {
       setState(() {});
     }
-    try{
+    try {
       if (controller.position.pixels >=
           controller.position.maxScrollExtent * widget.preload) {
         loadMore();
       }
-    }catch(e,stack){
-    }
+    } catch (e) {}
   }
 
   @override
   void initState() {
     items = [];
+    for (final e in widget.sources) {
+      e.reset();
+    }
     controller = ScrollController()..disposedBy(scope);
     streamController = StreamController()..disposedBy(scope);
     for (final source in widget.sources) {
