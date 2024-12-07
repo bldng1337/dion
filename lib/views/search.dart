@@ -21,6 +21,7 @@ class Search extends StatefulWidget {
 
 class _SearchState extends State<Search> with StateDisposeScopeMixin {
   late final TextEditingController controller;
+  late final DataSourceController<Entry> datacontroller;
   late final CancelToken? token;
 
   @override
@@ -31,6 +32,19 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
 
   @override
   void initState() {
+    datacontroller = DataSourceController<Entry>(
+      locate<SourceExtension>()
+          .getExtensions(extfilter: (e) => e.isenabled)
+          .map(
+            (e) => AsyncSource<Entry>(
+              (i) => e.search(
+                i,
+                GoRouterState.of(context).pathParameters['query'] ?? '',
+              ),
+            )..name = e.data.name,
+          )
+          .toList(),
+    );
     controller = TextEditingController()..disposedBy(scope);
     token = CancelToken()..disposedBy(scope);
     super.initState();
@@ -53,17 +67,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
-            sources: locate<SourceExtension>()
-                .getExtensions(extfilter: (e) => e.isenabled)
-                .map(
-                  (e) => AsyncSource<Entry>(
-                    (i) => e.search(
-                      i,
-                      GoRouterState.of(context).pathParameters['query'] ?? '',
-                    ),
-                  )..name = e.data.name,
-                )
-                .toList(),
+            controller: datacontroller,
           ).expanded(),
         ],
       ),

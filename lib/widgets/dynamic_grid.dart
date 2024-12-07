@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/result.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -263,7 +264,58 @@ class AsyncSource<T> extends DataSource<T> {
   int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
 }
 
-//TODO: Make a Controller mechanism to mitigate reloading when the state gets rebuilt
+class DataSourceController<T> extends ChangeNotifier {
+  final List<DataSource<T>> sources;
+  final List<Result<T>> items = List.empty(growable: true);
+  final StreamController<List<Result<T>>> streamController =
+      StreamController<List<Result<T>>>();
+  int index = 0;
+  bool loading = false;
+  bool finished = false;
+  DataSourceController(this.sources) {
+    for (final source in sources) {
+      source.streamController = streamController;
+    }
+    streamController.stream.listen(
+      (items) {
+        this.items.addAll(items);
+        notifyListeners();
+      },
+      onError: (e) {
+        logger.e('DataSourceController failed stream: ', error: e);
+      },
+    );
+  }
+
+  Future<void> requestMore() async {
+    if (loading || finished) return;
+    loading = true;
+    final futures = Future.wait(
+      sources.map((source) => source.requestMore()),
+    );
+    notifyListeners();
+    await futures;
+    loading = false;
+    finished = sources.every((e) => e.isfinished);
+    notifyListeners();
+  }
+
+  void reset() {
+    for (final source in sources) {
+      source.reset();
+    }
+    index = 0;
+    finished = false;
+    items.clear();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    streamController.close();
+  }
+}
 
 class DynamicGrid<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
@@ -272,14 +324,14 @@ class DynamicGrid<T> extends StatefulWidget {
     Object error,
     StackTrace? trace,
   )? errorBuilder;
-  final List<DataSource<T>> sources;
+  final DataSourceController<T> controller;
   final double preload;
   final bool showDataSources;
   const DynamicGrid({
     super.key,
     required this.itemBuilder,
     this.errorBuilder,
-    required this.sources,
+    required this.controller,
     this.preload = 0.7,
     this.showDataSources = true,
   }) : assert(preload >= 0 && preload <= 1);
@@ -290,73 +342,45 @@ class DynamicGrid<T> extends StatefulWidget {
 
 class _DynamicGridState<T> extends State<DynamicGrid<T>>
     with StateDisposeScopeMixin {
-  late final StreamController<List<Result<T>>> streamController;
-  late final List<Result<T>> items;
-  int index = 0;
   late final ScrollController controller;
-  bool loading = false;
-  bool finished = false;
-
-  Future<void> loadMore() async {
-    if (loading || finished) return;
-    loading = true;
-    for (final source in widget.sources) {
-      source.streamController ??= streamController;
-    }
-    final futures = Future.wait(
-      widget.sources.map((source) => Future.value(source.requestMore())),
-    );
-    if (mounted) {
-      setState(() {});
-    }
-    await futures;
-    loading = false;
-    finished = widget.sources.every((e) => e.isfinished);
-    if (mounted) {
-      setState(() {});
-    }
-    try {
-      if (controller.position.pixels >=
-          controller.position.maxScrollExtent * widget.preload) {
-        loadMore();
-      }
-    } catch (e) {}
-  }
 
   @override
   void initState() {
-    items = [];
-    for (final e in widget.sources) {
-      e.reset();
-    }
     controller = ScrollController()..disposedBy(scope);
-    streamController = StreamController()..disposedBy(scope);
-    for (final source in widget.sources) {
-      source.streamController = streamController;
-    }
-    streamController.stream.listen(
-      (items) {
-        this.items.addAll(items);
+    Observer(
+      () {
         if (mounted) {
           setState(() {});
         }
       },
-      onError: (e) {
-        logger.e(e);
-      },
+      [widget.controller],
     );
     loadMore();
     controller.addListener(() {
-      if (controller.position.pixels >=
-          controller.position.maxScrollExtent * widget.preload) {
-        loadMore();
-      }
+      loadMore();
     });
     super.initState();
   }
 
+  Future<void> loadMore() async {
+    while (shouldrequest) {
+      await widget.controller.requestMore();
+    }
+  }
+
+  bool get shouldrequest {
+    if (!controller.hasClients) {
+      return !widget.controller.loading && !widget.controller.finished;
+    }
+    return controller.position.pixels >=
+            controller.position.maxScrollExtent * widget.preload &&
+        !widget.controller.loading &&
+        !widget.controller.finished;
+  }
+
   @override
   Widget build(BuildContext context) {
+    loadMore();
     return Column(
       children: [
         if (widget.showDataSources)
@@ -367,7 +391,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
               shrinkWrap: true,
               scrollDirection: Axis.horizontal,
               children: [
-                ...widget.sources.map(
+                ...widget.controller.sources.map(
                   (e) => DionBadge(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -401,12 +425,13 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
             childAspectRatio: 0.69,
             maxCrossAxisExtent: 220,
           ),
-          itemCount: items.length + (finished ? 0 : 1),
+          itemCount: widget.controller.items.length +
+              (widget.controller.finished ? 0 : 1),
           itemBuilder: (context, index) {
-            if (index == items.length) {
+            if (index == widget.controller.items.length) {
               return const Center(child: CircularProgressIndicator());
             }
-            return items[index].build(
+            return widget.controller.items[index].build(
                 (item) => widget.itemBuilder(context, item), (e, stacktrace) {
               if (widget.errorBuilder == null) {
                 return ErrorDisplay(

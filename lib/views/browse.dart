@@ -21,10 +21,20 @@ class Browse extends StatefulWidget {
 
 class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
   late final TextEditingController controller;
+  late final DataSourceController<Entry> datacontroller;
   late final CancelToken? token;
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
+    datacontroller = DataSourceController<Entry>(
+      locate<SourceExtension>()
+          .getExtensions(extfilter: (e) => e.isenabled)
+          .map(
+            (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular))
+              ..name = e.data.name,
+          )
+          .toList(),
+    )..disposedBy(scope);
     token = CancelToken()..disposedBy(scope);
     super.initState();
   }
@@ -46,12 +56,7 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
-            sources: locate<SourceExtension>()
-                .getExtensions(extfilter: (e) => e.isenabled)
-                .map(
-                  (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular))..name = e.data.name,
-                )
-                .toList(),
+            controller: datacontroller,
           ).expanded(),
         ],
       ),
