@@ -163,6 +163,20 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     return NavScaff(
       title: TextScroll(widget.source.name),
       actions: [
+        if(player != null)
+        DionIconbutton(
+          icon: Icon(player!.state.playing ? Icons.pause : Icons.play_arrow),
+          onPressed: () async {
+            if(player!.state.playing) {
+              player!.pause();
+            } else {
+              player!.play();
+            }
+            if (mounted) {
+              setState(() {});
+            }
+          },
+        ),
         DionIconbutton(
           icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
           onPressed: () async {
