@@ -182,6 +182,9 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
       fit: widget.boxFit ?? BoxFit.contain,
       alignment: widget.alignment ?? Alignment.center,
       errorBuilder: (context, error, stackTrace) {
+        if(widget.errorWidget != null){
+          return widget.errorWidget!;
+        }
         logger.e(
           'Error loading image ${widget.imageUrl}',
           error: error,
