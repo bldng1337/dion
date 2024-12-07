@@ -82,6 +82,10 @@ abstract class SourceExtension {
     Entry e, {
     rust.CancelToken? token,
   });
+  Future<EntrySaved> update(
+    EntrySaved e, {
+    rust.CancelToken? token,
+  });
   Future<Entry?> fromUrl(
     String url, {
     rust.CancelToken? token,
@@ -140,13 +144,25 @@ class SourceExtensionImpl implements SourceExtension {
   }
 
   @override
-  Future<EntryDetailedImpl> detail(
+  Future<EntryDetailed> detail(
     Entry e, {
     rust.CancelToken? token,
   }) async {
     return EntryDetailedImpl(
       await e.extension._proxy.detail(entryid: e.id, token: token),
       e.extension,
+    );
+  }
+
+  @override
+  Future<EntrySaved> update(
+    EntrySaved e, {
+    rust.CancelToken? token,
+  }) async {
+    return EntrySavedImpl(
+      await e.extension._proxy.detail(entryid: e.id, token: token),
+      e.extension,
+      e.episodedata,
     );
   }
 

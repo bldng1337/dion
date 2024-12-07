@@ -24,6 +24,16 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     datacontroller = DataSourceController<Entry>(
       [SingleStreamSource((i) => locate<Database>().getEntries(i, 25))],
     );
+    Observer(
+      () {
+        if (mounted) {
+          datacontroller.reset();
+          datacontroller.requestMore();
+          setState(() {});
+        }
+      },
+      [locate<Database>()],
+    ).disposedBy(scope);
     super.initState();
   }
 

@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:sqlite_crdt/sqlite_crdt.dart';
 
-abstract class Database {
+abstract class Database extends ChangeNotifier {
   Future<void> init();
 
   Future<void> merge(String path); //TODO: merge
@@ -30,7 +30,7 @@ abstract class Database {
   }
 }
 
-class DatabaseImpl implements Database {
+class DatabaseImpl extends ChangeNotifier implements Database {
   late final SqliteCrdt db;
   @override
   Future<void> init() async {
@@ -61,7 +61,7 @@ class DatabaseImpl implements Database {
     String sqlfilter,
   ) async* {
     final dbres = await db.query(
-      'SELECT * FROM entry LIMIT ?1 OFFSET ?2',
+      'SELECT * FROM entry WHERE is_deleted = 0 LIMIT ?1 OFFSET ?2',
       [limit, page * limit],
     );
     if (dbres.isEmpty) return;
@@ -75,8 +75,8 @@ class DatabaseImpl implements Database {
 
   @override
   Future<EntrySaved?> isSaved(Entry entry) async {
-    final dbentry =
-        await db.query('SELECT * FROM entry WHERE id = ?1', [entry.id]);
+    final dbentry = await db.query(
+        'SELECT * FROM entry WHERE id = ?1 AND is_deleted = 0', [entry.id]);
     if (dbentry.isEmpty) return null;
     return await constructEntry(dbentry[0], entry.extension);
   }
@@ -154,6 +154,9 @@ class DatabaseImpl implements Database {
             .cast(),
         mediaType: rust.MediaType.values
             .firstWhere((e) => e.name == (dbentry['mediatype']! as String)),
+        rating: dbentry['rating'] as double?,
+        views: (dbentry['views'] as int?)?.toDouble(),
+        length: dbentry['length'] as int?,
       ),
       extension,
       episodedata,
@@ -166,8 +169,8 @@ class DatabaseImpl implements Database {
   }
 
   @override
-  Future<void> updateEntry(EntryDetailed entry) {
-    return db.transaction((db) async {
+  Future<void> updateEntry(EntryDetailed entry) async {
+    await db.transaction((db) async {
       await db.execute(
           'INSERT OR REPLACE INTO entry(id,extensionid,url,title,mediatype,cover,coverheader,author,rating,views,length,ui,status,description,language,alttitles) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)',
           [
@@ -182,7 +185,7 @@ class DatabaseImpl implements Database {
             entry.rating,
             entry.views,
             entry.length,
-            '',//entry.ui,
+            '', //entry.ui,
             entry.status.name,
             entry.description,
             entry.language,
@@ -239,6 +242,7 @@ class DatabaseImpl implements Database {
         }
       }
     });
+    notifyListeners();
   }
 
   @override

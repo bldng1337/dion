@@ -88,6 +88,9 @@ abstract class EntrySaved extends EntryDetailed {
   set episode(int value);
   EpisodeData getEpisodeData(int episode);
 
+  set _episodedata(List<EpisodeData> value);
+  List<EpisodeData> get _episodedata;
+
   int get latestEpisode;
   int get totalEpisodes;
 
@@ -313,13 +316,25 @@ class EntryDetailedImpl implements EntryDetailed {
 
 class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
   @override
-  List<EpisodeData> episodedata;
-  EntrySavedImpl(super.entry, super.extension, this.episodedata);
+  List<EpisodeData> _episodedata;
+  EntrySavedImpl(super.entry, super.extension, this._episodedata);
+
+  @override
+  List<EpisodeData> get episodedata => _episodedata;
+
   @override
   int episode = 0;
   @override
   Future<EntrySaved> refresh({CancelToken? token}) async {
-    return await (await super.refresh(token: token)).toSaved();
+    final ent = await locate<SourceExtension>().update(this, token: token);
+    ent.episode = episode;
+    ent._episodedata = episodedata;
+    await ent.save();
+    return ent;
+  }
+
+  EntrySaved copywith(rust.EntryDetailed ent) {
+    return EntrySavedImpl(ent, extension, _episodedata);
   }
 
   @override
@@ -352,7 +367,7 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
       }
       return EpisodeData.empty();
     });
-    episodedata = data;
+    _episodedata = data;
     return data[episode];
   }
 

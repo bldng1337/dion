@@ -27,6 +27,7 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Detail extends StatefulWidget {
   const Detail({super.key});
@@ -38,6 +39,8 @@ class Detail extends StatefulWidget {
 class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
   late CancelToken tok;
+  bool refreshing = false;
+
   Future<void> loadEntry() async {
     try {
       final saved = await locate<Database>().isSaved(entry!);
@@ -65,6 +68,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     super.didChangeDependencies();
     final newentry =
         (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
+    setState(() {});
     if (newentry is EntryDetailed || newentry is EntrySaved) {
       entry = newentry;
       return;
@@ -90,8 +94,36 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     if (entry == null) {
       return const NavScaff(child: Center(child: CircularProgressIndicator()));
     }
+    final actions = [
+      if (entry is EntrySaved)
+        DionIconbutton(
+          onPressed: () async {
+            refreshing = true;
+            if (mounted) {
+              setState(() {});
+            }
+            final e = await (entry! as EntrySaved).refresh();
+            if (mounted) {
+              entry = e;
+              refreshing = false;
+              setState(() {});
+            }
+          },
+          icon: refreshing
+              ? const CircularProgressIndicator()
+              : const Icon(Icons.refresh),
+        ),
+      if (entry is EntryDetailed)
+        DionIconbutton(
+          onPressed: () {
+            launchUrl(Uri.parse(entry!.url));
+          },
+          icon: const Icon(Icons.open_in_browser),
+        ),
+    ];
     if (context.width < 800) {
       return NavScaff(
+        actions: actions,
         floatingActionButton: entry is EntrySaved
             ? ActionButton(
                 onPressed: () {
@@ -121,6 +153,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       );
     }
     return NavScaff(
+      actions: actions,
       floatingActionButton: entry is EntrySaved
           ? ActionButton(
               onPressed: () {
@@ -208,13 +241,14 @@ class EntryInfo extends StatelessWidget {
                   style: context.headlineMedium,
                   pauseBetween: 1.seconds,
                 ),
-                TextScroll(
-                  'by ${(entry.author != null && entry.author!.isNotEmpty) ? entry.author!.map(
-                        (e) => e.trim().replaceAll('\n', ''),
-                      ).reduce((a, b) => '$a • $b') : 'Unkown author'}',
-                  style: context.labelLarge,
-                  pauseBetween: 1.seconds,
-                ),
+                if (entry.author != null && entry.author!.isNotEmpty)
+                  TextScroll(
+                    'by ${(entry.author != null && entry.author!.isNotEmpty) ? entry.author!.map(
+                          (e) => e.trim().replaceAll('\n', ''),
+                        ).reduce((a, b) => '$a • $b') : 'Unkown author'}',
+                    style: context.labelLarge,
+                    pauseBetween: 1.seconds,
+                  ),
                 Row(
                   children: [
                     DionImage(
