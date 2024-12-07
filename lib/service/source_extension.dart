@@ -1,36 +1,53 @@
+import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:flutter/widgets.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed;
 
-class Extension {
+class Extension extends ChangeNotifier {
   Extension(this.data, this._proxy, this.isenabled);
   final rust.ExtensionData data;
   final rust.ExtensionProxy _proxy;
   bool isenabled;
+  bool loading = false;
 
   String get id => data.id;
+
+  String get name {
+    return data.name.replaceAll('-', ' ').capitalize;
+  }
 
   static Future<Extension> fromProxy(rust.ExtensionProxy proxy) async {
     return Extension(await proxy.data(), proxy, await proxy.isEnabled());
   }
 
   Future<void> enable() async {
-    if (isenabled) return;
+    if (isenabled || loading) return;
+    loading = true;
+    notifyListeners();
     await _proxy.enable();
     isenabled = true;
+    loading = false;
+    notifyListeners();
   }
 
   Future<void> disable() async {
-    if (!isenabled) return;
+    if (!isenabled || loading) return;
+    loading = true;
+    notifyListeners();
     await _proxy.disable();
     isenabled = false;
+    loading = false;
+    notifyListeners();
   }
 
+  @override
   void dispose() {
     _proxy.dispose();
+    super.dispose();
   }
 
   Future<List<Entry>> browse(
@@ -58,6 +75,14 @@ class Extension {
 
   @override
   int get hashCode => _proxy.hashCode;
+
+  Future<void> toggle() async {
+    if (isenabled) {
+      disable();
+    } else {
+      enable();
+    }
+  }
 }
 
 abstract class SourceExtension {

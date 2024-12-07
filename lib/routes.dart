@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
+import 'package:dionysos/views/extension_manager.dart';
 import 'package:dionysos/views/library.dart';
 import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
@@ -14,9 +15,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 final homedestinations = [
-  Destination(ico: Icons.library_books, name: 'Library', path: '/library'),
-  Destination(ico: Icons.local_activity, name: 'Activity', path: '/activity'),
+  Destination(ico: Icons.bookmark, name: 'Library', path: '/library'),
+  Destination(ico: Icons.update, name: 'Activity', path: '/activity'),
   Destination(ico: Icons.search, name: 'Browse', path: '/browse'),
+  Destination(ico: Icons.extension, name: 'Manage Extensions', path: '/manage'),
   Destination(ico: Icons.settings, name: 'Settings', path: '/settings'),
 ];
 
@@ -44,8 +46,12 @@ GoRouter getRoutes() => GoRouter(
           builder: (context, state) => const Browse(),
         ),
         GoRoute(
-            path: '/search/:query',
-            builder: (context, state) => const Search(),),
+            path: '/manage',
+            builder: (context, state) => const ExtensionManager()),
+        GoRoute(
+          path: '/search/:query',
+          builder: (context, state) => const Search(),
+        ),
         GoRoute(path: '/view', builder: (context, state) => const ViewSource()),
         GoRoute(path: '/detail', builder: (context, state) => const Detail()),
         GoRoute(path: '/library', builder: (context, state) => const Library()),
