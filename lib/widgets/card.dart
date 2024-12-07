@@ -164,15 +164,14 @@ class EntryCard extends StatelessWidget {
                   fill: entry.rating!,
                   width: 12,
                   height: 12,
-                  color: context.theme.primaryColor,
+                  color: context.theme.colorScheme.primary,
                 ),
                 const Spacer(),
                 if (entry.views != null)
                   Text(
                     NumberFormat.compact().format(entry.views),
-                    style: context.textTheme.titleSmall?.copyWith(
-                      color: context.theme.primaryColor,
-                    ),
+                    style: context.textTheme.titleSmall
+                        ?.copyWith(color: Colors.white),
                   ),
               ],
             ).paddingOnly(left: 5),
