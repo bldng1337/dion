@@ -10,16 +10,19 @@ class DionSearchbar extends StatelessWidget {
   final WidgetStateProperty<TextStyle?>? style;
   final WidgetStateProperty<TextStyle?>? hintStyle;
   final TextInputType? keyboardType;
+  final List<Widget>? actions;
 
-  const DionSearchbar(
-      {super.key,
-      this.controller,
-      this.hintText,
-      this.onChanged,
-      this.onSubmitted,
-      this.style,
-      this.hintStyle,
-      this.keyboardType,});
+  const DionSearchbar({
+    super.key,
+    this.controller,
+    this.hintText,
+    this.onChanged,
+    this.onSubmitted,
+    this.style,
+    this.hintStyle,
+    this.keyboardType,
+    this.actions,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -32,16 +35,17 @@ class DionSearchbar extends StatelessWidget {
           textStyle: style,
           hintStyle: hintStyle,
           keyboardType: keyboardType,
+          trailing: actions,
         ),
       DionThemeMode.cupertino => CupertinoSearchTextField(
-        controller: controller,
-        placeholder: hintText,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        style: style?.resolve({WidgetState.focused}),
-        placeholderStyle: hintStyle?.resolve({WidgetState.focused}),
-        keyboardType: keyboardType,
-      ),
+          controller: controller,
+          placeholder: hintText,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          style: style?.resolve({WidgetState.focused}),
+          placeholderStyle: hintStyle?.resolve({WidgetState.focused}),
+          keyboardType: keyboardType,
+        ),
     };
   }
 }
