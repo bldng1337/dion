@@ -18,35 +18,58 @@ class Foldabletext extends StatefulWidget {
   _FoldabletextState createState() => _FoldabletextState();
 }
 
+Size getTextSize(String text, TextStyle? style,
+    {double? width, TextAlign? textAlign}) {
+  final TextPainter textPainter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textAlign: textAlign ?? TextAlign.start,
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: width ?? double.infinity);
+  return textPainter.size;
+}
+
 class _FoldabletextState extends State<Foldabletext> {
   bool _isExpanded = false;
   @override
   Widget build(BuildContext context) {
-    return AnimatedCrossFade(
-      duration: const Duration(milliseconds: 200),
-      crossFadeState:
-          _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-      firstChild: Column(
-        children: [
-          Text(
-        widget.text,
-        maxLines: widget.maxLines,
-        overflow: TextOverflow.ellipsis,
-        style: widget.style,
-        textAlign: widget.textAlign,
-      ),
-      const Icon(Icons.keyboard_arrow_down),
-        ],
-      ),
-      secondChild: Text(
-        widget.text,
-        style: widget.style,
-        textAlign: widget.textAlign,
-      ),
-    ).onTap(
-      () => setState(() {
-        _isExpanded = !_isExpanded;
-      }),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (getTextSize(widget.text, widget.style, width: constraints.maxWidth)
+                .height >
+            (widget.style?.fontSize ?? 14.0) * (widget.maxLines + 1)) {
+          return StatefulBuilder(
+            builder: (context, setState) => AnimatedCrossFade(
+              duration: const Duration(milliseconds: 200),
+              crossFadeState: _isExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstChild: Column(
+                children: [
+                  Text(
+                    widget.text,
+                    maxLines: widget.maxLines,
+                    overflow: TextOverflow.ellipsis,
+                    style: widget.style,
+                    textAlign: widget.textAlign,
+                  ),
+                  const Icon(Icons.keyboard_arrow_down),
+                ],
+              ),
+              secondChild: Text(
+                widget.text,
+                style: widget.style,
+                textAlign: widget.textAlign,
+              ),
+            ).onTap(
+              () => setState(() {
+                _isExpanded = !_isExpanded;
+              }),
+            ),
+          );
+        }
+        return Text(widget.text,
+            style: widget.style, textAlign: widget.textAlign);
+      },
     );
   }
 }
