@@ -1,16 +1,19 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:flutter/widgets.dart';
+import 'package:dionysos/utils/settings.dart';
+import 'package:flutter/widgets.dart' show ChangeNotifier, Color, IconData;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed;
 
 class Extension extends ChangeNotifier {
-  Extension(this.data, this._proxy, this.isenabled);
+  Extension(this.data, this._proxy, this.isenabled, this.settings);
   final rust.ExtensionData data;
   final rust.ExtensionProxy _proxy;
+  final List<Setting<dynamic, ExtensionMetaData<dynamic>>> settings;
   bool isenabled;
   bool loading = false;
 
@@ -21,7 +24,23 @@ class Extension extends ChangeNotifier {
   }
 
   static Future<Extension> fromProxy(rust.ExtensionProxy proxy) async {
-    return Extension(await proxy.data(), proxy, await proxy.isEnabled());
+    return Extension(
+      await proxy.data(),
+      proxy,
+      await proxy.isEnabled(),
+      await Future.wait(
+        (await proxy.settingIds()).map((id) async {
+          final set = await proxy.getSetting(name: id);
+          final setting =
+              Setting<dynamic, ExtensionMetaData<dynamic>>.fromValue(
+            set.val.val,
+            set.val.defaultVal,
+            ExtensionMetaData(id, set, proxy),
+          );
+          return setting;
+        }).toList(),
+      ),
+    );
   }
 
   Future<void> enable() async {
@@ -55,8 +74,17 @@ class Extension extends ChangeNotifier {
     rust.Sort sort, {
     rust.CancelToken? token,
   }) async {
+    final db = locate<Database>();
     final res = await _proxy.browse(page: page, sort: sort, token: token);
-    return res.map((e) => e.wrap(this)).toList();
+    return Future.wait(
+      res.map((e) => e.wrap(this)).map((ent) async {
+        final saved = await db.isSaved(ent);
+        if (saved != null) {
+          return saved;
+        }
+        return ent;
+      }).toList(),
+    );
   }
 
   Future<List<Entry>> search(
@@ -65,7 +93,16 @@ class Extension extends ChangeNotifier {
     rust.CancelToken? token,
   }) async {
     final res = await _proxy.search(page: page, filter: filter, token: token);
-    return res.map((e) => e.wrap(this)).toList();
+    final db = locate<Database>();
+    return await Future.wait(
+      res.map((e) => e.wrap(this)).map((ent) async {
+        final saved = await db.isSaved(ent);
+        if (saved != null) {
+          return saved;
+        }
+        return ent;
+      }).toList(),
+    );
   }
 
   @override
@@ -82,6 +119,26 @@ class Extension extends ChangeNotifier {
     } else {
       enable();
     }
+  }
+}
+
+class ExtensionMetaData<T> extends MetaData<T> {
+  final String id;
+  final rust.Setting setting;
+  final rust.ExtensionProxy extension;
+  const ExtensionMetaData(this.id, this.setting, this.extension);
+
+  @override
+  void onChange(T v) {
+    final newval = switch (setting.val) {
+      final rust.Settingvalue_String val =>
+        rust.Settingvalue_String(val: v as String, defaultVal: val.defaultVal),
+      final rust.Settingvalue_Number val =>
+        rust.Settingvalue_Number(val: v as double, defaultVal: val.defaultVal),
+      final rust.Settingvalue_Boolean val =>
+        rust.Settingvalue_Boolean(val: v as bool, defaultVal: val.defaultVal),
+    };
+    extension.setSetting(name: id, setting: newval);
   }
 }
 

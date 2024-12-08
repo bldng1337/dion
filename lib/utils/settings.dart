@@ -14,6 +14,7 @@ abstract class EnumMetaData<T extends Enum> extends MetaData<T> {
 
 class MetaData<T> {
   const MetaData();
+  void onChange(T t) {}
 }
 
 class Setting<T, M extends MetaData<T>> with ChangeNotifier {
@@ -21,20 +22,25 @@ class Setting<T, M extends MetaData<T>> with ChangeNotifier {
   late T _value;
   final T _initialvalue;
 
-  Setting(T initial, this.metadata) : _initialvalue = initial {
-    _value = initial;
-  }
+  Setting(T initial, this.metadata)
+      : _initialvalue = initial,
+        _value = initial;
+  Setting.fromValue(T initial, T value, this.metadata)
+      : _initialvalue = initial,
+        _value = value;
 
   T get intialValue => _initialvalue;
   T get value => _value;
   set value(T v) {
     if (v == _value) return;
+    metadata.onChange(v);
     _value = v;
     notifyListeners();
   }
 
   void addCollection<_T, _M extends MetaData<_T>>(
-      SettingCollection<_T, _M> collection,) {
+    SettingCollection<_T, _M> collection,
+  ) {
     collection.add(this as Setting<_T, _M>);
   }
 
@@ -57,8 +63,9 @@ class Setting<T, M extends MetaData<T>> with ChangeNotifier {
 extension Settings on Widget {
   Widget conditional(Setting<bool, dynamic> setting) {
     return ListenableBuilder(
-        listenable: setting,
-        builder: (context, child) =>
-            Visibility(visible: setting.value, child: this),);
+      listenable: setting,
+      builder: (context, child) =>
+          Visibility(visible: setting.value, child: this),
+    );
   }
 }
