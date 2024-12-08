@@ -14,6 +14,7 @@ import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -102,7 +103,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
             if (mounted) {
               setState(() {});
             }
-            final e = await (entry! as EntrySaved).refresh();
+            final e = await (entry! as EntrySaved).refresh(token: tok);
             if (mounted) {
               entry = e;
               refreshing = false;
@@ -121,7 +122,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           icon: const Icon(Icons.open_in_browser),
         ),
     ];
-    if (context.width < 800) {
+    if (context.width < 950) {
       return NavScaff(
         actions: actions,
         floatingActionButton: entry is EntrySaved
@@ -160,7 +161,14 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                 EpisodePath(
                   entry! as EntryDetailed,
                   (entry! as EntrySaved).episode,
-                  (entry! as EntrySaved).latestEpisode,
+                  min(
+                    (entry! as EntrySaved).latestEpisode,
+                    (entry! as EntrySaved)
+                            .episodes[(entry! as EntrySaved).episode]
+                            .episodes
+                            .length -
+                        1,
+                  ),
                 ).go(context);
               },
               child: const Icon(Icons.play_arrow),
@@ -170,12 +178,11 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       child: SizedBox(
         width: context.width - 200,
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
               width: context.width / 2,
               child: EntryInfo(entry: entry!),
-            ).expanded(),
+            ),
             isEntryDetailed(
               context: context,
               entry: entry!,
@@ -221,32 +228,39 @@ class EntryInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.only(top: 3, left: 7, right: 7),
+      padding: const EdgeInsets.only(top: 6, left: 5, right: 7),
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            DionImage(
-              alignment: Alignment.topCenter,
-              imageUrl: entry.cover,
-              width: 140,
-              height: 220,
-            ).paddingAll(3),
+            Center(
+              child: DionImage(
+                alignment: Alignment.center,
+                imageUrl: entry.cover,
+                borderRadius: BorderRadius.circular(3),
+                filterQuality: FilterQuality.high,
+                hasPopup: true,
+                width: (context.width > 500) ? 200 : 150,
+              ).paddingAll(3),
+            ),
             Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextScroll(
+                Text(
                   entry.title,
-                  style: context.headlineMedium,
-                  pauseBetween: 1.seconds,
+                  style: (context.width > 950)
+                      ? context.headlineLarge
+                      : context.headlineSmall,
+                  // pauseBetween: 1.seconds,
                 ),
                 if (entry.author != null && entry.author!.isNotEmpty)
                   TextScroll(
                     'by ${(entry.author != null && entry.author!.isNotEmpty) ? entry.author!.map(
                           (e) => e.trim().replaceAll('\n', ''),
                         ).reduce((a, b) => '$a • $b') : 'Unkown author'}',
-                    style: context.labelLarge,
+                    style: context.labelLarge?.copyWith(color: Colors.grey),
                     pauseBetween: 1.seconds,
                   ),
                 Row(
@@ -262,16 +276,19 @@ class EntryInfo extends StatelessWidget {
                     ).paddingOnly(right: 5),
                     TextScroll(
                       entry.extension.data.name,
-                      style: context.bodyMedium,
+                      style: context.bodyMedium?.copyWith(color: Colors.grey),
                       pauseBetween: 1.seconds,
                     ),
-                    const Text(' • '),
+                    Text(
+                      ' • ',
+                      style: context.bodyMedium?.copyWith(color: Colors.grey),
+                    ),
                     isEntryDetailed(
                       context: context,
                       entry: entry,
                       isdetailed: (entry) => Text(
                         entry.status.asString(),
-                        style: context.bodyMedium,
+                        style: context.bodyMedium?.copyWith(color: Colors.grey),
                       ),
                       isnt: () => Text(
                         'Releasing',
@@ -280,20 +297,78 @@ class EntryInfo extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (entry.rating != null)
-                  Stardisplay(
-                    width: 20,
-                    height: 20,
-                    fill: entry.rating!,
-                    color: Colors.yellow[500]!,
+                20.0.heightBox,
+                SizedBox(
+                  height: 40,
+                  child: isEntryDetailed(
+                    context: context,
+                    entry: entry,
+                    isdetailed: (entry) => ListView(
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      children: entry.genres
+                              ?.map(
+                                (e) => DionBadge(
+                                  color: getColor(e),
+                                  child: Text(e),
+                                ),
+                              )
+                              .toList() ??
+                          [],
+                    ),
+                    isnt: () => Row(
+                      children: getWords(4)
+                          .map(
+                            (e) => DionBadge(
+                              child: Text(e),
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
-                if (entry.views != null)
-                  Text(
-                    NumberFormat.compact().format(entry.views),
-                    style: context.bodyMedium,
-                  ),
+                ),
+                if (entry.rating != null || entry.views != null)
+                  DionBadge(
+                    color: context.theme.primaryColor.lighten(),
+                    child: ColumnRow(
+                      isRow: context.width > 950,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (entry.rating != null)
+                          Stardisplay(
+                            width: 25,
+                            height: 25,
+                            fill: entry.rating!,
+                            color: Colors.yellow[500]!,
+                          ).paddingOnly(right: 5),
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              if (entry.rating != null && context.width > 1200)
+                                TextSpan(
+                                  text:
+                                      '${(entry.rating! * 5).toStringAsFixed(2)} Stars (',
+                                  style: context.bodyLarge,
+                                ),
+                              if (entry.views != null)
+                                TextSpan(
+                                  text:
+                                      '${NumberFormat.compact().format(entry.views)} Views',
+                                  style: context.bodyLarge,
+                                ),
+                              if (entry.rating != null && context.width > 1200)
+                                TextSpan(
+                                  text: ')',
+                                  style: context.bodyLarge,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ).paddingAll(5),
+                  ).paddingOnly(top: 5, bottom: 5),
               ],
-            ).paddingAll(5).expanded(),
+            ).paddingOnly(bottom: 5, left: 5).expanded(),
           ],
         ),
         isEntryDetailed(
@@ -327,35 +402,6 @@ class EntryInfo extends StatelessWidget {
             ),
           ),
           shimmer: false,
-        ),
-        SizedBox(
-          height: 40,
-          child: isEntryDetailed(
-            context: context,
-            entry: entry,
-            isdetailed: (entry) => ListView(
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              children: entry.genres
-                      ?.map(
-                        (e) => DionBadge(
-                          color: getColor(e),
-                          child: Text(e),
-                        ),
-                      )
-                      .toList() ??
-                  [],
-            ),
-            isnt: () => Row(
-              children: getWords(4)
-                  .map(
-                    (e) => DionBadge(
-                      child: Text(e),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
         ),
         isEntryDetailed(
           context: context,
@@ -437,7 +483,7 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
               ),
             ),
           ],
-        ),
+        ).paddingAll(15),
         EpList(entry: widget.entry, eplistindex: selected).expanded(),
       ],
     );
@@ -457,6 +503,7 @@ class EpList extends StatefulWidget {
 
 class _EpListState extends State<EpList> with StateDisposeScopeMixin {
   late List<int> selected;
+  int? hovering;
   late ScrollController controller;
   int? last;
 
@@ -467,57 +514,102 @@ class _EpListState extends State<EpList> with StateDisposeScopeMixin {
     super.initState();
   }
 
+  List<int> get selection {
+    if (selected.isNotEmpty) return selected;
+    if (hovering != null) return [hovering!];
+    return List.empty();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ContextMenu(
-      active: selected.isNotEmpty && widget.entry is EntrySaved,
+      active: widget.entry is EntrySaved,
       contextItems: [
+        ContextMenuItem(
+          label: 'Open in Browser',
+          onTap: () async {
+            await launchUrl(Uri.parse(widget.entry.url));
+          },
+        ),
+        ContextMenuItem(
+          label: 'Bookmark',
+          onTap: () async {
+            for (final int i in selection) {
+              final data = (widget.entry as EntrySaved).getEpisodeData(i);
+              data.bookmark = true;
+            }
+            selected.clear();
+            setState(() {});
+            await (widget.entry as EntrySaved).save();
+          },
+        ),
+        ContextMenuItem(
+          label: 'Remove Bookmark',
+          onTap: () async {
+            for (final int i in selection) {
+              final data = (widget.entry as EntrySaved).getEpisodeData(i);
+              data.bookmark = false;
+            }
+            selected.clear();
+            setState(() {});
+            await (widget.entry as EntrySaved).save();
+          },
+        ),
         ContextMenuItem(
           label: 'Mark as watched',
           onTap: () async {
-            for (final int i in selected) {
+            for (final int i in selection) {
               final data = (widget.entry as EntrySaved).getEpisodeData(i);
               data.finished = true;
             }
             selected.clear();
+            setState(() {});
             await (widget.entry as EntrySaved).save();
           },
         ),
         ContextMenuItem(
           label: 'Mark as unwatched',
           onTap: () async {
-            for (final int i in selected) {
+            for (final int i in selection) {
               final data = (widget.entry as EntrySaved).getEpisodeData(i);
               data.finished = false;
+              data.progress = null;
             }
             selected.clear();
-            await (widget.entry as EntrySaved).save();
             setState(() {});
+            await (widget.entry as EntrySaved).save();
           },
         ),
         ContextMenuItem(
           label: 'Mark to this episode',
           onTap: () async {
-            for (int i = 0; i <= selected.reduce((a, b) => max(a, b)); i++) {
+            for (int i = 0; i <= selection.reduce((a, b) => max(a, b)); i++) {
               final data = (widget.entry as EntrySaved).getEpisodeData(i);
               data.finished = true;
             }
             selected.clear();
-            await (widget.entry as EntrySaved).save();
             setState(() {});
+            await (widget.entry as EntrySaved).save();
           },
         ),
       ],
       child: ListView.builder(
+        key: PageStorageKey<String>(
+          '${widget.entry.extension.id}->${widget.entry.id}@${widget.eplistindex}',
+        ),
         controller: controller,
+        prototypeItem: EpisodeTile(
+          episodepath: EpisodePath(widget.entry, widget.eplistindex, 0),
+          selection: false,
+          isSelected: false,
+          onSelect: () {},
+        ),
         padding: EdgeInsets.zero,
         itemCount: widget.elist.episodes.length,
-        itemBuilder: (BuildContext context, int index) => GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          // onSecondaryTap: () {
-          //   logger.i('Secondary tap up $index');
-          //   last = index;
-          // },
+        itemBuilder: (BuildContext context, int index) => MouseRegion(
+          onEnter: (e) {
+            hovering = index;
+          },
           child: EpisodeTile(
             episodepath: EpisodePath(widget.entry, widget.eplistindex, index),
             selection: selected.isNotEmpty,
