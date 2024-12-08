@@ -8,16 +8,14 @@ class DionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(4)),
-        color: color??context.theme.colorScheme.primary,
+        color: color??context.theme.primaryColor,
       ),
-      padding: const EdgeInsets.all(1),
-      margin: const EdgeInsets.all(3),
       child: Center(
         child: child,
-      ),
-    );
+      ).paddingAll(3),
+    ).paddingAll(3);
   }
 }
