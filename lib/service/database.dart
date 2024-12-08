@@ -76,7 +76,9 @@ class DatabaseImpl extends ChangeNotifier implements Database {
   @override
   Future<EntrySaved?> isSaved(Entry entry) async {
     final dbentry = await db.query(
-        'SELECT * FROM entry WHERE id = ?1 AND is_deleted = 0', [entry.id]);
+      'SELECT * FROM entry WHERE id = ?1 AND is_deleted = 0',
+      [entry.id],
+    );
     if (dbentry.isEmpty) return null;
     return await constructEntry(dbentry[0], entry.extension);
   }
@@ -164,8 +166,9 @@ class DatabaseImpl extends ChangeNotifier implements Database {
   }
 
   @override
-  Future<void> removeEntry(EntryDetailed entry) {
-    return db.execute('DELETE FROM entry WHERE id=?1', [entry.id]);
+  Future<void> removeEntry(EntryDetailed entry) async {
+    await db.execute('DELETE FROM entry WHERE id=?1', [entry.id]);
+    notifyListeners();
   }
 
   @override
