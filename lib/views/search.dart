@@ -63,7 +63,13 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
             keyboardType: TextInputType.text,
             hintStyle:
                 const WidgetStatePropertyAll(TextStyle(color: Colors.grey)),
-            onSubmitted: (s) => context.go('/search/$s'),
+            onSubmitted: (s) {
+              if(s.isEmpty){
+                context.go('/browse');
+                return;
+              }
+              context.go('/search/$s');
+            },
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
