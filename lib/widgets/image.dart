@@ -6,16 +6,24 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/share.dart';
+import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 @immutable
 class DionNetworkImage extends ImageProvider<DionNetworkImage> {
-  const DionNetworkImage(this.url,
-      {this.width, this.height, this.httpHeaders, this.scale = 1.0,});
+  const DionNetworkImage(
+    this.url, {
+    this.width,
+    this.height,
+    this.httpHeaders,
+    this.scale = 1.0,
+  });
 
   final String url;
 
@@ -30,19 +38,6 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
   Future<DionNetworkImage> obtainKey(ImageConfiguration configuration) {
     return SynchronousFuture<DionNetworkImage>(this);
   }
-
-  // @override
-  // ImageStreamCompleter loadBuffer(
-  //     DionNetworkImage key, DecoderBufferCallback decode) {
-  //   return MultiFrameImageStreamCompleter(
-  //     codec: _loadAsync(key, decode: decode),
-  //     scale: key.scale,
-  //     debugLabel: key.url,
-  //     informationCollector: () => <DiagnosticsNode>[
-  //       ErrorDescription('URL: $url'),
-  //     ],
-  //   );
-  // }
 
   @override
   ImageStreamCompleter loadImage(
@@ -115,6 +110,9 @@ class DionImage extends StatefulWidget {
   final FilterQuality? filterQuality;
   final BoxFit? boxFit;
   final bool shouldAnimate;
+  final bool hasPopup;
+  final Function()? onTap;
+  final BorderRadiusGeometry? borderRadius;
   // final String? cacheKey;
   final Widget? errorWidget;
   final Color? color;
@@ -133,7 +131,12 @@ class DionImage extends StatefulWidget {
     this.filterQuality,
     this.loadingBuilder,
     this.shouldAnimate = true,
-  });
+    this.borderRadius,
+    this.hasPopup = false,
+    this.onTap,
+  }) : assert(
+          (hasPopup ^ (onTap != null)) || (hasPopup == false && onTap == null),
+        );
 
   @override
   _DionImageState createState() => _DionImageState();
@@ -154,35 +157,117 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
     }
     return Container(
       color: Colors.red,
-      width: widget.width,
-      height: widget.height,
+      width: widget.width ?? widget.height ?? 24,
+      height: widget.height ?? widget.width ?? 24,
     ).applyShimmer(highlightColor: widget.color);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.borderRadius == null) {
+      return buildClickable(context);
+    }
+    return ClipRRect(
+      borderRadius: widget.borderRadius!,
+      child: buildClickable(context),
+    );
+  }
+
+  Widget buildClickable(BuildContext context) {
+    if (widget.onTap != null) {
+      return Clickable(
+        onTap: widget.onTap,
+        child: buildImage(context),
+      );
+    }
+    if (widget.hasPopup) {
+      return Clickable(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => Dialog.fullscreen(
+              backgroundColor: Colors.transparent,
+              child: GestureDetector(
+                child: Column(
+                  children: [
+                    buildImage(context, fullscreen: true).expanded(),
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              final cache = locate<CacheService>().imgcache;
+                              final fileinfo = await cache
+                                  .getImageFile(
+                                    widget.imageUrl!,
+                                    headers: widget.httpHeaders,
+                                  )
+                                  .where((e) => e is FileInfo)
+                                  .last;
+                              final file = (fileinfo as FileInfo).file;
+                              file.share();
+                            },
+                            icon: const Icon(Icons.share),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              launchUrl(
+                                Uri.parse(widget.imageUrl!),
+                              );
+                            },
+                            icon: const Icon(Icons.open_in_browser),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ).paddingAll(20),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          );
+        },
+        child: buildImage(context),
+      );
+    }
+    return buildImage(context);
+  }
+
+  Widget buildImage(BuildContext context, {bool fullscreen = false}) {
+    final width = fullscreen ? null : widget.width;
+    final height = fullscreen ? null : widget.height;
+    final boxfit =
+        fullscreen ? BoxFit.contain : widget.boxFit ?? BoxFit.contain;
     if (widget.imageUrl == null) {
       return SizedBox(
-        width: widget.width,
-        height: widget.height,
+        width: width,
+        height: height,
         child: noImage(context),
       );
     }
-
     return Image(
       image: DionNetworkImage(
         widget.imageUrl!,
-        width: widget.width,
-        height: widget.height,
+        width: width,
+        height: height,
         httpHeaders: widget.httpHeaders,
       ),
       filterQuality: widget.filterQuality ?? FilterQuality.medium,
-      width: widget.width,
-      height: widget.height,
-      fit: widget.boxFit ?? BoxFit.contain,
+      width: width,
+      height: height,
+      fit: boxfit,
       alignment: widget.alignment ?? Alignment.center,
       errorBuilder: (context, error, stackTrace) {
-        if(widget.errorWidget != null){
+        if (widget.errorWidget != null) {
           return widget.errorWidget!;
         }
         logger.e(
