@@ -4,6 +4,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -72,7 +73,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
             },
           ).paddingAll(5),
           DynamicGrid<Entry>(
-            itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
+            itemBuilder: (BuildContext context, item) => EntryDisplay(entry: item),
             controller: datacontroller,
           ).expanded(),
         ],
