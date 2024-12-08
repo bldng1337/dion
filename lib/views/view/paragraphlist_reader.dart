@@ -37,6 +37,12 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       ..disposedBy(scope);
     controller.addListener(
       () {
+        if(epdata.finished) return;
+        if(controller.offset>=controller.position.maxScrollExtent){
+          epdata.finished = true;
+          widget.source.episode.save();
+          return;
+        }
         epdata.progress = controller.offset.toString();
       },
     );
