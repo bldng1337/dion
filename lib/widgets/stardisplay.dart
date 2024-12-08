@@ -42,6 +42,6 @@ class Stardisplay extends StatelessWidget {
             ),
           ),
         ),
-      ).withTooltip('Rated ${fill*maxstars}/$maxstars stars');
+      );
   }
 }
