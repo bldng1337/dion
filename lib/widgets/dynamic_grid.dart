@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/result.dart';
 import 'package:dionysos/widgets/badge.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
@@ -385,7 +387,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
       children: [
         if (widget.showDataSources)
           SizedBox(
-            height: 30,
+            height: 40,
             child: ListView(
               padding: EdgeInsets.zero,
               shrinkWrap: true,
@@ -393,21 +395,27 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
               children: [
                 ...widget.controller.sources.map(
                   (e) => DionBadge(
+                    color: e.name.color,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (e.isfinished)
                           const Icon(
+                            Icons.close,
+                            size: 20,
+                          ).paddingAll(2),
+                        if (!e.isfinished && !e.requesting)
+                          const Icon(
                             Icons.check,
-                            size: 15,
+                            size: 20,
                           ).paddingAll(2),
                         if (e.requesting)
                           SizedBox(
-                            width: 15,
-                            height: 15,
+                            width: 20,
+                            height: 20,
                             child: const CircularProgressIndicator(
                               color: Colors.white70,
-                              strokeWidth: 1,
+                              strokeWidth: 2,
                             ).paddingAll(2),
                           ),
                         Text(e.name).paddingAll(2),
@@ -429,6 +437,14 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
               (widget.controller.finished ? 0 : 1),
           itemBuilder: (context, index) {
             if (index == widget.controller.items.length) {
+              if (!widget.controller.loading) {
+                return DionTextbutton(
+                  child: const Text('Load More'),
+                  onPressed: () {
+                    widget.controller.requestMore();
+                  },
+                );
+              }
               return const Center(child: CircularProgressIndicator());
             }
             return widget.controller.items[index].build(
