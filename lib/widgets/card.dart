@@ -6,15 +6,13 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/widgets/badge.dart';
+import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:text_scroll/text_scroll.dart';
-
-const double width = 300 / 1.5;
-const double height = 600 / 2;
 
 class Card extends StatelessWidget {
   final String? imageUrl;
@@ -33,32 +31,27 @@ class Card extends StatelessWidget {
     this.httpHeaders,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: switch (context.diontheme.mode) {
-        DionThemeMode.material => BorderRadius.zero,
-        DionThemeMode.cupertino => BorderRadius.circular(5),
-      },
-      child: Stack(
-        alignment: Alignment.bottomLeft,
-        children: [
-          if (imageUrl != null)
-            DionImage(
-              imageUrl: imageUrl,
-              httpHeaders: httpHeaders,
-              width: width,
-              height: height,
-              errorWidget: Icon(Icons.image, size: min(width, height)),
-              boxFit: BoxFit.cover,
-            )
-          else
-            Icon(Icons.image, size: min(width, height)),
-          Container(
-            height: height,
-            width: width,
+  Widget buildCard(BuildContext context) {
+    const double width = 300 / 1.5;
+    const double height = 600 / 2;
+    return Stack(
+      alignment: Alignment.bottomLeft,
+      children: [
+        DionImage(
+          imageUrl: imageUrl,
+          httpHeaders: httpHeaders,
+          width: width,
+          height: height,
+          errorWidget: Icon(Icons.image, size: min(width, height)),
+          boxFit: BoxFit.cover,
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          top: 0,
+          child: Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -68,7 +61,7 @@ class Card extends StatelessWidget {
                   Theme.of(context).shadowColor.withOpacity(0.5),
                   Theme.of(context).shadowColor.withOpacity(1),
                 ],
-                stops: const [0, 0.6, 0.75, 1],
+                stops: const [0.0, 0.6, 0.75, 1],
               ),
             ),
             child: Column(
@@ -94,15 +87,30 @@ class Card extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    ).onTap(onTap ?? () {}).paddingAll(5);
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      borderRadius: switch (context.diontheme.mode) {
+        DionThemeMode.material => BorderRadius.circular(10),
+        DionThemeMode.cupertino => BorderRadius.circular(5),
+      },
+      child: onTap != null
+          ? Clickable(onTap: onTap, child: buildCard(context))
+          : buildCard(context),
+    ).paddingAll(5);
   }
 }
 
 class EntryCard extends StatelessWidget {
   final Entry entry;
-  const EntryCard({super.key, required this.entry});
+  final bool showSaved;
+  const EntryCard({super.key, required this.entry, this.showSaved = false});
 
   @override
   Widget build(BuildContext context) {
@@ -110,48 +118,40 @@ class EntryCard extends StatelessWidget {
       imageUrl: entry.cover,
       httpHeaders: entry.coverHeader,
       leadingBadges: [
+        if (showSaved && entry is EntrySaved)
+          const Icon(Icons.bookmark, size: 15),
         if (entry is EntrySaved)
-          DionBadge(
-            child: Text(
-              '${(entry as EntrySaved).latestEpisode}/${(entry as EntrySaved).totalEpisodes}',
-              style: context.textTheme.labelSmall,
-            ),
+          Text(
+            '${(entry as EntrySaved).latestEpisode}/${(entry as EntrySaved).totalEpisodes}',
+            style: context.textTheme.labelSmall,
           ),
         if (entry.length != null && entry is! EntrySaved)
-          DionBadge(
-            child: Text(
-              entry.length!.toString(),
-              style: context.textTheme.labelSmall,
-            ),
+          Text(
+            entry.length!.toString(),
+            style: context.textTheme.labelSmall,
           ),
-        DionBadge(
-          child: Icon(
-            switch (entry.mediaType) {
-              MediaType.audio => Icons.music_note,
-              MediaType.video => Icons.videocam,
-              MediaType.book => Icons.menu_book,
-              MediaType.comic => Icons.image,
-              MediaType.unknown => Icons.help,
-            },
-            size: 15,
-          ),
+        Icon(
+          switch (entry.mediaType) {
+            MediaType.audio => Icons.music_note,
+            MediaType.video => Icons.videocam,
+            MediaType.book => Icons.menu_book,
+            MediaType.comic => Icons.image,
+            MediaType.unknown => Icons.help,
+          },
+          size: 15,
         ),
       ],
       trailingBadges: [
         if (entry is EntrySaved)
-          DionBadge(
-            child: CountryFlag.fromLanguageCode(
-              (entry as EntrySaved).language,
-              height: 15,
-              width: 15,
-            ),
-          ),
-        DionBadge(
-          child: DionImage(
-            imageUrl: entry.extension.data.icon,
-            width: 15,
+          CountryFlag.fromLanguageCode(
+            (entry as EntrySaved).language,
             height: 15,
+            width: 15,
           ),
+        DionImage(
+          imageUrl: entry.extension.data.icon,
+          width: 15,
+          height: 15,
         ),
       ],
       bottom: Column(
@@ -168,17 +168,24 @@ class EntryCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (entry.views != null)
-                  Text(
-                    NumberFormat.compact().format(entry.views),
-                    style: context.textTheme.titleSmall
-                        ?.copyWith(color: Colors.white),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.remove_red_eye,
+                        size: 13,
+                        color: Colors.grey,
+                      ).paddingOnly(right: 2),
+                      Text(
+                        NumberFormat.compact().format(entry.views),
+                        style: context.textTheme.bodySmall
+                            ?.copyWith(color: Colors.grey),
+                      ),
+                    ],
                   ),
               ],
-            ).paddingOnly(left: 5),
-          TextScroll(
+            ).paddingOnly(left: 5, right: 5),
+          Text(
             entry.title,
-            pauseBetween: 1.seconds,
-            velocity: const Velocity(pixelsPerSecond: Offset(50, 0)),
             style: context.textTheme.titleSmall?.copyWith(color: Colors.white),
           ).paddingOnly(bottom: 5, left: 5),
         ],
