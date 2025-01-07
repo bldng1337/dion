@@ -14,6 +14,7 @@ import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
@@ -329,7 +330,7 @@ class EntryInfo extends StatelessWidget {
                 ),
                 if (entry.rating != null || entry.views != null)
                   DionBadge(
-                    color: context.theme.primaryColor.lighten(),
+                    color: context.theme.primaryColor.lighten(5),
                     child: ColumnRow(
                       isRow: context.width > 950,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -417,6 +418,19 @@ class EntryInfo extends StatelessWidget {
             style: context.bodyMedium,
           ),
         ).paddingOnly(top: 7),
+        isEntryDetailed(
+          context: context,
+          entry: entry,
+          isdetailed: (entry) => DionBadge(
+            color: context.primaryColor.lighten(5),
+            child: CustomUIWidget(
+              ui: entry.ui,
+              extension: entry.extension,
+            ),
+          ).paddingAll(5),
+          isnt: () => nil,
+          shimmer: false,
+        ),
       ],
     );
   }
@@ -696,11 +710,52 @@ class EpisodeTile extends StatelessWidget {
   }
 }
 
-class CustomUI extends StatelessWidget {
-  const CustomUI({super.key});
+class CustomUIWidget extends StatelessWidget {
+  final Extension extension;
+  final CustomUI? ui;
+  const CustomUIWidget({super.key, this.ui, required this.extension});
 
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return switch (ui) {
+      null => nil,
+      final CustomUI_Text text => Text(text.text),
+      final CustomUI_Image img => DionImage(
+          imageUrl: img.image,
+          httpHeaders: img.header,
+        ),
+      final CustomUI_Link link => Text(
+          link.label ?? link.link,
+          style: context.bodyMedium?.copyWith(
+            color: Colors.blue,
+            decoration: TextDecoration.underline,
+          ),
+        ).onTap(
+          () => launchUrl(Uri.parse(link.link)),
+        ),
+      final CustomUI_TimeStamp timestamp => switch (timestamp.display) {
+          TimestampType.relative => Text(
+              DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? ''),
+          TimestampType.absolute =>
+            Text(DateTime.tryParse(timestamp.timestamp)?.toString() ?? ''),
+        },
+      final CustomUI_EntryCard entryCard =>
+        EntryCard(entry: EntryImpl(entryCard.entry, extension)),
+      final CustomUI_Column column => SingleChildScrollView(
+          child: Column(
+            children: column.children
+                .map((e) => CustomUIWidget(ui: e, extension: extension))
+                .toList(),
+          ),
+        ),
+      final CustomUI_Row row => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+          child: Row(
+            children: row.children
+                .map((e) => CustomUIWidget(ui: e, extension: extension))
+                .toList(),
+          ),
+        ),
+    };
   }
 }

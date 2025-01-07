@@ -119,7 +119,11 @@ class EntryCard extends StatelessWidget {
       httpHeaders: entry.coverHeader,
       leadingBadges: [
         if (showSaved && entry is EntrySaved)
-          const Icon(Icons.bookmark, size: 15),
+          Icon(
+            Icons.bookmark,
+            size: 15,
+            color: context.theme.colorScheme.primary,
+          ),
         if (entry is EntrySaved)
           Text(
             '${(entry as EntrySaved).latestEpisode}/${(entry as EntrySaved).totalEpisodes}',

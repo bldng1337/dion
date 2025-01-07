@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:math';
 
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
@@ -7,8 +7,9 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_surrealdb/flutter_surrealdb.dart';
+import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
-import 'package:sqlite_crdt/sqlite_crdt.dart';
 
 abstract class Database extends ChangeNotifier {
   Future<void> init();
@@ -16,13 +17,17 @@ abstract class Database extends ChangeNotifier {
   Future<void> merge(String path); //TODO: merge
 
   Stream<EntrySaved> getEntries(int page, int limit);
-  Stream<EntrySaved> getEntriesSQL(int page, int limit, String sqlfilter);
+  Stream<EntrySaved> getEntriesSQL(
+    String sqlfilter,
+    Map<String, dynamic>? vars,
+  );
   Future<EntrySaved?> isSaved(Entry entry);
   Future<void> removeEntry(EntryDetailed entry);
   Future<void> updateEntry(EntryDetailed entry);
   Future<void> clear();
 
   static Future<void> ensureInitialized() async {
+    logger.i('Initialising Database!');
     final db = DatabaseImpl();
     await db.init();
     register<Database>(db);
@@ -31,112 +36,111 @@ abstract class Database extends ChangeNotifier {
 }
 
 class DatabaseImpl extends ChangeNotifier implements Database {
-  late final SqliteCrdt db;
+  late final AdapterSurrealDB db;
   @override
   Future<void> init() async {
-    if (kDebugMode) {
-      db = await SqliteCrdt.open(
-        (await getBasePath()).getFile('data.db').absolute.path,
-        version: 1,
-        onCreate: (db, version) async {
-          for (final statement
-              in (await rootBundle.loadString('assets/db/schema/schema.sql'))
-                  .split('--s')) {
-            await db.execute(statement);
-          }
-        },
-      );
-    }
+    await RustLib.init();
+    final dir = await getBasePath();
+    // if (kDebugMode) {
+    //   db = await AdapterSurrealDB.newMem();
+    // } else {
+    db = await AdapterSurrealDB.newFile(dir.absolute.path);
+    // }
+    await db.use(db: 'default', namespace: 'app');
+    await db.setMigrationAdapter(
+      version: 1,
+      migrationName: 'app',
+      onMigrate: (db, from, to) async {},
+      onCreate: (db) async {
+        await db.query(
+            query: await rootBundle.loadString('assets/db/schema/schema.sql'));
+      },
+    );
+    await db.setCrdtAdapter(tablesToSync: {const DBTable('entry')});
   }
 
   @override
   Stream<EntrySaved> getEntries(int page, int limit) {
-    return getEntriesSQL(page, limit, '');
+    return getEntriesSQL(
+      'SELECT * FROM entry LIMIT \$limit START \$offset*\$limit',
+      {
+        'limit': limit,
+        'offset': page,
+      },
+    );
   }
 
   @override
   Stream<EntrySaved> getEntriesSQL(
-    int page,
-    int limit,
     String sqlfilter,
+    Map<String, dynamic>? vars,
   ) async* {
-    final dbres = await db.query(
-      'SELECT * FROM entry WHERE is_deleted = 0 LIMIT ?1 OFFSET ?2',
-      [limit, page * limit],
+    final [dbres as List<dynamic>?] = await db.query(
+      query: sqlfilter,
+      vars: vars,
     );
-    if (dbres.isEmpty) return;
+    if (dbres == null || dbres.isEmpty) return;
     for (final e in dbres) {
-      yield await constructEntry(
-        e,
+      yield constructEntry(
+        e as Map<String, dynamic>,
         locate<SourceExtension>().getExtension(e['extensionid']! as String),
       );
     }
   }
 
+  DBRecord _constructDBRecord(Entry entry) =>
+      DBRecord('entry', '${entry.id}_${entry.extension.id}');
+
   @override
   Future<EntrySaved?> isSaved(Entry entry) async {
-    final dbentry = await db.query(
-      'SELECT * FROM entry WHERE id = ?1 AND is_deleted = 0',
-      [entry.id],
-    );
-    if (dbentry.isEmpty) return null;
-    return await constructEntry(dbentry[0], entry.extension);
+    final dbentry = await db.select(res: _constructDBRecord(entry));
+    if (dbentry == null) return null;
+    return constructEntry(dbentry as Map<String, dynamic>, entry.extension);
   }
 
-  Future<EntrySaved> constructEntry(
-    Map<String, Object?> dbentry,
+  EntrySaved constructEntry(
+    Map<String, dynamic> dbentry,
     Extension extension,
-  ) async {
-    final episodelists = <rust.EpisodeList>[];
-    final dbepisodelists = await db
-        .query('SELECT * FROM episodelist WHERE entry = ?1', [dbentry['id']]);
-    final dbgenres = await db.query(
-      'SELECT genre.genre from genre JOIN entryxgenre ON genre.id=entryxgenre.genre WHERE entryxgenre.entry=?',
-      [dbentry['id']],
-    );
-    for (final episodelist in dbepisodelists) {
-      final ep = await db.query(
-        'SELECT * FROM episode WHERE episodelist = ?1',
-        [episodelist['id']],
-      );
-      if (ep.isEmpty) continue;
-      episodelists.add(
-        rust.EpisodeList(
-          title: episodelist['title']! as String,
-          episodes: ep
-              .map(
-                (e) => rust.Episode(
-                  id: e['id']! as String,
-                  name: e['name']! as String,
-                  url: e['url']! as String,
-                  cover: e['cover'] as String?,
-                  coverHeader: (json.decode(e['coverheader']! as String)
-                          as Map<dynamic, dynamic>)
-                      .cast<String, String>(),
-                  timestamp: e['timestamp'] as String?,
-                ),
-              )
-              .toList(),
-        ),
-      );
+  ) {
+    final episodedata = <EpisodeData>[];
+    if (dbentry['episodedata'] != null) {
+      for (final epdata in dbentry['episodedata'] as List<dynamic>) {
+        episodedata.add(
+          EpisodeData(
+            bookmark: epdata['bookmark'] as bool,
+            finished: epdata['finished'] as bool,
+            progress: epdata['progress'] as String?,
+          ),
+        );
+      }
     }
-    final List<EpisodeData> episodedata = List.empty(growable: true);
-    final epdatas = await db.query(
-      'SELECT * FROM episodedata WHERE entryid = ?1',
-      [dbentry['id']! as String],
-    );
-    for (final epdata in epdatas) {
-      episodedata.add(
-        EpisodeData(
-          bookmark: (epdata['bookmark']! as int) == 1,
-          finished: (epdata['finished']! as int) == 1,
-          progress: epdata['progress'] as String?,
-        ),
-      );
+    final episodelists = <EpisodeList>[];
+    if (dbentry['episodes'] != null) {
+      for (final eplist in dbentry['episodes'] as List<dynamic>) {
+        final episodes = <Episode>[];
+        for (final ep in eplist['episodes'] as List<dynamic>) {
+          episodes.add(
+            Episode(
+              id: ep['episodeid']! as String,
+              name: ep['name']! as String,
+              url: ep['url']! as String,
+              cover: ep['cover'] as String?,
+              coverHeader: (ep['coverheader'] as Map<String, dynamic>?)?.cast(),
+              timestamp: ep['timestamp'] as String?,
+            ),
+          );
+        }
+        episodelists.add(
+          EpisodeList(
+            title: eplist['title']! as String,
+            episodes: episodes,
+          ),
+        );
+      }
     }
     return EntrySavedImpl(
       rust.EntryDetailed(
-        id: dbentry['id']! as String,
+        id: dbentry['entryid']! as String,
         url: dbentry['url']! as String,
         title: dbentry['title']! as String,
         status: rust.ReleaseStatus.values
@@ -144,21 +148,17 @@ class DatabaseImpl extends ChangeNotifier implements Database {
         description: dbentry['description']! as String,
         language: dbentry['language']! as String,
         episodes: episodelists,
-        genres: dbgenres.map((e) => e['genre']! as String).toList(),
-        alttitles:
-            (json.decode(dbentry['alttitles']! as String) as List<dynamic>)
-                .cast(),
-        author:
-            (json.decode(dbentry['author']! as String) as List<dynamic>).cast(),
-        cover: dbentry['cover']! as String,
-        coverHeader: (json.decode(dbentry['coverheader']! as String)
-                as Map<dynamic, dynamic>)
-            .cast(),
+        genres: (dbentry['genres'] as List<dynamic>?)?.cast(),
+        alttitles: (dbentry['alttitles'] as List<dynamic>?)?.cast(),
+        author: (dbentry['author'] as List<dynamic>?)?.cast(),
+        cover: dbentry['cover'] as String?,
+        coverHeader: (dbentry['coverheader'] as Map<String, dynamic>?)?.cast(),
         mediaType: rust.MediaType.values
             .firstWhere((e) => e.name == (dbentry['mediatype']! as String)),
         rating: dbentry['rating'] as double?,
         views: (dbentry['views'] as int?)?.toDouble(),
         length: dbentry['length'] as int?,
+        ui: _constructCustomUI(dbentry['ui'] as Map<String, dynamic>?),
       ),
       extension,
       episodedata,
@@ -167,96 +167,174 @@ class DatabaseImpl extends ChangeNotifier implements Database {
 
   @override
   Future<void> removeEntry(EntryDetailed entry) async {
-    await db.execute('DELETE FROM entry WHERE id=?1', [entry.id]);
+    await db.delete(res: _constructDBRecord(entry));
     notifyListeners();
   }
 
   @override
   Future<void> updateEntry(EntryDetailed entry) async {
-    await db.transaction((db) async {
-      await db.execute(
-          'INSERT OR REPLACE INTO entry(id,extensionid,url,title,mediatype,cover,coverheader,author,rating,views,length,ui,status,description,language,alttitles) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)',
-          [
-            entry.id,
-            entry.extension.id,
-            entry.url,
-            entry.title,
-            entry.mediaType.name,
-            entry.cover,
-            json.encode(entry.coverHeader ?? {}),
-            json.encode(entry.author ?? []),
-            entry.rating,
-            entry.views,
-            entry.length,
-            '', //entry.ui,
-            entry.status.name,
-            entry.description,
-            entry.language,
-            json.encode(entry.alttitles ?? []),
-          ]);
-      for (final genre in entry.genres!) {
-        await db
-            .execute('INSERT OR IGNORE INTO genre(genre) VALUES(?)', [genre]);
-        final genreid = (await db
-            .query('SELECT id FROM genre WHERE genre = ?', [genre]))[0]['id'];
-        await db.execute(
-          'INSERT OR IGNORE INTO entryxgenre(entry,genre) VALUES (?,?)',
-          [entry.id, genreid],
-        );
+    final dbentry = <String, dynamic>{
+      'entryid': entry.id,
+      'url': entry.url,
+      'title': entry.title,
+      'status': entry.status.name,
+      'description': entry.description,
+      'language': entry.language,
+      'genres': entry.genres,
+      'alttitles': entry.alttitles,
+      'author': entry.author,
+      'cover': entry.cover,
+      'coverheader': entry.coverHeader,
+      'mediatype': entry.mediaType.name,
+      'rating': entry.rating,
+      'views': entry.views?.toInt(),
+      'length': entry.length,
+      'ui': _destructCustomUI(entry.ui),
+      'extensionid': entry.extension.id,
+    };
+    final episodelists = [];
+    for (final episodelist in entry.episodes) {
+      episodelists.add({
+        'title': episodelist.title,
+        'episodes': episodelist.episodes
+            .map(
+              (e) => {
+                'episodeid': e.id,
+                'name': e.name,
+                'url': e.url,
+                'cover': e.cover,
+                'coverheader': e.coverHeader,
+                'timestamp': e.timestamp,
+              },
+            )
+            .toList(),
+      });
+    }
+    dbentry['episodes'] = episodelists;
+    if (entry is EntrySaved) {
+      final episodedata = [];
+      for (final epdata in entry.episodedata) {
+        episodedata.add({
+          'bookmark': epdata.bookmark,
+          'finished': epdata.finished,
+          'progress': epdata.progress,
+        });
       }
-      for (final episodelist in entry.episodes) {
-        await db.execute(
-            'INSERT OR REPLACE INTO episodelist(title,entry) VALUES (?,?)', [
-          episodelist.title,
-          entry.id,
-        ]);
-        final eplist = await db
-            .query('SELECT * FROM episodelist WHERE entry=? AND title=?', [
-          entry.id,
-          episodelist.title,
-        ]);
-        for (final episode in episodelist.episodes) {
-          await db.execute(
-            'INSERT OR REPLACE INTO episode(id,name,url,cover,coverheader,timestamp,episodelist) VALUES (?,?,?,?,?,?,?)',
-            [
-              episode.id,
-              episode.name,
-              episode.url,
-              episode.cover,
-              json.encode(episode.coverHeader ?? {}),
-              episode.timestamp,
-              eplist[0]['id'],
-            ],
-          );
-        }
-      }
-      if (entry is EntrySaved) {
-        for (final epdata in entry.episodedata.indexed) {
-          await db.execute(
-            'INSERT OR REPLACE INTO episodedata(entryid,episode,bookmark,finished,progress) VALUES (?,?,?,?,?)',
-            [
-              entry.id,
-              epdata.$1,
-              if (epdata.$2.bookmark) 1 else 0,
-              if (epdata.$2.finished) 1 else 0,
-              epdata.$2.progress,
-            ],
-          );
-        }
-      }
-    });
+      dbentry['episodedata'] = episodedata;
+    }
+    await db.upsert(res: _constructDBRecord(entry), data: dbentry);
     notifyListeners();
   }
 
+  CustomUI? _constructCustomUI(dynamic ui) {
+    if (ui == null) return null;
+    return switch (ui['type']) {
+      'text' => CustomUI_Text(text: ui['text'] as String),
+      'image' => CustomUI_Image(
+          image: ui['image'] as String,
+          header: (ui['header'] as Map<String, dynamic>?)?.cast(),
+        ),
+      'link' => CustomUI_Link(
+          link: ui['link'] as String,
+          label: ui['label'] as String?,
+        ),
+      'timestamp' => CustomUI_TimeStamp(
+          timestamp: ui['timestamp'] as String,
+          display: rust.TimestampType.values
+              .firstWhere((e) => e.name == ui['display'] as String),
+        ),
+      'entrycard' => CustomUI_EntryCard(
+          entry: rust.Entry(
+            id: ui['entry']['entryid'] as String,
+            url: ui['entry']['url'] as String,
+            title: ui['entry']['title'] as String,
+            author: (ui['entry']['author'] as List<dynamic>?)?.cast(),
+            cover: ui['entry']['cover'] as String?,
+            mediaType: rust.MediaType.values.firstWhere(
+              (e) => e.name == ui['entry']['mediatype'] as String,
+            ),
+            coverHeader:
+                (ui['entry']['coverheader'] as Map<String, dynamic>?)?.cast(),
+            rating: ui['entry']['rating'] as double?,
+            views: ui['entry']['views'] as double?,
+            length: ui['entry']['length'] as int?,
+          ),
+        ),
+      'column' => CustomUI_Column(
+          children: (ui['children'] as List<dynamic>)
+              .map(_constructCustomUI)
+              .where((e) => e != null)
+              .toList()
+              .cast(),
+        ),
+      'row' => CustomUI_Row(
+          children: (ui['children'] as List<dynamic>)
+              .map(_constructCustomUI)
+              .where((e) => e != null)
+              .toList()
+              .cast(),
+        ),
+      _ => null,
+    };
+  }
+
+  dynamic _destructCustomUI(CustomUI? ui) {
+    return switch (ui) {
+      final CustomUI_Text text => {
+          'type': 'text',
+          'text': text.text,
+        },
+      final CustomUI_Image img => {
+          'type': 'image',
+          'image': img.image,
+          'header': img.header,
+        },
+      final CustomUI_Link link => {
+          'type': 'link',
+          'link': link.link,
+          'label': link.label,
+        },
+      final CustomUI_TimeStamp timestamp => {
+          'type': 'timestamp',
+          'timestamp': timestamp.timestamp,
+          'display': timestamp.display.name,
+        },
+      final CustomUI_EntryCard entryCard => {
+          'type': 'entrycard',
+          'entry': {
+            'entryid': entryCard.entry.id,
+            'url': entryCard.entry.url,
+            'title': entryCard.entry.title,
+            'author': entryCard.entry.author,
+            'cover': entryCard.entry.cover,
+            'coverheader': entryCard.entry.coverHeader,
+            'rating': entryCard.entry.rating,
+            'views': entryCard.entry.views,
+            'length': entryCard.entry.length,
+            'mediatype': entryCard.entry.mediaType.name,
+          },
+        },
+      final CustomUI_Column column => {
+          'type': 'column',
+          'children': column.children.map(_destructCustomUI).toList(),
+        },
+      final CustomUI_Row row => {
+          'type': 'row',
+          'children': row.children.map(_destructCustomUI).toList(),
+        },
+      null => null,
+    };
+  }
+
   @override
-  Future<void> clear() {
-    //TODO: implement clear
-    throw UnimplementedError();
+  Future<void> clear() async {
+    await db.query(query: 'DELETE entry');
   }
 
   @override
   Future<void> merge(String path) {
     // TODO: implement merge
+
     throw UnimplementedError();
   }
 }

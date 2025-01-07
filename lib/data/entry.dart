@@ -68,7 +68,7 @@ class EpisodeData {
 }
 
 abstract class EntryDetailed extends Entry {
-  CustomUi? get ui;
+  CustomUI? get ui;
   rust.ReleaseStatus get status;
   String get description;
   String get language;
@@ -264,7 +264,7 @@ class EntryDetailedImpl implements EntryDetailed {
   int? get length => _entry.length;
 
   @override
-  CustomUi? get ui => _entry.ui;
+  CustomUI? get ui => _entry.ui;
 
   @override
   rust.ReleaseStatus get status => _entry.status;
