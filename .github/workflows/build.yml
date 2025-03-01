@@ -5,75 +5,118 @@ on:
     tags:
       - v*
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref_name }}
+#   cancel-in-progress: true
 
 jobs:
-  # thanks https://github.com/hahouari/flutter_inno_workflows_demo/blob/dev/.github/workflows/build.yaml
-  windows-installer:
-    permissions:
-      contents: write
-    runs-on: windows-latest
+  Build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          # - macOS-latest TODO: do macOS builds
+          - windows-latest
+        build_mode:
+          - release
+    # env:
+    #   CARGOKIT_VERBOSE: 1
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-      - run: flutter --version
-      - run: |
-          flutter pub get
-          flutter pub run flutter_launcher_icons
-          flutter packages pub run build_runner build --delete-conflicting-outputs
-      - name: Build Windows App
-        run: |
-          flutter config --enable-windows-desktop
-          flutter build windows
-      - name: Build iss script
-        run: dart run inno_bundle:build --no-app --release --no-installer
-      - name: Build installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+      - uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # 2.16.0
         with:
-          path: ./build/windows/x64/installer/Release/inno-script.iss
-      - uses: actions/upload-artifact@v3
-        with:
-          path: "build/windows/x64/installer/Release/*.exe"
-      - uses: ncipollo/release-action@v1
-        with:
-          artifacts: "build/windows/x64/installer/Release/*.exe"
-          allowUpdates: true
-  build-android:
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-      - run: flutter --version
-      - run: |
-              flutter pub get
-              flutter pub run flutter_launcher_icons
-              flutter packages pub run build_runner build --delete-conflicting-outputs
+          channel: "stable"
+      - name: Install GTK
+        if: (matrix.os == 'ubuntu-latest')
+        run: sudo apt-get update && sudo apt-get install libgtk-3-dev
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install ninja-build
+        if: (matrix.os == 'ubuntu-latest')
+        run: sudo apt-get update && sudo apt-get install ninja-build
       - name: Set up JDK 17
+        if: (matrix.os == 'ubuntu-latest')
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
       - name: Setup Android SDK
+        if: (matrix.os == 'ubuntu-latest')
         uses: android-actions/setup-android@v3
+      - name: List files in cmdline-tools
+        if: (matrix.os == 'ubuntu-latest')
+        run: cd /root/.android/sdk/cmdline-tools && ls -la
+      - name: Move cmdline-tools for CargoKit
+        if: (matrix.os == 'ubuntu-latest')
+        run: mv /root/.android/sdk/cmdline-tools/11.0 /root/.android/sdk/cmdline-tools/latest
+      - name: Install Clang
+        uses: egor-tensin/setup-clang@v1.4
+        with:
+          version: latest
+          platform: x64
+      - name: Setup cmake
+        if: (matrix.os == 'ubuntu-latest')
+        uses: jwlawson/actions-setup-cmake@v2
+      - name: Build Launcher Icons
+        run: flutter pub run flutter_launcher_icons
+
+      - name: Create output directory
+        run: mkdir -p ./output
+      
+      - name: Build Linux (${{ matrix.build_mode }})
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: flutter build linux --${{ matrix.build_mode }}
+      - name: Build Android (${{ matrix.build_mode }})
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: flutter build apk --${{ matrix.build_mode }}
       - run: echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
       - run: echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
       - run: echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-      - run: flutter build apk --release
-      - run: jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-release.apk dion
-      - run: jarsigner -verify -certs build/app/outputs/flutter-apk/app-release.apk
-      # - run: |
-      #     cd build/app/outputs/flutter-apk
-      #     mv app-release.apk dion${{ github.ref_name }}.apk
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     path: "build/app/outputs/flutter-apk/dion*.apk"
-      # - uses: ncipollo/release-action@v1
-      #   with:
-      #     artifacts: "build/app/outputs/flutter-apk/dion*.apk"
-      #     allowUpdates: true
+      - run: jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk dion
+      - run: jarsigner -verify -certs build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+      - name: Move APK
+        run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
+      
+      - name: Build macOS (${{ matrix.build_mode }})
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: flutter build macos --${{ matrix.build_mode }}
+      - name: Build iOS (${{ matrix.build_mode }})
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: flutter build ios --${{ matrix.build_mode }} --no-codesign
+      - name: Build iOS (${{ matrix.build_mode }}) - flavor1
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: flutter build ios --flavor flavor1 --${{ matrix.build_mode }} --no-codesign
+
+      - name: Build Windows (${{ matrix.build_mode }})
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          flutter config --enable-windows-desktop
+          flutter build windows --${{ matrix.build_mode }}
+      - name: Build iss script
+        if: matrix.os == 'windows-latest'
+        run: dart run inno_bundle:build --no-app --release --no-installer
+      - name: Build installer
+        if: matrix.os == 'windows-latest'
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: ./build/windows/x64/installer/Release/inno-script.iss
+      - name: Move installer
+        if: matrix.os == 'windows-latest'
+        run: mv ./build/windows/x64/installer/Release/*.exe ./output/*.exe
+      
+
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: "./output/*"
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "./output/*"
+          allowUpdates: true
