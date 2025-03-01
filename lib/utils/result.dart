@@ -7,6 +7,13 @@ class Result<T> {
   const Result.value(this.value)
       : error = null,
         trace = null;
+  factory Result.tryRun(T Function() f) {
+    try {
+      return Result.value(f());
+    } catch (e, s) {
+      return Result.error(e, trace: s);
+    }
+  }
 
   bool get isError => error != null;
   bool get isSuccess => !isError;

@@ -17,6 +17,7 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/context_menu.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
@@ -42,6 +43,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
   late CancelToken tok;
   bool refreshing = false;
+  Object? error;
 
   Future<void> loadEntry() async {
     try {
@@ -54,6 +56,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       }
     } catch (e, stack) {
       logger.e('Error checking if entry is saved', error: e, stackTrace: stack);
+      error = e;
+      if (mounted) {
+        setState(() {});
+      }
     }
     try {
       entry = await entry!.toDetailed(token: tok);
@@ -62,6 +68,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       }
     } catch (e, stack) {
       logger.e('Error loading entry', error: e, stackTrace: stack);
+      error = e;
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -93,8 +103,13 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   @override
   Widget build(BuildContext context) {
+    if (error != null) {
+      return ErrorDisplay(e: error!);
+    }
     if (entry == null) {
-      return const NavScaff(child: Center(child: CircularProgressIndicator()));
+      return const NavScaff(
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
     final actions = [
       if (entry is EntrySaved)
@@ -104,11 +119,18 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
             if (mounted) {
               setState(() {});
             }
-            final e = await (entry! as EntrySaved).refresh(token: tok);
-            if (mounted) {
-              entry = e;
-              refreshing = false;
-              setState(() {});
+            try {
+              final e = await (entry! as EntrySaved).refresh(token: tok);
+              if (mounted) {
+                entry = e;
+                refreshing = false;
+                setState(() {});
+              }
+            } catch (e, s) {
+              error = e;
+              if (mounted) {
+                setState(() {});
+              }
             }
           },
           icon: refreshing
@@ -118,7 +140,14 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       if (entry is EntryDetailed)
         DionIconbutton(
           onPressed: () {
-            launchUrl(Uri.parse(entry!.url));
+            try {
+              launchUrl(Uri.parse(entry!.url));
+            } catch (e, s) {
+              error = e;
+              if (mounted) {
+                setState(() {});
+              }
+            }
           },
           icon: const Icon(Icons.open_in_browser),
         ),
@@ -749,7 +778,7 @@ class CustomUIWidget extends StatelessWidget {
           ),
         ),
       final CustomUI_Row row => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+          scrollDirection: Axis.horizontal,
           child: Row(
             children: row.children
                 .map((e) => CustomUIWidget(ui: e, extension: extension))

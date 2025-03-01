@@ -2,11 +2,14 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
+import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/result.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,29 +24,42 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   SourcePath? source;
   CancelToken? tok;
   bool loading = false;
+  EpisodePath? eppath;
+  Object? error;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final extra = GoRouterState.of(context).extra;
-    if (extra is! List<Object?>) return;
-    if (extra.isEmpty) return;
-    if (extra[0]! is! EpisodePath) return;
-    final eppath = extra[0]! as EpisodePath;
-    if (source != null && source!.episode == eppath) return;
-    if (loading) return;
-    if (tok?.isDisposed ?? true) {
-      tok = CancelToken()..disposedBy(scope);
-    }
-    loading = true;
-    locate<SourceExtension>().source(eppath, token: tok).then((src) {
+  Future<void> loadSource() async {
+    try {
+      final extra = GoRouterState.of(context).extra;
+      if (extra is! List<Object?>) throw Exception('Invalid extra');
+      eppath = extra[0]! as EpisodePath;
+      if (source != null && source!.episode == eppath) return;
+      source = null;
+      if (loading) return;
+      if (tok?.isDisposed ?? true) {
+        tok = CancelToken()..disposedBy(scope);
+      }
+      loading = true;
+      final srcExt = locate<SourceExtension>();
+      final src = await srcExt.source(eppath!, token: tok);
       if (mounted) {
         setState(() {
           loading = false;
           source = src;
         });
       }
-    });
+    } catch (e, s) {
+      error = e;
+      loading = false;
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    loadSource();
   }
 
   @override
@@ -54,12 +70,53 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   @override
   Widget build(BuildContext context) {
     if (source == null) {
-      return const NavScaff(
-        title: Text('Loading ...'),
-        child: Center(child: CircularProgressIndicator()),
+      return NavScaff(
+        title: Text('Loading ${eppath?.name ?? ''} ...'),
+        child: ErrorBoundary(
+          e: error,
+          actions: getActions(),
+          child: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
-    return getView(source!);
+    if (error != null) {
+      return NavScaff(
+        title: Text('Error Loading ${eppath?.name ?? ''}'),
+        child: ErrorDisplay(
+          e: error!,
+          actions: getActions(),
+        ),
+      );
+    }
+    try {
+      return getView(source!);
+    } catch (e, s) {
+      return NavScaff(
+        title: Text('Error Displaying ${eppath?.name ?? ''}'),
+        child: ErrorDisplay(
+          e: e,
+          s: s,
+          actions: getActions(),
+        ),
+      );
+    }
+  }
+
+  List<Action> getActions() {
+    return [
+      if (!loading)
+        Action(
+          label: 'Refresh',
+          onTap: () async {
+            error = null;
+            source = null;
+            if (mounted) {
+              setState(() {});
+            }
+            await loadSource();
+          },
+        ),
+    ];
   }
 
   Widget getView(SourcePath source) {
@@ -70,10 +127,13 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
             ),
         },
       final Source_Directlink link => switch (link.sourcedata) {
-          final LinkSource_Epub _ => throw UnimplementedError(),
-          final LinkSource_Pdf _ => throw UnimplementedError(),
+          final LinkSource_Epub _ =>
+            throw UnimplementedError('Epub not supported yet'),
+          final LinkSource_Pdf _ =>
+            throw UnimplementedError('Pdf not supported yet'),
           final LinkSource_Imagelist _ => SimpleImageListReader(source: source),
-          final LinkSource_M3u8 _ => throw UnimplementedError(),
+          final LinkSource_M3u8 _ =>
+            throw UnimplementedError('M3u8 not supported yet'),
         },
     };
   }

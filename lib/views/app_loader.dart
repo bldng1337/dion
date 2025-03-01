@@ -1,5 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 
@@ -13,27 +14,42 @@ class AppLoader extends StatefulWidget {
 }
 
 class _AppLoaderState extends State<AppLoader> {
-  Error? e;
-  int currentTask = 0;
+  late List<Future> tasks;
+  late Stream<void> stream;
+  Object? error;
+  @override
+  void initState() {
+    tasks = widget.tasks.map(
+      (task) async {
+        try {
+          await task();
+        } catch (e) {
+          if (error != null) {
+            return;
+          }
+          error = e;
+        }
+      },
+    ).toList();
+    stream = Stream.fromFutures(tasks).asBroadcastStream();
+
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
+    int currentTask = 0;
     return NavScaff(
       child: StreamBuilder(
-        stream: Stream.fromFutures(
-          widget.tasks.map(
-            (task) async {
-              await task();
-            },
-          ).toList(),
-        ).asBroadcastStream(),
+        stream: stream,
         builder: (context, snapshot) {
-          if (e != null) {
-            return Center(child: Text(e.toString()));
+          currentTask++;
+          if (error != null) {
+            return Center(child: ErrorDisplay(e: error!));
           }
           return snapshot.when(
             data: (data, isComplete) {
-              currentTask++;
-              if (isComplete) {
+              if (isComplete && error == null) {
                 widget.onComplete(context);
                 return const Center(child: CircularProgressIndicator());
               }
@@ -44,10 +60,7 @@ class _AppLoaderState extends State<AppLoader> {
               );
             },
             error: (error, stackTrace) {
-              logger.e('Error Loading App',
-                  error: error, stackTrace: stackTrace,);
-              // e = error as Error?;
-              return Center(child: Text(error.toString()));
+              return Center(child: ErrorDisplay(e: error));
             },
             loading: () {
               return const Center(child: CircularProgressIndicator());

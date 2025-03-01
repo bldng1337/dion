@@ -25,7 +25,7 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
   late final TextEditingController controller;
   late final DataSourceController<Entry> datacontroller;
   late final CancelToken? token;
-  Entry? lasthovered;
+
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
