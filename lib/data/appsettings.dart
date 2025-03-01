@@ -91,7 +91,7 @@ final settings = (
       mode: Setting(
         ReaderMode.paginated,
         const PreferenceEnumMetaData('imagelistreader.mode', ReaderMode.values),
-      ),
+      )..addCollection(preferenceCollection),
       adaptivewidth: Setting(
         true,
         const PreferenceBoolMetaData('paragraphreader.text.adaptivewidth'),
@@ -142,7 +142,8 @@ final settings = (
         paragraphspacing: Setting(
           3.0,
           const PreferenceDoubleMetaData(
-              'paragraphreader.text.paragraphspacing',),
+            'paragraphreader.text.paragraphspacing',
+          ),
         )..addCollection(preferenceCollection),
         selectable: Setting(
           true,

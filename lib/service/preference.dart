@@ -7,9 +7,9 @@ class PreferenceService {
   late final SharedPreferences _preferences;
 
   Future<void> init() async {
+    settings;
     _preferences = await SharedPreferences.getInstance();
     for (final setting in preferenceCollection.settings) {
-      logger.i('Loading preference ${setting.metadata.id}');
       final value = _preferences.getString(setting.metadata.id);
       if (value != null) {
         try {
@@ -21,7 +21,6 @@ class PreferenceService {
       }
       
       setting.addListener(() {
-        logger.i('Saving preference ${setting.metadata.id}');
         try {
           _preferences.setString(
             setting.metadata.id,
