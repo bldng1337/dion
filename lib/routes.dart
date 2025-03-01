@@ -9,6 +9,7 @@ import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
+import 'package:dionysos/views/settings/sync.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +67,10 @@ GoRouter getRoutes() => GoRouter(
             GoRoute(
               path: '/imagelistreader',
               builder: (context, state) => const ImageListReaderSettings(),
+            ),
+            GoRoute(
+              path: '/sync',
+              builder: (context, state) => const SyncSettings(),
             ),
           ],
         ),

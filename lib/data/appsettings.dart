@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dionysos/utils/settings.dart';
 
 final preferenceCollection = SettingCollection<dynamic, PreferenceMetaData>();
@@ -59,11 +61,31 @@ class PreferenceEnumMetaData<T extends Enum> extends PreferenceMetaData<T>
   String stringify(T value) => value.name;
 }
 
+class PreferenceDirectoryMetaData extends PreferenceMetaData<Directory?> {
+  const PreferenceDirectoryMetaData(super.id);
+
+  @override
+  Directory? parse(String value) => value == '' ? null : Directory(value);
+
+  @override
+  String stringify(Directory? value) => value?.absolute.path ?? '';
+}
+
 enum ReaderMode {
   paginated,
 }
 
 final settings = (
+  sync: (
+    enabled: Setting(
+      true,
+      const PreferenceBoolMetaData('sync.enabled'),
+    )..addCollection(preferenceCollection),
+    path: Setting(
+      null as Directory?,
+      const PreferenceDirectoryMetaData('sync.path'),
+    )..addCollection(preferenceCollection),
+  ),
   readerSettings: (
     imagelistreader: (
       mode: Setting(

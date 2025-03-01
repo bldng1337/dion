@@ -1,9 +1,11 @@
+import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/views/app_loader.dart';
@@ -18,6 +20,13 @@ void main() async {
   initApp(
     app: () => AppLoader(
       tasks: [
+        () async {
+          await locateAsync<PreferenceService>();
+          if (settings.sync.enabled.value && settings.sync.path.value != null) {
+            logger.i('Syncing database with local file...');
+            (await locateAsync<Database>()).merge(settings.sync.path.value!.absolute.path);
+          }
+        },
         () async {
           await Database.ensureInitialized();
         },

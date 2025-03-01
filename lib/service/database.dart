@@ -37,15 +37,8 @@ abstract class Database extends ChangeNotifier {
 
 class DatabaseImpl extends ChangeNotifier implements Database {
   late final AdapterSurrealDB db;
-  @override
-  Future<void> init() async {
-    await RustLib.init();
-    final dir = await getBasePath();
-    // if (kDebugMode) {
-    //   db = await AdapterSurrealDB.newMem();
-    // } else {
-    db = await AdapterSurrealDB.newFile(dir.absolute.path);
-    // }
+
+  Future<void> initDB(AdapterSurrealDB db) async {
     await db.use(db: 'default', namespace: 'app');
     await db.setMigrationAdapter(
       version: 1,
@@ -53,10 +46,23 @@ class DatabaseImpl extends ChangeNotifier implements Database {
       onMigrate: (db, from, to) async {},
       onCreate: (db) async {
         await db.query(
-            query: await rootBundle.loadString('assets/db/schema/schema.sql'));
+          query: await rootBundle.loadString('assets/db/schema/schema.surql'),
+        );
       },
     );
     await db.setCrdtAdapter(tablesToSync: {const DBTable('entry')});
+  }
+
+  @override
+  Future<void> init() async {
+    await RustLib.init();
+    // if (kDebugMode) {
+    //   db = await AdapterSurrealDB.newMem();
+    // } else {
+    final dir = await locateAsync<DirectoryProvider>();
+    db = await AdapterSurrealDB.newFile(dir.databasepath.absolute.path);
+    // }
+    await initDB(db);
   }
 
   @override
@@ -81,10 +87,14 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     );
     if (dbres == null || dbres.isEmpty) return;
     for (final e in dbres) {
-      yield constructEntry(
-        e as Map<String, dynamic>,
-        locate<SourceExtension>().getExtension(e['extensionid']! as String),
-      );
+      try {
+        yield constructEntry(
+          e as Map<String, dynamic>,
+          locate<SourceExtension>().getExtension(e['extensionid']! as String),
+        );
+      } catch (e) {
+        logger.e('Error loading entry', error: e);
+      }
     }
   }
 
@@ -332,9 +342,13 @@ class DatabaseImpl extends ChangeNotifier implements Database {
   }
 
   @override
-  Future<void> merge(String path) {
-    // TODO: implement merge
-
-    throw UnimplementedError();
+  Future<void> merge(String path) async {
+    final otherdb = await AdapterSurrealDB.newFile(path);
+    try {
+      await initDB(otherdb);
+      await db.getAdapter<CrdtAdapter>().mergeCrdt(otherdb.getAdapter());
+    } finally {
+      otherdb.dispose();
+    }
   }
 }
