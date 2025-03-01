@@ -46,10 +46,13 @@ jobs:
         uses: android-actions/setup-android@v3
       - name: List files in cmdline-tools
         if: (matrix.os == 'ubuntu-latest')
-        run: cd /root/.android/sdk/cmdline-tools && ls -la
-      - name: Move cmdline-tools for CargoKit
-        if: (matrix.os == 'ubuntu-latest')
-        run: mv /root/.android/sdk/cmdline-tools/11.0 /root/.android/sdk/cmdline-tools/latest
+        run: ls -la $ANDROID_HOME/cmdline-tools
+      # - name: List files in cmdline-tools
+      #   if: (matrix.os == 'ubuntu-latest')
+      #   run: cd /root/.android/sdk/cmdline-tools && ls -la
+      # - name: Move cmdline-tools for CargoKit
+      #   if: (matrix.os == 'ubuntu-latest')
+      #   run: mv /root/.android/sdk/cmdline-tools/11.0 /root/.android/sdk/cmdline-tools/latest
       - name: Install Clang
         uses: egor-tensin/setup-clang@v1.4
         with:
@@ -72,11 +75,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: flutter build apk --${{ matrix.build_mode }}
-      - run: echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
-      - run: echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
-      - run: echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-      - run: jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk dion
-      - run: jarsigner -verify -certs build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+      - name: Sign APK
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+         echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
+         echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
+         echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
+         jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk dion
+         jarsigner -verify -certs build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
       - name: Move APK
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
       
