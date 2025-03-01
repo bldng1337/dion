@@ -63,6 +63,9 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
       - name: Build Launcher Icons
         run: flutter pub run flutter_launcher_icons
+      - name: Install mpv
+        if: (matrix.os == 'ubuntu-latest')
+        run: sudo apt install libmpv-dev mpv
 
       - name: Create output directory
         run: mkdir -p ./output
@@ -84,6 +87,7 @@ jobs:
          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk dion
          jarsigner -verify -certs build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
       - name: Move APK
+        if: matrix.os == 'ubuntu-latest'
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
       
       - name: Build macOS (${{ matrix.build_mode }})
