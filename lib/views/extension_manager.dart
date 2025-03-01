@@ -1,10 +1,12 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:text_scroll/text_scroll.dart';
 
@@ -22,6 +24,39 @@ class _ExtensionManagerState extends State<ExtensionManager> {
     final exts = sourceExt.getExtensions();
     return NavScaff(
       title: const TextScroll('Manage Extensions'),
+      actions: [
+        IconButton(
+            onPressed: () async {
+              await sourceExt.reload();
+              if (!mounted) {
+                return;
+              }
+              setState(() {});
+            },
+            icon: const Icon(Icons.refresh)),
+        IconButton(
+          onPressed: () async {
+            const XTypeGroup typeGroup = XTypeGroup(
+              label: 'Extensions',
+              extensions: <String>['dion.js'],
+            );
+            final List<XFile> files = await openFiles(
+              acceptedTypeGroups: <XTypeGroup>[typeGroup],
+            );
+            for (final file in files) {
+              final dir = await locateAsync<DirectoryProvider>();
+
+              await file.saveTo('${dir.extensionpath.absolute.path}/${file.name}');
+            }
+            await sourceExt.reload();
+            if (!mounted) {
+              return;
+            }
+            setState(() {});
+          },
+          icon: const Icon(Icons.install_desktop),
+        ),
+      ],
       destination: homedestinations,
       child: ListView.builder(
         itemCount: exts.length,
