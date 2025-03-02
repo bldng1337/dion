@@ -61,6 +61,8 @@ jobs:
       - name: Setup cmake
         if: (matrix.os == 'ubuntu-latest')
         uses: jwlawson/actions-setup-cmake@v2
+      - name: Pub Get
+        run: flutter pub get
       - name: Build Launcher Icons
         run: flutter pub run flutter_launcher_icons
       - name: Install mpv
@@ -70,10 +72,10 @@ jobs:
       - name: Create output directory
         run: mkdir -p ./output
       
-      - name: Build Linux (${{ matrix.build_mode }})
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: flutter build linux --${{ matrix.build_mode }}
+      # - name: Build Linux (${{ matrix.build_mode }})
+      #   if: matrix.os == 'ubuntu-latest'
+      #   shell: bash
+      #   run: flutter build linux --${{ matrix.build_mode }}
       - name: Build Android (${{ matrix.build_mode }})
         if: matrix.os == 'ubuntu-latest'
         shell: bash
@@ -106,9 +108,7 @@ jobs:
       - name: Build Windows (${{ matrix.build_mode }})
         if: matrix.os == 'windows-latest'
         shell: bash
-        run: |
-          flutter config --enable-windows-desktop
-          flutter build windows --${{ matrix.build_mode }}
+        run: flutter build windows --${{ matrix.build_mode }}
       - name: Build iss script
         if: matrix.os == 'windows-latest'
         run: dart run inno_bundle:build --no-app --release --no-installer
