@@ -134,7 +134,7 @@ jobs:
           path: ./build/windows/x64/installer/Release/inno-script.iss
       - name: Move installer
         if: matrix.os == 'windows-latest'
-        run: mv ./build/windows/x64/installer/Release/*.exe ./output/*.exe
+        run: mv ./build/windows/x64/installer/Release/*.exe ./output/
       
 
 
