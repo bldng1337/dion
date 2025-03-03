@@ -86,7 +86,6 @@ jobs:
           ninja --version
           clang --version
 
-      
       # - name: Build Linux (${{ matrix.build_mode }})
       #   if: matrix.os == 'ubuntu-latest'
       #   shell: bash
@@ -98,15 +97,15 @@ jobs:
       - name: Sign APK
         if: matrix.os == 'ubuntu-latest'
         run: |
-         echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
-         echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
-         echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-         jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk dion
-         jarsigner -verify -certs build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
+          echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
+          echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk dion
+          jarsigner -verify -certs build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
       - name: Move APK
         if: matrix.os == 'ubuntu-latest'
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
-      
+
       - name: Build macOS (${{ matrix.build_mode }})
         if: matrix.os == 'macos-latest'
         shell: bash
@@ -135,12 +134,11 @@ jobs:
       - name: Move installer
         if: matrix.os == 'windows-latest'
         run: mv ./build/windows/x64/installer/Release/*.exe ./output/
-      
-
 
       - uses: actions/upload-artifact@v4
         with:
           path: "./output/*"
+          name: dion-${{ matrix.os }}-${{ matrix.build_mode }}
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "./output/*"
