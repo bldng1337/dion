@@ -947,8 +947,8 @@ packages:
     dependency: "direct main"
     description:
       path: "dart/rdion_runtime"
-      ref: "6c3648bb5362e3fb7477ddddaf8c731ea5d87702"
-      resolved-ref: "6c3648bb5362e3fb7477ddddaf8c731ea5d87702"
+      ref: "26d6cdd629d28faf557fb1137298345fc2209c2b"
+      resolved-ref: "26d6cdd629d28faf557fb1137298345fc2209c2b"
       url: "https://github.com/bldng1337/dion-runtime.git"
     source: git
     version: "0.0.1"

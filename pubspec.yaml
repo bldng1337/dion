@@ -17,7 +17,7 @@ publish_to: none # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.0.0-beta.10
+version: 2.0.0-beta.11
 
 environment:
   sdk: ">=3.2.5 <4.0.0"
@@ -80,7 +80,7 @@ dependencies:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 6c3648bb5362e3fb7477ddddaf8c731ea5d87702
+      ref: 26d6cdd629d28faf557fb1137298345fc2209c2b
 
 dev_dependencies:
   build_runner: ^2.2.0
