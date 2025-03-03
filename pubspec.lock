@@ -455,16 +455,16 @@ packages:
     dependency: transitive
     description:
       name: flutter_rust_bridge
-      sha256: "5fe868d3cb8cbc4d83091748552e03f00ccfa41b8e44691bc382611f831d5f8b"
+      sha256: "39804d78730d41ecddbe97e38c7dd6c2b43f76e91ef7bbd329f98f9b0bd19e56"
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.1"
+    version: "2.8.0"
   flutter_surrealdb:
     dependency: "direct main"
     description:
       path: "."
-      ref: "67523fc2a2a2de826b5caa1d925ec0e19e901167"
-      resolved-ref: "67523fc2a2a2de826b5caa1d925ec0e19e901167"
+      ref: "6d39721dc84edde63a06db71489b34dce2f4a7e8"
+      resolved-ref: "6d39721dc84edde63a06db71489b34dce2f4a7e8"
       url: "https://github.com/bldng1337/flutter_surrealdb.git"
     source: git
     version: "0.0.1"
@@ -542,6 +542,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.2"
+  http_profile:
+    dependency: transitive
+    description:
+      name: http_profile
+      sha256: "7e679e355b09aaee2ab5010915c932cce3f2d1c11c3b2dc177891687014ffa78"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
   image:
     dependency: transitive
     description:
@@ -778,8 +786,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: e0e9fd5285d7f1ba9c0f2ddf2694f7cbf64456a5
-      resolved-ref: e0e9fd5285d7f1ba9c0f2ddf2694f7cbf64456a5
+      ref: "715426c71839e20b1e6228db1034850f801892b7"
+      resolved-ref: "715426c71839e20b1e6228db1034850f801892b7"
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"
@@ -971,8 +979,8 @@ packages:
     dependency: "direct main"
     description:
       path: "dart/rdion_runtime"
-      ref: "45e22b7bb7b16fd64f24b4559f9f0fc029d3e5fc"
-      resolved-ref: "45e22b7bb7b16fd64f24b4559f9f0fc029d3e5fc"
+      ref: f06d85b0045b0a76ffa09886982ecd1843ab1c16
+      resolved-ref: f06d85b0045b0a76ffa09886982ecd1843ab1c16
       url: "https://github.com/bldng1337/dion-runtime.git"
     source: git
     version: "0.0.1"
@@ -987,11 +995,12 @@ packages:
   rhttp:
     dependency: "direct main"
     description:
-      name: rhttp
-      sha256: "8dc4e1b50cbbd4422a3da93accfd40ea96227fb7d2264d6856754122aedfb194"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.0"
+      path: rhttp
+      ref: "2bdfe419a984c380af432608af8f5006a4f03a2a"
+      resolved-ref: "2bdfe419a984c380af432608af8f5006a4f03a2a"
+      url: "https://github.com/bldng1337/rhttp.git"
+    source: git
+    version: "0.10.0"
   rxdart:
     dependency: transitive
     description:

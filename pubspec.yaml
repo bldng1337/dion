@@ -17,7 +17,7 @@ publish_to: none # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.0.0-beta.7
+version: 2.0.0-beta.8
 
 environment:
   sdk: ">=3.2.5 <4.0.0"
@@ -64,7 +64,11 @@ dependencies:
       url: https://github.com/bldng1337/metis.git
       ref: 715426c71839e20b1e6228db1034850f801892b7
   path: ^1.9.0
-  rhttp: ^0.10.0
+  rhttp:
+    git:
+      url: https://github.com/bldng1337/rhttp.git
+      ref: 2bdfe419a984c380af432608af8f5006a4f03a2a
+      path: rhttp
   flutter_cache_manager: ^3.4.1
   text_scroll: ^0.2.0
   flutter_color_models: ^1.3.3+2
