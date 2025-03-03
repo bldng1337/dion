@@ -447,8 +447,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "6d39721dc84edde63a06db71489b34dce2f4a7e8"
-      resolved-ref: "6d39721dc84edde63a06db71489b34dce2f4a7e8"
+      ref: e09256d1dc75502323c2ac18120a2f4ef11bfc43
+      resolved-ref: e09256d1dc75502323c2ac18120a2f4ef11bfc43
       url: "https://github.com/bldng1337/flutter_surrealdb.git"
     source: git
     version: "0.0.1"
@@ -770,8 +770,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "715426c71839e20b1e6228db1034850f801892b7"
-      resolved-ref: "715426c71839e20b1e6228db1034850f801892b7"
+      ref: d476a958084ebc43ecb1798e660ea12b434b4a8b
+      resolved-ref: d476a958084ebc43ecb1798e660ea12b434b4a8b
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"
@@ -947,8 +947,8 @@ packages:
     dependency: "direct main"
     description:
       path: "dart/rdion_runtime"
-      ref: f06d85b0045b0a76ffa09886982ecd1843ab1c16
-      resolved-ref: f06d85b0045b0a76ffa09886982ecd1843ab1c16
+      ref: "6c3648bb5362e3fb7477ddddaf8c731ea5d87702"
+      resolved-ref: "6c3648bb5362e3fb7477ddddaf8c731ea5d87702"
       url: "https://github.com/bldng1337/dion-runtime.git"
     source: git
     version: "0.0.1"
