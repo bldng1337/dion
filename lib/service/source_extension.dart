@@ -5,7 +5,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
-import 'package:flutter/widgets.dart' show ChangeNotifier, Color, IconData;
+import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart'
     hide Entry, EntryDetailed, RustLib;
@@ -289,6 +289,7 @@ class SourceExtensionImpl implements SourceExtension {
     final extmanager =
         rust.ExtensionManagerProxy(path: dir.extensionpath.absolute.path);
     final exts = await extmanager.getExtensions();
+    extmanager.dispose();
     _extensions.addAll(
       await Future.wait(
         exts.map((e) => Extension.fromProxy(e)),
@@ -297,7 +298,6 @@ class SourceExtensionImpl implements SourceExtension {
     for (final e in _extensions) {
       await e.enable();
     }
-    extmanager.dispose();
   }
 
   @override
