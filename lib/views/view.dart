@@ -2,8 +2,6 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
-import 'package:dionysos/utils/log.dart';
-import 'package:dionysos/utils/result.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
@@ -47,7 +45,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
           source = src;
         });
       }
-    } catch (e, s) {
+    } catch (e) {
       error = e;
       loading = false;
       if (mounted) {

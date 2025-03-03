@@ -7,7 +7,8 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier, Color, IconData;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
-export 'package:rdion_runtime/rdion_runtime.dart' hide Entry, EntryDetailed, RustLib;
+export 'package:rdion_runtime/rdion_runtime.dart'
+    hide Entry, EntryDetailed, RustLib;
 
 class Extension extends ChangeNotifier {
   Extension(this.data, this._proxy, this.isenabled, this.settings);

@@ -1,12 +1,9 @@
-import 'dart:math';
-
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_surrealdb/flutter_surrealdb.dart';
 import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
@@ -45,9 +42,10 @@ class DatabaseImpl extends ChangeNotifier implements Database {
       migrationName: 'app',
       onMigrate: (db, from, to) async {},
       onCreate: (db) async {
-        await db.query(
-          query: await rootBundle.loadString('assets/db/schema/schema.surql'),
-        );
+        //TODO: Fix this
+        // await db.query(
+        //   query: await rootBundle.loadString('assets/db/schema/schema.surql'),
+        // );
       },
     );
     await db.setCrdtAdapter(tablesToSync: {const DBTable('entry')});
@@ -56,12 +54,8 @@ class DatabaseImpl extends ChangeNotifier implements Database {
   @override
   Future<void> init() async {
     await RustLib.init();
-    // if (kDebugMode) {
-    //   db = await AdapterSurrealDB.newMem();
-    // } else {
     final dir = await locateAsync<DirectoryProvider>();
     db = await AdapterSurrealDB.newFile(dir.databasepath.absolute.path);
-    // }
     await initDB(db);
   }
 

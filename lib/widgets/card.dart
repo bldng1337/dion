@@ -12,7 +12,6 @@ import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:text_scroll/text_scroll.dart';
 
 class Card extends StatelessWidget {
   final String? imageUrl;

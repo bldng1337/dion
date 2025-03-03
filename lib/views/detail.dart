@@ -126,7 +126,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                 refreshing = false;
                 setState(() {});
               }
-            } catch (e, s) {
+            } catch (e) {
               error = e;
               if (mounted) {
                 setState(() {});
@@ -142,7 +142,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           onPressed: () {
             try {
               launchUrl(Uri.parse(entry!.url));
-            } catch (e, s) {
+            } catch (e) {
               error = e;
               if (mounted) {
                 setState(() {});
