@@ -100,10 +100,10 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
     }
   }
 
-  List<Action> getActions() {
+  List<ErrorAction> getActions() {
     return [
       if (!loading)
-        Action(
+        ErrorAction(
           label: 'Refresh',
           onTap: () async {
             error = null;

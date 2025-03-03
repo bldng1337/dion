@@ -27,7 +27,7 @@ class ErrorBoundary extends StatelessWidget {
   final StackTrace? s;
   final String? message;
   final Widget child;
-  final List<Action>? actions;
+  final List<ErrorAction>? actions;
 
   const ErrorBoundary({
     super.key,
@@ -52,17 +52,17 @@ class ErrorBoundary extends StatelessWidget {
   }
 }
 
-class Action {
+class ErrorAction {
   final String label;
   final Function()? onTap;
-  const Action({required this.label, this.onTap});
+  const ErrorAction({required this.label, this.onTap});
 }
 
 class ErrorDisplay extends StatelessWidget {
   final Object e;
   final StackTrace? s;
   final String? message;
-  final List<Action>? actions;
+  final List<ErrorAction>? actions;
   const ErrorDisplay({
     super.key,
     required this.e,
