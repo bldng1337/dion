@@ -2,7 +2,9 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -18,8 +20,39 @@ class ExtensionManager extends StatefulWidget {
 }
 
 class _ExtensionManagerState extends State<ExtensionManager> {
+  bool loading = false;
+  Object? error;
+
   @override
   Widget build(BuildContext context) {
+    if (error != null) {
+      return NavScaff(
+        title: const TextScroll('Manage Extensions'),
+        destination: homedestinations,
+        child: Center(
+          child: ErrorDisplay(
+            e: error!,
+            actions: [
+              ErrorAction(
+                label: 'Reload',
+                onTap: () {
+                  setState(() {
+                    error = null;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (loading) {
+      return NavScaff(
+        title: const TextScroll('Manage Extensions'),
+        destination: homedestinations,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
     final sourceExt = locate<SourceExtension>();
     final exts = sourceExt.getExtensions();
     return NavScaff(
@@ -27,32 +60,54 @@ class _ExtensionManagerState extends State<ExtensionManager> {
       actions: [
         IconButton(
             onPressed: () async {
-              await sourceExt.reload();
+              setState(() {
+                loading = true;
+              });
+              try {
+                await sourceExt.reload();
+              } catch (e, stack) {
+                logger.e(e, stackTrace: stack);
+                error = e;
+              }
               if (!mounted) {
                 return;
               }
-              setState(() {});
+              setState(() {
+                loading = false;
+              });
             },
             icon: const Icon(Icons.refresh)),
         IconButton(
           onPressed: () async {
-            const XTypeGroup typeGroup = XTypeGroup(
-              label: 'Extensions',
-              extensions: <String>['dion.js'],
-            );
-            final List<XFile> files = await openFiles(
-              acceptedTypeGroups: <XTypeGroup>[typeGroup],
-            );
-            for (final file in files) {
+            try {
+              setState(() {
+                loading = true;
+              });
+              const XTypeGroup typeGroup = XTypeGroup(
+                label: 'Extensions',
+                extensions: <String>['js'],
+              );
+              final List<XFile> files = await openFiles(
+                acceptedTypeGroups: <XTypeGroup>[typeGroup],
+              );
               final dir = await locateAsync<DirectoryProvider>();
-
-              await file.saveTo('${dir.extensionpath.absolute.path}/${file.name}');
+              for (final file in files) {
+                //I have no idea but android decides on some devices to rename dion.js to dion.es
+                final filename = file.name.replaceAll('.dion.es', '.dion.js');
+                await file
+                    .saveTo('${dir.extensionpath.absolute.path}/$filename');
+              }
+              await sourceExt.reload();
+            } catch (e, stack) {
+              logger.e(e, stackTrace: stack);
+              error = e;
             }
-            await sourceExt.reload();
             if (!mounted) {
               return;
             }
-            setState(() {});
+            setState(() {
+              loading = false;
+            });
           },
           icon: const Icon(Icons.install_desktop),
         ),
