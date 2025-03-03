@@ -71,15 +71,28 @@ jobs:
 
       - name: Create output directory
         run: mkdir -p ./output
+
+      - name: Versions
+        run: |
+          flutter --version
+          dart --version
+          cargo --version
+      - name: Ubuntu Versions
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cmake --version
+          ninja --version
+          clang --version
+
       
       # - name: Build Linux (${{ matrix.build_mode }})
       #   if: matrix.os == 'ubuntu-latest'
       #   shell: bash
-      #   run: flutter build linux --${{ matrix.build_mode }}
+      #   run: flutter build linux --${{ matrix.build_mode }} --verbose
       - name: Build Android (${{ matrix.build_mode }})
         if: matrix.os == 'ubuntu-latest'
         shell: bash
-        run: flutter build apk --${{ matrix.build_mode }}
+        run: flutter build apk --${{ matrix.build_mode }} --verbose
       - name: Sign APK
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -95,20 +108,20 @@ jobs:
       - name: Build macOS (${{ matrix.build_mode }})
         if: matrix.os == 'macos-latest'
         shell: bash
-        run: flutter build macos --${{ matrix.build_mode }}
+        run: flutter build macos --${{ matrix.build_mode }}  --verbose
       - name: Build iOS (${{ matrix.build_mode }})
         if: matrix.os == 'macos-latest'
         shell: bash
-        run: flutter build ios --${{ matrix.build_mode }} --no-codesign
+        run: flutter build ios --${{ matrix.build_mode }} --no-codesign  --verbose
       - name: Build iOS (${{ matrix.build_mode }}) - flavor1
         if: matrix.os == 'macos-latest'
         shell: bash
-        run: flutter build ios --flavor flavor1 --${{ matrix.build_mode }} --no-codesign
+        run: flutter build ios --flavor flavor1 --${{ matrix.build_mode }} --no-codesign --verbose
 
       - name: Build Windows (${{ matrix.build_mode }})
         if: matrix.os == 'windows-latest'
         shell: bash
-        run: flutter build windows --${{ matrix.build_mode }}
+        run: flutter build windows --${{ matrix.build_mode }} --verbose
       - name: Build iss script
         if: matrix.os == 'windows-latest'
         run: dart run inno_bundle:build --no-app --release --no-installer
