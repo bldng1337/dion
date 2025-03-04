@@ -1,3 +1,4 @@
+import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/source_extension.dart';
@@ -29,6 +30,15 @@ abstract class Database extends ChangeNotifier {
     await db.init();
     register<Database>(db);
     logger.i('Initialised Database!');
+    await locateAsync<PreferenceService>();
+    if (settings.sync.enabled.value && settings.sync.path.value != null) {
+      logger.i('Syncing database with local file...');
+      locate<Database>().merge(settings.sync.path.value!.absolute.path).then(
+            (_) => logger.i('Synced database with local file!'),
+            onError: (e) =>
+                logger.e('Failed to sync database with local file!', error: e),
+          );
+    }
   }
 }
 

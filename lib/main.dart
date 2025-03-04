@@ -23,13 +23,6 @@ void main() async {
     app: () => AppLoader(
       tasks: [
         () async {
-          await locateAsync<PreferenceService>();
-          if (settings.sync.enabled.value && settings.sync.path.value != null) {
-            logger.i('Syncing database with local file...');
-            (await locateAsync<Database>()).merge(settings.sync.path.value!.absolute.path);
-          }
-        },
-        () async {
           await Database.ensureInitialized();
         },
         () async {
