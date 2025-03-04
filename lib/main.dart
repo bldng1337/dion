@@ -2,6 +2,7 @@ import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
@@ -45,7 +46,10 @@ void main() async {
         },
         () async {
           MediaKit.ensureInitialized();
-        }
+        },
+        () async {
+          await NetworkService.ensureInitialized();
+        },
       ],
       onComplete: (context) {
         register(GlobalKey<NavigatorState>());
