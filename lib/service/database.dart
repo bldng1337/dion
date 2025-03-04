@@ -1,6 +1,7 @@
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
