@@ -1,4 +1,3 @@
-import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
@@ -6,9 +5,6 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/file_utils.dart';
-import 'package:dionysos/utils/log.dart';
-import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/views/app_loader.dart';

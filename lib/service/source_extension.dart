@@ -3,7 +3,6 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
-import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
