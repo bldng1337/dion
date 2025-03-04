@@ -10,15 +10,16 @@ import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/theme.dart';
+import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/views/app_loader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:rhttp/rhttp.dart';
+
+GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  register(GlobalKey<NavigatorState>());
   initApp(
     app: () => AppLoader(
       tasks: [
@@ -35,7 +36,6 @@ void main() async {
           await DirectoryProvider.ensureInitialized();
         },
         () async {
-          await Rhttp.init();
           await CacheService.ensureInitialized();
         },
         () async {
@@ -44,9 +44,11 @@ void main() async {
         () async {
           await NetworkService.ensureInitialized();
         },
+        () async {
+          await checkVersion();
+        },
       ],
       onComplete: (context) {
-        register(GlobalKey<NavigatorState>());
         initApp(route: getRoutes());
       },
     ),
@@ -73,6 +75,7 @@ void initApp({
                 theme: getTheme(theme.brightness),
                 darkTheme: getTheme(Brightness.dark),
                 home: app!(),
+                navigatorKey: navigatorKey,
               ),
         DionThemeMode.cupertino => isrouter
             ? CupertinoApp.router(
@@ -86,6 +89,7 @@ void initApp({
                   materialTheme: getTheme(theme.brightness),
                 ),
                 home: app!(),
+                navigatorKey: navigatorKey,
               ),
       },
     ),

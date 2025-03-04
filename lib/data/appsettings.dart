@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dionysos/utils/settings.dart';
+import 'package:pub_semver/pub_semver.dart';
 
 final preferenceCollection = SettingCollection<dynamic, PreferenceMetaData>();
 
@@ -71,11 +72,48 @@ class PreferenceDirectoryMetaData extends PreferenceMetaData<Directory?> {
   String stringify(Directory? value) => value?.absolute.path ?? '';
 }
 
+class VersionMetaData extends PreferenceMetaData<Version> {
+  const VersionMetaData(super.id);
+
+  @override
+  Version parse(String value) => Version.parse(value);
+
+  @override
+  String stringify(Version value) => value.canonicalizedVersion;
+}
+
 enum ReaderMode {
   paginated,
 }
 
+enum UpdateChannel {
+  stable,
+  beta,
+}
+
 final settings = (
+  update: (
+    enabled: Setting(
+      true,
+      const PreferenceBoolMetaData('update.enabled'),
+    ),
+    channel: Setting(
+      UpdateChannel.beta,
+      const PreferenceEnumMetaData('update.channel', UpdateChannel.values),
+    ),
+    minor: Setting(
+      true,
+      const PreferenceBoolMetaData('update.minor'),
+    ),
+    patch: Setting(
+      true,
+      const PreferenceBoolMetaData('update.patch'),
+    ),
+    lastnotified: Setting(
+      Version.none,
+      const VersionMetaData('update.lastnotified'),
+    ),
+  ),
   sync: (
     enabled: Setting(
       true,

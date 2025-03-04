@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/main.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/extension_manager.dart';
@@ -24,9 +25,9 @@ final homedestinations = [
 ];
 
 GoRouter getRoutes() => GoRouter(
+      navigatorKey: navigatorKey,
       extraCodec: const MyExtraCodec(),
       debugLogDiagnostics: true,
-      // navigatorKey: locate<GlobalKey<NavigatorState>>(),
       initialLocation: '/library',
       redirect: (context, state) {
         if (state.fullPath == '/') {
