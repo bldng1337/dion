@@ -56,31 +56,3 @@ Future<Directory> getBasePath() async {
       .sub('dion')
       .create(recursive: true);
 }
-
-abstract class DirectoryProvider {
-  const DirectoryProvider();
-  Directory get basepath;
-  Directory get extensionpath;
-  Directory get databasepath;
-
-  static Future<void> ensureInitialized() async {
-    final basepath = await getBasePath();
-    logger.i('Initializing DirectoryProvider to $basepath');
-    final extensionpath =
-        await basepath.sub('extension').create(recursive: true);
-    final databasepath = await basepath.sub('database').create(recursive: true);
-    register<DirectoryProvider>(DirectoryProviderImpl(basepath, extensionpath, databasepath));
-  }
-}
-
-class DirectoryProviderImpl extends DirectoryProvider {
-  @override
-  final Directory basepath;
-  @override
-  final Directory extensionpath;
-  @override
-  final Directory databasepath;
-
-  const DirectoryProviderImpl(
-      this.basepath, this.extensionpath, this.databasepath,);
-}

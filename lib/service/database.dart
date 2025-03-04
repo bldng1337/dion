@@ -1,6 +1,6 @@
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
