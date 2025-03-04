@@ -74,10 +74,6 @@ class ErrorDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     logger.e(message, error: e, stackTrace: s);
-    if (e is! Error) {
-      return nil;
-    }
-    final error = e as Error;
     final trace = s ?? StackTrace.current;
     return ColoredBox(
       color: Colors.black.withOpacity(0.4),
@@ -86,18 +82,19 @@ class ErrorDisplay extends StatelessWidget {
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(
                 Icons.report_problem,
                 color: Colors.red,
               ).paddingAll(5),
               Text(
-                error.toString().split('\n').first,
+                e.toString(),
                 style: context.bodyMedium,
                 softWrap: true,
               ).expanded(),
             ],
-          ).paddingAll(5),
+          ).paddingAll(5).expanded(),
           Text(
             trace.toString(),
             style: context.bodySmall,
@@ -120,7 +117,7 @@ class ErrorDisplay extends StatelessWidget {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(error.toString().split('\n').first),
+          title: Text(e.toString()),
           content: Text(trace.toString()),
           actions: [
             TextButton(
@@ -130,7 +127,7 @@ class ErrorDisplay extends StatelessWidget {
             TextButton(
               child: const Text('Copy Error'),
               onPressed: () {
-                Clipboard.setData(ClipboardData(text: '$error\n\n$trace'))
+                Clipboard.setData(ClipboardData(text: '$e\n\n$trace'))
                     .then((a) {
                   if (context.mounted) {
                     context.pop();
