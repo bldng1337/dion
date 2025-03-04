@@ -2,6 +2,7 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
@@ -18,27 +19,65 @@ class ViewSource extends StatefulWidget {
   _ViewSourceState createState() => _ViewSourceState();
 }
 
+class Preload {
+  final EpisodePath eppath;
+  final Future<SourcePath> source;
+
+  const Preload(this.eppath, this.source);
+
+  @override
+  String toString() {
+    return 'Preload($eppath, $source)';
+  }
+}
+
+class InheritedPreload extends InheritedWidget {
+  final Function() shouldPreload;
+  const InheritedPreload({required this.shouldPreload, required super.child});
+
+  @override
+  bool updateShouldNotify(InheritedPreload oldWidget) {
+    return shouldPreload != oldWidget.shouldPreload;
+  }
+
+  static InheritedPreload of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<InheritedPreload>()!;
+  }
+}
+
 class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   SourcePath? source;
   CancelToken? tok;
   bool loading = false;
   EpisodePath? eppath;
   Object? error;
+  Preload? preload;
+
+  Future<SourcePath> getSource() async {
+    if (preload != null && preload!.eppath == eppath) {
+      final src = await preload!.source;
+      preload = null;
+      return src;
+    }
+    if (tok?.isDisposed ?? true) {
+      tok = CancelToken()..disposedBy(scope);
+    }
+    final srcExt = locate<SourceExtension>();
+    return await srcExt.source(eppath!, token: tok);
+  }
 
   Future<void> loadSource() async {
     try {
+      if (loading) return;
       final extra = GoRouterState.of(context).extra;
       if (extra is! List<Object?>) throw Exception('Invalid extra');
       eppath = extra[0]! as EpisodePath;
-      if (source != null && source!.episode == eppath) return;
-      source = null;
-      if (loading) return;
-      if (tok?.isDisposed ?? true) {
-        tok = CancelToken()..disposedBy(scope);
+      if (source != null && source!.episode == eppath) {
+        return;
       }
+      source = null;
       loading = true;
-      final srcExt = locate<SourceExtension>();
-      final src = await srcExt.source(eppath!, token: tok);
+      final src = await getSource();
       if (mounted) {
         setState(() {
           loading = false;
@@ -87,7 +126,30 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       );
     }
     try {
-      return getView(source!);
+      return InheritedPreload(
+        shouldPreload: () {
+          try {
+            final next = eppath!.next;
+            if (preload != null && preload!.eppath == next) {
+              return;
+            }
+            logger.i('Preloading ${next.name}');
+            if (tok?.isDisposed ?? true) {
+              tok = CancelToken()..disposedBy(scope);
+            }
+            final srcExt = locate<SourceExtension>();
+            final src = srcExt.source(next, token: tok).then((src) {
+              logger.i('Preloaded ${next.name}');
+              return src;
+            });
+            preload = Preload(next, src);
+          } catch (e) {
+            logger.e('Error preloading ${eppath?.name ?? ''}', error: e);
+            preload = null;
+          }
+        },
+        child: getView(source!),
+      );
     } catch (e, s) {
       return NavScaff(
         title: Text('Error Displaying ${eppath?.name ?? ''}'),

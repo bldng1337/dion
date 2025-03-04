@@ -175,7 +175,7 @@ class EpisodePath {
   bool get hasprev => episodenumber > 0;
   void goPrev(BuildContext context) {
     if (!hasprev) return;
-    GoRouter.of(context).pushReplacement(
+    GoRouter.of(context).replace(
       '/view',
       extra: [prev],
     );
@@ -189,7 +189,7 @@ class EpisodePath {
     data.finished = true;
     await save();
     if (context.mounted) {
-      await GoRouter.of(context).pushReplacement(
+      await GoRouter.of(context).replace(
         '/view',
         extra: [next],
       );

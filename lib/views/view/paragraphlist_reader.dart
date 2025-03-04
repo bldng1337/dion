@@ -4,6 +4,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/selection.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +43,9 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           epdata.finished = true;
           widget.source.episode.save();
           return;
+        }
+        if(controller.offset>=controller.position.maxScrollExtent/2){
+          InheritedPreload.of(context).shouldPreload();
         }
         epdata.progress = controller.offset.toString();
       },

@@ -4,6 +4,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -120,6 +121,9 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           )
           .index;
       epdata.progress = min.toString();
+      if (min >= widget.sourcedata.links.length / 2) {
+        InheritedPreload.of(context).shouldPreload();
+      }
       play();
     });
     super.initState();
@@ -163,20 +167,20 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     return NavScaff(
       title: TextScroll(widget.source.name),
       actions: [
-        if(player != null)
-        DionIconbutton(
-          icon: Icon(player!.state.playing ? Icons.pause : Icons.play_arrow),
-          onPressed: () async {
-            if(player!.state.playing) {
-              player!.pause();
-            } else {
-              player!.play();
-            }
-            if (mounted) {
-              setState(() {});
-            }
-          },
-        ),
+        if (player != null)
+          DionIconbutton(
+            icon: Icon(player!.state.playing ? Icons.pause : Icons.play_arrow),
+            onPressed: () async {
+              if (player!.state.playing) {
+                player!.pause();
+              } else {
+                player!.play();
+              }
+              if (mounted) {
+                setState(() {});
+              }
+            },
+          ),
         DionIconbutton(
           icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
           onPressed: () async {
@@ -253,7 +257,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       httpHeaders: widget.sourcedata.header,
       shouldAnimate: false,
       loadingBuilder: (context) => Container(
-        height: context.height*2,
+        height: context.height * 2,
         color: Colors.red,
       ).applyShimmer(),
     );
