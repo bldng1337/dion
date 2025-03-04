@@ -127,7 +127,9 @@ Future<Update?> checkUpdate() async {
   );
   final versions = (res.bodyToJson as List<dynamic>)
       .map((e) => Update.fromJson(e as Map<String, dynamic>))
-      .where((e) => e.version > version)
+      .where(
+          (e) => e.version.canonicalizedVersion != version.canonicalizedVersion)
+      .where((e) => e.version >= version)
       .where(
         (e) =>
             !e.version.isPreRelease ||
