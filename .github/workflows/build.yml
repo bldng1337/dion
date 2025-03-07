@@ -85,6 +85,7 @@ jobs:
           cmake --version
           ninja --version
           clang --version
+          javac --version
 
       # - name: Build Linux (${{ matrix.build_mode }})
       #   if: matrix.os == 'ubuntu-latest'
@@ -97,11 +98,12 @@ jobs:
       - name: Sign APK
         if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
-          echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
-          echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256  -keystore android/keystore.jks  -storepass:file android/storepass  -keypass:file android/keypass -tsa http://timestamp.digicert.com  build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk dion
-          jarsigner -verify -certs build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+         zipalign -c -P 16 -v 4 build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+         echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
+         echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
+         echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
+         apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+         apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
       - name: Move APK
         if: matrix.os == 'ubuntu-latest'
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
