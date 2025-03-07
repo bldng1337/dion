@@ -98,7 +98,6 @@ jobs:
       - name: Sign APK
         if: matrix.os == 'ubuntu-latest'
         run: |
-         zipalign -c -P 16 -v 4 build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
          echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
          echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
