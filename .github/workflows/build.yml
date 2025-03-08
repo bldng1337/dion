@@ -46,15 +46,12 @@ jobs:
       - name: Setup Android SDK
         if: (matrix.os == 'ubuntu-latest')
         uses: android-actions/setup-android@v3
+      - name: Install build tools
+        if: (matrix.os == 'ubuntu-latest')
+        run: sdkmanager --install "build-tools;30.0.3"
       - name: List files in cmdline-tools
         if: (matrix.os == 'ubuntu-latest')
         run: ls -la $ANDROID_HOME/cmdline-tools
-      # - name: List files in cmdline-tools
-      #   if: (matrix.os == 'ubuntu-latest')
-      #   run: cd /root/.android/sdk/cmdline-tools && ls -la
-      # - name: Move cmdline-tools for CargoKit
-      #   if: (matrix.os == 'ubuntu-latest')
-      #   run: mv /root/.android/sdk/cmdline-tools/11.0 /root/.android/sdk/cmdline-tools/latest
       - name: Install Clang
         uses: egor-tensin/setup-clang@v1.4
         with:
@@ -86,6 +83,7 @@ jobs:
           ninja --version
           clang --version
           javac --version
+          $ANDROID_HOME/build-tools/30.0.3/apksigner --version
 
       # - name: Build Linux (${{ matrix.build_mode }})
       #   if: matrix.os == 'ubuntu-latest'
@@ -101,8 +99,8 @@ jobs:
          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
          echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
          echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-         apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
-         apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+         $ANDROID_HOME/build-tools/30.0.3/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+         $ANDROID_HOME/build-tools/30.0.3/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
       - name: Move APK
         if: matrix.os == 'ubuntu-latest'
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
