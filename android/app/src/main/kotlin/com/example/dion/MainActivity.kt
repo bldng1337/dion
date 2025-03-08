@@ -1,4 +1,4 @@
-package com.example.dion
+package com.bldng.dion
 
 import io.flutter.embedding.android.FlutterActivity
 
