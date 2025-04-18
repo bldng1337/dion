@@ -24,6 +24,8 @@ abstract class DirectoryProvider {
       DirectoryProviderImpl(basepath, extensionpath, databasepath, temppath),
     );
   }
+
+  Future<void> clear();
 }
 
 class DirectoryProviderImpl extends DirectoryProvider {
@@ -42,4 +44,12 @@ class DirectoryProviderImpl extends DirectoryProvider {
     this.databasepath,
     this.temppath,
   );
+
+  @override
+  Future<void> clear() async {
+    await basepath.delete(recursive: true);
+    await extensionpath.delete(recursive: true);
+    await databasepath.delete(recursive: true);
+    await temppath.delete(recursive: true);
+  }
 }

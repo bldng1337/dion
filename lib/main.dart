@@ -5,12 +5,15 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/views/app_loader.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:restart_app/restart_app.dart';
 
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -18,6 +21,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initApp(
     app: () => AppLoader(
+      actions: [
+        ErrorAction(label: 'Restart', onTap: () => Restart.restartApp()),
+        ErrorAction(
+          label: 'Delete Data',
+          onTap: () async {
+            final dir = await locateAsync<DirectoryProvider>();
+            await dir.clear();
+            Restart.restartApp();
+          },
+        ),
+      ],
       tasks: [
         () async {
           await Database.ensureInitialized();

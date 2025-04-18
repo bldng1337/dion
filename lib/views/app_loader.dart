@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 class AppLoader extends StatefulWidget {
   final List<Future<void> Function()> tasks;
   final Function(BuildContext context) onComplete;
-  const AppLoader({required this.tasks, required this.onComplete, super.key});
+  final List<ErrorAction>? actions;
+  const AppLoader(
+      {required this.tasks, required this.onComplete, super.key, this.actions});
 
   @override
   _AppLoaderState createState() => _AppLoaderState();
@@ -44,7 +46,8 @@ class _AppLoaderState extends State<AppLoader> {
         builder: (context, snapshot) {
           currentTask++;
           if (error != null) {
-            return Center(child: ErrorDisplay(e: error!));
+            return Center(
+                child: ErrorDisplay(e: error!, actions: widget.actions));
           }
           return snapshot.when(
             data: (data, isComplete) {
@@ -59,7 +62,9 @@ class _AppLoaderState extends State<AppLoader> {
               );
             },
             error: (error, stackTrace) {
-              return Center(child: ErrorDisplay(e: error));
+              return Center(
+                child: ErrorDisplay(e: error, actions: widget.actions),
+              );
             },
             loading: () {
               return const Center(child: CircularProgressIndicator());
