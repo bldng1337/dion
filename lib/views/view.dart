@@ -2,7 +2,6 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
@@ -11,24 +10,14 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
+import 'package:quiver/cache.dart';
+import 'package:quiver/collection.dart';
 
 class ViewSource extends StatefulWidget {
   const ViewSource({super.key});
 
   @override
   _ViewSourceState createState() => _ViewSourceState();
-}
-
-class Preload {
-  final EpisodePath eppath;
-  final Future<SourcePath> source;
-
-  const Preload(this.eppath, this.source);
-
-  @override
-  String toString() {
-    return 'Preload($eppath, $source)';
-  }
 }
 
 class InheritedPreload extends InheritedWidget {
@@ -51,19 +40,15 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   bool loading = false;
   EpisodePath? eppath;
   Object? error;
-  Preload? preload;
+  late LruMap<EpisodePath, SourcePath> map;
+  late MapCache<EpisodePath, SourcePath> cache;
 
-  Future<SourcePath> getSource() async {
-    if (preload != null && preload!.eppath == eppath) {
-      final src = await preload!.source;
-      preload = null;
-      return src;
-    }
+  Future<SourcePath> getSource(EpisodePath eppath) async {
     if (tok?.isDisposed ?? true) {
       tok = CancelToken()..disposedBy(scope);
     }
     final srcExt = locate<SourceExtension>();
-    return await srcExt.source(eppath!, token: tok);
+    return await srcExt.source(eppath, token: tok);
   }
 
   Future<void> loadSource() async {
@@ -77,7 +62,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       }
       source = null;
       loading = true;
-      final src = await getSource();
+      final src = await cache.get(eppath!, ifAbsent: getSource);
       if (mounted) {
         setState(() {
           loading = false;
@@ -102,6 +87,8 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   @override
   void initState() {
     super.initState();
+    map = LruMap(maximumSize: 5);
+    cache = MapCache(map: map);
   }
 
   @override
@@ -128,25 +115,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
     try {
       return InheritedPreload(
         shouldPreload: () {
-          try {
-            final next = eppath!.next;
-            if (preload != null && preload!.eppath == next) {
-              return;
-            }
-            logger.i('Preloading ${next.name}');
-            if (tok?.isDisposed ?? true) {
-              tok = CancelToken()..disposedBy(scope);
-            }
-            final srcExt = locate<SourceExtension>();
-            final src = srcExt.source(next, token: tok).then((src) {
-              logger.i('Preloaded ${next.name}');
-              return src;
-            });
-            preload = Preload(next, src);
-          } catch (e) {
-            logger.e('Error preloading ${eppath?.name ?? ''}', error: e);
-            preload = null;
-          }
+          cache.get(eppath!.next, ifAbsent: getSource);
         },
         child: getView(source!),
       );
