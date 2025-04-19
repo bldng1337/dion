@@ -1,4 +1,4 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/source_extension.dart';
@@ -10,6 +10,7 @@ import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:text_scroll/text_scroll.dart';
 
 class ExtensionManager extends StatefulWidget {
@@ -148,6 +149,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
               ),
             ),
             onTap: () => exts[i].toggle(),
+            onLongTap: () => context.push('/extension/${exts[i].data.id}'),
             subtitle:
                 Text('${exts[i].data.desc ?? ''} v${exts[i].data.version}'),
           ),

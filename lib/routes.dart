@@ -5,6 +5,7 @@ import 'package:dionysos/main.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/extension_manager.dart';
+import 'package:dionysos/views/extension_view.dart';
 import 'package:dionysos/views/library.dart';
 import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
@@ -48,11 +49,16 @@ GoRouter getRoutes() => GoRouter(
           builder: (context, state) => const Browse(),
         ),
         GoRoute(
-            path: '/manage',
-            builder: (context, state) => const ExtensionManager()),
+          path: '/manage',
+          builder: (context, state) => const ExtensionManager(),
+        ),
         GoRoute(
           path: '/search/:query',
           builder: (context, state) => const Search(),
+        ),
+        GoRoute(
+          path: '/extension/:id',
+          builder: (context, state) => const ExtensionView(),
         ),
         GoRoute(path: '/view', builder: (context, state) => const ViewSource()),
         GoRoute(path: '/detail', builder: (context, state) => const Detail()),

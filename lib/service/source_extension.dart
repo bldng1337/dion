@@ -3,12 +3,13 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart'
-    hide Entry, EntryDetailed, RustLib;
+    hide Entry, EntryDetailed, RustLib, Setting;
 
 class Extension extends ChangeNotifier {
   Extension(this.data, this._proxy, this.isenabled, this.settings);
@@ -24,22 +25,46 @@ class Extension extends ChangeNotifier {
     return data.name.replaceAll('-', ' ').capitalize;
   }
 
+  rust.ExtensionProxy get internalProxy => _proxy;
+
   static Future<Extension> fromProxy(rust.ExtensionProxy proxy) async {
+    final settingids = await proxy.settingIds();
+    logger.i(settingids);
     return Extension(
       await proxy.data(),
       proxy,
       await proxy.isEnabled(),
       await Future.wait(
-        (await proxy.settingIds()).map((id) async {
+        settingids.map((id) async {
           final set = await proxy.getSetting(name: id);
-          final setting =
-              Setting<dynamic, ExtensionMetaData<dynamic>>.fromValue(
-            set.val.val,
-            set.val.defaultVal,
-            ExtensionMetaData(id, set, proxy),
-          );
+          final setting = switch (set.val.val) {
+            final rust.Settingvalue_String val =>
+              Setting<String, ExtensionMetaData<String>>.fromValue(
+                val.defaultVal,
+                val.val,
+                ExtensionMetaData(id, set, proxy),
+              ),
+            final rust.Settingvalue_Number val =>
+              Setting<double, ExtensionMetaData<double>>.fromValue(
+                val.defaultVal,
+                val.val,
+                ExtensionMetaData(id, set, proxy),
+              ),
+            final rust.Settingvalue_Boolean val =>
+              Setting<bool, ExtensionMetaData<bool>>.fromValue(
+                val.defaultVal,
+                val.val,
+                ExtensionMetaData(id, set, proxy),
+              ),
+            _ => Setting<dynamic, ExtensionMetaData<dynamic>>.fromValue(
+                set.val.defaultVal,
+                set.val.val,
+                ExtensionMetaData(id, set, proxy),
+              )
+          };
+          logger.i('Runtime type: ${setting.runtimeType}');
           return setting;
-        }).toList(),
+        }),
       ),
     );
   }
@@ -290,6 +315,9 @@ class SourceExtensionImpl implements SourceExtension {
         rust.ExtensionManagerProxy(path: dir.extensionpath.absolute.path);
     final exts = await extmanager.getExtensions();
     extmanager.dispose();
+    for (final e in exts) {
+      await e.enable();
+    }
     _extensions.addAll(
       await Future.wait(
         exts.map((e) => Extension.fromProxy(e)),
