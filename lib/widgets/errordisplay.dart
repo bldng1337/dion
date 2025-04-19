@@ -71,10 +71,17 @@ class ErrorDisplay extends StatelessWidget {
     this.actions,
   });
 
+  String getErrorMessage() {
+    final msg = e.toString().trim();
+    if (msg.isEmpty) {
+      return 'Unknown Error';
+    }
+    return msg;
+  }
+
   @override
   Widget build(BuildContext context) {
     logger.e(message, error: e, stackTrace: s);
-    final trace = s ?? StackTrace.current;
     return ColoredBox(
       color: Colors.black.withOpacity(0.4),
       child: Column(
@@ -89,18 +96,19 @@ class ErrorDisplay extends StatelessWidget {
                 color: Colors.red,
               ).paddingAll(5),
               Text(
-                e.toString(),
-                style: context.bodyMedium,
+                getErrorMessage(),
+                style: context.bodyLarge,
                 softWrap: true,
               ).expanded(),
             ],
           ).paddingAll(5).expanded(),
-          Text(
-            trace.toString(),
-            style: context.bodySmall,
-            overflow: TextOverflow.clip,
-            softWrap: false,
-          ).paddingOnly(left: 30).expanded(),
+          if (s != null)
+            Text(
+              s!.toString(),
+              style: context.bodySmall,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+            ).paddingOnly(left: 30).expanded(),
           if (actions != null)
             Row(
               children: [
@@ -117,8 +125,8 @@ class ErrorDisplay extends StatelessWidget {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(e.toString()),
-          content: Text(trace.toString()),
+          title: Text(getErrorMessage()),
+          content: Text(s?.toString() ?? ''),
           actions: [
             TextButton(
               onPressed: () => context.pop(),
@@ -127,8 +135,7 @@ class ErrorDisplay extends StatelessWidget {
             TextButton(
               child: const Text('Copy Error'),
               onPressed: () {
-                Clipboard.setData(ClipboardData(text: '$e\n\n$trace'))
-                    .then((a) {
+                Clipboard.setData(ClipboardData(text: '$e\n\n$s')).then((a) {
                   if (context.mounted) {
                     context.pop();
                   }
