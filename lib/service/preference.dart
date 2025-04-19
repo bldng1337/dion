@@ -1,38 +1,40 @@
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferenceService {
   late final SharedPreferences _preferences;
 
   Future<void> init() async {
-    settings;
+    settings; //Needed so that the preferenceCollection is initialized
     _preferences = await SharedPreferences.getInstance();
     for (final setting in preferenceCollection.settings) {
-      final value = _preferences.getString(setting.metadata.id);
+      final id = '${kDebugMode ? 'debug.' : ''}${setting.metadata.id}';
+      final value = _preferences.getString(id);
       if (value != null) {
         try {
           setting.value = setting.metadata.parse(value);
         } catch (e, stack) {
           logger.e('Error loading preference', error: e, stackTrace: stack);
-          _preferences.remove(setting.metadata.id);
+          _preferences.remove(id);
         }
       }
-      
+
       setting.addListener(() {
         try {
           _preferences.setString(
-            setting.metadata.id,
+            id,
             setting.metadata.stringify(setting.value),
           );
         } catch (e, stack) {
           logger.e(
-            'Error saving preference',
+            'Error saving preference $setting',
             error: e,
             stackTrace: stack,
           );
-          _preferences.remove(setting.metadata.id);
+          _preferences.remove(id);
         }
       });
     }
