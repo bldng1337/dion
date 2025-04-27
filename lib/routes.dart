@@ -11,6 +11,7 @@ import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
+import 'package:dionysos/views/settings/storage.dart';
 import 'package:dionysos/views/settings/sync.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -71,6 +72,8 @@ GoRouter getRoutes() => GoRouter(
               path: '/paragraphreader',
               builder: (context, state) => const ParagraphReaderSettings(),
             ),
+            GoRoute(
+                path: '/storage', builder: (context, state) => const Storage()),
             GoRoute(
               path: '/imagelistreader',
               builder: (context, state) => const ImageListReaderSettings(),

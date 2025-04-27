@@ -3,6 +3,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/view/audio_listener.dart';
 import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -139,9 +140,6 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
           onTap: () async {
             error = null;
             source = null;
-            if (mounted) {
-              setState(() {});
-            }
             await loadSource();
           },
         ),
@@ -163,6 +161,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
           final LinkSource_Imagelist _ => SimpleImageListReader(source: source),
           final LinkSource_M3u8 _ =>
             throw UnimplementedError('M3u8 not supported yet'),
+          final LinkSource_Mp3 _ => SimpleAudioListener(source: source),
         },
     };
   }
