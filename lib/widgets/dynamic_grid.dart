@@ -4,12 +4,12 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
-import 'package:dionysos/utils/result.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+import 'package:inline_result/inline_result.dart';
 
 abstract class DataSource<T> {
   String name = 'Unknown';
@@ -42,11 +42,16 @@ class StreamSource<T> extends DataSource<T> {
           isfinished = true;
           return;
         }
-        streamController?.add(e.map((e) => Result.value(e)).toList());
+        streamController?.add(e.map((e) => Result.success(e)).toList());
       },
-      onError: (e) {
-        streamController?.add(<Result<T>>[Result.error(e)]);
-        isfinished = true;
+      onError: (e, stack) {
+        try {
+          streamController?.add(<Result<T>>[
+            Result.failure(e as Exception, stack is StackTrace ? stack : null),
+          ]);
+        } finally {
+          isfinished = true;
+        }
       },
       cancelOnError: true,
       onDone: () {
@@ -102,13 +107,16 @@ class SingleStreamSource<T> extends DataSource<T> {
     loadmore(index++).listen(
       (e) {
         hasdelivered = true;
-        streamController?.add([Result.value(e)]);
+        streamController?.add([Result.success(e)]);
       },
       onError: (e, stack) {
-        streamController?.add(<Result<T>>[
-          Result.error(e, trace: stack is StackTrace ? stack : null),
-        ]);
-        isfinished = true;
+        try {
+          streamController?.add(<Result<T>>[
+            Result.failure(e as Exception, stack is StackTrace ? stack : null),
+          ]);
+        } finally {
+          isfinished = true;
+        }
       },
       cancelOnError: true,
       onDone: () {
@@ -169,13 +177,16 @@ class AsyncStreamSource<T> extends DataSource<T> {
           isfinished = true;
           return;
         }
-        streamController?.add(e.map((e) => Result.value(e)).toList());
+        streamController?.add(e.map((e) => Result.success(e)).toList());
       },
       onError: (e, stack) {
-        streamController?.add(<Result<T>>[
-          Result.error(e, trace: stack is StackTrace ? stack : null),
-        ]);
-        isfinished = true;
+        try {
+          streamController?.add(<Result<T>>[
+            Result.failure(e as Exception, stack is StackTrace ? stack : null),
+          ]);
+        } finally {
+          isfinished = true;
+        }
       },
       cancelOnError: true,
       onDone: () {
@@ -233,10 +244,15 @@ class AsyncSource<T> extends DataSource<T> {
         requesting = false;
         return;
       }
-      streamController?.add(e.map((e) => Result.value(e)).toList());
+      streamController?.add(e.map((e) => Result.success(e)).toList());
     } catch (e, stack) {
-      streamController?.add(<Result<T>>[Result.error(e, trace: stack)]);
-      isfinished = true;
+      try {
+        streamController?.add(<Result<T>>[
+          Result.failure(e as Exception, stack),
+        ]);
+      } finally {
+        isfinished = true;
+      }
     }
     requesting = false;
   }
@@ -447,16 +463,18 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
               }
               return const Center(child: CircularProgressIndicator());
             }
-            return widget.controller.items[index].build(
-                (item) => widget.itemBuilder(context, item), (e, stacktrace) {
-              if (widget.errorBuilder == null) {
-                return ErrorDisplay(
-                  e: e,
-                  s: stacktrace,
-                );
-              }
-              return widget.errorBuilder!(context, e, stacktrace);
-            });
+            return widget.controller.items[index].fold(
+              onSuccess: (item) => widget.itemBuilder(context, item),
+              onFailure: (e, stacktrace) {
+                if (widget.errorBuilder == null) {
+                  return ErrorDisplay(
+                    e: e,
+                    s: stacktrace,
+                  );
+                }
+                return widget.errorBuilder!(context, e, stacktrace);
+              },
+            );
           },
         ).paddingAll(10).expanded(),
       ],

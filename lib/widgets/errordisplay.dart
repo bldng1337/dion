@@ -1,9 +1,9 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
-import 'package:dionysos/utils/result.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:inline_result/inline_result.dart';
 
 class UnwrapResultBuilder<T> extends StatelessWidget {
   final Result<T> res;
@@ -13,12 +13,8 @@ class UnwrapResultBuilder<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (res.isError) {
-      return ErrorDisplay(e: res.error!, s: res.trace);
-    }
-
-    // ignore: null_check_on_nullable_type_parameter
-    return onSuccess(res.value!);
+    return res.fold(
+        onSuccess: onSuccess, onFailure: (e, s) => ErrorDisplay(e: e, s: s));
   }
 }
 
