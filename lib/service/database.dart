@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/directoryprovider.dart';
@@ -103,14 +105,81 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     }
   }
 
-  DBRecord _constructDBRecord(Entry entry) =>
-      DBRecord('entry', '${entry.id}_${entry.extension.id}');
+  DBRecord _constructDBRecord(Entry entry) => DBRecord(
+      'entry', base64.encode(utf8.encode('${entry.id}_${entry.extension.id}')));
 
   @override
   Future<EntrySaved?> isSaved(Entry entry) async {
+    logger.i(_constructDBRecord(entry));
     final dbentry = await db.select(res: _constructDBRecord(entry));
     if (dbentry == null) return null;
+    print(dbentry['id']);
     return constructEntry(dbentry as Map<String, dynamic>, entry.extension);
+  }
+
+  @override
+  Future<void> removeEntry(EntryDetailed entry) async {
+    await db.delete(res: _constructDBRecord(entry));
+    notifyListeners();
+  }
+
+  @override
+  Future<void> updateEntry(EntryDetailed entry) async {
+    await db.upsert(res: _constructDBRecord(entry), data: destructEntry(entry));
+    notifyListeners();
+  }
+
+  Map<String, dynamic> destructEntry(EntryDetailed entry) {
+    final dbentry = <String, dynamic>{
+      'entryid': entry.id,
+      'url': entry.url,
+      'title': entry.title,
+      'status': entry.status.name,
+      'description': entry.description,
+      'language': entry.language,
+      'genres': entry.genres,
+      'alttitles': entry.alttitles,
+      'author': entry.author,
+      'cover': entry.cover,
+      'coverheader': entry.coverHeader,
+      'mediatype': entry.mediaType.name,
+      'rating': entry.rating,
+      'views': entry.views?.toInt(),
+      'length': entry.length,
+      'ui': destructCustomUI(entry.ui),
+      'extensionid': entry.extension.id,
+    };
+    final episodelists = [];
+    for (final episodelist in entry.episodes) {
+      episodelists.add({
+        'title': episodelist.title,
+        'episodes': episodelist.episodes
+            .map(
+              (e) => {
+                'episodeid': e.id,
+                'name': e.name,
+                'url': e.url,
+                'cover': e.cover,
+                'coverheader': e.coverHeader,
+                'timestamp': e.timestamp,
+              },
+            )
+            .toList(),
+      });
+    }
+    dbentry['episodes'] = episodelists;
+    if (entry is EntrySaved) {
+      final episodedata = [];
+      for (final epdata in entry.episodedata) {
+        episodedata.add({
+          'bookmark': epdata.bookmark,
+          'finished': epdata.finished,
+          'progress': epdata.progress,
+        });
+      }
+      dbentry['episodedata'] = episodedata;
+    }
+    return dbentry;
   }
 
   EntrySaved constructEntry(
@@ -173,75 +242,14 @@ class DatabaseImpl extends ChangeNotifier implements Database {
         rating: dbentry['rating'] as double?,
         views: (dbentry['views'] as int?)?.toDouble(),
         length: dbentry['length'] as int?,
-        ui: _constructCustomUI(dbentry['ui'] as Map<String, dynamic>?),
+        ui: constructCustomUI(dbentry['ui'] as Map<String, dynamic>?),
       ),
       extension,
       episodedata,
     );
   }
 
-  @override
-  Future<void> removeEntry(EntryDetailed entry) async {
-    await db.delete(res: _constructDBRecord(entry));
-    notifyListeners();
-  }
-
-  @override
-  Future<void> updateEntry(EntryDetailed entry) async {
-    final dbentry = <String, dynamic>{
-      'entryid': entry.id,
-      'url': entry.url,
-      'title': entry.title,
-      'status': entry.status.name,
-      'description': entry.description,
-      'language': entry.language,
-      'genres': entry.genres,
-      'alttitles': entry.alttitles,
-      'author': entry.author,
-      'cover': entry.cover,
-      'coverheader': entry.coverHeader,
-      'mediatype': entry.mediaType.name,
-      'rating': entry.rating,
-      'views': entry.views?.toInt(),
-      'length': entry.length,
-      'ui': _destructCustomUI(entry.ui),
-      'extensionid': entry.extension.id,
-    };
-    final episodelists = [];
-    for (final episodelist in entry.episodes) {
-      episodelists.add({
-        'title': episodelist.title,
-        'episodes': episodelist.episodes
-            .map(
-              (e) => {
-                'episodeid': e.id,
-                'name': e.name,
-                'url': e.url,
-                'cover': e.cover,
-                'coverheader': e.coverHeader,
-                'timestamp': e.timestamp,
-              },
-            )
-            .toList(),
-      });
-    }
-    dbentry['episodes'] = episodelists;
-    if (entry is EntrySaved) {
-      final episodedata = [];
-      for (final epdata in entry.episodedata) {
-        episodedata.add({
-          'bookmark': epdata.bookmark,
-          'finished': epdata.finished,
-          'progress': epdata.progress,
-        });
-      }
-      dbentry['episodedata'] = episodedata;
-    }
-    await db.upsert(res: _constructDBRecord(entry), data: dbentry);
-    notifyListeners();
-  }
-
-  CustomUI? _constructCustomUI(dynamic ui) {
+  CustomUI? constructCustomUI(dynamic ui) {
     if (ui == null) return null;
     return switch (ui['type']) {
       'text' => CustomUI_Text(text: ui['text'] as String),
@@ -277,14 +285,14 @@ class DatabaseImpl extends ChangeNotifier implements Database {
         ),
       'column' => CustomUI_Column(
           children: (ui['children'] as List<dynamic>)
-              .map(_constructCustomUI)
+              .map(constructCustomUI)
               .where((e) => e != null)
               .toList()
               .cast(),
         ),
       'row' => CustomUI_Row(
           children: (ui['children'] as List<dynamic>)
-              .map(_constructCustomUI)
+              .map(constructCustomUI)
               .where((e) => e != null)
               .toList()
               .cast(),
@@ -293,7 +301,7 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     };
   }
 
-  dynamic _destructCustomUI(CustomUI? ui) {
+  dynamic destructCustomUI(CustomUI? ui) {
     return switch (ui) {
       final CustomUI_Text text => {
           'type': 'text',
@@ -331,11 +339,11 @@ class DatabaseImpl extends ChangeNotifier implements Database {
         },
       final CustomUI_Column column => {
           'type': 'column',
-          'children': column.children.map(_destructCustomUI).toList(),
+          'children': column.children.map(destructCustomUI).toList(),
         },
       final CustomUI_Row row => {
           'type': 'row',
-          'children': row.children.map(_destructCustomUI).toList(),
+          'children': row.children.map(destructCustomUI).toList(),
         },
       null => null,
     };
