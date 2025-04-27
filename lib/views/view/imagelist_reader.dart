@@ -9,6 +9,7 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
@@ -73,8 +74,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     if (widget.sourcedata.audio?.isEmpty ?? true) return;
     player = Player(
       configuration: const PlayerConfiguration(
-        logLevel: MPVLogLevel.debug,
         title: 'dion',
+        logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
       ),
     );
     player!.setPlaylistMode(PlaylistMode.loop);
