@@ -49,6 +49,8 @@ dependencies:
   share_plus: ^10.1.1
   restart_app: ^1.2.1
   pub_semver: ^2.1.4
+  uuid: ^4.5.1
+  moment_dart: ^5.2.3
   package_info_plus: ^8.1.0
   install_plugin: ^2.1.0
   country_flags: ^3.0.0
@@ -58,17 +60,13 @@ dependencies:
   flutter_surrealdb:
     git:
       url: https://github.com/bldng1337/flutter_surrealdb.git
-      ref: e09256d1dc75502323c2ac18120a2f4ef11bfc43
+      ref: 14e75f0cd567e9b7f839cf23447c0ee45af35532
   metis:
     git:
       url: https://github.com/bldng1337/metis.git
-      ref: d476a958084ebc43ecb1798e660ea12b434b4a8b
+      ref: 7e1c26ed9f7c29c2313562486ff105fe841c6bbb
   path: ^1.9.0
-  rhttp:
-    git:
-      url: https://github.com/bldng1337/rhttp.git
-      ref: 2bdfe419a984c380af432608af8f5006a4f03a2a
-      path: rhttp
+  rhttp: ^0.12.0
   flutter_cache_manager: ^3.4.1
   text_scroll: ^0.2.0
   inline_result: ^2.0.0
@@ -83,7 +81,7 @@ dependencies:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 3883f86793b8c5a5969d09ecdfbc70f1bcae9992
+      ref: 07b768ca1e6f8216256e666f9447b5b4537b837b
 
 dev_dependencies:
   build_runner: ^2.2.0
