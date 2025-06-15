@@ -17,7 +17,6 @@ class SettingTextbox extends StatelessWidget {
     required this.setting,
   });
 
-
   @override
   Widget build(BuildContext context) {
     final value = setting.value;
@@ -31,6 +30,8 @@ class SettingTextbox extends StatelessWidget {
           builder: (context, child) => DionTextbox(
             controller: controller,
             onSubmitted: (value) => setting.value = value,
+            onTapOutside: (_) => setting.value = controller.text,
+            maxLines: 1,
           ),
         ),
       ),
