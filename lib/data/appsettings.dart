@@ -92,6 +92,20 @@ enum UpdateChannel {
 }
 
 final settings = (
+  audioBookSettings: (
+    volume: Setting(
+      50.0,
+      const PreferenceDoubleMetaData('audiobook.volume'),
+    ),
+    speed: Setting(
+      1.0,
+      const PreferenceDoubleMetaData('audiobook.speed'),
+    ),
+    // subtitle: Setting( TODO
+    //   true,
+    //   const PreferenceBoolMetaData('audiobook.subtitle'),
+    // ),
+  ),
   update: (
     enabled: Setting(
       true,

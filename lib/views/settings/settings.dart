@@ -27,6 +27,13 @@ class Settings extends StatelessWidget {
               ),
               ListTile(
                 title: Text(
+                  'Audio Listener',
+                  style: context.bodyMedium,
+                ),
+                onTap: () => context.push('/settings/audiolistener'),
+              ),
+              ListTile(
+                title: Text(
                   'Image List Reader',
                   style: context.bodyMedium,
                 ),
