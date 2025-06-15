@@ -45,7 +45,7 @@ class Card extends StatelessWidget {
           boxFit: BoxFit.cover,
         ),
         Positioned(
-          bottom: 0,
+          bottom: -1,
           left: 0,
           right: 0,
           top: 0,
@@ -57,10 +57,10 @@ class Card extends StatelessWidget {
                 colors: [
                   Colors.transparent,
                   Theme.of(context).shadowColor.withOpacity(0.1),
-                  Theme.of(context).shadowColor.withOpacity(0.5),
-                  Theme.of(context).shadowColor.withOpacity(1),
+                  Theme.of(context).shadowColor.withOpacity(0.45),
+                  Theme.of(context).shadowColor.withOpacity(0.85),
                 ],
-                stops: const [0.0, 0.6, 0.75, 1],
+                stops: const [0.0, 0.6, 0.85, 1],
               ),
             ),
             child: Column(
@@ -145,7 +145,7 @@ class EntryCard extends StatelessWidget {
         ),
       ],
       trailingBadges: [
-        if (entry is EntrySaved)
+        if (entry is EntrySaved && (entry as EntrySaved).language.toLowerCase() != 'unknown')
           CountryFlag.fromLanguageCode(
             (entry as EntrySaved).language,
             height: 15,
@@ -188,7 +188,7 @@ class EntryCard extends StatelessWidget {
               ],
             ).paddingOnly(left: 5, right: 5),
           Text(
-            entry.title,
+            entry.title.trim(),
             style: context.textTheme.titleSmall?.copyWith(color: Colors.white),
           ).paddingOnly(bottom: 5, left: 5),
         ],
