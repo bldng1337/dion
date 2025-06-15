@@ -250,6 +250,9 @@ class AsyncSource<T> extends DataSource<T> {
         streamController?.add(<Result<T>>[
           Result.failure(e as Exception, stack),
         ]);
+      } catch (e1) {
+        logger.e('Error putting error $e1 into stream',
+            error: e1, stackTrace: stack);
       } finally {
         isfinished = true;
       }
@@ -363,6 +366,166 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
   late final ScrollController controller;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (controller.hasClients) {
+      // if (widget.controller.items.isEmpty) {
+      //   widget.controller.requestMore();
+      // }
+      controller.jumpTo(0);
+    }
+  }
+
+  @override
+  void initState() {
+    controller = ScrollController()..disposedBy(scope);
+    loadMore();
+    controller.addListener(() {
+      loadMore();
+    });
+    super.initState();
+  }
+
+  Future<void> loadMore() async {
+    while (shouldrequest) {
+      await widget.controller.requestMore();
+    }
+  }
+
+  bool get shouldrequest {
+    if (!controller.hasClients) {
+      return !widget.controller.loading && !widget.controller.finished;
+    }
+    return controller.position.pixels >=
+            controller.position.maxScrollExtent * widget.preload &&
+        !widget.controller.loading &&
+        !widget.controller.finished;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // loadMore();
+    return Column(
+      children: [
+        if (widget.showDataSources)
+          SizedBox(
+            height: 40,
+            child: ListenableBuilder(
+              listenable: widget.controller,
+              builder: (context, child) => ListView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                children: [
+                  ...widget.controller.sources.map(
+                    (e) => DionBadge(
+                      color: e.name.color,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (e.isfinished)
+                            const Icon(
+                              Icons.close,
+                              size: 20,
+                            ).paddingAll(2),
+                          if (!e.isfinished && !e.requesting)
+                            const Icon(
+                              Icons.check,
+                              size: 20,
+                            ).paddingAll(2),
+                          if (e.requesting)
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white70,
+                                strokeWidth: 2,
+                              ).paddingAll(2),
+                            ),
+                          Text(e.name).paddingAll(2),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ).paddingAll(5),
+        ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, child) => GridView.builder(
+            padding: EdgeInsets.zero,
+            controller: controller,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              childAspectRatio: 0.69,
+              maxCrossAxisExtent: 220,
+            ),
+            itemCount: widget.controller.items.length +
+                (widget.controller.finished ? 0 : 1),
+            itemBuilder: (context, index) {
+              if (index == widget.controller.items.length) {
+                if (!widget.controller.loading) {
+                  return DionTextbutton(
+                    child: const Text('Load More'),
+                    onPressed: () {
+                      widget.controller.requestMore();
+                    },
+                  );
+                }
+                return const Center(child: CircularProgressIndicator());
+              }
+              return widget.controller.items[index].fold(
+                onSuccess: (item) => widget.itemBuilder(context, item),
+                onFailure: (e, stacktrace) {
+                  if (widget.errorBuilder == null) {
+                    return ErrorDisplay(
+                      e: e,
+                      s: stacktrace,
+                    );
+                  }
+                  return widget.errorBuilder!(context, e, stacktrace);
+                },
+              );
+            },
+          ).paddingAll(10).expanded(),
+        ),
+      ],
+    );
+  }
+}
+
+class DynamicList<T> extends StatefulWidget {
+  final Widget Function(BuildContext context, T item) itemBuilder;
+  final Widget Function(
+    BuildContext context,
+    Object error,
+    StackTrace? trace,
+  )? errorBuilder;
+  // final Widget Function(BuildContext context, S seperator) seperatorBuilder;
+  // final S? Function(BuildContext context, T item, T next) shouldSeperate;
+  final DataSourceController<T> controller;
+  final double preload;
+  final bool showDataSources;
+  const DynamicList({
+    super.key,
+    required this.itemBuilder,
+    this.errorBuilder,
+    required this.controller,
+    this.preload = 0.7,
+    this.showDataSources = true,
+    // required this.seperatorBuilder,
+    // required this.shouldSeperate,
+  }) : assert(preload >= 0 && preload <= 1);
+
+  @override
+  _DynamicListState createState() => _DynamicListState<T>();
+}
+
+class _DynamicListState<T> extends State<DynamicList<T>>
+    with StateDisposeScopeMixin {
+  late final ScrollController controller;
+
+  @override
   void initState() {
     controller = ScrollController()..disposedBy(scope);
     Observer(
@@ -372,7 +535,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
         }
       },
       [widget.controller],
-    );
+    ).disposedBy(scope);
     loadMore();
     controller.addListener(() {
       loadMore();
@@ -442,13 +605,152 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
               ],
             ),
           ).paddingAll(5),
-        GridView.builder(
+        ListView.builder(
           padding: EdgeInsets.zero,
           controller: controller,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            childAspectRatio: 0.69,
-            maxCrossAxisExtent: 220,
-          ),
+          itemCount: widget.controller.items.length +
+              (widget.controller.finished ? 0 : 1),
+          itemBuilder: (context, index) {
+            if (index == widget.controller.items.length) {
+              if (!widget.controller.loading) {
+                return DionTextbutton(
+                  child: const Text('Load More'),
+                  onPressed: () {
+                    widget.controller.requestMore();
+                  },
+                );
+              }
+              return const Center(child: CircularProgressIndicator());
+            }
+            return widget.controller.items[index].fold(
+              onSuccess: (item) => widget.itemBuilder(context, item),
+              onFailure: (e, stacktrace) {
+                if (widget.errorBuilder == null) {
+                  return ErrorDisplay(
+                    e: e,
+                    s: stacktrace,
+                  );
+                }
+                return widget.errorBuilder!(context, e, stacktrace);
+              },
+            );
+          },
+        ).paddingAll(10).expanded(),
+      ],
+    );
+  }
+}
+
+class DynamicListSeperated<T> extends StatefulWidget {
+  final Widget Function(BuildContext context, T item) itemBuilder;
+  final Widget Function(
+    BuildContext context,
+    Object error,
+    StackTrace? trace,
+  )? errorBuilder;
+  final DataSourceController<T> controller;
+  final double preload;
+  final bool showDataSources;
+  const DynamicListSeperated({
+    super.key,
+    required this.itemBuilder,
+    this.errorBuilder,
+    required this.controller,
+    this.preload = 0.7,
+    this.showDataSources = true,
+  }) : assert(preload >= 0 && preload <= 1);
+
+  @override
+  _DynamicListSeperatedState createState() => _DynamicListSeperatedState<T>();
+}
+
+class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
+    with StateDisposeScopeMixin {
+  late final ScrollController controller;
+
+  @override
+  void initState() {
+    controller = ScrollController()..disposedBy(scope);
+    Observer(
+      () {
+        if (mounted) {
+          setState(() {});
+        }
+      },
+      [widget.controller],
+    ).disposedBy(scope);
+    loadMore();
+    controller.addListener(() {
+      loadMore();
+    });
+    super.initState();
+  }
+
+  Future<void> loadMore() async {
+    while (shouldrequest) {
+      await widget.controller.requestMore();
+    }
+  }
+
+  bool get shouldrequest {
+    if (!controller.hasClients) {
+      return !widget.controller.loading && !widget.controller.finished;
+    }
+    return controller.position.pixels >=
+            controller.position.maxScrollExtent * widget.preload &&
+        !widget.controller.loading &&
+        !widget.controller.finished;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    loadMore();
+    return Column(
+      children: [
+        if (widget.showDataSources)
+          SizedBox(
+            height: 40,
+            child: ListView(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              scrollDirection: Axis.horizontal,
+              children: [
+                ...widget.controller.sources.map(
+                  (e) => DionBadge(
+                    color: e.name.color,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (e.isfinished)
+                          const Icon(
+                            Icons.close,
+                            size: 20,
+                          ).paddingAll(2),
+                        if (!e.isfinished && !e.requesting)
+                          const Icon(
+                            Icons.check,
+                            size: 20,
+                          ).paddingAll(2),
+                        if (e.requesting)
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: const CircularProgressIndicator(
+                              color: Colors.white70,
+                              strokeWidth: 2,
+                            ).paddingAll(2),
+                          ),
+                        Text(e.name).paddingAll(2),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ).paddingAll(5),
+        ListView.builder(
+          padding: EdgeInsets.zero,
+          controller: controller,
           itemCount: widget.controller.items.length +
               (widget.controller.finished ? 0 : 1),
           itemBuilder: (context, index) {
