@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
@@ -13,8 +14,10 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SimpleAudioListener extends StatefulWidget {
   final SourcePath source;
@@ -38,6 +41,24 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
         title: 'dion',
       ),
     );
+    Observer(
+      () {
+        if (player != null) {
+          player!.setVolume(settings.audioBookSettings.volume.value);
+        }
+      },
+      [settings.audioBookSettings.volume],
+    ).disposedBy(scope);
+    player!.setVolume(settings.audioBookSettings.volume.value);
+    Observer(
+      () {
+        if (player != null) {
+          player!.setRate(settings.audioBookSettings.speed.value);
+        }
+      },
+      [settings.audioBookSettings.speed],
+    );
+    player!.setRate(settings.audioBookSettings.speed.value);
     await player!.setPlaylistMode(PlaylistMode.none);
     await player!.setVolume(100);
     final prog = widget.source.episode.data.progress?.split(':');
@@ -77,7 +98,6 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
       }
 
       final playlistindex = player!.state.playlist.index;
-      // print('$playlistindex:${event.inMilliseconds}');
       widget.source.episode.data.progress =
           '$playlistindex:${event.inMilliseconds}';
       if (event.inMilliseconds / player!.state.duration.inMilliseconds > 0.5 &&
@@ -154,7 +174,29 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
 
   @override
   Widget build(BuildContext context) {
+    final epdata = widget.source.episode.data;
     return NavScaff(
+      actions: [
+        DionIconbutton(
+          icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
+          onPressed: () async {
+            epdata.bookmark = !epdata.bookmark;
+            await widget.source.episode.save();
+            if (mounted) {
+              setState(() {});
+            }
+          },
+        ),
+        DionIconbutton(
+          icon: const Icon(Icons.open_in_browser),
+          onPressed: () =>
+              launchUrl(Uri.parse(widget.source.episode.episode.url)),
+        ),
+        DionIconbutton(
+          icon: const Icon(Icons.settings),
+          onPressed: () => context.push('/settings/audiolistener'),
+        ),
+      ],
       title: StreamBuilder(
         stream: player!.stream.playlist,
         builder: (context, snapshot) {
