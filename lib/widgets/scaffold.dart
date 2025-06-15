@@ -134,6 +134,7 @@ class NavScaff extends StatelessWidget {
           appBar: AppBar(
             title: title,
             actions: actions,
+            leading: destination.isEmpty ? null : nil,
           ),
         ),
       DionThemeMode.cupertino => CupertinoPageScaffold(
