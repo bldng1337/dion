@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
@@ -75,7 +76,7 @@ Future<Archive> createBackup() async {
     final entriesdb = await db.getEntries(0, 100).toList();
     entries.addAll(
       entriesdb.map(
-        (e) => db.destructEntry(e),
+        (e) => e.toJson(),
       ),
     );
   }
@@ -99,10 +100,7 @@ Future<void> applyBackup(Archive archive) async {
     String.fromCharCodes(archive.findFile('entrydata.json')!.content),
   ) as List<dynamic>;
   for (final entry in entries) {
-    final entrydata = db.constructEntry(
-      entry as Map<String, dynamic>,
-      locate<SourceExtension>().getExtension(entry['extensionid'] as String),
-    );
+    final entrydata = EntrySaved.fromJson(entry as Map<String, dynamic>);
     await db.updateEntry(entrydata);
   }
 }

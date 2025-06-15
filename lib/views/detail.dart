@@ -104,7 +104,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   @override
   Widget build(BuildContext context) {
     if (error != null) {
-      return ErrorDisplay(e: error!);
+      return NavScaff(
+        child: ErrorDisplay(e: error!),
+      );
     }
     if (entry == null) {
       return const NavScaff(
@@ -160,8 +162,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                 onPressed: () {
                   EpisodePath(
                     entry! as EntryDetailed,
-                    (entry! as EntrySaved).episode,
-                    (entry! as EntrySaved).latestEpisode,
+                    min(
+                      (entry! as EntrySaved).latestEpisode,
+                      (entry! as EntrySaved).episodes.length - 1,
+                    ),
                   ).go(context);
                 },
                 child: const Icon(Icons.play_arrow),
@@ -190,14 +194,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               onPressed: () {
                 EpisodePath(
                   entry! as EntryDetailed,
-                  (entry! as EntrySaved).episode,
                   min(
                     (entry! as EntrySaved).latestEpisode,
-                    (entry! as EntrySaved)
-                            .episodes[(entry! as EntrySaved).episode]
-                            .episodes
-                            .length -
-                        1,
+                    (entry! as EntrySaved).episodes.length - 1,
                   ),
                 ).go(context);
               },
@@ -496,38 +495,7 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
     }
     return Column(
       children: [
-        Row(
-          children: [
-            DionPopupMenu(
-              items: eplist.indexed
-                  .map(
-                    (ep) => DionPopupMenuItem(
-                      label: Text('${ep.$2.title} - ${ep.$2.episodes.length}'),
-                      onTap: () {
-                        if (mounted) {
-                          setState(() {
-                            selected = ep.$1;
-                            (widget.entry as EntrySaved).episode = selected;
-                            (widget.entry as EntrySaved).save();
-                          });
-                        }
-                      },
-                    ),
-                  )
-                  .toList(),
-              child: Row(
-                children: [
-                  const Icon(Icons.folder),
-                  Text(
-                    '${eplist[selected].title} - ${eplist[selected].episodes.length} Episodes',
-                    style: context.labelSmall,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ).paddingAll(15),
-        EpList(entry: widget.entry, eplistindex: selected).expanded(),
+        EpList(entry: widget.entry).expanded(),
       ],
     );
   }
@@ -535,10 +503,9 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
 
 class EpList extends StatefulWidget {
   final EntryDetailed entry;
-  final int eplistindex;
 
-  EpisodeList get elist => entry.episodes[eplistindex];
-  const EpList({super.key, required this.entry, required this.eplistindex});
+  List<Episode> get elist => entry.episodes;
+  const EpList({super.key, required this.entry});
 
   @override
   _EpListState createState() => _EpListState();
@@ -638,23 +605,23 @@ class _EpListState extends State<EpList> with StateDisposeScopeMixin {
       ],
       child: ListView.builder(
         key: PageStorageKey<String>(
-          '${widget.entry.extension.id}->${widget.entry.id}@${widget.eplistindex}',
+          '${widget.entry.extension.id}->${widget.entry.id}',
         ),
         controller: controller,
         prototypeItem: EpisodeTile(
-          episodepath: EpisodePath(widget.entry, widget.eplistindex, 0),
+          episodepath: EpisodePath(widget.entry, 0),
           selection: false,
           isSelected: false,
           onSelect: () {},
         ),
         padding: EdgeInsets.zero,
-        itemCount: widget.elist.episodes.length,
+        itemCount: widget.elist.length,
         itemBuilder: (BuildContext context, int index) => MouseRegion(
           onEnter: (e) {
             hovering = index;
           },
           child: EpisodeTile(
-            episodepath: EpisodePath(widget.entry, widget.eplistindex, index),
+            episodepath: EpisodePath(widget.entry, index),
             selection: selected.isNotEmpty,
             isSelected: selected.contains(index),
             onSelect: () {

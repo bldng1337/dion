@@ -1,3 +1,4 @@
+import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
@@ -42,6 +43,19 @@ abstract class Entry {
   double? get views;
   int? get length;
   Future<EntryDetailed> toDetailed({CancelToken? token});
+  Map<String, dynamic> toJson();
+  static Entry fromJson(Map<String, dynamic> json) {
+    switch (json['type']) {
+      case 'entry':
+        return EntryImpl.fromJson(json);
+      case 'entrydetailed':
+        return EntryDetailedImpl.fromJson(json);
+      case 'entrysaved':
+        return EntrySavedImpl.fromJson(json);
+      default:
+        return EntryImpl.fromJson(json);
+    }
+  }
 }
 
 class EpisodeData {
@@ -65,6 +79,22 @@ class EpisodeData {
   String toString() {
     return 'EpisodeData{bookmark: $bookmark, finished: $finished, progress: $progress}';
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'bookmark': bookmark,
+      'finished': finished,
+      'progress': progress,
+    };
+  }
+
+  factory EpisodeData.fromJson(Map<String, dynamic> json) {
+    return EpisodeData(
+      bookmark: json['bookmark'] as bool,
+      finished: json['finished'] as bool,
+      progress: json['progress'] as String?,
+    );
+  }
 }
 
 abstract class EntryDetailed extends Entry {
@@ -72,12 +102,24 @@ abstract class EntryDetailed extends Entry {
   rust.ReleaseStatus get status;
   String get description;
   String get language;
-  List<rust.EpisodeList> get episodes;
+  List<Episode> get episodes;
   List<String>? get genres;
   List<String>? get alttitles;
   List<String>? get auther;
+  Map<String, Setting>? get settings;
   Future<EntrySaved> toSaved();
   Future<EntryDetailed> refresh({CancelToken? token});
+
+  static EntryDetailed fromJson(Map<String, dynamic> json) {
+    switch (json['type']) {
+      case 'entrydetailed':
+        return EntryDetailedImpl.fromJson(json);
+      case 'entrysaved':
+        return EntrySavedImpl.fromJson(json);
+      default:
+        return EntryDetailed.fromJson(json);
+    }
+  }
 }
 
 abstract class EntrySaved extends EntryDetailed {
@@ -97,6 +139,10 @@ abstract class EntrySaved extends EntryDetailed {
   @override
   Future<EntrySaved> toSaved() {
     return Future.value(this);
+  }
+
+  static EntrySaved fromJson(Map<String, dynamic> json) {
+    return EntrySavedImpl.fromJson(json);
   }
 }
 
@@ -156,22 +202,37 @@ class EntryImpl implements Entry {
   Future<EntryDetailed> toDetailed({CancelToken? token}) async {
     return await locate<SourceExtension>().detail(this, token: token);
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'entry',
+      'entry': _entry.toJson(),
+      'extensionid': _extension.id,
+    };
+  }
+
+  factory EntryImpl.fromJson(Map<String, dynamic> json) {
+    return EntryImpl(
+      rust.Entry.fromJson(json['entry'] as Map<String, dynamic>),
+      locate<SourceExtension>().getExtension(json['extensionid'] as String),
+    );
+  }
 }
 
 class EpisodePath {
   final EntryDetailed entry;
-  final int episodelist;
   final int episodenumber;
-  const EpisodePath(this.entry, this.episodelist, this.episodenumber);
+  const EpisodePath(this.entry, this.episodenumber);
 
   EpisodeData get data => (entry is EntrySaved)
       ? (entry as EntrySaved).getEpisodeData(episodenumber)
       : EpisodeData.empty();
 
-  EpisodeList get eplist => entry.episodes[episodelist];
-  Episode get episode => eplist.episodes[episodenumber];
+  List<Episode> get episodes => entry.episodes;
+  Episode get episode => episodes[episodenumber];
   String get name => episode.name;
-  bool get hasnext => episodenumber + 1 < eplist.episodes.length;
+  bool get hasnext => episodenumber + 1 < episodes.length;
   bool get hasprev => episodenumber > 0;
   void goPrev(BuildContext context) {
     if (!hasprev) return;
@@ -187,6 +248,7 @@ class EpisodePath {
   Future<void> goNext(BuildContext context) async {
     if (!hasnext) return;
     data.finished = true;
+    finishEpisode(this);
     await save();
     if (context.mounted) {
       await GoRouter.of(context).replace(
@@ -197,31 +259,31 @@ class EpisodePath {
   }
 
   void go(BuildContext context) {
+    finishEpisode(this);
     GoRouter.of(context).push(
       '/view',
       extra: [this],
     );
   }
 
-  EpisodePath get next => EpisodePath(entry, episodelist, episodenumber + 1);
-  EpisodePath get prev => EpisodePath(entry, episodelist, episodenumber - 1);
+  EpisodePath get next => EpisodePath(entry, episodenumber + 1);
+  EpisodePath get prev => EpisodePath(entry, episodenumber - 1);
   Extension get extension => entry.extension;
 
   @override
   String toString() {
-    return 'EpisodePath(entry: $entry, episodelist: $episodelist, episodenumber: $episodenumber)';
+    return 'EpisodePath(entry: $entry, episodenumber: $episodenumber)';
   }
 
   @override
   bool operator ==(Object other) {
     return other is EpisodePath &&
         other.entry == entry &&
-        other.episodelist == episodelist &&
         other.episodenumber == episodenumber;
   }
 
   @override
-  int get hashCode => Object.hash(entry, episodelist, episodenumber);
+  int get hashCode => Object.hash(entry, episodenumber);
 }
 
 class EntryDetailedImpl implements EntryDetailed {
@@ -238,6 +300,9 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   String get url => _entry.url;
+
+  @override
+  Map<String, Setting>? get settings => _entry.settings;
 
   @override
   String get title => _entry.title;
@@ -276,7 +341,7 @@ class EntryDetailedImpl implements EntryDetailed {
   String get language => _entry.language;
 
   @override
-  List<rust.EpisodeList> get episodes => _entry.episodes;
+  List<Episode> get episodes => _entry.episodes;
 
   @override
   List<String>? get genres => _entry.genres;
@@ -299,7 +364,7 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   Future<EntrySaved> toSaved() async {
-    final saved = EntrySavedImpl(_entry, extension, List.empty());
+    final saved = EntrySavedImpl(_entry, extension, List.empty(), 0);
     await saved.save();
     return saved;
   }
@@ -312,18 +377,38 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   int get hashCode => _entry.hashCode ^ _extension.hashCode;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'entrydetailed',
+      'entry': _entry.toJson(),
+      'extensionid': _extension.id,
+    };
+  }
+
+  factory EntryDetailedImpl.fromJson(Map<String, dynamic> json) {
+    final exts = locate<SourceExtension>();
+    return EntryDetailedImpl(
+      rust.EntryDetailed.fromJson(
+        json['entry'] as Map<String, dynamic>,
+      ),
+      exts.getExtension(json['extensionid'] as String),
+    );
+  }
 }
 
 class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
   @override
   List<EpisodeData> _episodedata;
-  EntrySavedImpl(super.entry, super.extension, this._episodedata);
+  EntrySavedImpl(super.entry, super.extension, this._episodedata, this.episode);
 
   @override
   List<EpisodeData> get episodedata => _episodedata;
 
   @override
-  int episode = 0;
+  int episode;
+
   @override
   Future<EntrySaved> refresh({CancelToken? token}) async {
     final ent = await locate<SourceExtension>().update(this, token: token);
@@ -334,7 +419,7 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
   }
 
   EntrySaved copywith(rust.EntryDetailed ent) {
-    return EntrySavedImpl(ent, extension, _episodedata);
+    return EntrySavedImpl(ent, extension, _episodedata, episode);
   }
 
   @override
@@ -348,7 +433,7 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
       episodedata.lastIndexWhere((e) => e.finished == true) + 1;
 
   @override
-  int get totalEpisodes => episodes[episode].episodes.length;
+  int get totalEpisodes => episodes.length;
 
   @override
   Future<EntrySaved> save() async {
@@ -390,4 +475,28 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
       _extension.hashCode ^
       episodedata.hashCode ^
       episode.hashCode;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'type': 'entrysaved',
+      'entry': _entry.toJson(),
+      'extensionid': _extension.id,
+      'episodedata': episodedata.map((e) => e.toJson()).toList(),
+      'episode': episode,
+    };
+  }
+
+  factory EntrySavedImpl.fromJson(Map<String, dynamic> json) {
+    final exts = locate<SourceExtension>();
+    return EntrySavedImpl(
+      rust.EntryDetailed.fromJson(json['entry'] as Map<String, dynamic>),
+      exts.getExtension(json['extensionid'] as String),
+      (json['episodedata'] as List<dynamic>?)
+              ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      (json['episode'] as int?) ?? 0,
+    );
+  }
 }

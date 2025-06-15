@@ -4,15 +4,23 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/extension_view.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
+import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dionysos/utils/media_type.dart';
+
+abstract class BrowseInterface {
+  List<Extension> get extensions;
+  set extensions(List<Extension> value);
+}
 
 class Browse extends StatefulWidget {
   const Browse({super.key});
@@ -21,17 +29,39 @@ class Browse extends StatefulWidget {
   _BrowseState createState() => _BrowseState();
 }
 
-class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
+class _BrowseState extends State<Browse>
+    with StateDisposeScopeMixin
+    implements BrowseInterface {
   late final TextEditingController controller;
-  late final DataSourceController<Entry> datacontroller;
+  late DataSourceController<Entry> datacontroller;
+  late List<Extension> extension;
   late final CancelToken? token;
+
+  @override
+  List<Extension> get extensions => extension;
+
+  @override
+  set extensions(List<Extension> value) {
+    setState(() {
+      extension = value;
+      datacontroller = DataSourceController<Entry>(
+        extension
+            .map(
+              (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular))
+                ..name = e.data.name,
+            )
+            .toList(),
+      );
+    });
+  }
 
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
+    extensions =
+        locate<SourceExtension>().getExtensions(extfilter: (e) => e.isenabled);
     datacontroller = DataSourceController<Entry>(
-      locate<SourceExtension>()
-          .getExtensions(extfilter: (e) => e.isenabled)
+      extensions
           .map(
             (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular))
               ..name = e.data.name,
@@ -56,6 +86,12 @@ class _BrowseState extends State<Browse> with StateDisposeScopeMixin {
             hintStyle:
                 const WidgetStatePropertyAll(TextStyle(color: Colors.grey)),
             onSubmitted: (s) => context.go('/search/$s'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => showSettingPopup(context, this),
+              ),
+            ],
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) =>
@@ -122,6 +158,92 @@ class _EntryDisplayState extends State<EntryDisplay> {
       child: EntryCard(
         entry: item,
         showSaved: true,
+      ),
+    );
+  }
+}
+
+void showSettingPopup(BuildContext context, BrowseInterface browse) {
+  showAdaptiveDialog(
+    context: context,
+    builder: (context) => Dialog(
+      child: SettingsPopup(
+        browse: browse,
+      ),
+    ),
+  );
+}
+
+class SettingsPopup extends StatefulWidget {
+  final BrowseInterface browse;
+  const SettingsPopup({super.key, required this.browse});
+
+  @override
+  State<SettingsPopup> createState() => _SettingsPopupState();
+}
+
+class _SettingsPopupState extends State<SettingsPopup> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Search Settings'),
+          for (final e in widget.browse.extensions) showExtension(context, e),
+        ].notNullWidget(),
+      ),
+    );
+  }
+
+  Widget? showExtension(BuildContext context, Extension e) {
+    if (e.loading ||
+        !e.isenabled ||
+        !e.settings.any(
+          (s) => s.metadata.setting.settingtype == Settingtype.search,
+        )) {
+      return null;
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              DionImage(
+                imageUrl: e.data.icon ?? '',
+                width: 24,
+                height: 24,
+              ),
+              Text(e.data.name, style: const TextStyle(fontSize: 16))
+                  .paddingAll(10),
+              const Spacer(),
+              for (final MediaType mediatype in e.data.mediaType ?? [])
+                Icon(mediatype.icon),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final setting in e.settings.where(
+                  (s) => s.metadata.setting.settingtype == Settingtype.search,
+                ))
+                  SettingView(
+                    setting: setting,
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/source_extension.dart' hide Setting;
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
@@ -33,7 +33,7 @@ class _ExtensionViewState extends State<ExtensionView> {
       final ext = locate<SourceExtension>().getExtension(
         GoRouterState.of(context).pathParameters['id']!,
       );
-      ext.internalProxy.settingIds().then((e) {
+      ext.internalProxy.getSettingsIds().then((e) {
         logger.i(e);
       });
       setState(() {
@@ -127,26 +127,26 @@ class _ExtensionViewState extends State<ExtensionView> {
 }
 
 class SettingView extends StatelessWidget {
-  final Setting<dynamic, ExtensionMetaData<dynamic>> setting;
+  final Setting<dynamic, ExtensionSettingMetaData<dynamic>> setting;
   const SettingView({super.key, required this.setting});
 
   @override
   Widget build(BuildContext context) {
-    if (setting.metadata.setting.ui != null) {
-      return switch (setting.metadata.setting.ui) {
+    if (setting.metadata.setting.setting.ui != null) {
+      return switch (setting.metadata.setting.setting.ui) {
         final SettingUI_Slider slider => SettingSlider(
             title: slider.label,
-            setting: setting.cast<double, ExtensionMetaData<double>>(),
+            setting: setting.cast<double, ExtensionSettingMetaData<double>>(),
             max: slider.max,
             min: slider.min, //TODO: step
           ),
         final SettingUI_Checkbox checkbox => SettingToggle(
             title: checkbox.label,
-            setting: setting.cast<bool, ExtensionMetaData<bool>>(),
+            setting: setting.cast<bool, ExtensionSettingMetaData<bool>>(),
           ),
         final SettingUI_Textbox textbox => SettingTextbox(
             title: textbox.label,
-            setting: setting.cast<String, ExtensionMetaData<String>>(),
+            setting: setting.cast<String, ExtensionSettingMetaData<String>>(),
           ),
         final SettingUI_Dropdown setting =>
           Text('Dropdown: ${setting.label}'), //TODO: implement dropdown
@@ -157,19 +157,19 @@ class SettingView extends StatelessWidget {
     return switch (setting.intialValue) {
       final int val => SettingNumberbox(
           title: setting.metadata.id,
-          setting: setting.cast<int, ExtensionMetaData<int>>(),
+          setting: setting.cast<int, ExtensionSettingMetaData<int>>(),
         ),
       final double val => SettingNumberbox(
           title: setting.metadata.id,
-          setting: setting.cast<double, ExtensionMetaData<double>>(),
+          setting: setting.cast<double, ExtensionSettingMetaData<double>>(),
         ),
       final bool val => SettingToggle(
           title: setting.metadata.id,
-          setting: setting.cast<bool, ExtensionMetaData<bool>>(),
+          setting: setting.cast<bool, ExtensionSettingMetaData<bool>>(),
         ),
       final String val => SettingTextbox(
           title: setting.metadata.id,
-          setting: setting.cast<String, ExtensionMetaData<String>>()),
+          setting: setting.cast<String, ExtensionSettingMetaData<String>>()),
       _ => Text(
           'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}'),
     };

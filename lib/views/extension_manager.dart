@@ -129,7 +129,6 @@ class _ExtensionManagerState extends State<ExtensionManager> {
                       imageUrl: exts[i].data.icon,
                       width: 30,
                       height: 30,
-                      hasPopup: true,
                       errorWidget: const Icon(
                         Icons.image,
                         size: 30,

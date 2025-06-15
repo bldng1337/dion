@@ -4,6 +4,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/settings.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -21,32 +22,61 @@ class Search extends StatefulWidget {
 
 class _SearchState extends State<Search> with StateDisposeScopeMixin {
   late final TextEditingController controller;
-  late final DataSourceController<Entry> datacontroller;
-  late final CancelToken? token;
+  DataSourceController<Entry>? datacontroller;
+  late List<Extension> extensions;
+  String? lastquery;
+  CancelToken? token;
 
   @override
   void didChangeDependencies() {
-    controller.text = GoRouterState.of(context).pathParameters['query'] ?? '';
+    print("Search didChangeDependencies");
+    final query = GoRouterState.of(context).pathParameters['query'] ?? '';
+    print("Got query $query");
+    if (query == (lastquery ?? '')) return;
+    print("Query valid $query");
+    lastquery = query;
+    search(query);
+    controller.text = query;
     super.didChangeDependencies();
   }
 
-  @override
-  void initState() {
+  void search(String query) async {
+    print("Searching for $query");
+    if (!(token?.isDisposed ?? true)) {
+      token!.cancel();
+      token!.dispose();
+    }
+    token = CancelToken()..disposedBy(scope);
+    print("swapping datacontroller");
+    datacontroller?.dispose();
     datacontroller = DataSourceController<Entry>(
-      locate<SourceExtension>()
-          .getExtensions(extfilter: (e) => e.isenabled)
+      extensions
           .map(
             (e) => AsyncSource<Entry>(
-              (i) => e.search(
-                i,
-                GoRouterState.of(context).pathParameters['query'] ?? '',
-              ),
+              (i) async {
+                if (token?.isDisposed ?? true) return [];
+                final res=await e.search(
+                  i,
+                  query,
+                  // token: token,
+                );
+                print("Got ${res.length} results");
+                return res;
+              },
             )..name = e.data.name,
           )
           .toList(),
     );
+    datacontroller!.requestMore();
+    print("swapped datacontroller");
+    // setState(() {});
+  }
+
+  @override
+  void initState() {
     controller = TextEditingController()..disposedBy(scope);
-    token = CancelToken()..disposedBy(scope);
+    extensions =
+        locate<SourceExtension>().getExtensions(extfilter: (e) => e.isenabled);
     super.initState();
   }
 
@@ -64,16 +94,18 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
             hintStyle:
                 const WidgetStatePropertyAll(TextStyle(color: Colors.grey)),
             onSubmitted: (s) {
-              if(s.isEmpty){
+              if (s.isEmpty) {
                 context.go('/browse');
                 return;
               }
+              print("Going to search $s");
               context.go('/search/$s');
             },
           ).paddingAll(5),
           DynamicGrid<Entry>(
-            itemBuilder: (BuildContext context, item) => EntryDisplay(entry: item),
-            controller: datacontroller,
+            itemBuilder: (BuildContext context, item) =>
+                EntryDisplay(entry: item),
+            controller: datacontroller!,
           ).expanded(),
         ],
       ),

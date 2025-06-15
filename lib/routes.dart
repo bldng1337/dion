@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
+import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/extension_manager.dart';
 import 'package:dionysos/views/extension_view.dart';
 import 'package:dionysos/views/library.dart';
 import 'package:dionysos/views/search.dart';
+import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
@@ -50,6 +52,10 @@ GoRouter getRoutes() => GoRouter(
           builder: (context, state) => const Browse(),
         ),
         GoRoute(
+          path: '/activity',
+          builder: (context, state) => const ActivityView(),
+        ),
+        GoRoute(
           path: '/manage',
           builder: (context, state) => const ExtensionManager(),
         ),
@@ -73,7 +79,13 @@ GoRouter getRoutes() => GoRouter(
               builder: (context, state) => const ParagraphReaderSettings(),
             ),
             GoRoute(
-                path: '/storage', builder: (context, state) => const Storage()),
+              path: '/audiolistener',
+              builder: (context, state) => const AudioListenerSettings(),
+            ),
+            GoRoute(
+              path: '/storage',
+              builder: (context, state) => const Storage(),
+            ),
             GoRoute(
               path: '/imagelistreader',
               builder: (context, state) => const ImageListReaderSettings(),

@@ -9,15 +9,24 @@ import 'package:dionysos/utils/settings.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 export 'package:rdion_runtime/rdion_runtime.dart'
-    hide Entry, EntryDetailed, RustLib, Setting;
+    hide Entry, EntryDetailed, RustLib;
 
 class Extension extends ChangeNotifier {
-  Extension(this.data, this._proxy, this.isenabled, this.settings);
+  Extension(this.data, this._proxy, this.isenabled, this.settings, this._meta);
   final rust.ExtensionData data;
-  final rust.ExtensionProxy _proxy;
-  final List<Setting<dynamic, ExtensionMetaData<dynamic>>> settings;
+  final rust.SourceExtensionProxy _proxy;
+  final List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>> settings;
+  ExtensionMetaData _meta;
   bool isenabled;
   bool loading = false;
+
+  ExtensionMetaData get meta => _meta;
+
+  set meta(ExtensionMetaData value) {
+    _meta = value;
+    locate<Database>().setExtensionMetaData(this, value);
+    notifyListeners();
+  }
 
   String get id => data.id;
 
@@ -25,55 +34,56 @@ class Extension extends ChangeNotifier {
     return data.name.replaceAll('-', ' ').capitalize;
   }
 
-  rust.ExtensionProxy get internalProxy => _proxy;
+  rust.SourceExtensionProxy get internalProxy => _proxy;
 
-  static Future<Extension> fromProxy(rust.ExtensionProxy proxy) async {
-    final settingids = await proxy.settingIds();
-    logger.i(settingids);
+  static Future<Extension> fromProxy(
+      rust.SourceExtensionProxy proxy, Database db) async {
+    final settingids = await proxy.getSettingsIds();
+    final extdata = await proxy.getData();
+    final extmeta = await db.getExtensionMetaData(extdata);
     return Extension(
-      await proxy.data(),
+      extdata,
       proxy,
       await proxy.isEnabled(),
       await Future.wait(
         settingids.map((id) async {
           final set = await proxy.getSetting(name: id);
-          final setting = switch (set.val.val) {
+          final setting = switch (set.setting.val) {
             final rust.Settingvalue_String val =>
-              Setting<String, ExtensionMetaData<String>>.fromValue(
+              Setting<String, ExtensionSettingMetaData<String>>.fromValue(
                 val.defaultVal,
                 val.val,
-                ExtensionMetaData(id, set, proxy),
+                ExtensionSettingMetaData(id, set, proxy),
               ),
             final rust.Settingvalue_Number val =>
-              Setting<double, ExtensionMetaData<double>>.fromValue(
+              Setting<double, ExtensionSettingMetaData<double>>.fromValue(
                 val.defaultVal,
                 val.val,
-                ExtensionMetaData(id, set, proxy),
+                ExtensionSettingMetaData(id, set, proxy),
               ),
             final rust.Settingvalue_Boolean val =>
-              Setting<bool, ExtensionMetaData<bool>>.fromValue(
+              Setting<bool, ExtensionSettingMetaData<bool>>.fromValue(
                 val.defaultVal,
                 val.val,
-                ExtensionMetaData(id, set, proxy),
+                ExtensionSettingMetaData(id, set, proxy),
               ),
-            _ => Setting<dynamic, ExtensionMetaData<dynamic>>.fromValue(
-                set.val.defaultVal,
-                set.val.val,
-                ExtensionMetaData(id, set, proxy),
-              )
           };
           logger.i('Runtime type: ${setting.runtimeType}');
           return setting;
         }),
       ),
+      extmeta,
     );
   }
 
   Future<void> enable() async {
     if (isenabled || loading) return;
+    if (!meta.enabled) {
+      meta = meta.copyWith(enabled: true);
+    }
     loading = true;
     notifyListeners();
-    await _proxy.enable();
+    await _proxy.setEnabled(enabled: true);
     isenabled = true;
     loading = false;
     notifyListeners();
@@ -81,9 +91,12 @@ class Extension extends ChangeNotifier {
 
   Future<void> disable() async {
     if (!isenabled || loading) return;
+    if (meta.enabled) {
+      meta = meta.copyWith(enabled: false);
+    }
     loading = true;
     notifyListeners();
-    await _proxy.disable();
+    await _proxy.setEnabled(enabled: false);
     isenabled = false;
     loading = false;
     notifyListeners();
@@ -148,15 +161,15 @@ class Extension extends ChangeNotifier {
   }
 }
 
-class ExtensionMetaData<T> extends MetaData<T> {
+class ExtensionSettingMetaData<T> extends MetaData<T> {
   final String id;
-  final rust.Setting setting;
-  final rust.ExtensionProxy extension;
-  const ExtensionMetaData(this.id, this.setting, this.extension);
+  final rust.ExtensionSetting setting;
+  final rust.SourceExtensionProxy extension;
+  const ExtensionSettingMetaData(this.id, this.setting, this.extension);
 
   @override
   void onChange(T v) {
-    final newval = switch (setting.val) {
+    final newval = switch (setting.setting.val) {
       final rust.Settingvalue_String val =>
         rust.Settingvalue_String(val: v as String, defaultVal: val.defaultVal),
       final rust.Settingvalue_Number val =>
@@ -164,13 +177,14 @@ class ExtensionMetaData<T> extends MetaData<T> {
       final rust.Settingvalue_Boolean val =>
         rust.Settingvalue_Boolean(val: v as bool, defaultVal: val.defaultVal),
     };
-    extension.setSetting(name: id, setting: newval);
+    extension.setSetting(name: id, value: newval);
   }
 }
 
 abstract class SourceExtension {
   Future<void> reload();
   Extension getExtension(String id);
+  Extension? tryGetExtension(String id);
 
   List<Extension> getExtensions({bool Function(Extension e)? extfilter});
 
@@ -255,9 +269,11 @@ class SourceExtensionImpl implements SourceExtension {
   Future<EntryDetailed> detail(
     Entry e, {
     rust.CancelToken? token,
+    Map<String, rust.Setting> settings = const {},
   }) async {
     return EntryDetailedImpl(
-      await e.extension._proxy.detail(entryid: e.id, token: token),
+      await e.extension._proxy
+          .detail(entryid: e.id, token: token, settings: settings),
       e.extension,
     );
   }
@@ -266,11 +282,14 @@ class SourceExtensionImpl implements SourceExtension {
   Future<EntrySaved> update(
     EntrySaved e, {
     rust.CancelToken? token,
+    Map<String, rust.Setting> settings = const {},
   }) async {
     return EntrySavedImpl(
-      await e.extension._proxy.detail(entryid: e.id, token: token),
+      await e.extension._proxy
+          .detail(entryid: e.id, token: token, settings: settings),
       e.extension,
       e.episodedata,
+      e.episode,
     );
   }
 
@@ -278,10 +297,12 @@ class SourceExtensionImpl implements SourceExtension {
   Future<SourcePath> source(
     EpisodePath ep, {
     rust.CancelToken? token,
+    Map<String, rust.Setting> settings = const {},
   }) async {
     return SourcePath(
       ep,
-      await ep.extension._proxy.source(epid: ep.episode.id, token: token),
+      await ep.extension._proxy
+          .source(epid: ep.episode.id, token: token, settings: settings),
     );
   }
 
@@ -301,7 +322,11 @@ class SourceExtensionImpl implements SourceExtension {
 
   @override
   Extension getExtension(String id) {
-    return _extensions.firstWhere((e) => e.data.id == id);
+    return tryGetExtension(id)!;
+  }
+
+  Extension? tryGetExtension(String id) {
+    return _extensions.where((e) => e.data.id == id).firstOrNull;
   }
 
   @override
@@ -312,19 +337,19 @@ class SourceExtensionImpl implements SourceExtension {
     _extensions.clear();
     final dir = await locateAsync<DirectoryProvider>();
     final extmanager =
-        rust.ExtensionManagerProxy(path: dir.extensionpath.absolute.path);
+        rust.SourceExtensionManagerProxy(path: dir.extensionpath.absolute.path);
     final exts = await extmanager.getExtensions();
     extmanager.dispose();
-    for (final e in exts) {
-      await e.enable();
-    }
+    final db = await locateAsync<Database>();
     _extensions.addAll(
       await Future.wait(
-        exts.map((e) => Extension.fromProxy(e)),
+        exts.map((e) => Extension.fromProxy(e, db)),
       ),
     );
     for (final e in _extensions) {
-      await e.enable();
+      if (e.meta.enabled) {
+        e.enable();
+      }
     }
   }
 

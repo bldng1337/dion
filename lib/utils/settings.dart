@@ -1,3 +1,4 @@
+import 'package:dionysos/utils/log.dart';
 import 'package:flutter/material.dart';
 
 class SettingCollection<T, M extends MetaData<T>> {
@@ -32,6 +33,7 @@ class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
 
   @override
   set value(T v) {
+    logger.i('Setting ${setting} to $v');
     setting.value = v as WT;
   }
 

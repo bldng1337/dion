@@ -18,17 +18,19 @@ class _AppLoaderState extends State<AppLoader> {
   late List<Future> tasks;
   late Stream<void> stream;
   Object? error;
+  StackTrace? stack;
   @override
   void initState() {
     tasks = widget.tasks.map(
       (task) async {
         try {
           await task();
-        } catch (e) {
+        } catch (e, cstack) {
           if (error != null) {
             return;
           }
           error = e;
+          stack = cstack;
         }
       },
     ).toList();
@@ -47,7 +49,8 @@ class _AppLoaderState extends State<AppLoader> {
           currentTask++;
           if (error != null) {
             return Center(
-                child: ErrorDisplay(e: error!, actions: widget.actions));
+                child:
+                    ErrorDisplay(e: error!, s: stack, actions: widget.actions));
           }
           return snapshot.when(
             data: (data, isComplete) {
