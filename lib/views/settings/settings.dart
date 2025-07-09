@@ -53,6 +53,13 @@ class Settings extends StatelessWidget {
                 ),
                 onTap: () => context.push('/settings/storage'),
               ),
+              ListTile(
+                title: Text(
+                  'Library',
+                  style: context.bodyMedium,
+                ),
+                onTap: () => context.push('/settings/library'),
+              ),
             ],
           ),
         ],

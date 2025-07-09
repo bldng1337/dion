@@ -11,6 +11,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_surrealdb/flutter_surrealdb.dart';
 import 'package:metis/metis.dart';
+import 'package:uuid/uuid.dart';
 
 class ExtensionMetaData {
   final String id;
@@ -33,35 +34,40 @@ class ExtensionMetaData {
   }
 }
 
-abstract class Database extends ChangeNotifier {
-  Future<void> init();
+class Category {
+  final DBRecord? id;
+  final String name;
 
-  Future<void> merge(String path);
+  Category(this.name, this.id);
 
-  Future<ExtensionMetaData> getExtensionMetaData(ExtensionData extdata);
-  Future<void> setExtensionMetaData(
-    Extension extension,
-    ExtensionMetaData data,
-  );
+  Category copyWith({String? name, DBRecord? id}) {
+    return Category(name ?? this.name, id ?? this.id);
+  }
 
-  Stream<EntrySaved> getEntries(int page, int limit);
-  Stream<EntrySaved> getEntriesSQL(
-    String sqlfilter,
-    Map<String, dynamic>? vars,
-  );
-  Future<EntrySaved?> isSaved(Entry entry);
-  Future<EntrySaved?> getEntry(String id, Extension extension);
-  Future<void> removeEntry(EntryDetailed entry);
-  Future<void> updateEntry(EntryDetailed entry);
-  Future<void> clear();
+  Category.fromJson(Map<String, dynamic> json)
+      : name = json['name'] as String,
+        id = json['id'] as DBRecord?;
 
-  Future<Activity?> getLastActivity();
-  Future<void> addActivity(Activity activity);
-  Stream<Activity> getActivityStream(int page, int limit);
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'id': id,
+      };
+
+  @override
+  bool operator ==(Object other) {
+    return other is Category && other.name == name && other.id == id;
+  }
+
+  @override
+  int get hashCode => Object.hash(name, id);
+}
+
+class Database extends ChangeNotifier {
+  late final AdapterSurrealDB db;
 
   static Future<void> ensureInitialized() async {
     logger.i('Initialising Database!');
-    final db = DatabaseImpl();
+    final db = Database();
     await db.init();
     register<Database>(db);
     logger.i('Initialised Database!');
@@ -75,10 +81,6 @@ abstract class Database extends ChangeNotifier {
           );
     }
   }
-}
-
-class DatabaseImpl extends ChangeNotifier implements Database {
-  late final AdapterSurrealDB db;
 
   Future<void> initDB(AdapterSurrealDB db) async {
     await db.use(db: 'default', namespace: 'app');
@@ -96,7 +98,6 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     await db.setCrdtAdapter(tablesToSync: {const DBTable('entry')});
   }
 
-  @override
   Future<void> init() async {
     await RustLib.init();
     final dir = await locateAsync<DirectoryProvider>();
@@ -104,7 +105,56 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     await initDB(db);
   }
 
-  @override
+  Future<List<Category>> getCategories() async {
+    final [dbres as List<dynamic>?] = await db.query(
+      query: 'SELECT * FROM category',
+    );
+    if (dbres == null || dbres.isEmpty) return [];
+    return dbres
+        .map((e) => Category.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> updateCategory(Category category) async {
+    final id = category.id ?? DBRecord('category', const Uuid().v4());
+    await db.upsert(
+      res: id,
+      data: category.copyWith(id: id).toJson(),
+    );
+    notifyListeners();
+  }
+
+  Future<void> removeCategory(Category category) async {
+    await db.delete(res: category.id!);
+    notifyListeners();
+  }
+
+  Future<List<Category>> getCategory(List<DBRecord> ids) async {
+    if (ids.isEmpty) return [];
+    final [dbres as List<dynamic>?] = await db.query(
+      query: 'SELECT * FROM category WHERE id IN \$ids',
+      vars: {
+        'ids': ids,
+      },
+    );
+    if (dbres == null || dbres.isEmpty) return [];
+    return dbres
+        .map((e) => Category.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Stream<EntrySaved> getEntriesInCategory(
+      Category category, int page, int limit) {
+    return getEntriesSQL(
+      'SELECT * FROM entry WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit',
+      {
+        'limit': limit,
+        'offset': page,
+        'category': category.id,
+      },
+    );
+  }
+
   Stream<EntrySaved> getEntries(int page, int limit) {
     return getEntriesSQL(
       'SELECT * FROM entry LIMIT \$limit START \$offset*\$limit',
@@ -115,7 +165,6 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     );
   }
 
-  @override
   Stream<EntrySaved> getEntriesSQL(
     String sqlfilter,
     Map<String, dynamic>? vars,
@@ -127,14 +176,13 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     if (dbres == null || dbres.isEmpty) return;
     for (final e in dbres) {
       try {
-        yield EntrySaved.fromJson(e as Map<String, dynamic>);
+        yield await EntrySaved.fromJson(e as Map<String, dynamic>);
       } catch (e) {
         logger.e('Error loading entry', error: e);
       }
     }
   }
 
-  @override
   Future<Activity?> getLastActivity() async {
     final [dbres as List<dynamic>?] = await db.query(
       query: 'SELECT * FROM activity ORDER BY time DESC LIMIT 1',
@@ -144,9 +192,7 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     return activity;
   }
 
-  @override
   Future<void> addActivity(Activity activity) async {
-    print("Adding activity ${activity.id}");
     await db.upsert(
       res: DBRecord('activity', activity.id),
       data: activity.toDBJson(),
@@ -154,7 +200,6 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     notifyListeners();
   }
 
-  @override
   Stream<Activity> getActivityStream(int page, int limit) async* {
     final [dbres as List<dynamic>?] = await db.query(
       query:
@@ -177,13 +222,32 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     }
   }
 
+  Future<Duration> getActivityDuration(DateTime time, Duration duration) async {
+    final end = time.add(duration);
+    final [dbres] = await db.query(
+      query: '''
+math::sum(
+SELECT VALUE duration FROM activity 
+WHERE 
+  time >= \$start AND
+  time <= \$end AND
+  duration > 0
+)'''
+          .trim(),
+      vars: {
+        'start': time,
+        'end': end,
+      },
+    );
+    return Duration(seconds: dbres as int);
+  }
+
   DBRecord _constructDBEntryRecord(String entryid, String extensionid) =>
       DBRecord(
         'entry',
         base64.encode(utf8.encode('${entryid}_$extensionid')),
       );
 
-  @override
   Future<EntrySaved?> isSaved(Entry entry) async {
     final dbentry = await db.select(
       res: _constructDBEntryRecord(entry.id, entry.extension.id),
@@ -192,7 +256,6 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     return EntrySaved.fromJson(dbentry as Map<String, dynamic>);
   }
 
-  @override
   Future<EntrySaved?> getEntry(String id, Extension extension) async {
     final dbentry =
         await db.select(res: _constructDBEntryRecord(id, extension.data.id));
@@ -200,13 +263,11 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     return EntrySaved.fromJson(dbentry as Map<String, dynamic>);
   }
 
-  @override
   Future<void> removeEntry(EntryDetailed entry) async {
     await db.delete(res: _constructDBEntryRecord(entry.id, entry.extension.id));
     notifyListeners();
   }
 
-  @override
   Future<void> updateEntry(EntryDetailed entry) async {
     await db.upsert(
       res: _constructDBEntryRecord(entry.id, entry.extension.id),
@@ -215,13 +276,11 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     notifyListeners();
   }
 
-  @override
   Future<void> clear() async {
     await db.query(query: 'DELETE entry');
     await db.query(query: 'DELETE activity');
   }
 
-  @override
   Future<void> merge(String path) async {
     final otherdb = await AdapterSurrealDB.newFile(path);
     try {
@@ -232,7 +291,6 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     }
   }
 
-  @override
   Future<ExtensionMetaData> getExtensionMetaData(ExtensionData extdata) async {
     final data = await db.select(res: DBRecord('extension', extdata.id));
     if (data != null) {
@@ -241,7 +299,6 @@ class DatabaseImpl extends ChangeNotifier implements Database {
     return ExtensionMetaData(extdata.id, true);
   }
 
-  @override
   Future<void> setExtensionMetaData(
       Extension extension, ExtensionMetaData data) async {
     await db.upsert(
@@ -250,5 +307,6 @@ class DatabaseImpl extends ChangeNotifier implements Database {
         'enabled': data.enabled,
       },
     );
+    notifyListeners();
   }
 }

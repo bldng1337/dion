@@ -11,6 +11,7 @@ import 'package:dionysos/views/loading.dart';
 import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
+import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/settings/storage.dart';
@@ -87,6 +88,10 @@ GoRouter getRoutes() => GoRouter(
             GoRoute(
               path: '/sync',
               builder: (context, state) => const SyncSettings(),
+            ),
+            GoRoute(
+              path: '/library',
+              builder: (context, state) => const LibrarySettings(),
             ),
           ],
         ),

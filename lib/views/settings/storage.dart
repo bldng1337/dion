@@ -8,8 +8,10 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 class Storage extends StatelessWidget {
@@ -70,7 +72,7 @@ class Storage extends StatelessWidget {
 }
 
 Future<Archive> createBackup() async {
-  final db = locate<Database>() as DatabaseImpl;
+  final db = locate<Database>();
   final entries = [];
   while (entries.length % 100 == 0) {
     final entriesdb = await db.getEntries(0, 100).toList();
@@ -95,12 +97,12 @@ Future<Archive> createBackup() async {
 }
 
 Future<void> applyBackup(Archive archive) async {
-  final db = locate<Database>() as DatabaseImpl;
+  final db = locate<Database>();
   final entries = json.decode(
     String.fromCharCodes(archive.findFile('entrydata.json')!.content),
   ) as List<dynamic>;
   for (final entry in entries) {
-    final entrydata = EntrySaved.fromJson(entry as Map<String, dynamic>);
+    final entrydata = await EntrySaved.fromJson(entry as Map<String, dynamic>);
     await db.updateEntry(entrydata);
   }
 }

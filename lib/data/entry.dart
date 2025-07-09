@@ -48,10 +48,10 @@ abstract class Entry {
     switch (json['type']) {
       case 'entry':
         return EntryImpl.fromJson(json);
-      case 'entrydetailed':
-        return EntryDetailedImpl.fromJson(json);
-      case 'entrysaved':
-        return EntrySavedImpl.fromJson(json);
+      // case 'entrydetailed':
+      //   return EntryDetailedImpl.fromJson(json);
+      // case 'entrysaved':
+      //   return EntrySaved.fromJson(json);
       default:
         return EntryImpl.fromJson(json);
     }
@@ -115,7 +115,7 @@ abstract class EntryDetailed extends Entry {
       case 'entrydetailed':
         return EntryDetailedImpl.fromJson(json);
       case 'entrysaved':
-        return EntrySavedImpl.fromJson(json);
+        return EntrySaved.fromJson(json);
       default:
         return EntryDetailed.fromJson(json);
     }
@@ -126,6 +126,8 @@ abstract class EntrySaved extends EntryDetailed {
   Future<EntrySaved> save();
   Future<EntryDetailed> delete();
   List<EpisodeData> get episodedata;
+  List<Category> get categories;
+  set categories(List<Category> value);
   int get episode;
   set episode(int value);
   EpisodeData getEpisodeData(int episode);
@@ -141,8 +143,13 @@ abstract class EntrySaved extends EntryDetailed {
     return Future.value(this);
   }
 
-  static EntrySaved fromJson(Map<String, dynamic> json) {
-    return EntrySavedImpl.fromJson(json);
+  static Future<EntrySaved> fromJson(Map<String, dynamic> json) async {
+    final db = locate<Database>();
+    return EntrySavedImpl.fromJson(
+      json,
+      await db
+          .getCategory((json['categories'] as List<dynamic>?)?.cast() ?? []),
+    );
   }
 }
 
@@ -364,7 +371,7 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   Future<EntrySaved> toSaved() async {
-    final saved = EntrySavedImpl(_entry, extension, List.empty(), 0);
+    final saved = EntrySavedImpl.fromEntryDetailed(this);
     await saved.save();
     return saved;
   }
@@ -401,7 +408,20 @@ class EntryDetailedImpl implements EntryDetailed {
 class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
   @override
   List<EpisodeData> _episodedata;
-  EntrySavedImpl(super.entry, super.extension, this._episodedata, this.episode);
+
+  @override
+  List<Category> categories;
+
+  EntrySavedImpl(
+    super.entry,
+    super.extension,
+    this._episodedata,
+    this.episode,
+    this.categories,
+  );
+
+  EntrySavedImpl.fromEntryDetailed(EntryDetailedImpl ent)
+      : this(ent._entry, ent._extension, List.empty(), 0, List.empty());
 
   @override
   List<EpisodeData> get episodedata => _episodedata;
@@ -419,7 +439,7 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
   }
 
   EntrySaved copywith(rust.EntryDetailed ent) {
-    return EntrySavedImpl(ent, extension, _episodedata, episode);
+    return EntrySavedImpl(ent, extension, _episodedata, episode, categories);
   }
 
   @override
@@ -482,12 +502,16 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
       'type': 'entrysaved',
       'entry': _entry.toJson(),
       'extensionid': _extension.id,
-      'episodedata': episodedata.map((e) => e.toJson()).toList(),
+      'episodedata': episodedata,
       'episode': episode,
+      'categories': categories.map((e) => e.id).toList(),
     };
   }
 
-  factory EntrySavedImpl.fromJson(Map<String, dynamic> json) {
+  factory EntrySavedImpl.fromJson(
+    Map<String, dynamic> json,
+    List<Category> categories,
+  ) {
     final exts = locate<SourceExtension>();
     return EntrySavedImpl(
       rust.EntryDetailed.fromJson(json['entry'] as Map<String, dynamic>),
@@ -497,6 +521,7 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
               .toList() ??
           [],
       (json['episode'] as int?) ?? 0,
+      categories,
     );
   }
 }

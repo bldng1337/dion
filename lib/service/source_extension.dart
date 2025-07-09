@@ -8,7 +8,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
-export 'package:rdion_runtime/rdion_runtime.dart'
+export 'package:rdion_runtime/rdion_runtime.dart' 
     hide Entry, EntryDetailed, RustLib;
 
 class Extension extends ChangeNotifier {
@@ -290,6 +290,7 @@ class SourceExtensionImpl implements SourceExtension {
       e.extension,
       e.episodedata,
       e.episode,
+      e.categories,
     );
   }
 

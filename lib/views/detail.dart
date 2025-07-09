@@ -2,8 +2,9 @@ import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/source_extension.dart' hide DropdownItem;
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/log.dart';
@@ -17,6 +18,8 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/context_menu.dart';
+import 'package:dionysos/widgets/dion_textbox.dart';
+import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -114,6 +117,13 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       );
     }
     final actions = [
+      if (entry is EntrySaved)
+        DionIconbutton(
+          onPressed: () {
+            showSettingPopup(context, entry! as EntrySaved);
+          },
+          icon: const Icon(Icons.settings),
+        ),
       if (entry is EntrySaved)
         DionIconbutton(
           onPressed: () async {
@@ -221,6 +231,65 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
             ).expanded(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+void showSettingPopup(BuildContext context, EntrySaved entry) {
+  showAdaptiveDialog(
+    context: context,
+    builder: (context) => Dialog(
+      child: SettingsPopup(
+        entry: entry,
+      ),
+    ),
+  );
+}
+
+class SettingsPopup extends StatefulWidget {
+  final EntrySaved entry;
+  const SettingsPopup({super.key, required this.entry});
+
+  @override
+  State<SettingsPopup> createState() => _SettingsPopupState();
+}
+
+class _SettingsPopupState extends State<SettingsPopup> {
+  MultiDropdownController<Category>? controller;
+  @override
+  void initState() {
+    super.initState();
+    final db = locate<Database>();
+    db.getCategories().then((categories) {
+      if (categories.isEmpty) return;
+      controller = MultiDropdownController<Category>();
+      controller!.setItems(
+        categories.map((e) => MultiDropdownItem(label: e.name, value: e)),
+      );
+      controller!.selectWhere((e) => widget.entry.categories.contains(e.value));
+      if (!mounted) return;
+      setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Settings'),
+          if (controller != null)
+            DionMultiDropdown(
+              controller: controller,
+              onSelectionChange: (selection) async {
+                widget.entry.categories = selection;
+                await widget.entry.save();
+              },
+            ).paddingAll(10),
+        ],
       ),
     );
   }
@@ -408,19 +477,17 @@ class EntryInfo extends StatelessWidget {
               entry.inLibrary ? Icons.library_books : Icons.library_add,
               size: 30,
             ),
-            onPressed: () {
+            onPressed: () async {
               if (entry.inLibrary) {
-                (entry as EntrySaved).delete().then((e) {
-                  if (context.mounted) {
-                    GoRouter.of(context).replace('/detail', extra: [e]);
-                  }
-                });
+                await (entry as EntrySaved).delete();
+                if (context.mounted) {
+                  GoRouter.of(context).replace('/detail', extra: [e]);
+                }
               } else {
-                entry.toSaved().then((e) {
-                  if (context.mounted) {
-                    GoRouter.of(context).replace('/detail', extra: [e]);
-                  }
-                });
+                final saved = await entry.toSaved();
+                if (context.mounted) {
+                  GoRouter.of(context).replace('/detail', extra: [saved]);
+                }
               }
             },
           ),
