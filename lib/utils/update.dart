@@ -50,7 +50,7 @@ class Update {
       json['body'] as String,
       (json['assets'] as List<dynamic>)
           .map((e) => UpdateAssets(
-              e['browser_download_url'] as String, e['name'] as String))
+              e['browser_download_url'] as String, e['name'] as String,),)
           .toList(),
     );
   }
@@ -128,7 +128,7 @@ Future<Update?> checkUpdate() async {
   final versions = (res.bodyToJson as List<dynamic>)
       .map((e) => Update.fromJson(e as Map<String, dynamic>))
       .where(
-          (e) => e.version.canonicalizedVersion != version.canonicalizedVersion)
+          (e) => e.version.canonicalizedVersion != version.canonicalizedVersion,)
       .where((e) => e.version >= version)
       .where(
         (e) =>

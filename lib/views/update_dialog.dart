@@ -29,7 +29,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
     if (error != null) {
       return AlertDialog(
         title: const Text('Error Installing Update'),
-        content: ErrorDisplay(e: error!),
+        content: ErrorDisplay(e: error),
         actions: [
           DionTextbutton(
             child: const Text('Close'),
@@ -43,7 +43,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
     if (!loading) {
       return AlertDialog(
         title: Text('Version ${widget.update.version} is available!',
-            style: context.titleLarge),
+            style: context.titleLarge,),
         content: Text(
           widget.update.body,
           style: context.bodyMedium,

@@ -11,12 +11,12 @@ class UnwrapResultBuilder<T> extends StatelessWidget {
   final Result<T> res;
   final Widget Function(T) onSuccess;
   const UnwrapResultBuilder(
-      {super.key, required this.res, required this.onSuccess});
+      {super.key, required this.res, required this.onSuccess,});
 
   @override
   Widget build(BuildContext context) {
     return res.fold(
-        onSuccess: onSuccess, onFailure: (e, s) => ErrorDisplay(e: e, s: s));
+        onSuccess: onSuccess, onFailure: (e, s) => ErrorDisplay(e: e, s: s),);
   }
 }
 
@@ -40,7 +40,7 @@ class ErrorBoundary extends StatelessWidget {
   Widget build(BuildContext context) {
     if (e != null) {
       return ErrorDisplay(
-        e: e!,
+        e: e,
         s: s,
         message: message,
         actions: actions,

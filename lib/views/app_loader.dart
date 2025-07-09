@@ -8,7 +8,7 @@ class AppLoader extends StatefulWidget {
   final Function(BuildContext context) onComplete;
   final List<ErrorAction>? actions;
   const AppLoader(
-      {required this.tasks, required this.onComplete, super.key, this.actions});
+      {required this.tasks, required this.onComplete, super.key, this.actions,});
 
   @override
   _AppLoaderState createState() => _AppLoaderState();
@@ -50,7 +50,7 @@ class _AppLoaderState extends State<AppLoader> {
           if (error != null) {
             return Center(
                 child:
-                    ErrorDisplay(e: error!, s: stack, actions: widget.actions));
+                    ErrorDisplay(e: error, s: stack, actions: widget.actions),);
           }
           return snapshot.when(
             data: (data, isComplete) {

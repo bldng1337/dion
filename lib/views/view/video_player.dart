@@ -67,7 +67,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         await player.open(
           Media(sourcedata.link, start: startduration),
         );
-        print("Opening ${sourcedata.link}");
+        print('Opening ${sourcedata.link}');
         await player.setSubtitleTrack(SubtitleTrack.no());
       },
       [widget.source],

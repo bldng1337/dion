@@ -252,7 +252,7 @@ class AsyncSource<T> extends DataSource<T> {
         ]);
       } catch (e1) {
         logger.e('Error putting error $e1 into stream',
-            error: e1, stackTrace: stack);
+            error: e1, stackTrace: stack,);
       } finally {
         isfinished = true;
       }

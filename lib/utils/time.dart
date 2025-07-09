@@ -13,9 +13,9 @@ extension Time on DateTime {
   /// - If [allowFromNow] is passed, format will use the From prefix, ie. a date
   ///   5 minutes from now in 'en' locale will display as "5 minutes from now"
   String formatrelative(
-      {String? locale, DateTime? clock, bool allowFromNow = false}) {
+      {String? locale, DateTime? clock, bool allowFromNow = false,}) {
     return format(this,
-        locale: locale, clock: clock, allowFromNow: allowFromNow);
+        locale: locale, clock: clock, allowFromNow: allowFromNow,);
   }
 
   String toDateString() {

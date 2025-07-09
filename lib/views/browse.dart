@@ -3,6 +3,7 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/extension_view.dart';
 import 'package:dionysos/widgets/card.dart';
@@ -15,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:dionysos/utils/media_type.dart';
 
 abstract class BrowseInterface {
   List<Extension> get extensions;

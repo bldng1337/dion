@@ -6,10 +6,8 @@ import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -18,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SimpleAudioListener extends StatefulWidget {
@@ -46,8 +43,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           return;
         }
         final source = widget.source.source!;
-        print("Source changed ${source.episode.name}");
-        print("Sourcedata ${source.source.sourcedata}");
+        print('Source changed ${source.episode.name}');
+        print('Sourcedata ${source.source.sourcedata}');
         if (source.source.sourcedata is! LinkSource_Mp3) {
           return;
         }
@@ -59,7 +56,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           chapterindex = int.tryParse(prog[0]) ?? 0;
           startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
         }
-        print("Playing ${source.episode.name}");
+        print('Playing ${source.episode.name}');
         await player.open(
           Playlist(
             [
@@ -134,13 +131,13 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   @override
   void initState() {
     initPlayer();
-    print("Init AudioListener");
+    print('Init AudioListener');
     super.initState();
   }
 
   @override
   void dispose() {
-    print("Disposing AudioListener");
+    print('Disposing AudioListener');
     widget.source.episode.save();
     player.dispose();
     super.dispose();

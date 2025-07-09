@@ -19,7 +19,7 @@ class Foldabletext extends StatefulWidget {
 }
 
 Size getTextSize(String text, TextStyle? style,
-    {double? width, TextAlign? textAlign}) {
+    {double? width, TextAlign? textAlign,}) {
   final TextPainter textPainter = TextPainter(
     text: TextSpan(text: text, style: style),
     textAlign: textAlign ?? TextAlign.start,
@@ -68,7 +68,7 @@ class _FoldabletextState extends State<Foldabletext> {
           );
         }
         return Text(widget.text,
-            style: widget.style, textAlign: widget.textAlign);
+            style: widget.style, textAlign: widget.textAlign,);
       },
     );
   }

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';

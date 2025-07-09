@@ -1,5 +1,4 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
@@ -41,7 +40,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
   PlaySession? _session;
 
   @override
-  AudioPlayerHandler() {}
+  AudioPlayerHandler();
   @override
   Future<void> play() {
     if (_session != null) {
@@ -259,7 +258,7 @@ class PlaySession implements Disposable {
   final Function()? goprev;
   final Player player;
 
-  EpisodePath get eppath => source.episode!;
+  EpisodePath get eppath => source.episode;
 
   PlaySession(
     this.source,

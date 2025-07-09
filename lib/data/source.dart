@@ -4,15 +4,11 @@ import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cache.dart';
-import 'package:dionysos/utils/cancel_token.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inline_result/inline_result.dart';
-import 'package:quiver/cache.dart';
-import 'package:quiver/collection.dart';
 
 class SourcePath {
   final EpisodePath episode;
@@ -41,7 +37,7 @@ class EpisodePath {
       episode.cover != null ? episode.coverHeader : entry.coverHeader;
 
   void goPrev(SourceSupplier supplier) {
-    print("Going to prev");
+    print('Going to prev');
     if (!hasprev) return;
     supplier.episode = prev;
   }
@@ -50,7 +46,7 @@ class EpisodePath {
       entry is EntrySaved ? (entry as EntrySaved).save() : Future.value();
 
   Future<void> goNext(SourceSupplier supplier) async {
-    print("Going to next");
+    print('Going to next');
     if (!hasnext) return;
     data.finished = true;
     finishEpisode(this);
@@ -151,7 +147,7 @@ class SourceSupplier with ChangeNotifier implements Disposable {
     }
     _loading = Completer<void>();
     notifyListeners();
-    final res = await cache.get(_episode!);
+    final res = await cache.get(_episode);
     if (res.isSuccess) {
       _source = res.getOrThrow;
       streamcontroller.add(_source!);

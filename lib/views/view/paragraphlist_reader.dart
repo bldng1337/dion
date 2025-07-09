@@ -2,7 +2,6 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -21,7 +20,7 @@ class SimpleParagraphlistReader extends StatefulWidget {
   DataSource_Paragraphlist get sourcedata =>
       source.source.sourcedata as DataSource_Paragraphlist;
   const SimpleParagraphlistReader(
-      {super.key, required this.source, required this.supplier});
+      {super.key, required this.source, required this.supplier,});
 
   @override
   _SimpleParagraphlistReaderState createState() =>
@@ -48,7 +47,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           return;
         }
         if (controller.offset >= controller.position.maxScrollExtent / 2) {
-          print("preloading");
+          print('preloading');
           widget.supplier.preload(widget.supplier.episode.next);
         }
         epdata.progress = controller.offset.toString();

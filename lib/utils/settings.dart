@@ -33,7 +33,7 @@ class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
 
   @override
   set value(T v) {
-    logger.i('Setting ${setting} to $v');
+    logger.i('Setting $setting to $v');
     setting.value = v as WT;
   }
 
@@ -86,8 +86,8 @@ class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
   }
 
   @override
-  set _value(T __value) {
-    setting._value = __value as WT;
+  set _value(T value) {
+    setting._value = value as WT;
   }
 }
 

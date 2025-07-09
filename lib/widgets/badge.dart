@@ -6,7 +6,7 @@ class DionBadge extends StatelessWidget {
   final Color? color;
   final bool noPadding;
   const DionBadge(
-      {super.key, required this.child, this.color, this.noPadding = false});
+      {super.key, required this.child, this.color, this.noPadding = false,});
 
   @override
   Widget build(BuildContext context) {

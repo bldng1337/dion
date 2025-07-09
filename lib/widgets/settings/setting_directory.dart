@@ -5,7 +5,6 @@ import 'package:dionysos/utils/settings.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class SettingDirectory extends StatelessWidget {
   final String title;

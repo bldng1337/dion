@@ -37,7 +37,7 @@ class Extension extends ChangeNotifier {
   rust.SourceExtensionProxy get internalProxy => _proxy;
 
   static Future<Extension> fromProxy(
-      rust.SourceExtensionProxy proxy, Database db) async {
+      rust.SourceExtensionProxy proxy, Database db,) async {
     final settingids = await proxy.getSettingsIds();
     final extdata = await proxy.getData();
     final extmeta = await db.getExtensionMetaData(extdata);
@@ -326,6 +326,7 @@ class SourceExtensionImpl implements SourceExtension {
     return tryGetExtension(id)!;
   }
 
+  @override
   Extension? tryGetExtension(String id) {
     return _extensions.where((e) => e.data.id == id).firstOrNull;
   }

@@ -32,7 +32,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
         destination: homedestinations,
         child: Center(
           child: ErrorDisplay(
-            e: error!,
+            e: error,
             actions: [
               ErrorAction(
                 label: 'Reload',
@@ -77,7 +77,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
                 loading = false;
               });
             },
-            icon: const Icon(Icons.refresh)),
+            icon: const Icon(Icons.refresh),),
         IconButton(
           onPressed: () async {
             try {

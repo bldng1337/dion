@@ -18,13 +18,11 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/context_menu.dart';
-import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
-import 'package:dionysos/widgets/popupmenu.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:dionysos/widgets/tabbar.dart';
@@ -108,7 +106,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Widget build(BuildContext context) {
     if (error != null) {
       return NavScaff(
-        child: ErrorDisplay(e: error!),
+        child: ErrorDisplay(e: error),
       );
     }
     if (entry == null) {
@@ -798,7 +796,7 @@ class CustomUIWidget extends StatelessWidget {
         ),
       final CustomUI_TimeStamp timestamp => switch (timestamp.display) {
           TimestampType.relative => Text(
-              DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? ''),
+              DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? '',),
           TimestampType.absolute =>
             Text(DateTime.tryParse(timestamp.timestamp)?.toString() ?? ''),
         },

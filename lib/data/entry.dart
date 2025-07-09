@@ -1,9 +1,6 @@
-import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 extension EntryX on rust.Entry {

@@ -1,10 +1,6 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
-import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/audio_listener.dart';
 import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
@@ -14,8 +10,6 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
-import 'package:quiver/cache.dart';
-import 'package:quiver/collection.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ViewSource extends StatefulWidget {

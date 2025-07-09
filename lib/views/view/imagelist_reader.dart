@@ -4,7 +4,6 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
-import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -26,7 +25,7 @@ class SimpleImageListReader extends StatefulWidget {
   LinkSource_Imagelist get sourcedata =>
       source.source.sourcedata as LinkSource_Imagelist;
   const SimpleImageListReader(
-      {super.key, required this.source, required this.supplier});
+      {super.key, required this.source, required this.supplier,});
 
   @override
   State<SimpleImageListReader> createState() => _SimpleImageListReaderState();

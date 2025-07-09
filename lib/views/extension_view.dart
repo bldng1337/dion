@@ -50,7 +50,7 @@ class _ExtensionViewState extends State<ExtensionView> {
       return NavScaff(
         title: Text('Error Loading ${extension?.name ?? ''}'),
         child: Center(
-          child: ErrorDisplay(e: error!),
+          child: ErrorDisplay(e: error),
         ),
       );
     }
@@ -151,7 +151,7 @@ class SettingView extends StatelessWidget {
         final SettingUI_Dropdown setting =>
           Text('Dropdown: ${setting.label}'), //TODO: implement dropdown
         _ => Text(
-            'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}'),
+            'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}',),
       };
     }
     return switch (setting.intialValue) {
@@ -169,9 +169,9 @@ class SettingView extends StatelessWidget {
         ),
       final String val => SettingTextbox(
           title: setting.metadata.id,
-          setting: setting.cast<String, ExtensionSettingMetaData<String>>()),
+          setting: setting.cast<String, ExtensionSettingMetaData<String>>(),),
       _ => Text(
-          'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}'),
+          'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}',),
     };
   }
 }

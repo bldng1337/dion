@@ -4,7 +4,6 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/utils/settings.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -29,25 +28,25 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
 
   @override
   void didChangeDependencies() {
-    print("Search didChangeDependencies");
+    print('Search didChangeDependencies');
     final query = GoRouterState.of(context).pathParameters['query'] ?? '';
-    print("Got query $query");
+    print('Got query $query');
     if (query == (lastquery ?? '')) return;
-    print("Query valid $query");
+    print('Query valid $query');
     lastquery = query;
     search(query);
     controller.text = query;
     super.didChangeDependencies();
   }
 
-  void search(String query) async {
-    print("Searching for $query");
+  Future<void> search(String query) async {
+    print('Searching for $query');
     if (!(token?.isDisposed ?? true)) {
       token!.cancel();
       token!.dispose();
     }
     token = CancelToken()..disposedBy(scope);
-    print("swapping datacontroller");
+    print('swapping datacontroller');
     datacontroller?.dispose();
     datacontroller = DataSourceController<Entry>(
       extensions
@@ -60,7 +59,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
                   query,
                   // token: token,
                 );
-                print("Got ${res.length} results");
+                print('Got ${res.length} results');
                 return res;
               },
             )..name = e.data.name,
@@ -68,7 +67,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
           .toList(),
     );
     datacontroller!.requestMore();
-    print("swapped datacontroller");
+    print('swapped datacontroller');
     // setState(() {});
   }
 
@@ -98,7 +97,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
                 context.go('/browse');
                 return;
               }
-              print("Going to search $s");
+              print('Going to search $s');
               context.go('/search/$s');
             },
           ).paddingAll(5),
