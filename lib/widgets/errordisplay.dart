@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
@@ -50,12 +52,12 @@ class ErrorBoundary extends StatelessWidget {
 
 class ErrorAction {
   final String label;
-  final Function()? onTap;
+  final FutureOr<void> Function()? onTap;
   const ErrorAction({required this.label, this.onTap});
 }
 
 class ErrorDisplay extends StatelessWidget {
-  final Object e;
+  final Object? e;
   final StackTrace? s;
   final String? message;
   final List<ErrorAction>? actions;
@@ -77,6 +79,9 @@ class ErrorDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (e == null) {
+      return Container();
+    }
     logger.e(message, error: e, stackTrace: s);
     return ColoredBox(
       color: Colors.black.withOpacity(0.4),
