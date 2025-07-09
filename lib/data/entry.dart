@@ -110,7 +110,7 @@ abstract class EntryDetailed extends Entry {
   Future<EntrySaved> toSaved();
   Future<EntryDetailed> refresh({CancelToken? token});
 
-  static EntryDetailed fromJson(Map<String, dynamic> json) {
+  static Future<EntryDetailed> fromJson(Map<String, dynamic> json) async {
     switch (json['type']) {
       case 'entrydetailed':
         return EntryDetailedImpl.fromJson(json);
@@ -225,72 +225,6 @@ class EntryImpl implements Entry {
       locate<SourceExtension>().getExtension(json['extensionid'] as String),
     );
   }
-}
-
-class EpisodePath {
-  final EntryDetailed entry;
-  final int episodenumber;
-  const EpisodePath(this.entry, this.episodenumber);
-
-  EpisodeData get data => (entry is EntrySaved)
-      ? (entry as EntrySaved).getEpisodeData(episodenumber)
-      : EpisodeData.empty();
-
-  List<Episode> get episodes => entry.episodes;
-  Episode get episode => episodes[episodenumber];
-  String get name => episode.name;
-  bool get hasnext => episodenumber + 1 < episodes.length;
-  bool get hasprev => episodenumber > 0;
-  void goPrev(BuildContext context) {
-    if (!hasprev) return;
-    GoRouter.of(context).replace(
-      '/view',
-      extra: [prev],
-    );
-  }
-
-  Future<void> save() =>
-      entry is EntrySaved ? (entry as EntrySaved).save() : Future.value();
-
-  Future<void> goNext(BuildContext context) async {
-    if (!hasnext) return;
-    data.finished = true;
-    finishEpisode(this);
-    await save();
-    if (context.mounted) {
-      await GoRouter.of(context).replace(
-        '/view',
-        extra: [next],
-      );
-    }
-  }
-
-  void go(BuildContext context) {
-    finishEpisode(this);
-    GoRouter.of(context).push(
-      '/view',
-      extra: [this],
-    );
-  }
-
-  EpisodePath get next => EpisodePath(entry, episodenumber + 1);
-  EpisodePath get prev => EpisodePath(entry, episodenumber - 1);
-  Extension get extension => entry.extension;
-
-  @override
-  String toString() {
-    return 'EpisodePath(entry: $entry, episodenumber: $episodenumber)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is EpisodePath &&
-        other.entry == entry &&
-        other.episodenumber == episodenumber;
-  }
-
-  @override
-  int get hashCode => Object.hash(entry, episodenumber);
 }
 
 class EntryDetailedImpl implements EntryDetailed {

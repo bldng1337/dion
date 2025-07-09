@@ -15,6 +15,7 @@ import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:moment_dart/moment_dart.dart';
 import 'package:path/path.dart';
 
 abstract class IRenderable {
@@ -23,11 +24,18 @@ abstract class IRenderable {
 
 class Divider implements IRenderable {
   final DateTime date;
-  const Divider(this.date);
+  final Duration duration;
+  const Divider(this.date, this.duration);
 
   @override
   Widget render(BuildContext context) {
-    return DionListTile(title: Text('  ${date.toDateString()}'));
+    return DionListTile(
+      title: Text('  ${date.toDateString()}'),
+      trailing: Text(
+        duration.formatrelative(),
+        style: context.labelSmall!.copyWith(color: context.theme.disabledColor),
+      ),
+    );
   }
 }
 
@@ -100,24 +108,24 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
       child: DionBadge(
         color: context.theme.scaffoldBackgroundColor.lighten(5),
         child: SizedBox(
-          height: 100,
+          height: 160,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DionImage(
-                imageUrl: entry!.cover,
-                boxFit: BoxFit.fitHeight,
+                imageUrl: entry.cover,
+                boxFit: BoxFit.contain,
                 alignment: Alignment.center,
-                httpHeaders: entry!.coverHeader,
-                width: 80,
-                height: 100,
+                httpHeaders: entry.coverHeader,
+                width: 120,
+                height: 160,
               ).paddingOnly(right: 5),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      entry!.title.trim(),
+                      entry.title.trim(),
                       maxLines: 1,
                       style: context.titleLarge,
                     ),
@@ -126,6 +134,7 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                         (activity.fromepisode == activity.toepisode)
                             ? '$action episode ${activity.fromepisode}'
                             : '$action episode ${activity.fromepisode} - ${activity.toepisode}',
+                        style: context.bodyMedium,
                       ),
                     ),
                     Text(
@@ -134,7 +143,7 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                           .copyWith(color: context.theme.disabledColor),
                     ),
                   ],
-                ),
+                ).paddingOnly(left: 5),
               ),
               Text(
                 activity.time.formatrelative(),
@@ -163,8 +172,11 @@ class _ActivityViewState extends State<ActivityView> {
     final str = locate<Database>().getActivityStream(index, 10);
     Activity? last;
     await for (final e in str) {
-      if (last != null && last.time.day != e.time.day) {
-        yield Divider(e.time);
+      if ((last != null && last.time.day != e.time.day) || last == null) {
+        final time = e.time.date;
+        final dur = await locate<Database>()
+            .getActivityDuration(time, const Duration(days: 1));
+        yield Divider(e.time, dur);
       }
       yield await ActivityItem.getActionItem(e);
       last = e;

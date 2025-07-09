@@ -4,9 +4,11 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -20,20 +22,16 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SimpleAudioListener extends StatefulWidget {
-  final SourcePath source;
-  LinkSource_Mp3 get sourcedata => source.source.sourcedata as LinkSource_Mp3;
+  final SourceSupplier source;
   const SimpleAudioListener({super.key, required this.source});
 
   @override
-  State<SimpleAudioListener> createState() => _SimpleImageListReaderState();
+  State<SimpleAudioListener> createState() => _SimpleAudioListenerState();
 }
 
-class _SimpleImageListReaderState extends State<SimpleAudioListener>
+class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
-  late final ItemScrollController controller;
-  late final ScrollOffsetController offsetcontroller;
-  late final ItemPositionsListener itemPositionsListener;
-  Player? player;
+  late final Player player;
   Future<void> initPlayer() async {
     player = Player(
       configuration: const PlayerConfiguration(
@@ -42,67 +40,93 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
       ),
     );
     Observer(
-      () {
-        if (player != null) {
-          player!.setVolume(settings.audioBookSettings.volume.value);
+      () async {
+        if (widget.source.source == null) {
+          player.stop();
+          return;
         }
+        final source = widget.source.source!;
+        print("Source changed ${source.episode.name}");
+        print("Sourcedata ${source.source.sourcedata}");
+        if (source.source.sourcedata is! LinkSource_Mp3) {
+          return;
+        }
+        final sourcedata = source.source.sourcedata as LinkSource_Mp3;
+        final prog = source.episode.data.progress?.split(':');
+        Duration startduration = Duration.zero;
+        int chapterindex = 0;
+        if (prog != null) {
+          chapterindex = int.tryParse(prog[0]) ?? 0;
+          startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
+        }
+        print("Playing ${source.episode.name}");
+        await player.open(
+          Playlist(
+            [
+              for (final (index, chapter) in sourcedata.chapters.indexed)
+                Media(
+                  chapter.url,
+                  extras: {
+                    'title': chapter.title,
+                  },
+                  start: index == chapterindex ? startduration : Duration.zero,
+                ),
+            ],
+            index: chapterindex,
+          ),
+        );
+      },
+      [widget.source],
+    );
+    locate<PlayerService>().setSession(
+      PlaySession(
+        widget.source,
+        player,
+        gonext: () {
+          if (mounted) {
+            widget.source.episode.goNext(widget.source);
+          }
+        },
+        goprev: () {
+          if (mounted) {
+            widget.source.episode.goPrev(widget.source);
+          }
+        },
+      )..disposedBy(scope),
+    );
+    Observer(
+      () {
+        player.setVolume(settings.audioBookSettings.volume.value);
       },
       [settings.audioBookSettings.volume],
     ).disposedBy(scope);
-    player!.setVolume(settings.audioBookSettings.volume.value);
     Observer(
       () {
-        if (player != null) {
-          player!.setRate(settings.audioBookSettings.speed.value);
-        }
+        player.setRate(settings.audioBookSettings.speed.value);
       },
       [settings.audioBookSettings.speed],
-    );
-    player!.setRate(settings.audioBookSettings.speed.value);
-    await player!.setPlaylistMode(PlaylistMode.none);
-    await player!.setVolume(100);
-    final prog = widget.source.episode.data.progress?.split(':');
-    Duration startduration = Duration.zero;
-    int chapterindex = 0;
-    if (prog != null) {
-      chapterindex = int.tryParse(prog[0]) ?? 0;
-      startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
-    }
-    await player!.open(
-      Playlist(
-        [
-          for (final (index, chapter) in widget.sourcedata.chapters.indexed)
-            Media(
-              chapter.url,
-              extras: {
-                'title': chapter.title,
-              },
-              start: index == chapterindex ? startduration : Duration.zero,
-            ),
-        ],
-        index: chapterindex,
-      ),
-    );
-    player!.stream.completed.listen((event) {
+    ).disposedBy(scope);
+    await player.setPlaylistMode(PlaylistMode.none);
+
+    player.stream.completed.listen((event) {
       if (!event) {
         return;
       }
       if (!mounted) {
         return;
       }
-      widget.source.episode.goNext(context);
+      widget.source.episode.goNext(widget.source);
     });
-    player!.stream.position.listen((event) {
+    player.stream.position.listen((event) {
       if (!mounted) {
         return;
       }
-
-      final playlistindex = player!.state.playlist.index;
+      final playlistindex = player.state.playlist.index;
       widget.source.episode.data.progress =
           '$playlistindex:${event.inMilliseconds}';
-      if (event.inMilliseconds / player!.state.duration.inMilliseconds > 0.5 &&
-          playlistindex / player!.state.playlist.medias.length > 0.5) {
-        InheritedPreload.of(context).shouldPreload();
+      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
+          playlistindex / player.state.playlist.medias.length > 0.5) {
+        widget.source.preload(widget.source.episode.next);
       }
     });
   }
@@ -110,21 +134,28 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
   @override
   void initState() {
     initPlayer();
+    print("Init AudioListener");
     super.initState();
   }
 
   @override
   void dispose() {
+    print("Disposing AudioListener");
     widget.source.episode.save();
-    player?.dispose();
-    player = null;
+    player.dispose();
     super.dispose();
   }
 
   String getTitle() {
-    final title = player!.state.playlist.medias[player!.state.playlist.index]
+    if (player.state.playlist.medias.isEmpty ||
+        player.state.playlist.medias.length <= player.state.playlist.index) {
+      return widget.source.episode.name;
+    }
+    final title = player.state.playlist.medias[player.state.playlist.index]
         .extras?['title'] as String?;
-    if (title == null || title == 'default') return widget.source.name;
+    if (title == null || title == 'default') {
+      return widget.source.episode.name;
+    }
     return title;
   }
 
@@ -198,9 +229,9 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
         ),
       ],
       title: StreamBuilder(
-        stream: player!.stream.playlist,
+        stream: player.stream.playlist,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return Text(widget.source.name);
+          if (!snapshot.hasData) return Text(widget.source.episode.name);
           return Text(getTitle());
         },
       ),
@@ -210,15 +241,10 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
           children: [
             Expanded(
               child: Center(
-                child: widget.source.episode.episode.cover != null
-                    ? DionImage(
-                        imageUrl: widget.source.episode.episode.cover,
-                        httpHeaders: widget.source.episode.episode.coverHeader,
-                      )
-                    : DionImage(
-                        imageUrl: widget.source.episode.entry.cover,
-                        httpHeaders: widget.source.episode.entry.coverHeader,
-                      ),
+                child: DionImage(
+                  imageUrl: widget.source.episode.cover,
+                  httpHeaders: widget.source.episode.coverHeader,
+                ).paddingOnly(bottom: 10),
               ),
             ),
             Center(
@@ -227,18 +253,16 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
                 children: [
                   StreamBuilder(
                     stream: combineStreams([
-                      player!.stream.duration,
-                      player!.stream.position,
-                      player!.stream.buffer,
+                      player.stream.duration,
+                      player.stream.position,
+                      player.stream.buffer,
                     ]),
                     builder: (context, snapshot) {
                       return ProgressBar(
-                        progress: player!.state.position,
-                        total: player!.state.duration,
-                        buffered: player!.state.buffering
-                            ? player!.state.buffer
-                            : null,
-                        onSeek: (value) => player!.seek(value),
+                        progress: player.state.position,
+                        total: player.state.duration,
+                        buffered: player.state.buffer,
+                        onSeek: (value) => player.seek(value),
                       );
                     },
                   ),
@@ -248,27 +272,27 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
                       DionIconbutton(
                         icon: const Icon(Icons.skip_previous),
                         onPressed: () {
-                          if (player!.state.playlist.index == 0) {
+                          if (player.state.playlist.index == 0) {
                             if (mounted) {
-                              widget.source.episode.goPrev(context);
+                              widget.source.episode.goPrev(widget.source);
                             }
                           }
-                          player!.previous();
+                          player.previous();
                         },
                       ),
                       DionIconbutton(
                         icon: const Icon(Icons.navigate_before),
                         onPressed: () {
-                          player!.seek(
+                          player.seek(
                             Duration(
                               milliseconds:
-                                  player!.state.position.inMilliseconds - 5000,
+                                  player.state.position.inMilliseconds - 5000,
                             ),
                           );
                         },
                       ),
                       StreamBuilder(
-                        stream: player!.stream.playing,
+                        stream: player.stream.playing,
                         builder: (context, snapshot) {
                           var icon = Icons.play_arrow;
                           if (snapshot.hasData && snapshot.data!) {
@@ -279,7 +303,7 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
                           return DionIconbutton(
                             icon: Icon(icon),
                             onPressed: () async {
-                              player!.playOrPause();
+                              player.playOrPause();
                             },
                           );
                         },
@@ -287,10 +311,10 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
                       DionIconbutton(
                         icon: const Icon(Icons.navigate_next),
                         onPressed: () {
-                          player!.seek(
+                          player.seek(
                             Duration(
                               milliseconds:
-                                  player!.state.position.inMilliseconds + 5000,
+                                  player.state.position.inMilliseconds + 5000,
                             ),
                           );
                         },
@@ -298,20 +322,20 @@ class _SimpleImageListReaderState extends State<SimpleAudioListener>
                       DionIconbutton(
                         icon: const Icon(Icons.skip_next),
                         onPressed: () {
-                          if (player!.state.playlist.index ==
-                              player!.state.playlist.medias.length - 1) {
+                          if (player.state.playlist.index ==
+                              player.state.playlist.medias.length - 1) {
                             if (mounted) {
-                              widget.source.episode.goNext(context);
+                              widget.source.episode.goNext(widget.source);
                             }
                           }
-                          player!.next();
+                          player.next();
                         },
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

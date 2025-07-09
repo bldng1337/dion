@@ -22,9 +22,11 @@ final psettings = settings.readerSettings.imagelistreader;
 
 class SimpleImageListReader extends StatefulWidget {
   final SourcePath source;
+  final SourceSupplier supplier;
   LinkSource_Imagelist get sourcedata =>
       source.source.sourcedata as LinkSource_Imagelist;
-  const SimpleImageListReader({super.key, required this.source});
+  const SimpleImageListReader(
+      {super.key, required this.source, required this.supplier});
 
   @override
   State<SimpleImageListReader> createState() => _SimpleImageListReaderState();
@@ -123,7 +125,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           .index;
       epdata.progress = min.toString();
       if (min >= widget.sourcedata.links.length / 2) {
-        InheritedPreload.of(context).shouldPreload();
+        widget.supplier.preload(widget.source.episode.next);
       }
       play();
     });
@@ -216,7 +218,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
               if (widget.source.episode.hasprev) {
                 return DionTextbutton(
                   child: const Text('Previous'),
-                  onPressed: () => widget.source.episode.goPrev(context),
+                  onPressed: () => widget.source.episode.goPrev(widget.supplier),
                 );
               }
               return nil;
@@ -225,7 +227,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
               if (widget.source.episode.hasnext) {
                 return DionTextbutton(
                   child: const Text('Next'),
-                  onPressed: () => widget.source.episode.goNext(context),
+                  onPressed: () => widget.source.episode.goNext(widget.supplier),
                 );
               }
               return nil;

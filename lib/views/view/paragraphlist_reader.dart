@@ -17,9 +17,11 @@ final psettings = settings.readerSettings.paragraphreader;
 
 class SimpleParagraphlistReader extends StatefulWidget {
   final SourcePath source;
+  final SourceSupplier supplier;
   DataSource_Paragraphlist get sourcedata =>
       source.source.sourcedata as DataSource_Paragraphlist;
-  const SimpleParagraphlistReader({super.key, required this.source});
+  const SimpleParagraphlistReader(
+      {super.key, required this.source, required this.supplier});
 
   @override
   _SimpleParagraphlistReaderState createState() =>
@@ -46,11 +48,24 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           return;
         }
         if (controller.offset >= controller.position.maxScrollExtent / 2) {
-          InheritedPreload.of(context).shouldPreload();
+          print("preloading");
+          widget.supplier.preload(widget.supplier.episode.next);
         }
         epdata.progress = controller.offset.toString();
       },
     );
+    widget.supplier.addListener(() {
+      if (!controller.hasClients) {
+        return;
+      }
+      if (widget.supplier.loading) {
+        return;
+      }
+      final epdata = widget.source.episode.data;
+      controller.jumpTo(
+        epdata.finished ? 0 : double.tryParse(epdata.progress ?? '0') ?? 0,
+      );
+    });
     super.initState();
   }
 
@@ -156,7 +171,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                 if (widget.source.episode.hasprev) {
                   return DionTextbutton(
                     child: const Text('Previous'),
-                    onPressed: () => widget.source.episode.goPrev(context),
+                    onPressed: () => widget.source.episode.goPrev(widget.supplier),
                   );
                 }
                 return nil;
@@ -173,7 +188,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                 if (widget.source.episode.hasnext) {
                   return DionTextbutton(
                     child: const Text('Next'),
-                    onPressed: () => widget.source.episode.goNext(context),
+                    onPressed: () => widget.source.episode.goNext(widget.supplier),
                   );
                 }
                 return nil;
