@@ -30,8 +30,8 @@ class _ClickableState extends State<Clickable> {
                 bottom: 0,
                 child: Container(
                   color: DionTheme.of(context).brightness == Brightness.dark
-                      ? Colors.black.withOpacity(0.07)
-                      : Colors.white.withOpacity(0.07),
+                      ? Colors.black.withValues(alpha: 0.07)
+                      : Colors.white.withValues(alpha: 0.07),
                 ),
               ),
           ],
