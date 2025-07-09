@@ -4,11 +4,18 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 class Observer implements Disposable {
   final Function() callback;
   late final Listenable notifier;
-  Observer(this.callback, List<ChangeNotifier> notifiers) {
+  Observer(
+    this.callback,
+    List<ChangeNotifier> notifiers, {
+    bool callOnInit = true,
+  }) {
     if (notifiers.length > 1) {
       notifier = Listenable.merge(notifiers);
     } else {
       notifier = notifiers[0];
+    }
+    if (callOnInit) {
+      callback();
     }
     notifier.addListener(callback);
   }
