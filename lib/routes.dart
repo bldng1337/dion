@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse.dart';
@@ -8,6 +7,7 @@ import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/extension_manager.dart';
 import 'package:dionysos/views/extension_view.dart';
 import 'package:dionysos/views/library.dart';
+import 'package:dionysos/views/loading.dart';
 import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
@@ -32,20 +32,14 @@ GoRouter getRoutes() => GoRouter(
       navigatorKey: navigatorKey,
       extraCodec: const MyExtraCodec(),
       debugLogDiagnostics: true,
-      initialLocation: '/library',
-      redirect: (context, state) {
-        if (state.fullPath == '/') {
-          context.go('/library');
-        }
-        return null;
-      },
+      initialLocation: '/',
+      // redirect: (context, state) {
+      //   return null;
+      // },
       routes: [
         GoRoute(
           path: '/',
-          builder: (context, state) {
-            context.go('/browse');
-            return nil;
-          },
+          builder: (context, state) => const LoadingView(),
         ),
         GoRoute(
           path: '/browse',
