@@ -6,10 +6,10 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/selection.dart';
+import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
-import 'package:text_scroll/text_scroll.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final psettings = settings.readerSettings.paragraphreader;
@@ -19,8 +19,11 @@ class SimpleParagraphlistReader extends StatefulWidget {
   final SourceSupplier supplier;
   DataSource_Paragraphlist get sourcedata =>
       source.source.sourcedata as DataSource_Paragraphlist;
-  const SimpleParagraphlistReader(
-      {super.key, required this.source, required this.supplier,});
+  const SimpleParagraphlistReader({
+    super.key,
+    required this.source,
+    required this.supplier,
+  });
 
   @override
   _SimpleParagraphlistReaderState createState() =>
@@ -131,7 +134,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     final epdata = widget.source.episode.data;
     final paragraphs = widget.sourcedata.paragraphs;
     return NavScaff(
-      title: TextScroll(widget.source.name),
+      title: DionTextScroll(widget.source.name),
       actions: [
         DionIconbutton(
           icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
@@ -170,7 +173,8 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                 if (widget.source.episode.hasprev) {
                   return DionTextbutton(
                     child: const Text('Previous'),
-                    onPressed: () => widget.source.episode.goPrev(widget.supplier),
+                    onPressed: () =>
+                        widget.source.episode.goPrev(widget.supplier),
                   );
                 }
                 return nil;
@@ -187,7 +191,8 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                 if (widget.source.episode.hasnext) {
                   return DionTextbutton(
                     child: const Text('Next'),
-                    onPressed: () => widget.source.episode.goNext(widget.supplier),
+                    onPressed: () =>
+                        widget.source.episode.goNext(widget.supplier),
                   );
                 }
                 return nil;

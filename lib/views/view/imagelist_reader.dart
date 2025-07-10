@@ -8,13 +8,13 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:text_scroll/text_scroll.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final psettings = settings.readerSettings.imagelistreader;
@@ -24,8 +24,11 @@ class SimpleImageListReader extends StatefulWidget {
   final SourceSupplier supplier;
   LinkSource_Imagelist get sourcedata =>
       source.source.sourcedata as LinkSource_Imagelist;
-  const SimpleImageListReader(
-      {super.key, required this.source, required this.supplier,});
+  const SimpleImageListReader({
+    super.key,
+    required this.source,
+    required this.supplier,
+  });
 
   @override
   State<SimpleImageListReader> createState() => _SimpleImageListReaderState();
@@ -167,7 +170,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     final epdata = widget.source.episode.data;
     final images = widget.sourcedata.links;
     return NavScaff(
-      title: TextScroll(widget.source.name),
+      title: DionTextScroll(widget.source.name),
       actions: [
         if (player != null)
           DionIconbutton(
@@ -217,7 +220,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
               if (widget.source.episode.hasprev) {
                 return DionTextbutton(
                   child: const Text('Previous'),
-                  onPressed: () => widget.source.episode.goPrev(widget.supplier),
+                  onPressed: () =>
+                      widget.source.episode.goPrev(widget.supplier),
                 );
               }
               return nil;
@@ -226,7 +230,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
               if (widget.source.episode.hasnext) {
                 return DionTextbutton(
                   child: const Text('Next'),
-                  onPressed: () => widget.source.episode.goNext(widget.supplier),
+                  onPressed: () =>
+                      widget.source.episode.goNext(widget.supplier),
                 );
               }
               return nil;

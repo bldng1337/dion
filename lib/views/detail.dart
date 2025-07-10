@@ -26,11 +26,11 @@ import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:dionysos/widgets/tabbar.dart';
+import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:text_scroll/text_scroll.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Detail extends StatefulWidget {
@@ -179,16 +179,16 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                 child: const Icon(Icons.play_arrow),
               )
             : null,
-        title: TextScroll(entry?.title ?? ''),
+        title: DionTextScroll(entry?.title ?? ''),
         child: DionTabBar(
           tabs: [
             DionTab(
-              tab: const TextScroll('Info'),
+              tab: const DionTextScroll('Info'),
               child: EntryInfo(entry: entry!),
             ),
             if (entry is EntryDetailed)
               DionTab(
-                tab: const TextScroll('Episodes'),
+                tab: const DionTextScroll('Episodes'),
                 child: EpisodeListUI(entry: entry! as EntryDetailed),
               ),
           ],
@@ -211,7 +211,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               child: const Icon(Icons.play_arrow),
             )
           : null,
-      title: TextScroll(entry?.title ?? ''),
+      title: DionTextScroll(entry?.title ?? ''),
       child: SizedBox(
         width: context.width - 200,
         child: Row(
@@ -352,12 +352,11 @@ class EntryInfo extends StatelessWidget {
                   // pauseBetween: 1.seconds,
                 ),
                 if (entry.author != null && entry.author!.isNotEmpty)
-                  TextScroll(
+                  DionTextScroll(
                     'by ${(entry.author != null && entry.author!.isNotEmpty) ? entry.author!.map(
                           (e) => e.trim().replaceAll('\n', ''),
                         ).reduce((a, b) => '$a • $b') : 'Unkown author'}',
                     style: context.labelLarge?.copyWith(color: Colors.grey),
-                    pauseBetween: 1.seconds,
                   ),
                 Row(
                   children: [
@@ -370,10 +369,9 @@ class EntryInfo extends StatelessWidget {
                         size: 20,
                       ),
                     ).paddingOnly(right: 5),
-                    TextScroll(
+                    DionTextScroll(
                       entry.extension.data.name,
                       style: context.bodyMedium?.copyWith(color: Colors.grey),
-                      pauseBetween: 1.seconds,
                     ),
                     Text(
                       ' • ',
@@ -749,7 +747,7 @@ class EpisodeTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextScroll(
+              DionTextScroll(
                 episodepath.episode.name,
                 style: context.titleMedium?.copyWith(
                   color: epdata.finished ? context.theme.disabledColor : null,

@@ -8,10 +8,10 @@ import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:text_scroll/text_scroll.dart';
 
 class ExtensionManager extends StatefulWidget {
   const ExtensionManager({super.key});
@@ -28,7 +28,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
   Widget build(BuildContext context) {
     if (error != null) {
       return NavScaff(
-        title: const TextScroll('Manage Extensions'),
+        title: const DionTextScroll('Manage Extensions'),
         destination: homedestinations,
         child: Center(
           child: ErrorDisplay(
@@ -49,7 +49,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
     }
     if (loading) {
       return NavScaff(
-        title: const TextScroll('Manage Extensions'),
+        title: const DionTextScroll('Manage Extensions'),
         destination: homedestinations,
         child: const Center(child: CircularProgressIndicator()),
       );
@@ -57,7 +57,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
     final sourceExt = locate<SourceExtension>();
     final exts = sourceExt.getExtensions();
     return NavScaff(
-      title: const TextScroll('Manage Extensions'),
+      title: const DionTextScroll('Manage Extensions'),
       actions: [
         IconButton(
             onPressed: () async {
