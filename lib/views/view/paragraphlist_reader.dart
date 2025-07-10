@@ -50,7 +50,6 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           return;
         }
         if (controller.offset >= controller.position.maxScrollExtent / 2) {
-          print('preloading');
           widget.supplier.preload(widget.supplier.episode.next);
         }
         epdata.progress = controller.offset.toString();
@@ -60,12 +59,11 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       if (!controller.hasClients) {
         return;
       }
-      if (widget.supplier.loading) {
-        return;
-      }
       final epdata = widget.source.episode.data;
+      final double pos =
+          epdata.finished ? 0 : double.tryParse(epdata.progress ?? '0') ?? 0;
       controller.jumpTo(
-        epdata.finished ? 0 : double.tryParse(epdata.progress ?? '0') ?? 0,
+        pos,
       );
     });
     super.initState();
