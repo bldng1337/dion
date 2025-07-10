@@ -598,6 +598,7 @@ class _EpListState extends State<EpList> with StateDisposeScopeMixin {
   @override
   Widget build(BuildContext context) {
     return ContextMenu(
+      selectionActive: selected.isNotEmpty,
       active: widget.entry is EntrySaved,
       contextItems: [
         ContextMenuItem(
@@ -796,7 +797,8 @@ class CustomUIWidget extends StatelessWidget {
         ),
       final CustomUI_TimeStamp timestamp => switch (timestamp.display) {
           TimestampType.relative => Text(
-              DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? '',),
+              DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? '',
+            ),
           TimestampType.absolute =>
             Text(DateTime.tryParse(timestamp.timestamp)?.toString() ?? ''),
         },

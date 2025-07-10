@@ -1,3 +1,4 @@
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +13,9 @@ class ContextMenu extends StatefulWidget {
     required this.child,
     required this.contextItems,
     this.active = true,
+    this.selectionActive = false,
   });
+  final bool selectionActive;
   final bool active;
   final List<ContextMenuItem> contextItems;
 
@@ -26,6 +29,7 @@ class ContextMenuState extends State<ContextMenu> {
   Offset? _longPressOffset;
 
   late final ContextMenuController _contextMenuController;
+  PersistentBottomSheetController? _bottomSheetController;
 
   @override
   void initState() {
@@ -35,6 +39,67 @@ class ContextMenuState extends State<ContextMenu> {
       },
     );
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant ContextMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    print("ContextMenu didChangeDependencies");
+    print(widget.selectionActive);
+    print(_drawerEnabled);
+    print(_bottomSheetController);
+    if (!widget.selectionActive) {
+      Future.microtask(() async {
+        _bottomSheetController?.close();
+        _bottomSheetController = null;
+      });
+    } else if (_drawerEnabled && _bottomSheetController == null) {
+      print("Showing bottom sheet");
+      Future.microtask(() async {
+        if (!mounted) return;
+        _bottomSheetController = Scaffold.of(context).showBottomSheet(
+          (BuildContext context) => SizedBox(
+            height: 50,
+            child: ListView(
+              shrinkWrap: true,
+              scrollDirection: Axis.horizontal,
+              children: widget.contextItems
+                  .map(
+                    (e) => DionTextbutton(
+                      onPressed: e.onTap != null
+                          ? () async {
+                              await e.onTap!();
+                              _bottomSheetController?.close();
+                              _bottomSheetController = null;
+                            }
+                          : null,
+                      child: Text(e.label),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        );
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  static bool get _drawerEnabled {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+        return true;
+      case TargetPlatform.macOS:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        return false;
+    }
   }
 
   static bool get _longPressEnabled {
