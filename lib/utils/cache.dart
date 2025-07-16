@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dionysos/utils/async.dart';
 import 'package:inline_result/inline_result.dart';
 import 'package:quiver/cache.dart';
 import 'package:quiver/collection.dart';
@@ -10,8 +11,29 @@ abstract class CacheValue<T> {
 }
 
 class LoadingEntry<T> extends CacheValue<T> {
-  final FutureOr<Result<T>> value;
+  final Completable<Result<T>> value;
+
   const LoadingEntry(super.time, this.value);
+
+  factory LoadingEntry.fromAsync(FutureOr<Result<T>> value) {
+    return LoadingEntry(DateTime.now(), value.asCompletable);
+  }
+
+  Future<Result<T>> get future => value.future;
+
+  bool get isComplete => value.isCompleted;
+
+  Result<T>? get result => value.value;
+
+  LoadingEntry copyWith({
+    DateTime? time,
+    FutureOr<Result<T>>? value,
+  }) {
+    return LoadingEntry(
+      time ?? this.time,
+      value?.asCompletable ?? this.value,
+    );
+  }
 
   @override
   String toString() {
@@ -75,11 +97,9 @@ class DionMapCache<K, V> {
       invalidate(key);
     }
     if (!map.containsKey(key)) {
-      final loading = LoadingEntry(DateTime.now(), loader(key).asResult);
+      final loading = LoadingEntry.fromAsync(loader(key).asResult);
       map[key] = loading;
-      final value = await loading.value;
-      _promoteEntry(key, loading, value);
-      return value;
+      return loading.future;
     }
     final value = map[key]!;
     if (invalidator != null) {
@@ -90,16 +110,19 @@ class DionMapCache<K, V> {
     }
     switch (value) {
       case final LoadingEntry<V> loading:
-        final value = await loading.value;
-        _promoteEntry(key, loading, value);
-        return value;
+        if (loading.isComplete) {
+          _tryPromoteEntry(key, loading);
+          return loading.result!;
+        }
+        return loading.future;
       case final CacheEntry<V> cached:
         return cached.value;
     }
     throw StateError('Unexpected cache entry type ${value.runtimeType}');
   }
 
-  void _promoteEntry(K key, LoadingEntry<V> loading, Result<V> value) {
+  void _tryPromoteEntry(K key, LoadingEntry<V> loading) {
+    if (!loading.isComplete) return;
     if (!map.containsKey(key)) return;
     if (map[key] != loading) return;
     if (invalidator != null) {
@@ -108,7 +131,7 @@ class DionMapCache<K, V> {
         return;
       }
     }
-    map[key] = CacheEntry(loading.time, value);
+    map[key] = CacheEntry(loading.time, loading.result!);
   }
 
   CacheState getState(K key) {
@@ -116,16 +139,17 @@ class DionMapCache<K, V> {
       return CacheState.absent;
     }
     final value = map[key];
-    if (value is LoadingEntry) {
-      // There is a small chance that the future is already completed but there should be at least one
-      // get() function polling the future and promoting it to a CacheEntry
-      // so it would only be incorrect for a short time
+    if (value is LoadingEntry<V>) {
+      if (value.isComplete) {
+        _tryPromoteEntry(key, value);
+        return CacheState.loaded;
+      }
       return CacheState.loading;
     }
     if (value is CacheEntry) {
       return CacheState.loaded;
     }
-    return CacheState.absent;
+    throw StateError('Unexpected cache entry type ${value.runtimeType}');
   }
 
   void invalidate(K key) {
@@ -140,6 +164,10 @@ class DionMapCache<K, V> {
 
   Result<V>? getValue(K key) {
     final value = map[key];
+    if (value is LoadingEntry<V>) {
+      _tryPromoteEntry(key, value);
+      return value.result;
+    }
     if (value is CacheEntry<V>) {
       return value.value;
     }
@@ -147,9 +175,9 @@ class DionMapCache<K, V> {
   }
 
   void preload(K key) {
-    if (!map.containsKey(key)) {
-      final loading = LoadingEntry(DateTime.now(), loader(key).asResult);
-      map[key] = loading;
-    }
+    if (map.containsKey(key)) return;
+    map[key] = LoadingEntry.fromAsync(loader(key).asResult);
   }
+
+  Future<Result<V>> operator [](K key) => get(key);
 }

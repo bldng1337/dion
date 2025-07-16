@@ -1,6 +1,7 @@
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/audio_listener.dart';
 import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
@@ -35,8 +36,8 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
           lastsource = source;
         });
       });
-    } else {
-      source!.episode = extra[0]! as EpisodePath;
+      Observer(() => Future.microtask(() => setState(() {})), [source!])
+          .disposedBy(scope);
     }
   }
 
@@ -46,9 +47,10 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   }
 
   int getState() {
-    if (source == null) return 2;
     if (source!.haserror) return 0;
     if (source!.source != null) return 1;
+
+    if (source == null) return 2;
     if (source!.loading) return 2;
     return 2;
     // TODO: Maybe have an extra state for this or log it

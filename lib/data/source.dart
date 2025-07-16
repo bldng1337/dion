@@ -49,9 +49,9 @@ class EpisodePath {
     print('Going to next');
     if (!hasnext) return;
     data.finished = true;
-    finishEpisode(this);
-    await save();
     supplier.episode = next;
+    finishEpisode(this);
+    save();
   }
 
   void go(BuildContext context) {
@@ -120,7 +120,13 @@ class SourceSupplier with ChangeNotifier implements Disposable {
     if (value == _episode) return;
     _episode = value;
     _source = null;
-    _getSource();
+    switch (cache.getState(_episode)) {
+      case CacheState.loaded:
+        apply(cache.getValue(_episode)!);
+      case CacheState.loading:
+      case CacheState.absent:
+        _getSource();
+    }
     notifyListeners();
   }
 
@@ -148,6 +154,12 @@ class SourceSupplier with ChangeNotifier implements Disposable {
     _loading = Completer<void>();
     notifyListeners();
     final res = await cache.get(_episode);
+    apply(res);
+    _loading!.complete();
+    notifyListeners();
+  }
+
+  void apply(Result<SourcePath> res) {
     if (res.isSuccess) {
       _source = res.getOrThrow;
       streamcontroller.add(_source!);
@@ -155,8 +167,6 @@ class SourceSupplier with ChangeNotifier implements Disposable {
       _error = res.exceptionOrNull;
       _stack = res.stacktraceOrNull;
     }
-    _loading!.complete();
-    notifyListeners();
   }
 
   Future<SourcePath> _loadSource(EpisodePath eppath) async {
@@ -164,7 +174,8 @@ class SourceSupplier with ChangeNotifier implements Disposable {
       tok = CancelToken();
     }
     final srcExt = locate<SourceExtension>();
-    return await srcExt.source(eppath, token: tok);
+    final res = await srcExt.source(eppath, token: tok);
+    return res;
   }
 
   @override

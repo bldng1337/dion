@@ -34,6 +34,20 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     with StateDisposeScopeMixin {
   late final ScrollController controller;
 
+  void onScroll() {
+    final epdata = widget.source.episode.data;
+    if (epdata.finished) return;
+    if (controller.offset > 0 && controller.position.atEdge) {
+      epdata.finished = true;
+      widget.source.episode.save();
+      return;
+    }
+    if (controller.offset >= controller.position.maxScrollExtent / 2) {
+      widget.supplier.preload(widget.supplier.episode.next);
+    }
+    epdata.progress = controller.offset.toString();
+  }
+
   @override
   void initState() {
     final epdata = widget.source.episode.data;
@@ -41,29 +55,21 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       initialScrollOffset:
           epdata.finished ? 0 : double.tryParse(epdata.progress ?? '0') ?? 0,
     )..disposedBy(scope);
-    controller.addListener(
-      () {
-        if (epdata.finished) return;
-        if (controller.offset >= controller.position.maxScrollExtent) {
-          epdata.finished = true;
-          widget.source.episode.save();
-          return;
-        }
-        if (controller.offset >= controller.position.maxScrollExtent / 2) {
-          widget.supplier.preload(widget.supplier.episode.next);
-        }
-        epdata.progress = controller.offset.toString();
-      },
-    );
+    controller.addListener(onScroll);
     widget.supplier.addListener(() {
       if (!controller.hasClients) {
         return;
       }
+      // Listener gets detached when loading a new page not sure why
+      controller.removeListener(onScroll);
+      controller.addListener(onScroll);
       final epdata = widget.source.episode.data;
       final double pos =
           epdata.finished ? 0 : double.tryParse(epdata.progress ?? '0') ?? 0;
-      controller.jumpTo(
-        pos,
+      Future.microtask(
+        () => controller.jumpTo(
+          pos,
+        ),
       );
     });
     super.initState();
