@@ -174,7 +174,11 @@ class SourceSupplier with ChangeNotifier implements Disposable {
       tok = CancelToken();
     }
     final srcExt = locate<SourceExtension>();
-    final res = await srcExt.source(eppath, token: tok);
+    final res = await srcExt.source(
+      eppath,
+      token: tok,
+      settings: eppath.entry.rawsettings ?? {},
+    );
     return res;
   }
 

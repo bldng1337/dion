@@ -7,9 +7,11 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart' hide DropdownItem;
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/color.dart';
+import 'package:dionysos/utils/extension_setting.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/settings.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
@@ -43,8 +45,8 @@ class Detail extends StatefulWidget {
 class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
   late CancelToken tok;
-  bool refreshing = false;
   Object? error;
+  StackTrace? errstack;
 
   Future<void> loadEntry() async {
     try {
@@ -106,7 +108,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Widget build(BuildContext context) {
     if (error != null) {
       return NavScaff(
-        child: ErrorDisplay(e: error),
+        child: ErrorDisplay(e: error, s: errstack),
       );
     }
     if (entry == null) {
@@ -125,27 +127,24 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       if (entry is EntrySaved)
         DionIconbutton(
           onPressed: () async {
-            refreshing = true;
-            if (mounted) {
-              setState(() {});
-            }
             try {
+              if (tok.isDisposed) {
+                tok = CancelToken()..disposedBy(scope);
+              }
               final e = await (entry! as EntrySaved).refresh(token: tok);
+              entry = e;
               if (mounted) {
-                entry = e;
-                refreshing = false;
                 setState(() {});
               }
-            } catch (e) {
+            } catch (e, stack) {
               error = e;
+              errstack = stack;
               if (mounted) {
                 setState(() {});
               }
             }
           },
-          icon: refreshing
-              ? const CircularProgressIndicator()
-              : const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh),
         ),
       if (entry is EntryDetailed)
         DionIconbutton(
@@ -253,12 +252,18 @@ class SettingsPopup extends StatefulWidget {
   State<SettingsPopup> createState() => _SettingsPopupState();
 }
 
-class _SettingsPopupState extends State<SettingsPopup> {
+class _SettingsPopupState extends State<SettingsPopup>
+    with StateDisposeScopeMixin {
   MultiDropdownController<Category>? controller;
+  late final List<Setting<dynamic, EntrySettingMetaData<dynamic>>> settings;
   @override
   void initState() {
     super.initState();
     final db = locate<Database>();
+    settings = widget.entry.settings;
+    scope.addDispose(() {
+      widget.entry.save();
+    });
     db.getCategories().then((categories) {
       if (categories.isEmpty) return;
       controller = MultiDropdownController<Category>();
@@ -281,12 +286,16 @@ class _SettingsPopupState extends State<SettingsPopup> {
           const Text('Settings'),
           if (controller != null)
             DionMultiDropdown(
+              defaultItem: const Text('Choose a category'),
               controller: controller,
               onSelectionChange: (selection) async {
                 widget.entry.categories = selection;
                 await widget.entry.save();
               },
             ).paddingAll(10),
+          const Text('Extension Settings'),
+          for (final setting in settings)
+            ExtensionSettingView(setting: setting),
         ],
       ),
     );
@@ -470,14 +479,15 @@ class EntryInfo extends StatelessWidget {
           entry: entry,
           isdetailed: (entry) => DionIconbutton(
             icon: Icon(
-              entry.inLibrary ? Icons.library_books : Icons.library_add,
+              entry is EntrySaved ? Icons.library_books : Icons.library_add,
               size: 30,
             ),
             onPressed: () async {
-              if (entry.inLibrary) {
-                await (entry as EntrySaved).delete();
+              if (entry is EntrySaved) {
+                final entrydetailed = await entry.delete();
                 if (context.mounted) {
-                  GoRouter.of(context).replace('/detail', extra: [e]);
+                  GoRouter.of(context)
+                      .replace('/detail', extra: [entrydetailed]);
                 }
               } else {
                 final saved = await entry.toSaved();
@@ -489,7 +499,7 @@ class EntryInfo extends StatelessWidget {
           ),
           isnt: () => DionIconbutton(
             icon: Icon(
-              entry.inLibrary ? Icons.library_books : Icons.library_add,
+              entry is EntrySaved ? Icons.library_books : Icons.library_add,
               size: 30,
             ),
           ),

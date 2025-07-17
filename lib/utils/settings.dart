@@ -1,7 +1,6 @@
-import 'package:dionysos/utils/log.dart';
 import 'package:flutter/material.dart';
 
-class SettingCollection<T, M extends MetaData<T>> {
+class SettingCollection<T, M extends SettingMetaData<T>> {
   final List<Setting<T, M>> settings;
   SettingCollection() : settings = [];
   void add(Setting<T, M> s) {
@@ -9,12 +8,12 @@ class SettingCollection<T, M extends MetaData<T>> {
   }
 }
 
-abstract class EnumMetaData<T extends Enum> extends MetaData<T> {
+abstract class EnumMetaData<T extends Enum> extends SettingMetaData<T> {
   List<T> get enumvalues;
 }
 
-class MetaData<T> {
-  const MetaData();
+class SettingMetaData<T> {
+  const SettingMetaData();
   void onChange(T t) {}
 }
 
@@ -22,8 +21,8 @@ class MetaData<T> {
 * Typesafty gone too far :(
 * needed because dart cant cast generics
 */
-class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
-    implements Setting<T, M> {
+class SettingView<T, M extends SettingMetaData<T>, WT,
+    WM extends SettingMetaData<WT>> implements Setting<T, M> {
   final Setting<WT, WM> setting;
 
   SettingView(this.setting);
@@ -33,7 +32,6 @@ class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
 
   @override
   set value(T v) {
-    logger.i('Setting $setting to $v');
     setting.value = v as WT;
   }
 
@@ -45,7 +43,7 @@ class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
   T get _initialvalue => throw UnimplementedError();
 
   @override
-  void addCollection<_T, _M extends MetaData<_T>>(
+  void addCollection<_T, _M extends SettingMetaData<_T>>(
     SettingCollection<_T, _M> collection,
   ) {
     collection.add(this as Setting<_T, _M>);
@@ -57,7 +55,7 @@ class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
   }
 
   @override
-  Setting<T2, M2> cast<T2 extends T, M2 extends MetaData<T2>>() {
+  Setting<T2, M2> cast<T2 extends T, M2 extends SettingMetaData<T2>>() {
     return SettingView<T2, M2, T, M>(this);
   }
 
@@ -91,7 +89,7 @@ class SettingView<T, M extends MetaData<T>, WT, WM extends MetaData<WT>>
   }
 }
 
-class Setting<T, M extends MetaData<T>> with ChangeNotifier {
+class Setting<T, M extends SettingMetaData<T>> with ChangeNotifier {
   final M metadata;
   late T _value;
   final T _initialvalue;
@@ -112,13 +110,13 @@ class Setting<T, M extends MetaData<T>> with ChangeNotifier {
     notifyListeners();
   }
 
-  void addCollection<_T, _M extends MetaData<_T>>(
+  void addCollection<_T, _M extends SettingMetaData<_T>>(
     SettingCollection<_T, _M> collection,
   ) {
     collection.add(this as Setting<_T, _M>);
   }
 
-  Setting<T2, M2> cast<T2 extends T, M2 extends MetaData<T2>>() {
+  Setting<T2, M2> cast<T2 extends T, M2 extends SettingMetaData<T2>>() {
     return SettingView<T2, M2, T, M>(this);
   }
 

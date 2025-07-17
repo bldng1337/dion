@@ -5,7 +5,7 @@ import 'package:pub_semver/pub_semver.dart';
 
 final preferenceCollection = SettingCollection<dynamic, PreferenceMetaData>();
 
-abstract class PreferenceMetaData<T> extends MetaData<T> {
+abstract class PreferenceMetaData<T> extends SettingMetaData<T> {
   final String id;
   @override
   const PreferenceMetaData(this.id);

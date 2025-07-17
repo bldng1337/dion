@@ -93,6 +93,7 @@ class MultiDropdownController<T> extends ChangeNotifier {
 }
 
 class DionMultiDropdown<T extends Object> extends StatefulWidget {
+  final Widget? defaultItem;
   final List<MultiDropdownItem<T>>? items;
   final FutureOr<void> Function(List<T>)? onSelectionChange;
   final MultiDropdownController<T>? controller;
@@ -104,6 +105,7 @@ class DionMultiDropdown<T extends Object> extends StatefulWidget {
 
   const DionMultiDropdown({
     super.key,
+    this.defaultItem,
     this.items,
     this.onSelectionChange,
     this.controller,
@@ -184,10 +186,14 @@ class _DionMultiDropdownState<T extends Object>
               .toList(),
           builder: (context, menucontroller, child) => DionTextbutton(
             child: Row(
-              children: controller.items
-                  .where((e) => e.selected)
-                  .map((e) => e.widget.paddingAll(10))
-                  .toList(),
+              children: [
+                if (widget.defaultItem != null &&
+                    !controller.items.any((e) => e.selected))
+                  widget.defaultItem!,
+                ...controller.items
+                    .where((e) => e.selected)
+                    .map((e) => e.widget.paddingAll(10))
+              ],
             ),
             onPressed: () {
               if (menucontroller.isOpen) {

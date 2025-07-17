@@ -3,19 +3,21 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
-import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/extension_setting.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
-export 'package:rdion_runtime/rdion_runtime.dart' 
-    hide Entry, EntryDetailed, RustLib;
+
+export 'package:rdion_runtime/rdion_runtime.dart'
+    hide Entry, EntryDetailed, RustLib, Setting;
 
 class Extension extends ChangeNotifier {
   Extension(this.data, this._proxy, this.isenabled, this.settings, this._meta);
   final rust.ExtensionData data;
   final rust.SourceExtensionProxy _proxy;
-  final List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>> settings;
+  final List<Setting<dynamic, SourceExtensionSettingMetaData<dynamic>>>
+      settings;
   ExtensionMetaData _meta;
   bool isenabled;
   bool loading = false;
@@ -37,8 +39,12 @@ class Extension extends ChangeNotifier {
   rust.SourceExtensionProxy get internalProxy => _proxy;
 
   static Future<Extension> fromProxy(
-      rust.SourceExtensionProxy proxy, Database db,) async {
+    rust.SourceExtensionProxy proxy,
+    Database db,
+  ) async {
+    await proxy.setEnabled(enabled: true);
     final settingids = await proxy.getSettingsIds();
+    await proxy.setEnabled(enabled: false);
     final extdata = await proxy.getData();
     final extmeta = await db.getExtensionMetaData(extdata);
     return Extension(
@@ -48,27 +54,8 @@ class Extension extends ChangeNotifier {
       await Future.wait(
         settingids.map((id) async {
           final set = await proxy.getSetting(name: id);
-          final setting = switch (set.setting.val) {
-            final rust.Settingvalue_String val =>
-              Setting<String, ExtensionSettingMetaData<String>>.fromValue(
-                val.defaultVal,
-                val.val,
-                ExtensionSettingMetaData(id, set, proxy),
-              ),
-            final rust.Settingvalue_Number val =>
-              Setting<double, ExtensionSettingMetaData<double>>.fromValue(
-                val.defaultVal,
-                val.val,
-                ExtensionSettingMetaData(id, set, proxy),
-              ),
-            final rust.Settingvalue_Boolean val =>
-              Setting<bool, ExtensionSettingMetaData<bool>>.fromValue(
-                val.defaultVal,
-                val.val,
-                ExtensionSettingMetaData(id, set, proxy),
-              ),
-          };
-          logger.i('Runtime type: ${setting.runtimeType}');
+          final setting = set.setting
+              .toSetting(SourceExtensionSettingMetaData(id, set, proxy));
           return setting;
         }),
       ),
@@ -161,15 +148,22 @@ class Extension extends ChangeNotifier {
   }
 }
 
-class ExtensionSettingMetaData<T> extends MetaData<T> {
+class SourceExtensionSettingMetaData<T> extends SettingMetaData<T>
+    implements ExtensionSettingMetaData<T> {
+  @override
   final String id;
-  final rust.ExtensionSetting setting;
+  final rust.ExtensionSetting extsetting;
   final rust.SourceExtensionProxy extension;
-  const ExtensionSettingMetaData(this.id, this.setting, this.extension);
+
+  const SourceExtensionSettingMetaData(
+    this.id,
+    this.extsetting,
+    this.extension,
+  );
 
   @override
   void onChange(T v) {
-    final newval = switch (setting.setting.val) {
+    final newval = switch (extsetting.setting.val) {
       final rust.Settingvalue_String val =>
         rust.Settingvalue_String(val: v as String, defaultVal: val.defaultVal),
       final rust.Settingvalue_Number val =>
@@ -179,6 +173,9 @@ class ExtensionSettingMetaData<T> extends MetaData<T> {
     };
     extension.setSetting(name: id, value: newval);
   }
+
+  @override
+  rust.Setting get setting => extsetting.setting;
 }
 
 abstract class SourceExtension {
@@ -207,6 +204,7 @@ abstract class SourceExtension {
   Future<EntrySaved> update(
     EntrySaved e, {
     rust.CancelToken? token,
+    Map<String, rust.Setting> settings = const {},
   });
   Future<Entry?> fromUrl(
     String url, {
@@ -215,6 +213,7 @@ abstract class SourceExtension {
   Future<SourcePath> source(
     EpisodePath ep, {
     rust.CancelToken? token,
+    Map<String, rust.Setting> settings = const {},
   });
 
   static Future<void> ensureInitialized() async {

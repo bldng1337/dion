@@ -10,13 +10,18 @@ import 'package:inline_result/inline_result.dart';
 class UnwrapResultBuilder<T> extends StatelessWidget {
   final Result<T> res;
   final Widget Function(T) onSuccess;
-  const UnwrapResultBuilder(
-      {super.key, required this.res, required this.onSuccess,});
+  const UnwrapResultBuilder({
+    super.key,
+    required this.res,
+    required this.onSuccess,
+  });
 
   @override
   Widget build(BuildContext context) {
     return res.fold(
-        onSuccess: onSuccess, onFailure: (e, s) => ErrorDisplay(e: e, s: s),);
+      onSuccess: onSuccess,
+      onFailure: (e, s) => ErrorDisplay(e: e, s: s),
+    );
   }
 }
 
@@ -84,7 +89,7 @@ class ErrorDisplay extends StatelessWidget {
     }
     logger.e(message, error: e, stackTrace: s);
     return ColoredBox(
-      color: Colors.black.withOpacity(0.4),
+      color: Colors.black.withValues(alpha: 0.4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

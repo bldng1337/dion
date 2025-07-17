@@ -3,9 +3,9 @@ import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
+import 'package:dionysos/utils/extension_setting.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/views/extension_view.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
@@ -138,7 +138,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
             await launchUrl(Uri.parse(item.url));
           },
         ),
-        if (!item.inLibrary)
+        if (item is! EntrySaved)
           ContextMenuItem(
             label: 'Add to Library',
             onTap: () async {
@@ -146,7 +146,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
               setState(() {});
             },
           ),
-        if (item.inLibrary)
+        if (item is EntrySaved)
           ContextMenuItem(
             label: 'Remove from Library',
             onTap: () async {
@@ -206,7 +206,7 @@ class _SettingsPopupState extends State<SettingsPopup> {
     if (e.loading ||
         !e.isenabled ||
         !e.settings.any(
-          (s) => s.metadata.setting.settingtype == Settingtype.search,
+          (s) => s.metadata.extsetting.settingtype == Settingtype.search,
         )) {
       return null;
     }
@@ -235,9 +235,10 @@ class _SettingsPopupState extends State<SettingsPopup> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final setting in e.settings.where(
-                  (s) => s.metadata.setting.settingtype == Settingtype.search,
+                  (s) =>
+                      s.metadata.extsetting.settingtype == Settingtype.search,
                 ))
-                  SettingView(
+                  ExtensionSettingView(
                     setting: setting,
                   ),
               ],

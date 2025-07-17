@@ -66,7 +66,6 @@ class Database extends ChangeNotifier {
   late final AdapterSurrealDB db;
 
   static Future<void> ensureInitialized() async {
-    logger.i('Initialising Database!');
     final db = Database();
     await db.init();
     register<Database>(db);
@@ -144,7 +143,10 @@ class Database extends ChangeNotifier {
   }
 
   Stream<EntrySaved> getEntriesInCategory(
-      Category category, int page, int limit,) {
+    Category category,
+    int page,
+    int limit,
+  ) {
     return getEntriesSQL(
       'SELECT * FROM entry WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit',
       {
@@ -300,7 +302,9 @@ WHERE
   }
 
   Future<void> setExtensionMetaData(
-      Extension extension, ExtensionMetaData data,) async {
+    Extension extension,
+    ExtensionMetaData data,
+  ) async {
     await db.upsert(
       res: DBRecord('extension', data.id),
       data: {

@@ -2,7 +2,6 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
@@ -95,7 +94,6 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     itemPositionsListener = ItemPositionsListener.create();
     Observer(
       () {
-        logger.i('Music ${psettings.music.value}');
         if (psettings.music.value) {
           initPlayer();
         } else {
@@ -107,7 +105,6 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     ).disposedBy(scope);
     Observer(
       () {
-        logger.i('Volume ${psettings.volume.value}');
         player?.setVolume(psettings.volume.value);
       },
       [psettings.volume],
