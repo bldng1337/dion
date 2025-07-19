@@ -46,7 +46,6 @@ class EpisodePath {
       entry is EntrySaved ? (entry as EntrySaved).save() : Future.value();
 
   Future<void> goNext(SourceSupplier supplier) async {
-    print('Going to next');
     if (!hasnext) return;
     data.finished = true;
     supplier.episode = next;

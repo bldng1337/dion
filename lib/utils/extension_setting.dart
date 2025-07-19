@@ -1,4 +1,3 @@
-import 'package:dionysos/service/source_extension.dart' as rust;
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/settings.dart' as appsettings;
 import 'package:dionysos/widgets/settings/setting_numberbox.dart';

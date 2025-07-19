@@ -65,7 +65,11 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           );
         }
         await player.open(
-          Media(sourcedata.link, start: startduration),
+          Media(
+            sourcedata.link,
+            start: startduration,
+            httpHeaders: sourcedata.headers,
+          ),
         );
         print('Opening ${sourcedata.link}');
         await player.setSubtitleTrack(SubtitleTrack.no());

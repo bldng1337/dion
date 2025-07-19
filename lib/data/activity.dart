@@ -111,7 +111,6 @@ class EpisodeActivity extends Activity {
 }
 
 Future<void> finishEpisode(EpisodePath ep) async {
-  print('Finishing episode ${ep.episode.name}');
   final db = locate<Database>();
   final activity = await db.getLastActivity();
   if (activity != null &&

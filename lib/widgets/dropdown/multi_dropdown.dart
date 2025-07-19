@@ -192,7 +192,7 @@ class _DionMultiDropdownState<T extends Object>
                   widget.defaultItem!,
                 ...controller.items
                     .where((e) => e.selected)
-                    .map((e) => e.widget.paddingAll(10))
+                    .map((e) => e.widget.paddingAll(10)),
               ],
             ),
             onPressed: () {
