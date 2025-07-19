@@ -39,7 +39,6 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     Observer(
       () async {
         if (widget.source.source == null) {
-          player.stop();
           return;
         }
         final source = widget.source.source!;
@@ -50,6 +49,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         }
         final sourcedata = source.source.sourcedata as LinkSource_Mp3;
         final prog = source.episode.data.progress?.split(':');
+        print('Prog $prog');
         Duration startduration = Duration.zero;
         int chapterindex = 0;
         if (prog != null) {
@@ -80,14 +80,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         widget.source,
         player,
         gonext: () {
-          if (mounted) {
-            widget.source.episode.goNext(widget.source);
-          }
+          widget.source.episode.goNext(widget.source);
         },
         goprev: () {
-          if (mounted) {
-            widget.source.episode.goPrev(widget.source);
-          }
+          widget.source.episode.goPrev(widget.source);
         },
       )..disposedBy(scope),
     );
@@ -109,19 +105,13 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       if (!event) {
         return;
       }
-      if (!mounted) {
-        return;
-      }
       widget.source.episode.goNext(widget.source);
     });
     player.stream.position.listen((event) {
-      if (!mounted) {
-        return;
-      }
       final playlistindex = player.state.playlist.index;
       widget.source.episode.data.progress =
           '$playlistindex:${event.inMilliseconds}';
-      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
+      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 ||
           playlistindex / player.state.playlist.medias.length > 0.5) {
         widget.source.preload(widget.source.episode.next);
       }
