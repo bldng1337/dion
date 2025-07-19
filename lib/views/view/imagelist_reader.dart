@@ -88,7 +88,6 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
 
   @override
   void initState() {
-    final epdata = widget.source.episode.data;
     controller = ItemScrollController();
     offsetcontroller = ScrollOffsetController();
     itemPositionsListener = ItemPositionsListener.create();
@@ -122,12 +121,19 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                     : min,
           )
           .index;
-      epdata.progress = min.toString();
+      widget.source.episode.data.progress = min.toString();
       if (min >= widget.sourcedata.links.length / 2) {
         widget.supplier.preload(widget.source.episode.next);
       }
       play();
     });
+    Observer(
+      () {
+        if (!controller.isAttached) return;
+        controller.jumpTo(index: 0);
+      },
+      [widget.supplier],
+    ).disposedBy(scope);
     super.initState();
   }
 
