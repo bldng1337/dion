@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/player.dart';
@@ -11,7 +12,6 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
-import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -58,11 +58,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           return;
         }
         final sourcedata = source.source.sourcedata as LinkSource_M3u8;
+        final prog = source.episode.data.progress?.split(':');
         Duration startduration = Duration.zero;
-        if (source.episode.data.progress != null) {
-          startduration = Duration(
-            milliseconds: int.tryParse(source.episode.data.progress!) ?? 0,
-          );
+        int chapterindex = 0;
+        if (prog != null && !source.episode.data.finished) {
+          chapterindex = int.tryParse(prog[0]) ?? 0;
+          startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
         }
         await player.open(
           Media(
@@ -160,6 +161,32 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     final epdata = widget.source.episode.data;
     return NavScaff(
       actions: [
+        if (subtitles.isNotEmpty)
+          DropdownButton(
+            value: subtitle,
+            icon: const Icon(Icons.subtitles),
+            items: subtitles
+                .map(
+                  (e) => DropdownMenuItem(
+                    value: e,
+                    child: Text(e.title),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              subtitle = value;
+              if (value == null) {
+                player.setSubtitleTrack(SubtitleTrack.no());
+                return;
+              }
+              player.setSubtitleTrack(
+                SubtitleTrack.uri(
+                  value.url,
+                  title: value.title,
+                ),
+              );
+            },
+          ),
         DionIconbutton(
           icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
           onPressed: () async {
@@ -177,7 +204,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         ),
         DionIconbutton(
           icon: const Icon(Icons.settings),
-          onPressed: () => context.push('/settings/audiolistener'),
+          onPressed: () {},
         ),
       ],
       title: StreamBuilder(
@@ -193,59 +220,151 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           height: MediaQuery.of(context).size.width * 9.0 / 16.0,
           child: MaterialVideoControlsTheme(
             normal: MaterialVideoControlsThemeData(
-              bottomButtonBarMargin: const EdgeInsets.all(15),
-              seekBarMargin: const EdgeInsets.all(15),
-              // Modify top button bar:
+              bottomButtonBarMargin: const EdgeInsets.all(10),
+              seekBarMargin:
+                  const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 60.0),
+              seekBarHeight: 3.5,
+              speedUpOnLongPress: true,
+              primaryButtonBar: [
+                if (widget.source.episode.hasprev)
+                  DionIconbutton(
+                    icon: const Icon(
+                      Icons.skip_previous,
+                      size: 35,
+                    ),
+                    onPressed: () {
+                      widget.source.episode.goPrev(widget.source);
+                    },
+                  ).paddingAll(25.0),
+                StreamBuilder(
+                  stream: player.stream.playing,
+                  builder: (context, snapshot) => DionIconbutton(
+                    icon: Icon(
+                      snapshot.data ?? player.state.playing
+                          ? Icons.pause
+                          : Icons.play_arrow,
+                      size: 35,
+                    ),
+                    onPressed: () async {
+                      player.playOrPause();
+                    },
+                  ),
+                ).paddingAll(25.0),
+                if (widget.source.episode.hasnext)
+                  DionIconbutton(
+                    icon: const Icon(
+                      Icons.skip_next,
+                      size: 35,
+                    ),
+                    onPressed: () {
+                      widget.source.episode.goNext(widget.source);
+                    },
+                  ).paddingAll(25.0),
+              ],
+            ),
+            fullscreen: MaterialVideoControlsThemeData(
               topButtonBar: [
                 IconButton(
                   onPressed: () {
+                    exitFullscreen(context);
                     context.pop();
                   },
                   icon: const Icon(Icons.arrow_back),
                 ),
                 const Spacer(),
-                MaterialDesktopCustomButton(
-                  onPressed: () {
-                    debugPrint('Custom "Settings" button pressed.');
-                  },
-                  icon: const Icon(Icons.settings),
-                ),
-                DropdownButton(
-                  value: subtitle,
-                  icon: const Icon(Icons.subtitles),
-                  items: subtitles
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(e.title),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    subtitle = value;
-                    if (value == null) {
-                      player.setSubtitleTrack(SubtitleTrack.no());
-                      return;
+                DionIconbutton(
+                  icon: Icon(
+                      epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
+                  onPressed: () async {
+                    epdata.bookmark = !epdata.bookmark;
+                    await widget.source.episode.save();
+                    if (mounted) {
+                      setState(() {});
                     }
-                    player.setSubtitleTrack(
-                      SubtitleTrack.uri(
-                        value.url,
-                        title: value.title,
-                      ),
-                    );
                   },
                 ),
+                DionIconbutton(
+                  icon: const Icon(Icons.open_in_browser),
+                  onPressed: () =>
+                      launchUrl(Uri.parse(widget.source.episode.episode.url)),
+                ),
+                DionIconbutton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => {},
+                ),
+                if (subtitles.isNotEmpty)
+                  DropdownButton(
+                    value: subtitle,
+                    icon: const Icon(Icons.subtitles),
+                    items: subtitles
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(e.title),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      subtitle = value;
+                      if (value == null) {
+                        player.setSubtitleTrack(SubtitleTrack.no());
+                        return;
+                      }
+                      player.setSubtitleTrack(
+                        SubtitleTrack.uri(
+                          value.url,
+                          title: value.title,
+                        ),
+                      );
+                    },
+                  ),
               ],
-            ),
-            fullscreen: const MaterialVideoControlsThemeData(
-              // Modify theme options:
-              displaySeekBar: false,
-              automaticallyImplySkipNextButton: false,
-              automaticallyImplySkipPreviousButton: false,
+              bottomButtonBarMargin: const EdgeInsets.all(10),
+              seekBarMargin:
+                  const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 60.0),
+              seekBarHeight: 3.5,
+              speedUpOnLongPress: true,
+              primaryButtonBar: [
+                if (widget.source.episode.hasprev)
+                  DionIconbutton(
+                    icon: const Icon(
+                      Icons.skip_previous,
+                      size: 35,
+                    ),
+                    onPressed: () {
+                      widget.source.episode.goPrev(widget.source);
+                    },
+                  ).paddingAll(25.0),
+                StreamBuilder(
+                  stream: player.stream.playing,
+                  builder: (context, snapshot) => DionIconbutton(
+                    icon: Icon(
+                      snapshot.data ?? player.state.playing
+                          ? Icons.pause
+                          : Icons.play_arrow,
+                      size: 35,
+                    ),
+                    onPressed: () async {
+                      player.playOrPause();
+                    },
+                  ),
+                ).paddingAll(25.0),
+                if (widget.source.episode.hasnext)
+                  DionIconbutton(
+                    icon: const Icon(
+                      Icons.skip_next,
+                      size: 35,
+                    ),
+                    onPressed: () {
+                      widget.source.episode.goNext(widget.source);
+                    },
+                  ).paddingAll(25.0),
+              ],
             ),
             child: Video(
               controller: controller,
               controls: MaterialVideoControls,
+              filterQuality: FilterQuality.high,
             ),
           ),
         ),
