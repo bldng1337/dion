@@ -15,6 +15,7 @@ import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 final psettings = settings.readerSettings.imagelistreader;
 
@@ -91,6 +92,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     controller = ItemScrollController();
     offsetcontroller = ScrollOffsetController();
     itemPositionsListener = ItemPositionsListener.create();
+    WakelockPlus.toggle(enable: true);
     Observer(
       () {
         if (psettings.music.value) {
@@ -140,6 +142,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   @override
   void dispose() {
     widget.source.episode.save();
+    WakelockPlus.toggle(enable: false);
     player?.dispose();
     player = null;
     super.dispose();

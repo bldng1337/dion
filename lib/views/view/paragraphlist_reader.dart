@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 final psettings = settings.readerSettings.paragraphreader;
 
@@ -50,6 +51,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
   @override
   void initState() {
+    WakelockPlus.toggle(enable: true);
     final epdata = widget.source.episode.data;
     controller = ScrollController(
       initialScrollOffset:
@@ -78,6 +80,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   @override
   void dispose() {
     widget.source.episode.save();
+    WakelockPlus.toggle(enable: false);
     super.dispose();
   }
 
