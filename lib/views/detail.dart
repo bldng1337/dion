@@ -17,6 +17,7 @@ import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/context_menu.dart';
@@ -86,6 +87,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     setState(() {});
     if (newentry is EntryDetailed || newentry is EntrySaved) {
       entry = newentry;
+      print((newentry as EntryDetailed).language);
       return;
     }
     if (entry is EntryDetailed && newentry.id == entry?.id) return;
@@ -116,15 +118,29 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         child: Center(child: CircularProgressIndicator()),
       );
     }
+    if (entry is EntryDetailed) {
+      return ListenableBuilder(
+        listenable: entry!.extension,
+        builder: (
+          context,
+          child,
+        ) =>
+            buildDetailScreen(context),
+      );
+    }
+    return buildDetailScreen(context);
+  }
+
+  Widget buildDetailScreen(BuildContext context) {
     final actions = [
-      if (entry is EntrySaved)
+      if (entry is EntrySaved && entry!.extension.isenabled)
         DionIconbutton(
           onPressed: () {
             showSettingPopup(context, entry! as EntrySaved);
           },
           icon: const Icon(Icons.settings),
         ),
-      if (entry is EntrySaved)
+      if (entry is EntrySaved && entry!.extension.isenabled)
         DionIconbutton(
           onPressed: () async {
             try {
@@ -164,20 +180,21 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     if (context.width < 950) {
       return NavScaff(
         actions: actions,
-        floatingActionButton: entry is EntrySaved
-            ? ActionButton(
-                onPressed: () {
-                  EpisodePath(
-                    entry! as EntryDetailed,
-                    min(
-                      (entry! as EntrySaved).latestEpisode,
-                      (entry! as EntrySaved).episodes.length - 1,
-                    ),
-                  ).go(context);
-                },
-                child: const Icon(Icons.play_arrow),
-              )
-            : null,
+        floatingActionButton:
+            (entry is EntrySaved && entry!.extension.isenabled)
+                ? ActionButton(
+                    onPressed: () {
+                      EpisodePath(
+                        entry! as EntryDetailed,
+                        min(
+                          (entry! as EntrySaved).latestEpisode,
+                          (entry! as EntrySaved).episodes.length - 1,
+                        ),
+                      ).go(context);
+                    },
+                    child: const Icon(Icons.play_arrow),
+                  )
+                : null,
         title: DionTextScroll(entry?.title ?? ''),
         child: DionTabBar(
           tabs: [
@@ -196,7 +213,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     }
     return NavScaff(
       actions: actions,
-      floatingActionButton: entry is EntrySaved
+      floatingActionButton: (entry is EntrySaved && entry!.extension.isenabled)
           ? ActionButton(
               onPressed: () {
                 EpisodePath(
@@ -335,6 +352,26 @@ class EntryInfo extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 6, left: 5, right: 7),
       children: [
+        if (entry is EntryDetailed &&
+            !(entry as EntryDetailed).extension.isenabled)
+          ColoredBox(
+            color: context.theme.colorScheme.errorContainer,
+            child: Row(
+              children: [
+                Text(
+                  'Warning: Extension Disabled',
+                  style: context.bodyLarge,
+                ),
+                const Spacer(),
+                DionTextbutton(
+                  child: const Text('Enable'),
+                  onPressed: () async {
+                    (entry as EntryDetailed).extension.enable();
+                  },
+                ),
+              ],
+            ).paddingAll(3),
+          ).paddingAll(5),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -519,6 +556,7 @@ class EntryInfo extends StatelessWidget {
             style: context.bodyMedium,
           ),
         ).paddingOnly(top: 7),
+        
         isEntryDetailed(
           context: context,
           entry: entry,
@@ -695,6 +733,7 @@ class _EpListState extends State<EpList> with StateDisposeScopeMixin {
             hovering = index;
           },
           child: EpisodeTile(
+            disabled: widget.entry.extension.isenabled == false,
             episodepath: EpisodePath(widget.entry, index),
             selection: selected.isNotEmpty,
             isSelected: selected.contains(index),
@@ -718,8 +757,10 @@ class EpisodeTile extends StatelessWidget {
   final bool isSelected;
   final Function()? onSelect;
   final bool selection;
+  final bool disabled;
   const EpisodeTile({
     super.key,
+    this.disabled = false,
     required this.episodepath,
     required this.isSelected,
     this.onSelect,
@@ -730,6 +771,7 @@ class EpisodeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final epdata = episodepath.data;
     return DionListTile(
+      disabled: disabled,
       selected: isSelected,
       visualDensity: VisualDensity.comfortable,
       onLongTap: onSelect,
@@ -759,9 +801,16 @@ class EpisodeTile extends StatelessWidget {
             children: [
               DionTextScroll(
                 episodepath.episode.name,
-                style: context.titleMedium?.copyWith(
-                  color: epdata.finished ? context.theme.disabledColor : null,
-                ),
+                style: context.titleMedium
+                    ?.copyWith(
+                      color:
+                          epdata.finished ? context.theme.disabledColor : null,
+                    )
+                    .copyWith(
+                      color: episodepath.entry.extension.isenabled
+                          ? null
+                          : context.theme.disabledColor,
+                    ),
               ),
               if (episodepath.episode.timestamp != null)
                 Text(

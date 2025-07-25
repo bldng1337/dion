@@ -15,8 +15,10 @@ class DionListTile extends StatelessWidget {
   final VisualDensity? visualDensity;
   final Color? textColor;
   final bool? selected;
+  final bool? disabled;
   const DionListTile({
     super.key,
+    this.disabled,
     this.onTap,
     this.leading,
     this.title,
@@ -34,7 +36,8 @@ class DionListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => ListTile(
-          selected: selected??false,
+          enabled: !(disabled ?? false),
+          selected: selected ?? false,
           selectedTileColor: context.theme.highlightColor.withAlpha(20),
           onLongPress: onLongTap,
           onTap: onTap,
