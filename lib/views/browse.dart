@@ -8,6 +8,7 @@ import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
+import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -22,6 +23,11 @@ abstract class BrowseInterface {
   set extensions(List<Extension> value);
 }
 
+abstract class FilterAble {
+  Sort get sort;
+  set sort(Sort value);
+}
+
 class Browse extends StatefulWidget {
   const Browse({super.key});
 
@@ -31,11 +37,32 @@ class Browse extends StatefulWidget {
 
 class _BrowseState extends State<Browse>
     with StateDisposeScopeMixin
-    implements BrowseInterface {
+    implements BrowseInterface, FilterAble {
   late final TextEditingController controller;
   late DataSourceController<Entry> datacontroller;
   late List<Extension> extension;
   late final CancelToken? token;
+
+  Sort _sort = Sort.popular;
+
+  @override
+  Sort get sort => _sort;
+
+  @override
+  set sort(Sort value) {
+    setState(() {
+      _sort = value;
+      datacontroller = DataSourceController<Entry>(
+        extension
+            .map(
+              (e) => AsyncSource<Entry>((i) => e.browse(i, _sort))
+                ..name = e.data.name,
+            )
+            .toList(),
+      );
+      datacontroller.requestMore();
+    });
+  }
 
   @override
   List<Extension> get extensions => extension;
@@ -47,11 +74,12 @@ class _BrowseState extends State<Browse>
       datacontroller = DataSourceController<Entry>(
         extension
             .map(
-              (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular))
+              (e) => AsyncSource<Entry>((i) => e.browse(i, _sort))
                 ..name = e.data.name,
             )
             .toList(),
       );
+      datacontroller.requestMore();
     });
   }
 
@@ -63,7 +91,7 @@ class _BrowseState extends State<Browse>
     datacontroller = DataSourceController<Entry>(
       extensions
           .map(
-            (e) => AsyncSource<Entry>((i) => e.browse(i, Sort.popular))
+            (e) => AsyncSource<Entry>((i) => e.browse(i, _sort))
               ..name = e.data.name,
           )
           .toList(),
@@ -196,6 +224,19 @@ class _SettingsPopupState extends State<SettingsPopup> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Search Settings'),
+          if (widget.browse is FilterAble)
+            DionDropdown<Sort>(
+              value: (widget.browse as FilterAble).sort,
+              items: [
+                DionDropdownItem<Sort>(value: Sort.popular, label: 'Popular'),
+                DionDropdownItem<Sort>(value: Sort.latest, label: 'Latest'),
+                DionDropdownItem<Sort>(value: Sort.updated, label: 'Updated'),
+              ],
+              onChanged: (value) {
+                (widget.browse as FilterAble).sort = value!;
+                setState(() {});
+              },
+            ),
           for (final e in widget.browse.extensions) showExtension(context, e),
         ].notNullWidget(),
       ),
