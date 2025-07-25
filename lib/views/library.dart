@@ -3,6 +3,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -18,12 +19,12 @@ class Library extends StatefulWidget {
 }
 
 class _LibraryState extends State<Library> with StateDisposeScopeMixin {
-  late final DataSourceController<Entry> datacontroller;
-  Map<Category, DataSourceController<Entry>> controllers = {};
+  late final DataSourceController<EntrySaved> datacontroller;
+  Map<Category, DataSourceController<EntrySaved>> controllers = {};
 
   @override
   void initState() {
-    datacontroller = DataSourceController<Entry>(
+    datacontroller = DataSourceController<EntrySaved>(
       [SingleStreamSource((i) => locate<Database>().getEntries(i, 25))],
     );
     Observer(
@@ -42,7 +43,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     ).disposedBy(scope);
     locate<Database>().getCategories().then((cats) {
       for (final cat in cats) {
-        controllers[cat] = DataSourceController<Entry>(
+        controllers[cat] = DataSourceController<EntrySaved>(
           [
             SingleStreamSource(
               (i) => locate<Database>().getEntriesInCategory(cat, i, 25),
@@ -76,17 +77,17 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
             child: DynamicGrid<Entry>(
               showDataSources: false,
               itemBuilder: (BuildContext context, item) =>
-                  EntryCard(entry: item),
+                  EntryDisplay(entry: item),
               controller: datacontroller,
             ),
           ),
           for (final cat in controllers.keys)
             DionTab(
               tab: Text(cat.name),
-              child: DynamicGrid<Entry>(
+              child: DynamicGrid<EntrySaved>(
                 showDataSources: false,
                 itemBuilder: (BuildContext context, item) =>
-                    EntryCard(entry: item),
+                    EntryDisplay(entry: item),
                 controller: controllers[cat]!,
               ),
             ),
