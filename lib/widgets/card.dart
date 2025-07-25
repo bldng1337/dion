@@ -145,12 +145,20 @@ class EntryCard extends StatelessWidget {
         ),
       ],
       trailingBadges: [
-        if (entry is EntrySaved && (entry as EntrySaved).language.toLowerCase() != 'unknown')
-          CountryFlag.fromLanguageCode(
-            (entry as EntrySaved).language,
-            height: 15,
-            width: 15,
-          ),
+        if (entry is EntrySaved &&
+            (entry as EntrySaved).language.toLowerCase() != 'unknown')
+          switch (FlagCode.fromCountryCode((entry as EntrySaved).language)) {
+            null => CountryFlag.fromLanguageCode(
+                (entry as EntrySaved).language,
+                height: 15,
+                width: 15,
+              ),
+            _ => CountryFlag.fromCountryCode(
+                (entry as EntrySaved).language,
+                height: 15,
+                width: 15,
+              ),
+          },
         DionImage(
           imageUrl: entry.extension.data.icon,
           width: 15,
