@@ -12,10 +12,17 @@ extension Time on DateTime {
   ///   the elapsed time. Defaults to DateTime.now()
   /// - If [allowFromNow] is passed, format will use the From prefix, ie. a date
   ///   5 minutes from now in 'en' locale will display as "5 minutes from now"
-  String formatrelative(
-      {String? locale, DateTime? clock, bool allowFromNow = false,}) {
-    return format(this,
-        locale: locale, clock: clock, allowFromNow: allowFromNow,);
+  String formatrelative({
+    String? locale,
+    DateTime? clock,
+    bool allowFromNow = false,
+  }) {
+    return format(
+      this,
+      locale: locale,
+      clock: clock,
+      allowFromNow: allowFromNow,
+    );
   }
 
   String toDateString() {
@@ -34,5 +41,9 @@ extension DurationExt on Duration {
   ///   5 minutes from now in 'en' locale will display as "5 minutes from now"
   String formatrelative({String? locale}) {
     return Moment.now().add(this).fromNow(dropPrefixOrSuffix: true);
+  }
+
+  Duration max(Duration other) {
+    return compareTo(other) > 0 ? this : other;
   }
 }
