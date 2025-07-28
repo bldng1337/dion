@@ -322,7 +322,11 @@ class SourceExtensionImpl implements SourceExtension {
 
   @override
   Extension getExtension(String id) {
-    return tryGetExtension(id)!;
+    final ext = tryGetExtension(id);
+    if (ext == null) {
+      throw ExtensionNotFoundException(id);
+    }
+    return ext;
   }
 
   @override
@@ -357,5 +361,15 @@ class SourceExtensionImpl implements SourceExtension {
   @override
   List<Extension> getExtensions({bool Function(Extension e)? extfilter}) {
     return _extensions.where((e) => extfilter == null || extfilter(e)).toList();
+  }
+}
+
+class ExtensionNotFoundException implements Exception {
+  final String id;
+  const ExtensionNotFoundException(this.id);
+
+  @override
+  String toString() {
+    return 'Extension $id not found';
   }
 }
