@@ -1,10 +1,12 @@
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/views/app_loader.dart';
@@ -32,33 +34,72 @@ class LoadingView extends StatelessWidget {
         ),
       ],
       tasks: [
-        () async {
-          await Database.ensureInitialized();
-        },
-        () async {
-          await PreferenceService.ensureInitialized();
-        },
-        () async {
-          await SourceExtension.ensureInitialized();
-        },
-        () async {
-          await DirectoryProvider.ensureInitialized();
-        },
-        () async {
-          await CacheService.ensureInitialized();
-        },
-        () async {
-          MediaKit.ensureInitialized();
-        },
-        () async {
-          await NetworkService.ensureInitialized();
-        },
-        () async {
-          await PlayerService.ensureInitialized();
-        },
-        () async {
-          await checkVersion();
-        },
+        (
+          'Database',
+          () async {
+            await Database.ensureInitialized();
+          },
+        ),
+        (
+          'TaskManager',
+          () async {
+            await TaskManager.ensureInitialized();
+          },
+        ),
+        (
+          'DownloadService',
+          () async {
+            await DownloadService.ensureInitialized();
+          },
+        ),
+        (
+          'PreferenceService',
+          () async {
+            await PreferenceService.ensureInitialized();
+          },
+        ),
+        (
+          'SourceExtension',
+          () async {
+            await SourceExtension.ensureInitialized();
+          },
+        ),
+        (
+          'DirectoryProvider',
+          () async {
+            await DirectoryProvider.ensureInitialized();
+          },
+        ),
+        (
+          'CacheService',
+          () async {
+            await CacheService.ensureInitialized();
+          },
+        ),
+        (
+          'MediaKit',
+          () async {
+            MediaKit.ensureInitialized();
+          },
+        ),
+        (
+          'NetworkService',
+          () async {
+            await NetworkService.ensureInitialized();
+          },
+        ),
+        (
+          'PlayerService',
+          () async {
+            await PlayerService.ensureInitialized();
+          },
+        ),
+        (
+          'Checking for updates',
+          () async {
+            await checkVersion();
+          },
+        ),
       ],
       onComplete: (context) async {
         await Future.delayed(const Duration(milliseconds: 1));

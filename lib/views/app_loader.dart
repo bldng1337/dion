@@ -4,76 +4,78 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 
 class AppLoader extends StatefulWidget {
-  final List<Future<void> Function()> tasks;
+  final List<(String, Future<void> Function())> tasks;
   final Function(BuildContext context) onComplete;
   final List<ErrorAction>? actions;
-  const AppLoader(
-      {required this.tasks, required this.onComplete, super.key, this.actions,});
+  const AppLoader({
+    required this.tasks,
+    required this.onComplete,
+    super.key,
+    this.actions,
+  });
 
   @override
   _AppLoaderState createState() => _AppLoaderState();
 }
 
 class _AppLoaderState extends State<AppLoader> {
-  late List<Future> tasks;
-  late Stream<void> stream;
+  List<String> tasknames = [];
   Object? error;
   StackTrace? stack;
+  Future<void> doTask(String name, Future<void> Function() task) async {
+    try {
+      tasknames.add(name);
+      await task();
+    } catch (e, cstack) {
+      if (error != null) {
+        return;
+      }
+      setState(() {
+        error = e;
+        stack = cstack;
+      });
+    }
+    setState(() {
+      tasknames.remove(name);
+    });
+    if (tasknames.isEmpty && mounted) {
+      widget.onComplete(context);
+    }
+  }
+
   @override
   void initState() {
-    tasks = widget.tasks.map(
-      (task) async {
-        try {
-          await task();
-        } catch (e, cstack) {
-          if (error != null) {
-            return;
-          }
-          error = e;
-          stack = cstack;
-        }
-      },
-    ).toList();
-    stream = Stream.fromFutures(tasks).asBroadcastStream();
-
+    for (final task in widget.tasks) {
+      doTask(task.$1, task.$2);
+    }
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    int currentTask = 0;
+    if (error != null) {
+      return NavScaff(
+        child: Center(
+          child: ErrorDisplay(e: error, s: stack, actions: widget.actions),
+        ),
+      );
+    }
     return NavScaff(
-      child: StreamBuilder(
-        stream: stream,
-        builder: (context, snapshot) {
-          currentTask++;
-          if (error != null) {
-            return Center(
-                child:
-                    ErrorDisplay(e: error, s: stack, actions: widget.actions),);
-          }
-          return snapshot.when(
-            data: (data, isComplete) {
-              if (isComplete && error == null) {
-                widget.onComplete(context);
-                return const Center(child: CircularProgressIndicator());
-              }
-              return Center(
-                child: CircularProgressIndicator(
-                  value: (currentTask / widget.tasks.length).clamp(0, 1),
-                ),
-              );
-            },
-            error: (error, stackTrace) {
-              return Center(
-                child: ErrorDisplay(e: error, actions: widget.actions),
-              );
-            },
-            loading: () {
-              return const Center(child: CircularProgressIndicator());
-            },
-          );
-        },
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              value: 1 - (tasknames.length / widget.tasks.length),
+            ),
+            if (tasknames.isNotEmpty)
+              Text(
+                'Loading ${tasknames.firstOrNull}',
+                style: context.bodyLarge,
+              ).paddingAll(10),
+          ],
+        ),
       ),
     );
   }
