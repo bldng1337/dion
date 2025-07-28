@@ -23,7 +23,7 @@ abstract class BrowseInterface {
   set extensions(List<Extension> value);
 }
 
-abstract class FilterAble {
+abstract class Filterable {
   Sort get sort;
   set sort(Sort value);
 }
@@ -37,7 +37,7 @@ class Browse extends StatefulWidget {
 
 class _BrowseState extends State<Browse>
     with StateDisposeScopeMixin
-    implements BrowseInterface, FilterAble {
+    implements BrowseInterface, Filterable {
   late final TextEditingController controller;
   late DataSourceController<Entry> datacontroller;
   late List<Extension> extension;
@@ -55,8 +55,9 @@ class _BrowseState extends State<Browse>
       datacontroller = DataSourceController<Entry>(
         extension
             .map(
-              (e) => AsyncSource<Entry>((i) => e.browse(i, _sort))
-                ..name = e.data.name,
+              (e) =>
+                  AsyncSource<Entry>((i) => e.browse(i, _sort))
+                    ..name = e.data.name,
             )
             .toList(),
       );
@@ -74,8 +75,9 @@ class _BrowseState extends State<Browse>
       datacontroller = DataSourceController<Entry>(
         extension
             .map(
-              (e) => AsyncSource<Entry>((i) => e.browse(i, _sort))
-                ..name = e.data.name,
+              (e) =>
+                  AsyncSource<Entry>((i) => e.browse(i, _sort))
+                    ..name = e.data.name,
             )
             .toList(),
       );
@@ -86,13 +88,15 @@ class _BrowseState extends State<Browse>
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
-    extensions =
-        locate<SourceExtension>().getExtensions(extfilter: (e) => e.isenabled);
+    extensions = locate<SourceExtension>().getExtensions(
+      extfilter: (e) => e.isenabled,
+    );
     datacontroller = DataSourceController<Entry>(
       extensions
           .map(
-            (e) => AsyncSource<Entry>((i) => e.browse(i, _sort))
-              ..name = e.data.name,
+            (e) =>
+                AsyncSource<Entry>((i) => e.browse(i, _sort))
+                  ..name = e.data.name,
           )
           .toList(),
     )..disposedBy(scope);
@@ -111,8 +115,9 @@ class _BrowseState extends State<Browse>
             hintText: 'Search',
             style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
             keyboardType: TextInputType.text,
-            hintStyle:
-                const WidgetStatePropertyAll(TextStyle(color: Colors.grey)),
+            hintStyle: const WidgetStatePropertyAll(
+              TextStyle(color: Colors.grey),
+            ),
             onSubmitted: (s) => context.go('/search/$s'),
             actions: [
               IconButton(
@@ -183,10 +188,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
             },
           ),
       ],
-      child: EntryCard(
-        entry: item,
-        showSaved: true,
-      ),
+      child: EntryCard(entry: item, showSaved: true),
     );
   }
 }
@@ -194,11 +196,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
 void showSettingPopup(BuildContext context, BrowseInterface browse) {
   showAdaptiveDialog(
     context: context,
-    builder: (context) => Dialog(
-      child: SettingsPopup(
-        browse: browse,
-      ),
-    ),
+    builder: (context) => Dialog(child: SettingsPopup(browse: browse)),
   );
 }
 
@@ -218,22 +216,26 @@ class _SettingsPopupState extends State<SettingsPopup> {
 
   @override
   Widget build(BuildContext context) {
+    final filterable = widget.browse is Filterable
+        ? widget.browse as Filterable
+        : null;
     return Padding(
       padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Search Settings'),
-          if (widget.browse is FilterAble)
+          if (filterable != null)
             DionDropdown<Sort>(
-              value: (widget.browse as FilterAble).sort,
-              items: [
+              value: filterable.sort,
+              items: const [
                 DionDropdownItem<Sort>(value: Sort.popular, label: 'Popular'),
                 DionDropdownItem<Sort>(value: Sort.latest, label: 'Latest'),
                 DionDropdownItem<Sort>(value: Sort.updated, label: 'Updated'),
               ],
               onChanged: (value) {
-                (widget.browse as FilterAble).sort = value!;
+                if (value == null) return;
+                filterable.sort = value;
                 setState(() {});
               },
             ),
@@ -258,13 +260,11 @@ class _SettingsPopupState extends State<SettingsPopup> {
         children: [
           Row(
             children: [
-              DionImage(
-                imageUrl: e.data.icon ?? '',
-                width: 24,
-                height: 24,
-              ),
-              Text(e.data.name, style: const TextStyle(fontSize: 16))
-                  .paddingAll(10),
+              DionImage(imageUrl: e.data.icon ?? '', width: 24, height: 24),
+              Text(
+                e.data.name,
+                style: const TextStyle(fontSize: 16),
+              ).paddingAll(10),
               const Spacer(),
               for (final MediaType mediatype in e.data.mediaType ?? [])
                 Icon(mediatype.icon),
@@ -279,9 +279,7 @@ class _SettingsPopupState extends State<SettingsPopup> {
                   (s) =>
                       s.metadata.extsetting.settingtype == Settingtype.search,
                 ))
-                  ExtensionSettingView(
-                    setting: setting,
-                  ),
+                  ExtensionSettingView(setting: setting),
               ],
             ),
           ),
