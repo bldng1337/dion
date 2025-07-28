@@ -5,6 +5,10 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 extension FileUtils on File {
+  String get fileURL {
+    return 'file://$path';
+  }
+
   String get filename {
     return p.basename(path);
   }
@@ -21,6 +25,22 @@ extension FileUtils on File {
     return File(
       '${p.join(parent.path, p.basenameWithoutExtension(absolute.path))}$name',
     );
+  }
+
+  Future<void> streamToFile(Stream<Uint8List> stream) async {
+    final file = await create(recursive: true);
+    final sink = file.openWrite();
+    try {
+      await for (final chunk in stream) {
+        sink.add(chunk);
+      }
+    } finally {
+      await sink.close();
+    }
+  }
+
+  String relativePath(Directory dir) {
+    return p.relative(absolute.path, from: dir.absolute.path);
   }
 }
 
