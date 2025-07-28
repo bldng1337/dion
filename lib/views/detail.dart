@@ -4,7 +4,9 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/source_extension.dart' hide DropdownItem;
+import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/extension_setting.dart';
@@ -87,7 +89,6 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     setState(() {});
     if (newentry is EntryDetailed || newentry is EntrySaved) {
       entry = newentry;
-      print((newentry as EntryDetailed).language);
       return;
     }
     if (entry is EntryDetailed && newentry.id == entry?.id) return;
@@ -114,18 +115,12 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       );
     }
     if (entry == null) {
-      return const NavScaff(
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const NavScaff(child: Center(child: CircularProgressIndicator()));
     }
     if (entry is EntryDetailed) {
       return ListenableBuilder(
         listenable: entry!.extension,
-        builder: (
-          context,
-          child,
-        ) =>
-            buildDetailScreen(context),
+        builder: (context, child) => buildDetailScreen(context),
       );
     }
     return buildDetailScreen(context);
@@ -182,19 +177,19 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         actions: actions,
         floatingActionButton:
             (entry is EntrySaved && entry!.extension.isenabled)
-                ? ActionButton(
-                    onPressed: () {
-                      EpisodePath(
-                        entry! as EntryDetailed,
-                        min(
-                          (entry! as EntrySaved).latestEpisode,
-                          (entry! as EntrySaved).episodes.length - 1,
-                        ),
-                      ).go(context);
-                    },
-                    child: const Icon(Icons.play_arrow),
-                  )
-                : null,
+            ? ActionButton(
+                onPressed: () {
+                  EpisodePath(
+                    entry! as EntryDetailed,
+                    min(
+                      (entry! as EntrySaved).latestEpisode,
+                      (entry! as EntrySaved).episodes.length - 1,
+                    ),
+                  ).go(context);
+                },
+                child: const Icon(Icons.play_arrow),
+              )
+            : null,
         title: DionTextScroll(entry?.title ?? ''),
         child: DionTabBar(
           tabs: [
@@ -239,9 +234,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
             isEntryDetailed(
               context: context,
               entry: entry!,
-              isdetailed: (entry) => EpisodeListUI(
-                entry: entry,
-              ),
+              isdetailed: (entry) => EpisodeListUI(entry: entry),
             ).expanded(),
           ],
         ),
@@ -253,11 +246,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 void showSettingPopup(BuildContext context, EntrySaved entry) {
   showAdaptiveDialog(
     context: context,
-    builder: (context) => Dialog(
-      child: SettingsPopup(
-        entry: entry,
-      ),
-    ),
+    builder: (context) => Dialog(child: SettingsPopup(entry: entry)),
   );
 }
 
@@ -326,18 +315,14 @@ Widget isEntryDetailed({
   Widget Function()? isnt,
   bool shimmer = true,
 }) {
-  isnt ??= () => Container(
-        color: Colors.white,
-      );
+  isnt ??= () => Container(color: Colors.white);
   if (entry is EntryDetailed) {
     return isdetailed(entry);
   }
   if (!shimmer) {
     return isnt();
   }
-  return BoundsWidget(
-    child: isnt(),
-  ).applyShimmer(
+  return BoundsWidget(child: isnt()).applyShimmer(
     highlightColor: context.backgroundColor.lighten(20),
     baseColor: context.backgroundColor,
   );
@@ -358,10 +343,7 @@ class EntryInfo extends StatelessWidget {
             color: context.theme.colorScheme.errorContainer,
             child: Row(
               children: [
-                Text(
-                  'Warning: Extension Disabled',
-                  style: context.bodyLarge,
-                ),
+                Text('Warning: Extension Disabled', style: context.bodyLarge),
                 const Spacer(),
                 DionTextbutton(
                   child: const Text('Enable'),
@@ -399,9 +381,7 @@ class EntryInfo extends StatelessWidget {
                 ),
                 if (entry.author != null && entry.author!.isNotEmpty)
                   DionTextScroll(
-                    'by ${(entry.author != null && entry.author!.isNotEmpty) ? entry.author!.map(
-                          (e) => e.trim().replaceAll('\n', ''),
-                        ).reduce((a, b) => '$a • $b') : 'Unkown author'}',
+                    'by ${(entry.author != null && entry.author!.isNotEmpty) ? entry.author!.map((e) => e.trim().replaceAll('\n', '')).reduce((a, b) => '$a • $b') : 'Unkown author'}',
                     style: context.labelLarge?.copyWith(color: Colors.grey),
                   ),
                 Row(
@@ -410,10 +390,7 @@ class EntryInfo extends StatelessWidget {
                       imageUrl: entry.extension.data.icon,
                       width: 15,
                       height: 15,
-                      errorWidget: const Icon(
-                        Icons.image,
-                        size: 20,
-                      ),
+                      errorWidget: const Icon(Icons.image, size: 20),
                     ).paddingOnly(right: 5),
                     DionTextScroll(
                       entry.extension.data.name,
@@ -430,10 +407,7 @@ class EntryInfo extends StatelessWidget {
                         entry.status.asString(),
                         style: context.bodyMedium?.copyWith(color: Colors.grey),
                       ),
-                      isnt: () => Text(
-                        'Releasing',
-                        style: context.bodyMedium,
-                      ),
+                      isnt: () => Text('Releasing', style: context.bodyMedium),
                     ),
                   ],
                 ),
@@ -446,7 +420,8 @@ class EntryInfo extends StatelessWidget {
                     isdetailed: (entry) => ListView(
                       shrinkWrap: true,
                       scrollDirection: Axis.horizontal,
-                      children: entry.genres
+                      children:
+                          entry.genres
                               ?.map(
                                 (e) => DionBadge(
                                   color: getColor(e),
@@ -457,13 +432,9 @@ class EntryInfo extends StatelessWidget {
                           [],
                     ),
                     isnt: () => Row(
-                      children: getWords(4)
-                          .map(
-                            (e) => DionBadge(
-                              child: Text(e),
-                            ),
-                          )
-                          .toList(),
+                      children: getWords(
+                        4,
+                      ).map((e) => DionBadge(child: Text(e))).toList(),
                     ),
                   ),
                 ),
@@ -497,10 +468,7 @@ class EntryInfo extends StatelessWidget {
                                   style: context.bodyLarge,
                                 ),
                               if (entry.rating != null && context.width > 1200)
-                                TextSpan(
-                                  text: ')',
-                                  style: context.bodyLarge,
-                                ),
+                                TextSpan(text: ')', style: context.bodyLarge),
                             ],
                           ),
                         ),
@@ -523,8 +491,9 @@ class EntryInfo extends StatelessWidget {
               if (entry is EntrySaved) {
                 final entrydetailed = await entry.delete();
                 if (context.mounted) {
-                  GoRouter.of(context)
-                      .replace('/detail', extra: [entrydetailed]);
+                  GoRouter.of(
+                    context,
+                  ).replace('/detail', extra: [entrydetailed]);
                 }
               } else {
                 final saved = await entry.toSaved();
@@ -550,22 +519,14 @@ class EntryInfo extends StatelessWidget {
             entry.description.trim(),
             style: context.bodyMedium,
           ),
-          isnt: () => Text(
-            maxLines: 7,
-            getText(70),
-            style: context.bodyMedium,
-          ),
+          isnt: () => Text(maxLines: 7, getText(70), style: context.bodyMedium),
         ).paddingOnly(top: 7),
-        
         isEntryDetailed(
           context: context,
           entry: entry,
           isdetailed: (entry) => DionBadge(
             color: context.primaryColor.lighten(5),
-            child: CustomUIWidget(
-              ui: entry.ui,
-              extension: entry.extension,
-            ),
+            child: CustomUIWidget(ui: entry.ui, extension: entry.extension),
           ).paddingAll(5),
           isnt: () => nil,
           shimmer: false,
@@ -597,18 +558,9 @@ class _EpisodeListUIState extends State<EpisodeListUI> {
   Widget build(BuildContext context) {
     final eplist = widget.entry.episodes;
     if (eplist.isEmpty) {
-      return Center(
-        child: Text(
-          'No Episodes',
-          style: context.labelLarge,
-        ),
-      );
+      return Center(child: Text('No Episodes', style: context.labelLarge));
     }
-    return Column(
-      children: [
-        EpList(entry: widget.entry).expanded(),
-      ],
-    );
+    return Column(children: [EpList(entry: widget.entry).expanded()]);
   }
 }
 
@@ -703,6 +655,42 @@ class _EpListState extends State<EpList> with StateDisposeScopeMixin {
           },
         ),
         ContextMenuItem(
+          label: 'Download',
+          onTap: () async {
+            final download = locate<DownloadService>();
+            await download.download(
+              selection.map((index) => EpisodePath(widget.entry, index)),
+            );
+            selected.clear();
+            setState(() {});
+          },
+        ),
+        ContextMenuItem(
+          label: 'Delete Downloads',
+          onTap: () async {
+            final download = locate<DownloadService>();
+            await download.deleteEpisodes(
+              selection.map((index) => EpisodePath(widget.entry, index)),
+            );
+            selected.clear();
+            setState(() {});
+          },
+        ),
+        ContextMenuItem(
+          label: 'Download to this episode',
+          onTap: () async {
+            final download = locate<DownloadService>();
+            await download.download(
+              Iterable.generate(
+                selection.reduce((a, b) => max(a, b)) + 1,
+                (index) => EpisodePath(widget.entry, index),
+              ),
+            );
+            selected.clear();
+            setState(() {});
+          },
+        ),
+        ContextMenuItem(
           label: 'Mark to this episode',
           onTap: () async {
             for (int i = 0; i <= selection.reduce((a, b) => max(a, b)); i++) {
@@ -789,10 +777,7 @@ class EpisodeTile extends StatelessWidget {
               boxFit: BoxFit.contain,
             ),
           if (epdata.bookmark)
-            Icon(
-              Icons.bookmark,
-              color: context.theme.colorScheme.primary,
-            )
+            Icon(Icons.bookmark, color: context.theme.colorScheme.primary)
           else
             (Theme.of(context).iconTheme.size ?? 24.0).widthBox,
           Column(
@@ -803,8 +788,9 @@ class EpisodeTile extends StatelessWidget {
                 episodepath.episode.name,
                 style: context.titleMedium
                     ?.copyWith(
-                      color:
-                          epdata.finished ? context.theme.disabledColor : null,
+                      color: epdata.finished
+                          ? context.theme.disabledColor
+                          : null,
                     )
                     .copyWith(
                       color: episodepath.entry.extension.isenabled
@@ -814,8 +800,9 @@ class EpisodeTile extends StatelessWidget {
               ),
               if (episodepath.episode.timestamp != null)
                 Text(
-                  DateTime.tryParse(episodepath.episode.timestamp!)
-                          ?.formatrelative() ??
+                  DateTime.tryParse(
+                        episodepath.episode.timestamp!,
+                      )?.formatrelative() ??
                       '',
                   style: context.labelSmall?.copyWith(
                     color: context.theme.disabledColor,
@@ -824,6 +811,48 @@ class EpisodeTile extends StatelessWidget {
             ],
           ).expanded(),
         ],
+      ),
+      trailing: SizedBox(
+        width: 40,
+        height: 40,
+        child: StreamBuilder(
+          stream: locate<DownloadService>().getStatus(episodepath),
+          builder: (context, snapshot) {
+            return switch (snapshot.data?.status) {
+              Status.nodownload => DionIconbutton(
+                icon: const Icon(Icons.download),
+                onPressed: () async {
+                  await locate<DownloadService>().download([episodepath]);
+                },
+              ),
+              Status.downloading => ListenableBuilder(
+                listenable: snapshot.data!.task!,
+                builder: (context, child) =>
+                    switch (snapshot.data?.task?.taskstatus) {
+                      TaskStatus.idle => const Icon(Icons.pending_actions),
+                      TaskStatus.running || null => CircularProgressIndicator(
+                        value: snapshot.data?.task?.progress,
+                      ),
+                      TaskStatus.error => DionIconbutton(
+                        icon: const Icon(Icons.error),
+                        onPressed: () {
+                          snapshot.data!.task!.clearError();
+                          final mngr = locate<TaskManager>();
+                          mngr.update();
+                        },
+                      ),
+                    },
+              ),
+              null => const CircularProgressIndicator(),
+              Status.downloaded => DionIconbutton(
+                icon: const Icon(Icons.check),
+                onPressed: () async {
+                  await locate<DownloadService>().deleteEpisode(episodepath);
+                },
+              ),
+            };
+          },
+        ),
       ),
     );
   }
@@ -840,42 +869,42 @@ class CustomUIWidget extends StatelessWidget {
       null => nil,
       final CustomUI_Text text => Text(text.text),
       final CustomUI_Image img => DionImage(
-          imageUrl: img.image,
-          httpHeaders: img.header,
-        ),
+        imageUrl: img.image,
+        httpHeaders: img.header,
+      ),
       final CustomUI_Link link => Text(
-          link.label ?? link.link,
-          style: context.bodyMedium?.copyWith(
-            color: Colors.blue,
-            decoration: TextDecoration.underline,
-          ),
-        ).onTap(
-          () => launchUrl(Uri.parse(link.link)),
+        link.label ?? link.link,
+        style: context.bodyMedium?.copyWith(
+          color: Colors.blue,
+          decoration: TextDecoration.underline,
         ),
+      ).onTap(() => launchUrl(Uri.parse(link.link))),
       final CustomUI_TimeStamp timestamp => switch (timestamp.display) {
-          TimestampType.relative => Text(
-              DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? '',
-            ),
-          TimestampType.absolute =>
-            Text(DateTime.tryParse(timestamp.timestamp)?.toString() ?? ''),
-        },
-      final CustomUI_EntryCard entryCard =>
-        EntryCard(entry: EntryImpl(entryCard.entry, extension)),
+        TimestampType.relative => Text(
+          DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? '',
+        ),
+        TimestampType.absolute => Text(
+          DateTime.tryParse(timestamp.timestamp)?.toString() ?? '',
+        ),
+      },
+      final CustomUI_EntryCard entryCard => EntryCard(
+        entry: EntryImpl(entryCard.entry, extension),
+      ),
       final CustomUI_Column column => SingleChildScrollView(
-          child: Column(
-            children: column.children
-                .map((e) => CustomUIWidget(ui: e, extension: extension))
-                .toList(),
-          ),
+        child: Column(
+          children: column.children
+              .map((e) => CustomUIWidget(ui: e, extension: extension))
+              .toList(),
         ),
+      ),
       final CustomUI_Row row => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: row.children
-                .map((e) => CustomUIWidget(ui: e, extension: extension))
-                .toList(),
-          ),
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: row.children
+              .map((e) => CustomUIWidget(ui: e, extension: extension))
+              .toList(),
         ),
+      ),
     };
   }
 }

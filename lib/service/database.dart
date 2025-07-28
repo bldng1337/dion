@@ -4,6 +4,7 @@ import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/data/appsettings.dart';
 import 'package:dionysos/data/entry.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
@@ -23,14 +24,8 @@ class ExtensionMetaData {
     return 'ExtensionMetaData{id: $id, enabled: $enabled}';
   }
 
-  ExtensionMetaData copyWith({
-    String? id,
-    bool? enabled,
-  }) {
-    return ExtensionMetaData(
-      id ?? this.id,
-      enabled ?? this.enabled,
-    );
+  ExtensionMetaData copyWith({String? id, bool? enabled}) {
+    return ExtensionMetaData(id ?? this.id, enabled ?? this.enabled);
   }
 }
 
@@ -45,13 +40,10 @@ class Category {
   }
 
   Category.fromJson(Map<String, dynamic> json)
-      : name = json['name'] as String,
-        id = json['id'] as DBRecord?;
+    : name = json['name'] as String,
+      id = json['id'] as DBRecord?;
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'id': id,
-      };
+  Map<String, dynamic> toJson() => {'name': name, 'id': id};
 
   @override
   bool operator ==(Object other) {
@@ -73,7 +65,9 @@ class Database extends ChangeNotifier {
     await locateAsync<PreferenceService>();
     if (settings.sync.enabled.value && settings.sync.path.value != null) {
       logger.i('Syncing database with local file...');
-      locate<Database>().merge(settings.sync.path.value!.absolute.path).then(
+      locate<Database>()
+          .merge(settings.sync.path.value!.absolute.path)
+          .then(
             (_) => logger.i('Synced database with local file!'),
             onError: (e) =>
                 logger.e('Failed to sync database with local file!', error: e),
@@ -132,9 +126,7 @@ class Database extends ChangeNotifier {
     if (ids.isEmpty) return [];
     final [dbres as List<dynamic>?] = await db.query(
       query: 'SELECT * FROM category WHERE id IN \$ids',
-      vars: {
-        'ids': ids,
-      },
+      vars: {'ids': ids},
     );
     if (dbres == null || dbres.isEmpty) return [];
     return dbres
@@ -149,21 +141,14 @@ class Database extends ChangeNotifier {
   ) {
     return getEntriesSQL(
       'SELECT * FROM entry WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit',
-      {
-        'limit': limit,
-        'offset': page,
-        'category': category.id,
-      },
+      {'limit': limit, 'offset': page, 'category': category.id},
     );
   }
 
   Stream<EntrySaved> getEntries(int page, int limit) {
     return getEntriesSQL(
       'SELECT * FROM entry LIMIT \$limit START \$offset*\$limit',
-      {
-        'limit': limit,
-        'offset': page,
-      },
+      {'limit': limit, 'offset': page},
     );
   }
 
@@ -176,11 +161,14 @@ class Database extends ChangeNotifier {
       vars: vars,
     );
     if (dbres == null || dbres.isEmpty) return;
-    for (final e in dbres) {
+    for (final entry in dbres) {
       try {
-        yield await EntrySaved.fromJson(e as Map<String, dynamic>);
-      } catch (e) {
-        logger.e('Error loading entry', error: e);
+        yield await EntrySaved.fromJson(entry as Map<String, dynamic>);
+      } catch (e, stack) {
+        if (e is ExtensionNotFoundException) {
+          await db.delete(res: entry['id'] as Resource);
+        }
+        logger.e('Error loading entry', error: e, stackTrace: stack);
       }
     }
   }
@@ -206,10 +194,7 @@ class Database extends ChangeNotifier {
     final [dbres as List<dynamic>?] = await db.query(
       query:
           'SELECT * FROM activity ORDER BY time DESC LIMIT \$limit START \$offset*\$limit',
-      vars: {
-        'limit': limit,
-        'offset': page,
-      },
+      vars: {'limit': limit, 'offset': page},
     );
     if (dbres == null || dbres.isEmpty) return;
     for (final e in dbres) {
@@ -227,7 +212,8 @@ class Database extends ChangeNotifier {
   Future<Duration> getActivityDuration(DateTime time, Duration duration) async {
     final end = time.add(duration);
     final [dbres] = await db.query(
-      query: '''
+      query:
+          '''
 math::sum(
 SELECT VALUE duration FROM activity 
 WHERE 
@@ -235,20 +221,14 @@ WHERE
   time <= \$end AND
   duration > 0
 )'''
-          .trim(),
-      vars: {
-        'start': time,
-        'end': end,
-      },
+              .trim(),
+      vars: {'start': time, 'end': end},
     );
     return Duration(seconds: dbres as int);
   }
 
   DBRecord _constructDBEntryRecord(String entryid, String extensionid) =>
-      DBRecord(
-        'entry',
-        base64.encode(utf8.encode('${entryid}_$extensionid')),
-      );
+      DBRecord('entry', base64.encode(utf8.encode('${entryid}_$extensionid')));
 
   Future<EntrySaved?> isSaved(Entry entry) async {
     final dbentry = await db.select(
@@ -259,8 +239,9 @@ WHERE
   }
 
   Future<EntrySaved?> getEntry(String id, Extension extension) async {
-    final dbentry =
-        await db.select(res: _constructDBEntryRecord(id, extension.data.id));
+    final dbentry = await db.select(
+      res: _constructDBEntryRecord(id, extension.data.id),
+    );
     if (dbentry == null) return null;
     return EntrySaved.fromJson(dbentry as Map<String, dynamic>);
   }
@@ -268,6 +249,17 @@ WHERE
   Future<void> removeEntry(EntryDetailed entry) async {
     await db.delete(res: _constructDBEntryRecord(entry.id, entry.extension.id));
     notifyListeners();
+    final download = locate<DownloadService>();
+    try {
+      await download.deleteEntry(entry);
+    } catch (e, stack) {
+      logger.e(
+        'Failed to cleanup downloads for entry',
+        error: e,
+        stackTrace: stack,
+      );
+      // Consider whether to rethrow or continue
+    }
   }
 
   Future<void> updateEntry(EntryDetailed entry) async {
@@ -307,9 +299,7 @@ WHERE
   ) async {
     await db.upsert(
       res: DBRecord('extension', data.id),
-      data: {
-        'enabled': data.enabled,
-      },
+      data: {'enabled': data.enabled},
     );
     notifyListeners();
   }

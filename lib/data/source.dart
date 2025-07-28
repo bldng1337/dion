@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cache.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
@@ -37,7 +39,6 @@ class EpisodePath {
       episode.cover != null ? episode.coverHeader : entry.coverHeader;
 
   void goPrev(SourceSupplier supplier) {
-    print('Going to prev');
     if (!hasprev) return;
     supplier.episode = prev;
   }
@@ -64,6 +65,16 @@ class EpisodePath {
   EpisodePath get next => EpisodePath(entry, episodenumber + 1);
   EpisodePath get prev => EpisodePath(entry, episodenumber - 1);
   Extension get extension => entry.extension;
+
+  Future<SourcePath> loadSource(CancelToken? tok) async {
+    final srcExt = locate<SourceExtension>();
+    final res = await srcExt.source(
+      this,
+      token: tok,
+      settings: entry.rawsettings ?? {},
+    );
+    return res;
+  }
 
   @override
   String toString() {
@@ -172,13 +183,19 @@ class SourceSupplier with ChangeNotifier implements Disposable {
     if (tok?.isDisposed ?? true) {
       tok = CancelToken();
     }
-    final srcExt = locate<SourceExtension>();
-    final res = await srcExt.source(
-      eppath,
-      token: tok,
-      settings: eppath.entry.rawsettings ?? {},
-    );
-    return res;
+    final download = locate<DownloadService>();
+    if (await download.isDownloaded(eppath)) {
+      try {
+        return SourcePath(eppath, (await download.getDownloaded(eppath))!);
+      } catch (e, stack) {
+        logger.e(
+          'Error loading downloaded source',
+          error: e,
+          stackTrace: stack,
+        );
+      }
+    }
+    return eppath.loadSource(tok);
   }
 
   @override
