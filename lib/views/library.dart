@@ -24,32 +24,27 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
 
   @override
   void initState() {
-    datacontroller = DataSourceController<EntrySaved>(
-      [SingleStreamSource((i) => locate<Database>().getEntries(i, 25))],
-    );
-    Observer(
-      () {
-        if (mounted) {
-          datacontroller.reset();
-          datacontroller.requestMore();
-          for (final controller in controllers.values) {
-            controller.reset();
-            controller.requestMore();
-          }
-          setState(() {});
+    datacontroller = DataSourceController<EntrySaved>([
+      SingleStreamSource((i) => locate<Database>().getEntries(i, 25)),
+    ]);
+    Observer(() {
+      if (mounted) {
+        datacontroller.reset();
+        datacontroller.requestMore();
+        for (final controller in controllers.values) {
+          controller.reset();
+          controller.requestMore();
         }
-      },
-      [locate<Database>()],
-    ).disposedBy(scope);
+        setState(() {});
+      }
+    }, [locate<Database>()]).disposedBy(scope);
     locate<Database>().getCategories().then((cats) {
       for (final cat in cats) {
-        controllers[cat] = DataSourceController<EntrySaved>(
-          [
-            SingleStreamSource(
-              (i) => locate<Database>().getEntriesInCategory(cat, i, 25),
-            ),
-          ],
-        );
+        controllers[cat] = DataSourceController<EntrySaved>([
+          SingleStreamSource(
+            (i) => locate<Database>().getEntriesInCategory(cat, i, 25),
+          ),
+        ]);
       }
       setState(() {});
     });
@@ -74,7 +69,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
         tabs: [
           DionTab(
             tab: const Text('All'),
-            child: DynamicGrid<Entry>(
+            child: DynamicGrid<EntrySaved>(
               showDataSources: false,
               itemBuilder: (BuildContext context, item) =>
                   EntryDisplay(entry: item),
