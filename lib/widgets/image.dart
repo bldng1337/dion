@@ -59,6 +59,13 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
     required Future<Codec> Function(ImmutableBuffer buffer) decode,
   }) async {
     assert(key == this);
+    if (url.startsWith('file://')) {
+      final filePath = url.substring('file://'.length);
+      if (filePath.contains('..') || !filePath.startsWith('/')) {
+        throw ArgumentError('Invalid file path: $filePath');
+      }
+      return decode(await ImmutableBuffer.fromFilePath(filePath));
+    }
     final cache = locate<CacheService>().imgcache;
     final fileinfo = await cache
         .getImageFile(
@@ -135,8 +142,8 @@ class DionImage extends StatefulWidget {
     this.hasPopup = false,
     this.onTap,
   }) : assert(
-          (hasPopup ^ (onTap != null)) || (hasPopup == false && onTap == null),
-        );
+         (hasPopup ^ (onTap != null)) || (hasPopup == false && onTap == null),
+       );
 
   @override
   _DionImageState createState() => _DionImageState();
@@ -146,7 +153,8 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
   Widget noImage(BuildContext context) {
     return FittedBox(
       fit: widget.boxFit ?? BoxFit.contain,
-      child: widget.errorWidget ??
+      child:
+          widget.errorWidget ??
           Icon(Icons.image, size: min(widget.width ?? 24, widget.height ?? 24)),
     );
   }
@@ -175,10 +183,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
 
   Widget buildClickable(BuildContext context) {
     if (widget.onTap != null) {
-      return Clickable(
-        onTap: widget.onTap,
-        child: buildImage(context),
-      );
+      return Clickable(onTap: widget.onTap, child: buildImage(context));
     }
     if (widget.hasPopup) {
       return Clickable(
@@ -218,9 +223,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                           ),
                           IconButton(
                             onPressed: () {
-                              launchUrl(
-                                Uri.parse(widget.imageUrl!),
-                              );
+                              launchUrl(Uri.parse(widget.imageUrl!));
                             },
                             icon: const Icon(Icons.open_in_browser),
                           ),
@@ -245,14 +248,11 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
   Widget buildImage(BuildContext context, {bool fullscreen = false}) {
     final width = fullscreen ? null : widget.width;
     final height = fullscreen ? null : widget.height;
-    final boxfit =
-        fullscreen ? BoxFit.contain : widget.boxFit ?? BoxFit.contain;
+    final boxfit = fullscreen
+        ? BoxFit.contain
+        : widget.boxFit ?? BoxFit.contain;
     if (widget.imageUrl == null) {
-      return SizedBox(
-        width: width,
-        height: height,
-        child: noImage(context),
-      );
+      return SizedBox(width: width, height: height, child: noImage(context));
     }
     return Image(
       image: DionNetworkImage(
