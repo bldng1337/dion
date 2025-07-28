@@ -30,73 +30,127 @@ final homedestinations = [
 ];
 
 GoRouter getRoutes() => GoRouter(
-      navigatorKey: navigatorKey,
-      extraCodec: const MyExtraCodec(),
-      debugLogDiagnostics: true,
-      initialLocation: '/',
-      // redirect: (context, state) {
-      //   return null;
-      // },
+  navigatorKey: navigatorKey,
+  extraCodec: const MyExtraCodec(),
+  debugLogDiagnostics: true,
+  initialLocation: '/',
+  // redirect: (context, state) {
+  //   return null;
+  // },
+  routes: [
+    GoRoute(
+      path: '/',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const LoadingView()),
+    ),
+    GoRoute(
+      path: '/browse',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const Browse()),
+    ),
+    GoRoute(
+      path: '/activity',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const ActivityView()),
+    ),
+    GoRoute(
+      path: '/manage',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const ExtensionManager()),
+    ),
+    GoRoute(
+      path: '/search/:query',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const Search()),
+    ),
+    GoRoute(
+      path: '/extension/:id',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const ExtensionView()),
+    ),
+    GoRoute(
+      path: '/view',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const ViewSource(),
+        transition: Transition.fade,
+      ),
+    ),
+    GoRoute(
+      path: '/detail',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const Detail(),
+        transition: Transition.fade,
+      ),
+    ),
+    GoRoute(
+      path: '/library',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const Library()),
+    ),
+    GoRoute(
+      path: '/settings',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const Settings()),
       routes: [
         GoRoute(
-          path: '/',
-          builder: (context, state) => const LoadingView(),
+          path: '/paragraphreader',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const ParagraphReaderSettings()),
         ),
         GoRoute(
-          path: '/browse',
-          builder: (context, state) => const Browse(),
+          path: '/audiolistener',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const AudioListenerSettings()),
         ),
         GoRoute(
-          path: '/activity',
-          builder: (context, state) => const ActivityView(),
+          path: '/storage',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const Storage()),
         ),
         GoRoute(
-          path: '/manage',
-          builder: (context, state) => const ExtensionManager(),
+          path: '/imagelistreader',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const ImageListReaderSettings()),
         ),
         GoRoute(
-          path: '/search/:query',
-          builder: (context, state) => const Search(),
+          path: '/sync',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const SyncSettings()),
         ),
         GoRoute(
-          path: '/extension/:id',
-          builder: (context, state) => const ExtensionView(),
-        ),
-        GoRoute(path: '/view', builder: (context, state) => const ViewSource()),
-        GoRoute(path: '/detail', builder: (context, state) => const Detail()),
-        GoRoute(path: '/library', builder: (context, state) => const Library()),
-        GoRoute(
-          path: '/settings',
-          builder: (context, state) => const Settings(),
-          routes: [
-            GoRoute(
-              path: '/paragraphreader',
-              builder: (context, state) => const ParagraphReaderSettings(),
-            ),
-            GoRoute(
-              path: '/audiolistener',
-              builder: (context, state) => const AudioListenerSettings(),
-            ),
-            GoRoute(
-              path: '/storage',
-              builder: (context, state) => const Storage(),
-            ),
-            GoRoute(
-              path: '/imagelistreader',
-              builder: (context, state) => const ImageListReaderSettings(),
-            ),
-            GoRoute(
-              path: '/sync',
-              builder: (context, state) => const SyncSettings(),
-            ),
-            GoRoute(
-              path: '/library',
-              builder: (context, state) => const LibrarySettings(),
-            ),
-          ],
+          path: '/library',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const LibrarySettings()),
         ),
       ],
-    );
+    ),
+  ],
+);
+
+enum Transition { fade, none }
+
+Page getTransition(
+  BuildContext context,
+  GoRouterState state,
+  Widget child, {
+  Transition transition = Transition.none,
+}) => switch (transition) {
+  Transition.fade => CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+        child: child,
+      );
+    },
+  ),
+  Transition.none => NoTransitionPage<void>(key: state.pageKey, child: child),
+};
 
 class MyExtraCodec extends Codec<Object?, Object?> {
   /// Create a codec.
