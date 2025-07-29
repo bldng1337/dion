@@ -44,12 +44,7 @@ class ErrorBoundary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (e != null) {
-      return ErrorDisplay(
-        e: e,
-        s: s,
-        message: message,
-        actions: actions,
-      );
+      return ErrorDisplay(e: e, s: s, message: message, actions: actions);
     }
     return child;
   }
@@ -97,10 +92,7 @@ class ErrorDisplay extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.report_problem,
-                color: Colors.red,
-              ).paddingAll(5),
+              const Icon(Icons.report_problem, color: Colors.red).paddingAll(5),
               Text(
                 getErrorMessage(),
                 style: context.bodyLarge,
@@ -134,10 +126,7 @@ class ErrorDisplay extends StatelessWidget {
           title: Text(getErrorMessage()),
           content: Text(s?.toString() ?? ''),
           actions: [
-            TextButton(
-              onPressed: () => context.pop(),
-              child: const Text('Ok'),
-            ),
+            TextButton(onPressed: () => context.pop(), child: const Text('Ok')),
             TextButton(
               child: const Text('Copy Error'),
               onPressed: () {

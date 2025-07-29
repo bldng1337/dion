@@ -19,10 +19,10 @@ class PreferenceBoolMetaData extends PreferenceMetaData<bool> {
 
   @override
   bool? parse(String value) => switch (value.toLowerCase()) {
-        'true' => true,
-        'false' => false,
-        _ => null,
-      };
+    'true' => true,
+    'false' => false,
+    _ => null,
+  };
 
   @override
   String stringify(bool value) => value ? 'true' : 'false';
@@ -82,57 +82,35 @@ class VersionMetaData extends PreferenceMetaData<Version> {
   String stringify(Version value) => value.canonicalizedVersion;
 }
 
-enum ReaderMode {
-  paginated,
-}
+enum ReaderMode { paginated }
 
-enum UpdateChannel {
-  stable,
-  beta,
-}
+enum UpdateChannel { stable, beta }
 
 final settings = (
   audioBookSettings: (
-    volume: Setting(
-      50.0,
-      const PreferenceDoubleMetaData('audiobook.volume'),
-    ),
-    speed: Setting(
-      1.0,
-      const PreferenceDoubleMetaData('audiobook.speed'),
-    ),
+    volume: Setting(50.0, const PreferenceDoubleMetaData('audiobook.volume')),
+    speed: Setting(1.0, const PreferenceDoubleMetaData('audiobook.speed')),
     // subtitle: Setting( TODO
     //   true,
     //   const PreferenceBoolMetaData('audiobook.subtitle'),
     // ),
   ),
   update: (
-    enabled: Setting(
-      true,
-      const PreferenceBoolMetaData('update.enabled'),
-    ),
+    enabled: Setting(true, const PreferenceBoolMetaData('update.enabled')),
     channel: Setting(
       UpdateChannel.beta,
       const PreferenceEnumMetaData('update.channel', UpdateChannel.values),
     ),
-    minor: Setting(
-      true,
-      const PreferenceBoolMetaData('update.minor'),
-    ),
-    patch: Setting(
-      true,
-      const PreferenceBoolMetaData('update.patch'),
-    ),
+    minor: Setting(true, const PreferenceBoolMetaData('update.minor')),
+    patch: Setting(true, const PreferenceBoolMetaData('update.patch')),
     lastnotified: Setting(
       Version.none,
       const VersionMetaData('update.lastnotified'),
     ),
   ),
   sync: (
-    enabled: Setting(
-      true,
-      const PreferenceBoolMetaData('sync.enabled'),
-    )..addCollection(preferenceCollection),
+    enabled: Setting(true, const PreferenceBoolMetaData('sync.enabled'))
+      ..addCollection(preferenceCollection),
     path: Setting(
       null as Directory?,
       const PreferenceDirectoryMetaData('sync.path'),
@@ -211,5 +189,5 @@ final settings = (
         )..addCollection(preferenceCollection),
       ),
     ),
-  )
+  ),
 );

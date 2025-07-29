@@ -64,21 +64,21 @@ class _RecursiveBoundsRenderObject extends RenderProxyBox {
   });
 
   static final Set<Type> _layoutOnlyTypes = {
-    RenderFlex,  // Rows and Columns
-    RenderPositionedBox,  // Center widget
-    RenderPadding,  // Padding widget
-    RenderConstrainedBox,  // SizedBox and similar
-    RenderCustomMultiChildLayoutBox,  // Custom layout widgets
-    RenderStack,  // Stack widget
-    RenderIndexedStack,  // IndexedStack widget
-    RenderShrinkWrappingViewport,  // ListView and similar
-    RenderViewport,  // ScrollView and similar
-    RenderSliver,  // Sliver widgets
-    RenderSliverList,  // SliverList
-    RenderSliverGrid,  // SliverGrid
-    RenderSliverPadding,  // SliverPadding
-    RenderIgnorePointer,  // IgnorePointer widget
-    RenderAbsorbPointer,  // AbsorbPointer widget
+    RenderFlex, // Rows and Columns
+    RenderPositionedBox, // Center widget
+    RenderPadding, // Padding widget
+    RenderConstrainedBox, // SizedBox and similar
+    RenderCustomMultiChildLayoutBox, // Custom layout widgets
+    RenderStack, // Stack widget
+    RenderIndexedStack, // IndexedStack widget
+    RenderShrinkWrappingViewport, // ListView and similar
+    RenderViewport, // ScrollView and similar
+    RenderSliver, // Sliver widgets
+    RenderSliverList, // SliverList
+    RenderSliverGrid, // SliverGrid
+    RenderSliverPadding, // SliverPadding
+    RenderIgnorePointer, // IgnorePointer widget
+    RenderAbsorbPointer, // AbsorbPointer widget
   };
 
   @override
@@ -104,14 +104,17 @@ class _RecursiveBoundsRenderObject extends RenderProxyBox {
             final fillPaint = Paint()
               ..color = color
               ..style = PaintingStyle.fill;
-            final radius =
-                Radius.circular(min(min(bounds.width, bounds.height) / 5, 20));
+            final radius = Radius.circular(
+              min(min(bounds.width, bounds.height) / 5, 20),
+            );
             canvas.drawRRect(
-              RRect.fromRectAndCorners(bounds,
-                  bottomLeft: radius,
-                  bottomRight: radius,
-                  topLeft: radius,
-                  topRight: radius,),
+              RRect.fromRectAndCorners(
+                bounds,
+                bottomLeft: radius,
+                bottomRight: radius,
+                topLeft: radius,
+                topRight: radius,
+              ),
               fillPaint,
             );
           }

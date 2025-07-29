@@ -21,8 +21,13 @@ class SettingMetaData<T> {
 * Typesafty gone too far :(
 * needed because dart cant cast generics
 */
-class SettingView<T, M extends SettingMetaData<T>, WT,
-    WM extends SettingMetaData<WT>> implements Setting<T, M> {
+class SettingView<
+  T,
+  M extends SettingMetaData<T>,
+  WT,
+  WM extends SettingMetaData<WT>
+>
+    implements Setting<T, M> {
   final Setting<WT, WM> setting;
 
   SettingView(this.setting);
@@ -94,12 +99,10 @@ class Setting<T, M extends SettingMetaData<T>> with ChangeNotifier {
   late T _value;
   final T _initialvalue;
 
-  Setting(T initial, this.metadata)
-      : _initialvalue = initial,
-        _value = initial;
+  Setting(T initial, this.metadata) : _initialvalue = initial, _value = initial;
   Setting.fromValue(T initial, T value, this.metadata)
-      : _initialvalue = initial,
-        _value = value;
+    : _initialvalue = initial,
+      _value = value;
 
   T get intialValue => _initialvalue;
   T get value => _value;

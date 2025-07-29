@@ -54,8 +54,9 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     WakelockPlus.toggle(enable: true);
     final epdata = widget.source.episode.data;
     controller = ScrollController(
-      initialScrollOffset:
-          epdata.finished ? 0 : double.tryParse(epdata.progress ?? '0') ?? 0,
+      initialScrollOffset: epdata.finished
+          ? 0
+          : double.tryParse(epdata.progress ?? '0') ?? 0,
     )..disposedBy(scope);
     controller.addListener(onScroll);
     widget.supplier.addListener(() {
@@ -66,13 +67,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       controller.removeListener(onScroll);
       controller.addListener(onScroll);
       final epdata = widget.source.episode.data;
-      final double pos =
-          epdata.finished ? 0 : double.tryParse(epdata.progress ?? '0') ?? 0;
-      Future.microtask(
-        () => controller.jumpTo(
-          pos,
-        ),
-      );
+      final double pos = epdata.finished
+          ? 0
+          : double.tryParse(epdata.progress ?? '0') ?? 0;
+      Future.microtask(() => controller.jumpTo(pos));
     });
     super.initState();
   }
@@ -86,12 +84,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
   Widget wrapScreen(BuildContext context, Widget child) {
     return ListenableBuilder(
-      listenable: Listenable.merge(
-        [
-          psettings.text.linewidth,
-          psettings.text.adaptivewidth,
-        ],
-      ),
+      listenable: Listenable.merge([
+        psettings.text.linewidth,
+        psettings.text.adaptivewidth,
+      ]),
       builder: (context, child) {
         if (psettings.text.adaptivewidth.value &&
             context.width < context.height) {
@@ -100,10 +96,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
         final width =
             context.width * (1 - (psettings.text.linewidth.value / 100));
         final padding = width / 2;
-        return child!.paddingOnly(
-          left: padding,
-          right: padding,
-        );
+        return child!.paddingOnly(left: padding, right: padding);
       },
       child: child,
     );

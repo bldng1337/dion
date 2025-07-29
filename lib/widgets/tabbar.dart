@@ -54,7 +54,7 @@ class _MaterialTabBarState extends State<MaterialTabBar>
 
   @override
   Widget build(BuildContext context) {
-    if(controller.length != widget.tabs.length){
+    if (controller.length != widget.tabs.length) {
       controller = TabController(length: widget.tabs.length, vsync: this);
     }
     return Column(

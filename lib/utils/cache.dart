@@ -25,14 +25,8 @@ class LoadingEntry<T> extends CacheValue<T> {
 
   Result<T>? get result => value.value;
 
-  LoadingEntry copyWith({
-    DateTime? time,
-    FutureOr<Result<T>>? value,
-  }) {
-    return LoadingEntry(
-      time ?? this.time,
-      value?.asCompletable ?? this.value,
-    );
+  LoadingEntry copyWith({DateTime? time, FutureOr<Result<T>>? value}) {
+    return LoadingEntry(time ?? this.time, value?.asCompletable ?? this.value);
   }
 
   @override
@@ -65,11 +59,7 @@ class CacheEntry<T> extends CacheValue<T> {
   int get hashCode => Object.hash(time, value);
 }
 
-enum CacheState {
-  loading,
-  loaded,
-  absent,
-}
+enum CacheState { loading, loaded, absent }
 
 typedef Invalidator<K> = bool Function(K key, Duration duration);
 

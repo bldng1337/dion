@@ -251,8 +251,11 @@ class AsyncSource<T> extends DataSource<T> {
           Result.failure(e as Exception, stack),
         ]);
       } catch (e1) {
-        logger.e('Error putting error $e1 into stream',
-            error: e1, stackTrace: stack,);
+        logger.e(
+          'Error putting error $e1 into stream',
+          error: e1,
+          stackTrace: stack,
+        );
       } finally {
         isfinished = true;
       }
@@ -311,9 +314,7 @@ class DataSourceController<T> extends ChangeNotifier {
   Future<void> requestMore() async {
     if (loading || finished) return;
     loading = true;
-    final futures = Future.wait(
-      sources.map((source) => source.requestMore()),
-    );
+    final futures = Future.wait(sources.map((source) => source.requestMore()));
     notifyListeners();
     await futures;
     loading = false;
@@ -340,11 +341,8 @@ class DataSourceController<T> extends ChangeNotifier {
 
 class DynamicGrid<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
-  final Widget Function(
-    BuildContext context,
-    Object error,
-    StackTrace? trace,
-  )? errorBuilder;
+  final Widget Function(BuildContext context, Object error, StackTrace? trace)?
+  errorBuilder;
   final DataSourceController<T> controller;
   final double preload;
   final bool showDataSources;
@@ -424,15 +422,9 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (e.isfinished)
-                            const Icon(
-                              Icons.close,
-                              size: 20,
-                            ).paddingAll(2),
+                            const Icon(Icons.close, size: 20).paddingAll(2),
                           if (!e.isfinished && !e.requesting)
-                            const Icon(
-                              Icons.check,
-                              size: 20,
-                            ).paddingAll(2),
+                            const Icon(Icons.check, size: 20).paddingAll(2),
                           if (e.requesting)
                             SizedBox(
                               width: 20,
@@ -460,7 +452,8 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
               childAspectRatio: 0.69,
               maxCrossAxisExtent: 220,
             ),
-            itemCount: widget.controller.items.length +
+            itemCount:
+                widget.controller.items.length +
                 (widget.controller.finished ? 0 : 1),
             itemBuilder: (context, index) {
               if (index == widget.controller.items.length) {
@@ -478,10 +471,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                 onSuccess: (item) => widget.itemBuilder(context, item),
                 onFailure: (e, stacktrace) {
                   if (widget.errorBuilder == null) {
-                    return ErrorDisplay(
-                      e: e,
-                      s: stacktrace,
-                    );
+                    return ErrorDisplay(e: e, s: stacktrace);
                   }
                   return widget.errorBuilder!(context, e, stacktrace);
                 },
@@ -496,11 +486,8 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
 
 class DynamicList<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
-  final Widget Function(
-    BuildContext context,
-    Object error,
-    StackTrace? trace,
-  )? errorBuilder;
+  final Widget Function(BuildContext context, Object error, StackTrace? trace)?
+  errorBuilder;
   // final Widget Function(BuildContext context, S seperator) seperatorBuilder;
   // final S? Function(BuildContext context, T item, T next) shouldSeperate;
   final DataSourceController<T> controller;
@@ -528,14 +515,11 @@ class _DynamicListState<T> extends State<DynamicList<T>>
   @override
   void initState() {
     controller = ScrollController()..disposedBy(scope);
-    Observer(
-      () {
-        if (mounted) {
-          setState(() {});
-        }
-      },
-      [widget.controller],
-    ).disposedBy(scope);
+    Observer(() {
+      if (mounted) {
+        setState(() {});
+      }
+    }, [widget.controller]).disposedBy(scope);
     loadMore();
     controller.addListener(() {
       loadMore();
@@ -579,15 +563,9 @@ class _DynamicListState<T> extends State<DynamicList<T>>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (e.isfinished)
-                          const Icon(
-                            Icons.close,
-                            size: 20,
-                          ).paddingAll(2),
+                          const Icon(Icons.close, size: 20).paddingAll(2),
                         if (!e.isfinished && !e.requesting)
-                          const Icon(
-                            Icons.check,
-                            size: 20,
-                          ).paddingAll(2),
+                          const Icon(Icons.check, size: 20).paddingAll(2),
                         if (e.requesting)
                           SizedBox(
                             width: 20,
@@ -608,7 +586,8 @@ class _DynamicListState<T> extends State<DynamicList<T>>
         ListView.builder(
           padding: EdgeInsets.zero,
           controller: controller,
-          itemCount: widget.controller.items.length +
+          itemCount:
+              widget.controller.items.length +
               (widget.controller.finished ? 0 : 1),
           itemBuilder: (context, index) {
             if (index == widget.controller.items.length) {
@@ -626,10 +605,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
               onSuccess: (item) => widget.itemBuilder(context, item),
               onFailure: (e, stacktrace) {
                 if (widget.errorBuilder == null) {
-                  return ErrorDisplay(
-                    e: e,
-                    s: stacktrace,
-                  );
+                  return ErrorDisplay(e: e, s: stacktrace);
                 }
                 return widget.errorBuilder!(context, e, stacktrace);
               },
@@ -643,11 +619,8 @@ class _DynamicListState<T> extends State<DynamicList<T>>
 
 class DynamicListSeperated<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
-  final Widget Function(
-    BuildContext context,
-    Object error,
-    StackTrace? trace,
-  )? errorBuilder;
+  final Widget Function(BuildContext context, Object error, StackTrace? trace)?
+  errorBuilder;
   final DataSourceController<T> controller;
   final double preload;
   final bool showDataSources;
@@ -671,14 +644,11 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
   @override
   void initState() {
     controller = ScrollController()..disposedBy(scope);
-    Observer(
-      () {
-        if (mounted) {
-          setState(() {});
-        }
-      },
-      [widget.controller],
-    ).disposedBy(scope);
+    Observer(() {
+      if (mounted) {
+        setState(() {});
+      }
+    }, [widget.controller]).disposedBy(scope);
     loadMore();
     controller.addListener(() {
       loadMore();
@@ -722,15 +692,9 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (e.isfinished)
-                          const Icon(
-                            Icons.close,
-                            size: 20,
-                          ).paddingAll(2),
+                          const Icon(Icons.close, size: 20).paddingAll(2),
                         if (!e.isfinished && !e.requesting)
-                          const Icon(
-                            Icons.check,
-                            size: 20,
-                          ).paddingAll(2),
+                          const Icon(Icons.check, size: 20).paddingAll(2),
                         if (e.requesting)
                           SizedBox(
                             width: 20,
@@ -751,7 +715,8 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
         ListView.builder(
           padding: EdgeInsets.zero,
           controller: controller,
-          itemCount: widget.controller.items.length +
+          itemCount:
+              widget.controller.items.length +
               (widget.controller.finished ? 0 : 1),
           itemBuilder: (context, index) {
             if (index == widget.controller.items.length) {
@@ -769,10 +734,7 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
               onSuccess: (item) => widget.itemBuilder(context, item),
               onFailure: (e, stacktrace) {
                 if (widget.errorBuilder == null) {
-                  return ErrorDisplay(
-                    e: e,
-                    s: stacktrace,
-                  );
+                  return ErrorDisplay(e: e, s: stacktrace);
                 }
                 return widget.errorBuilder!(context, e, stacktrace);
               },

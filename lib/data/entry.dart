@@ -19,10 +19,10 @@ extension EntryDetailedX on rust.EntryDetailed {
 
 extension ReleaseStatus on rust.ReleaseStatus {
   String asString() => switch (this) {
-        rust.ReleaseStatus.releasing => 'Releasing',
-        rust.ReleaseStatus.complete => 'Complete',
-        rust.ReleaseStatus.unknown => 'Unknown',
-      };
+    rust.ReleaseStatus.releasing => 'Releasing',
+    rust.ReleaseStatus.complete => 'Complete',
+    rust.ReleaseStatus.unknown => 'Unknown',
+  };
 }
 
 class EpisodeData {
@@ -48,11 +48,7 @@ class EpisodeData {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'bookmark': bookmark,
-      'finished': finished,
-      'progress': progress,
-    };
+    return {'bookmark': bookmark, 'finished': finished, 'progress': progress};
   }
 
   factory EpisodeData.fromJson(Map<String, dynamic> json) {
@@ -144,7 +140,7 @@ abstract class EntrySaved extends EntryDetailed {
   List<EpisodeData> get episodedata;
   List<Category> get categories;
   List<appsettings.Setting<dynamic, EntrySettingMetaData<dynamic>>>
-      get settings;
+  get settings;
 
   set categories(List<Category> value);
   int get episode;
@@ -167,8 +163,9 @@ abstract class EntrySaved extends EntryDetailed {
     final db = locate<Database>();
     return EntrySavedImpl.fromJson(
       json,
-      await db
-          .getCategory((json['categories'] as List<dynamic>?)?.cast() ?? []),
+      await db.getCategory(
+        (json['categories'] as List<dynamic>?)?.cast() ?? [],
+      ),
     );
   }
 }
@@ -356,9 +353,7 @@ class EntryDetailedImpl implements EntryDetailed {
   factory EntryDetailedImpl.fromJson(Map<String, dynamic> json) {
     final exts = locate<SourceExtension>();
     return EntryDetailedImpl(
-      rust.EntryDetailed.fromJson(
-        json['entry'] as Map<String, dynamic>,
-      ),
+      rust.EntryDetailed.fromJson(json['entry'] as Map<String, dynamic>),
       exts.getExtension(json['extensionid'] as String),
     );
   }
@@ -383,14 +378,14 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
   );
 
   EntrySavedImpl.fromEntryDetailed(EntryDetailedImpl ent)
-      : this(ent._entry, ent._extension, List.empty(), 0, List.empty());
+    : this(ent._entry, ent._extension, List.empty(), 0, List.empty());
 
   @override
   List<EpisodeData> get episodedata => _episodedata;
 
   @override
   List<appsettings.Setting<dynamic, EntrySettingMetaData<dynamic>>>
-      get settings {
+  get settings {
     if (rawsettings == null) return [];
     return rawsettings!.entries
         .map((e) => e.value.toSetting(EntrySettingMetaData(this, e.key)))
@@ -406,8 +401,11 @@ class EntrySavedImpl extends EntryDetailedImpl implements EntrySaved {
 
   @override
   Future<EntrySaved> refresh({CancelToken? token}) async {
-    final ent = await locate<SourceExtension>()
-        .update(this, token: token, settings: rawsettings ?? {});
+    final ent = await locate<SourceExtension>().update(
+      this,
+      token: token,
+      settings: rawsettings ?? {},
+    );
     ent.episode = episode;
     ent._episodedata = episodedata;
     await ent.save();

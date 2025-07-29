@@ -22,15 +22,11 @@ class PlayerService {
   }
 
   Future<void> setSession(PlaySession session) async {
-    await _audioHandler.customAction('setSession', {
-      'session': session,
-    });
+    await _audioHandler.customAction('setSession', {'session': session});
   }
 
   Future<void> disposeSession(PlaySession session) async {
-    await _audioHandler.customAction('invalidateSession', {
-      'session': session,
-    });
+    await _audioHandler.customAction('invalidateSession', {'session': session});
   }
 }
 
@@ -81,9 +77,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
         return;
       }
       lastduration = event;
-      playbackState.add(
-        playbackState.value.copyWith(updatePosition: event),
-      );
+      playbackState.add(playbackState.value.copyWith(updatePosition: event));
     });
 
     // Update buffering
@@ -119,11 +113,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
 
     // Update buffer
     session.player.stream.buffer.listen((event) {
-      playbackState.add(
-        playbackState.value.copyWith(
-          bufferedPosition: event,
-        ),
-      );
+      playbackState.add(playbackState.value.copyWith(bufferedPosition: event));
     });
 
     // Update playing
@@ -260,12 +250,7 @@ class PlaySession implements Disposable {
 
   EpisodePath get eppath => source.episode;
 
-  PlaySession(
-    this.source,
-    this.player, {
-    this.gonext,
-    this.goprev,
-  });
+  PlaySession(this.source, this.player, {this.gonext, this.goprev});
 
   @override
   void disposedBy(DisposeScope disposeScope) {

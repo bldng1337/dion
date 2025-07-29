@@ -72,7 +72,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
             child: DynamicGrid<EntrySaved>(
               showDataSources: false,
               itemBuilder: (BuildContext context, item) =>
-                  EntryDisplay(entry: item),
+                  EntryDisplay(entry: item, showSaved: false),
               controller: datacontroller,
             ),
           ),
@@ -82,7 +82,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
               child: DynamicGrid<EntrySaved>(
                 showDataSources: false,
                 itemBuilder: (BuildContext context, item) =>
-                    EntryDisplay(entry: item),
+                    EntryDisplay(entry: item, showSaved: false),
                 controller: controllers[cat]!,
               ),
             ),

@@ -14,21 +14,21 @@ class DionTextbutton extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Loadable(
-          loading: const TextButton(
-            onPressed: null,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          builder: (context, _, setFuture) => TextButton(
-            onPressed: () {
-              setFuture(onPressed?.call());
-            },
-            child: child,
-          ),
+        loading: const TextButton(
+          onPressed: null,
+          child: Center(child: CircularProgressIndicator()),
         ),
-      DionThemeMode.cupertino => CupertinoButton(
-          onPressed: onPressed,
+        builder: (context, _, setFuture) => TextButton(
+          onPressed: () {
+            setFuture(onPressed?.call());
+          },
           child: child,
         ),
+      ),
+      DionThemeMode.cupertino => CupertinoButton(
+        onPressed: onPressed,
+        child: child,
+      ),
     };
   }
 }

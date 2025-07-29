@@ -38,9 +38,7 @@ class SettingSlider<T extends num> extends StatelessWidget {
                   value: value,
                   min: min,
                   max: max,
-                  onChanged: (p0) => setState(
-                    () => value = p0,
-                  ),
+                  onChanged: (p0) => setState(() => value = p0),
                   onChangeEnd: (p0) => setting.value = p0,
                 ),
               ).expanded(),

@@ -68,17 +68,9 @@ class Card extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    ...(leadingBadges ?? []).map(
-                      (e) => DionBadge(
-                        child: e,
-                      ),
-                    ),
+                    ...(leadingBadges ?? []).map((e) => DionBadge(child: e)),
                     const Spacer(),
-                    ...(trailingBadges ?? []).map(
-                      (e) => DionBadge(
-                        child: e,
-                      ),
-                    ),
+                    ...(trailingBadges ?? []).map((e) => DionBadge(child: e)),
                   ],
                 ),
                 const Spacer(),
@@ -129,41 +121,31 @@ class EntryCard extends StatelessWidget {
             style: context.textTheme.labelSmall,
           ),
         if (entry.length != null && entry is! EntrySaved)
-          Text(
-            entry.length!.toString(),
-            style: context.textTheme.labelSmall,
-          ),
-        Icon(
-          switch (entry.mediaType) {
-            MediaType.audio => Icons.music_note,
-            MediaType.video => Icons.videocam,
-            MediaType.book => Icons.menu_book,
-            MediaType.comic => Icons.image,
-            MediaType.unknown => Icons.help,
-          },
-          size: 15,
-        ),
+          Text(entry.length!.toString(), style: context.textTheme.labelSmall),
+        Icon(switch (entry.mediaType) {
+          MediaType.audio => Icons.music_note,
+          MediaType.video => Icons.videocam,
+          MediaType.book => Icons.menu_book,
+          MediaType.comic => Icons.image,
+          MediaType.unknown => Icons.help,
+        }, size: 15),
       ],
       trailingBadges: [
         if (entry is EntrySaved &&
             (entry as EntrySaved).language.toLowerCase() != 'unknown')
           switch (FlagCode.fromCountryCode((entry as EntrySaved).language)) {
             null => CountryFlag.fromLanguageCode(
-                (entry as EntrySaved).language,
-                height: 15,
-                width: 15,
-              ),
+              (entry as EntrySaved).language,
+              height: 15,
+              width: 15,
+            ),
             _ => CountryFlag.fromCountryCode(
-                (entry as EntrySaved).language,
-                height: 15,
-                width: 15,
-              ),
+              (entry as EntrySaved).language,
+              height: 15,
+              width: 15,
+            ),
           },
-        DionImage(
-          imageUrl: entry.extension.data.icon,
-          width: 15,
-          height: 15,
-        ),
+        DionImage(imageUrl: entry.extension.data.icon, width: 15, height: 15),
       ],
       bottom: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,8 +170,9 @@ class EntryCard extends StatelessWidget {
                       ).paddingOnly(right: 2),
                       Text(
                         NumberFormat.compact().format(entry.views),
-                        style: context.textTheme.bodySmall
-                            ?.copyWith(color: Colors.grey),
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),

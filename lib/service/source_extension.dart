@@ -17,7 +17,7 @@ class Extension extends ChangeNotifier {
   final rust.ExtensionData data;
   final rust.SourceExtensionProxy _proxy;
   final List<Setting<dynamic, SourceExtensionSettingMetaData<dynamic>>>
-      settings;
+  settings;
   ExtensionMetaData _meta;
   bool isenabled;
   bool loading = false;
@@ -54,8 +54,9 @@ class Extension extends ChangeNotifier {
       await Future.wait(
         settingids.map((id) async {
           final set = await proxy.getSetting(name: id);
-          final setting = set.setting
-              .toSetting(SourceExtensionSettingMetaData(id, set, proxy));
+          final setting = set.setting.toSetting(
+            SourceExtensionSettingMetaData(id, set, proxy),
+          );
           return setting;
         }),
       ),
@@ -164,12 +165,18 @@ class SourceExtensionSettingMetaData<T> extends SettingMetaData<T>
   @override
   void onChange(T v) {
     final newval = switch (extsetting.setting.val) {
-      final rust.Settingvalue_String val =>
-        rust.Settingvalue_String(val: v as String, defaultVal: val.defaultVal),
-      final rust.Settingvalue_Number val =>
-        rust.Settingvalue_Number(val: v as double, defaultVal: val.defaultVal),
-      final rust.Settingvalue_Boolean val =>
-        rust.Settingvalue_Boolean(val: v as bool, defaultVal: val.defaultVal),
+      final rust.Settingvalue_String val => rust.Settingvalue_String(
+        val: v as String,
+        defaultVal: val.defaultVal,
+      ),
+      final rust.Settingvalue_Number val => rust.Settingvalue_Number(
+        val: v as double,
+        defaultVal: val.defaultVal,
+      ),
+      final rust.Settingvalue_Boolean val => rust.Settingvalue_Boolean(
+        val: v as bool,
+        defaultVal: val.defaultVal,
+      ),
     };
     extension.setSetting(name: id, value: newval);
   }
@@ -197,19 +204,13 @@ abstract class SourceExtension {
     bool Function(Extension e)? extfilter,
     rust.CancelToken? token,
   });
-  Future<EntryDetailed> detail(
-    Entry e, {
-    rust.CancelToken? token,
-  });
+  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token});
   Future<EntrySaved> update(
     EntrySaved e, {
     rust.CancelToken? token,
     Map<String, rust.Setting> settings = const {},
   });
-  Future<Entry?> fromUrl(
-    String url, {
-    rust.CancelToken? token,
-  });
+  Future<Entry?> fromUrl(String url, {rust.CancelToken? token});
   Future<SourcePath> source(
     EpisodePath ep, {
     rust.CancelToken? token,
@@ -238,11 +239,14 @@ class SourceExtensionImpl implements SourceExtension {
     rust.CancelToken? token,
   }) {
     return Stream.fromFutures(
-      getExtensions(extfilter: extfilter).where((e) => e.isenabled).map(
-            (e) async =>
-                (await e._proxy.browse(page: page, sort: sort, token: token))
-                    .map((ent) => ent.wrap(e))
-                    .toList(),
+      getExtensions(extfilter: extfilter)
+          .where((e) => e.isenabled)
+          .map(
+            (e) async => (await e._proxy.browse(
+              page: page,
+              sort: sort,
+              token: token,
+            )).map((ent) => ent.wrap(e)).toList(),
           ),
     );
   }
@@ -255,11 +259,14 @@ class SourceExtensionImpl implements SourceExtension {
     rust.CancelToken? token,
   }) {
     return Stream.fromFutures(
-      getExtensions(extfilter: extfilter).where((e) => e.isenabled).map(
-            (e) async => (await e._proxy
-                    .search(page: page, filter: filter, token: token))
-                .map((ent) => ent.wrap(e))
-                .toList(),
+      getExtensions(extfilter: extfilter)
+          .where((e) => e.isenabled)
+          .map(
+            (e) async => (await e._proxy.search(
+              page: page,
+              filter: filter,
+              token: token,
+            )).map((ent) => ent.wrap(e)).toList(),
           ),
     );
   }
@@ -271,8 +278,11 @@ class SourceExtensionImpl implements SourceExtension {
     Map<String, rust.Setting> settings = const {},
   }) async {
     return EntryDetailedImpl(
-      await e.extension._proxy
-          .detail(entryid: e.id, token: token, settings: settings),
+      await e.extension._proxy.detail(
+        entryid: e.id,
+        token: token,
+        settings: settings,
+      ),
       e.extension,
     );
   }
@@ -284,8 +294,11 @@ class SourceExtensionImpl implements SourceExtension {
     Map<String, rust.Setting> settings = const {},
   }) async {
     return EntrySavedImpl(
-      await e.extension._proxy
-          .detail(entryid: e.id, token: token, settings: settings),
+      await e.extension._proxy.detail(
+        entryid: e.id,
+        token: token,
+        settings: settings,
+      ),
       e.extension,
       e.episodedata,
       e.episode,
@@ -301,16 +314,16 @@ class SourceExtensionImpl implements SourceExtension {
   }) async {
     return SourcePath(
       ep,
-      await ep.extension._proxy
-          .source(epid: ep.episode.id, token: token, settings: settings),
+      await ep.extension._proxy.source(
+        epid: ep.episode.id,
+        token: token,
+        settings: settings,
+      ),
     );
   }
 
   @override
-  Future<Entry?> fromUrl(
-    String url, {
-    rust.CancelToken? token,
-  }) async {
+  Future<Entry?> fromUrl(String url, {rust.CancelToken? token}) async {
     for (final e in _extensions) {
       final result = await e._proxy.fromurl(url: url, token: token);
       if (result != null) {
@@ -341,15 +354,14 @@ class SourceExtensionImpl implements SourceExtension {
     }
     _extensions.clear();
     final dir = await locateAsync<DirectoryProvider>();
-    final extmanager =
-        rust.SourceExtensionManagerProxy(path: dir.extensionpath.absolute.path);
+    final extmanager = rust.SourceExtensionManagerProxy(
+      path: dir.extensionpath.absolute.path,
+    );
     final exts = await extmanager.getExtensions();
     extmanager.dispose();
     final db = await locateAsync<Database>();
     _extensions.addAll(
-      await Future.wait(
-        exts.map((e) => Extension.fromProxy(e, db)),
-      ),
+      await Future.wait(exts.map((e) => Extension.fromProxy(e, db))),
     );
     for (final e in _extensions) {
       if (e.meta.enabled) {

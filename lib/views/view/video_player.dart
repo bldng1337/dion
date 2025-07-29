@@ -47,36 +47,33 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       ),
     );
     controller = VideoController(player);
-    Observer(
-      () async {
-        if (widget.source.source == null) {
-          player.stop();
-          return;
-        }
-        final source = widget.source.source!;
-        if (source.source.sourcedata is! LinkSource_M3u8) {
-          return;
-        }
-        final sourcedata = source.source.sourcedata as LinkSource_M3u8;
-        final prog = source.episode.data.progress?.split(':');
-        Duration startduration = Duration.zero;
-        int chapterindex = 0;
-        if (prog != null && !source.episode.data.finished) {
-          chapterindex = int.tryParse(prog[0]) ?? 0;
-          startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
-        }
-        await player.open(
-          Media(
-            sourcedata.link,
-            start: startduration,
-            httpHeaders: sourcedata.headers,
-          ),
-        );
-        print('Opening ${sourcedata.link}');
-        await player.setSubtitleTrack(SubtitleTrack.no());
-      },
-      [widget.source],
-    );
+    Observer(() async {
+      if (widget.source.source == null) {
+        player.stop();
+        return;
+      }
+      final source = widget.source.source!;
+      if (source.source.sourcedata is! LinkSource_M3u8) {
+        return;
+      }
+      final sourcedata = source.source.sourcedata as LinkSource_M3u8;
+      final prog = source.episode.data.progress?.split(':');
+      Duration startduration = Duration.zero;
+      // int chapterindex = 0;
+      if (prog != null && !source.episode.data.finished) {
+        // chapterindex = int.tryParse(prog[0]) ?? 0;
+        startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
+      }
+      await player.open(
+        Media(
+          sourcedata.link,
+          start: startduration,
+          httpHeaders: sourcedata.headers,
+        ),
+      );
+      print('Opening ${sourcedata.link}');
+      await player.setSubtitleTrack(SubtitleTrack.no());
+    }, [widget.source]);
     locate<PlayerService>().setSession(
       PlaySession(
         widget.source,
@@ -93,18 +90,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         },
       )..disposedBy(scope),
     );
-    Observer(
-      () {
-        player.setVolume(settings.audioBookSettings.volume.value);
-      },
-      [settings.audioBookSettings.volume],
-    ).disposedBy(scope);
-    Observer(
-      () {
-        player.setRate(settings.audioBookSettings.speed.value);
-      },
-      [settings.audioBookSettings.speed],
-    ).disposedBy(scope);
+    Observer(() {
+      player.setVolume(settings.audioBookSettings.volume.value);
+    }, [settings.audioBookSettings.volume]).disposedBy(scope);
+    Observer(() {
+      player.setRate(settings.audioBookSettings.speed.value);
+    }, [settings.audioBookSettings.speed]).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
     player.stream.completed.listen((event) {
@@ -148,8 +139,13 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         player.state.playlist.medias.length <= player.state.playlist.index) {
       return widget.source.episode.name;
     }
-    final title = player.state.playlist.medias[player.state.playlist.index]
-        .extras?['title'] as String?;
+    final title =
+        player
+                .state
+                .playlist
+                .medias[player.state.playlist.index]
+                .extras?['title']
+            as String?;
     if (title == null || title == 'default') {
       return widget.source.episode.name;
     }
@@ -166,12 +162,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             value: subtitle,
             icon: const Icon(Icons.subtitles),
             items: subtitles
-                .map(
-                  (e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e.title),
-                  ),
-                )
+                .map((e) => DropdownMenuItem(value: e, child: Text(e.title)))
                 .toList(),
             onChanged: (value) {
               subtitle = value;
@@ -180,10 +171,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 return;
               }
               player.setSubtitleTrack(
-                SubtitleTrack.uri(
-                  value.url,
-                  title: value.title,
-                ),
+                SubtitleTrack.uri(value.url, title: value.title),
               );
             },
           ),
@@ -202,10 +190,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           onPressed: () =>
               launchUrl(Uri.parse(widget.source.episode.episode.url)),
         ),
-        DionIconbutton(
-          icon: const Icon(Icons.settings),
-          onPressed: () {},
-        ),
+        DionIconbutton(icon: const Icon(Icons.settings), onPressed: () {}),
       ],
       title: StreamBuilder(
         stream: player.stream.playlist,
@@ -221,17 +206,17 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           child: MaterialVideoControlsTheme(
             normal: MaterialVideoControlsThemeData(
               bottomButtonBarMargin: const EdgeInsets.all(10),
-              seekBarMargin:
-                  const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 60.0),
+              seekBarMargin: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                bottom: 60.0,
+              ),
               seekBarHeight: 3.5,
               speedUpOnLongPress: true,
               primaryButtonBar: [
                 if (widget.source.episode.hasprev)
                   DionIconbutton(
-                    icon: const Icon(
-                      Icons.skip_previous,
-                      size: 35,
-                    ),
+                    icon: const Icon(Icons.skip_previous, size: 35),
                     onPressed: () {
                       widget.source.episode.goPrev(widget.source);
                     },
@@ -252,10 +237,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 ).paddingAll(25.0),
                 if (widget.source.episode.hasnext)
                   DionIconbutton(
-                    icon: const Icon(
-                      Icons.skip_next,
-                      size: 35,
-                    ),
+                    icon: const Icon(Icons.skip_next, size: 35),
                     onPressed: () {
                       widget.source.episode.goNext(widget.source);
                     },
@@ -274,7 +256,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 const Spacer(),
                 DionIconbutton(
                   icon: Icon(
-                      epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
+                    epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
+                  ),
                   onPressed: () async {
                     epdata.bookmark = !epdata.bookmark;
                     await widget.source.episode.save();
@@ -298,10 +281,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                     icon: const Icon(Icons.subtitles),
                     items: subtitles
                         .map(
-                          (e) => DropdownMenuItem(
-                            value: e,
-                            child: Text(e.title),
-                          ),
+                          (e) =>
+                              DropdownMenuItem(value: e, child: Text(e.title)),
                         )
                         .toList(),
                     onChanged: (value) {
@@ -311,26 +292,23 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                         return;
                       }
                       player.setSubtitleTrack(
-                        SubtitleTrack.uri(
-                          value.url,
-                          title: value.title,
-                        ),
+                        SubtitleTrack.uri(value.url, title: value.title),
                       );
                     },
                   ),
               ],
               bottomButtonBarMargin: const EdgeInsets.all(10),
-              seekBarMargin:
-                  const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 60.0),
+              seekBarMargin: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                bottom: 60.0,
+              ),
               seekBarHeight: 3.5,
               speedUpOnLongPress: true,
               primaryButtonBar: [
                 if (widget.source.episode.hasprev)
                   DionIconbutton(
-                    icon: const Icon(
-                      Icons.skip_previous,
-                      size: 35,
-                    ),
+                    icon: const Icon(Icons.skip_previous, size: 35),
                     onPressed: () {
                       widget.source.episode.goPrev(widget.source);
                     },
@@ -351,10 +329,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 ).paddingAll(25.0),
                 if (widget.source.episode.hasnext)
                   DionIconbutton(
-                    icon: const Icon(
-                      Icons.skip_next,
-                      size: 35,
-                    ),
+                    icon: const Icon(Icons.skip_next, size: 35),
                     onPressed: () {
                       widget.source.episode.goNext(widget.source);
                     },

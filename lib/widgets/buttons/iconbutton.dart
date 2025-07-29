@@ -15,25 +15,25 @@ class DionIconbutton extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Loadable(
-          loading: const IconButton(
-            onPressed: null,
-            icon: CircularProgressIndicator(),
-          ),
-          builder: (context, _, setFuture) => IconButton(
-            icon: icon ?? const Icon(Icons.question_mark),
-            tooltip: tooltip,
-            onPressed: () {
-              setFuture(onPressed?.call());
-            },
-            style: const ButtonStyle(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
+        loading: const IconButton(
+          onPressed: null,
+          icon: CircularProgressIndicator(),
+        ),
+        builder: (context, _, setFuture) => IconButton(
+          icon: icon ?? const Icon(Icons.question_mark),
+          tooltip: tooltip,
+          onPressed: () {
+            setFuture(onPressed?.call());
+          },
+          style: const ButtonStyle(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),
+      ),
       DionThemeMode.cupertino => CupertinoButton(
-          onPressed: onPressed,
-          child: icon ?? const Icon(Icons.question_mark),
-        ),
+        onPressed: onPressed,
+        child: icon ?? const Icon(Icons.question_mark),
+      ),
     };
   }
 }

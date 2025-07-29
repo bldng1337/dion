@@ -24,10 +24,7 @@ class PreferenceService {
 
       setting.addListener(() {
         try {
-          _preferences.setString(
-            id,
-            setting.metadata.stringify(setting.value),
-          );
+          _preferences.setString(id, setting.metadata.stringify(setting.value));
         } catch (e, stack) {
           logger.e(
             'Error saving preference $setting',

@@ -5,8 +5,12 @@ class DionBadge extends StatelessWidget {
   final Widget child;
   final Color? color;
   final bool noPadding;
-  const DionBadge(
-      {super.key, required this.child, this.color, this.noPadding = false,});
+  const DionBadge({
+    super.key,
+    required this.child,
+    this.color,
+    this.noPadding = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +19,7 @@ class DionBadge extends StatelessWidget {
         borderRadius: const BorderRadius.all(Radius.circular(4)),
         color: color ?? context.theme.primaryColor,
       ),
-      child: Center(
-        child: child,
-      ).paddingAll(noPadding ? 0 : 3),
+      child: Center(child: child).paddingAll(noPadding ? 0 : 3),
     ).paddingAll(3);
   }
 }

@@ -9,7 +9,8 @@ class Loadable extends StatefulWidget {
     BuildContext context,
     Widget child,
     Function(FutureOr<void> future),
-  ) builder;
+  )
+  builder;
   final Widget? loading;
   final Widget? child;
   const Loadable({super.key, this.child, this.loading, required this.builder});
@@ -25,34 +26,30 @@ class _LoadableState extends State<Loadable> {
     if (_loading) {
       return widget.loading ?? const Center(child: CircularProgressIndicator());
     }
-    return widget.builder(
-      context,
-      widget.child ?? nil,
-      (future) {
-        if (future is! Future) {
-          return;
-        }
-        _loading = true;
-        Future.delayed(100.milliseconds).then((_) {
-          //Delay rerendering to prevent flickering on short loading times
+    return widget.builder(context, widget.child ?? nil, (future) {
+      if (future is! Future) {
+        return;
+      }
+      _loading = true;
+      Future.delayed(100.milliseconds).then((_) {
+        //Delay rerendering to prevent flickering on short loading times
+        if (!mounted) return;
+        setState(() {});
+      });
+      future.then(
+        (_) {
           if (!mounted) return;
-          setState(() {});
-        });
-        future.then(
-          (_) {
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-            });
-          },
-          onError: (e) {
-            logger.e('Error loading future', error: e);
-            setState(() {
-              _loading = false;
-            });
-          },
-        );
-      },
-    );
+          setState(() {
+            _loading = false;
+          });
+        },
+        onError: (e) {
+          logger.e('Error loading future', error: e);
+          setState(() {
+            _loading = false;
+          });
+        },
+      );
+    });
   }
 }

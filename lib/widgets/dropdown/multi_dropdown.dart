@@ -14,7 +14,7 @@ class MultiDropdownItem<T> {
   MultiDropdownItem({required this.value, required this.label});
 
   MultiDropdownItem.active({required this.value, required this.label})
-      : selected = true;
+    : selected = true;
 
   Widget get widget => Text(label);
 }
@@ -101,7 +101,8 @@ class DionMultiDropdown<T extends Object> extends StatefulWidget {
     BuildContext context,
     MultiDropdownItem<T> item,
     VoidCallback onTap,
-  )? buildItem;
+  )?
+  buildItem;
 
   const DionMultiDropdown({
     super.key,
@@ -156,16 +157,15 @@ class _DionMultiDropdownState<T extends Object>
   Widget build(BuildContext context) {
     final builder = widget.buildItem ?? _buildItem;
     return Loadable(
-      loading: const BoundsWidget(
-        child: DionTextbutton(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      loading:
+          const BoundsWidget(
+            child: DionTextbutton(
+              child: Row(mainAxisAlignment: MainAxisAlignment.center),
+            ),
+          ).applyShimmer(
+            highlightColor: context.backgroundColor.lighten(20),
+            baseColor: context.backgroundColor,
           ),
-        ),
-      ).applyShimmer(
-        highlightColor: context.backgroundColor.lighten(20),
-        baseColor: context.backgroundColor,
-      ),
       builder: (context, child, setFuture) => ListenableBuilder(
         listenable: controller,
         builder: (context, child) => MenuAnchor(

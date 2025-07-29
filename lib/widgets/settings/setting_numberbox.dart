@@ -34,10 +34,10 @@ class SettingNumberbox<T extends num> extends StatelessWidget {
   });
 
   T convert(num value) => switch (T) {
-        int => value.toInt() as T,
-        double => value.toDouble() as T,
-        _ => throw UnimplementedError(),
-      };
+    int => value.toInt() as T,
+    double => value.toDouble() as T,
+    _ => throw UnimplementedError(),
+  };
 
   @override
   Widget build(BuildContext context) {

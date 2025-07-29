@@ -28,24 +28,24 @@ class DionSearchbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => SearchBar(
-          controller: controller,
-          hintText: hintText,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
-          textStyle: style,
-          hintStyle: hintStyle,
-          keyboardType: keyboardType,
-          trailing: actions,
-        ),
+        controller: controller,
+        hintText: hintText,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        textStyle: style,
+        hintStyle: hintStyle,
+        keyboardType: keyboardType,
+        trailing: actions,
+      ),
       DionThemeMode.cupertino => CupertinoSearchTextField(
-          controller: controller,
-          placeholder: hintText,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
-          style: style?.resolve({WidgetState.focused}),
-          placeholderStyle: hintStyle?.resolve({WidgetState.focused}),
-          keyboardType: keyboardType,
-        ),
+        controller: controller,
+        placeholder: hintText,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        style: style?.resolve({WidgetState.focused}),
+        placeholderStyle: hintStyle?.resolve({WidgetState.focused}),
+        keyboardType: keyboardType,
+      ),
     };
   }
 }

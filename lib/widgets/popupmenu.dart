@@ -18,13 +18,15 @@ class DionPopupMenu extends StatelessWidget {
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
         actions: items
-            .map((item) => CupertinoActionSheetAction(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    item.onTap?.call();
-                  },
-                  child: item.label,
-                ),)
+            .map(
+              (item) => CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  item.onTap?.call();
+                },
+                child: item.label,
+              ),
+            )
             .toList(),
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
@@ -39,20 +41,15 @@ class DionPopupMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => PopupMenuButton(
-          itemBuilder: (context) => items
-              .map(
-                (e) => PopupMenuItem(
-                  onTap: e.onTap,
-                  child: e.label,
-                ),
-              )
-              .toList(),
-          child: child,
-        ),
+        itemBuilder: (context) => items
+            .map((e) => PopupMenuItem(onTap: e.onTap, child: e.label))
+            .toList(),
+        child: child,
+      ),
       DionThemeMode.cupertino => GestureDetector(
-          onTap: () => _showCupertinoMenu(context),
-          child: child,
-        ),
+        onTap: () => _showCupertinoMenu(context),
+        child: child,
+      ),
     };
   }
 }

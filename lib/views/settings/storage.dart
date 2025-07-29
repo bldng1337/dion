@@ -74,11 +74,7 @@ Future<Archive> createBackup() async {
   final entries = [];
   while (entries.length % 100 == 0) {
     final entriesdb = await db.getEntries(0, 100).toList();
-    entries.addAll(
-      entriesdb.map(
-        (e) => e.toJson(),
-      ),
-    );
+    entries.addAll(entriesdb.map((e) => e.toJson()));
   }
   final archive = Archive();
   archive.addFile(
@@ -96,9 +92,11 @@ Future<Archive> createBackup() async {
 
 Future<void> applyBackup(Archive archive) async {
   final db = locate<Database>();
-  final entries = json.decode(
-    String.fromCharCodes(archive.findFile('entrydata.json')!.content),
-  ) as List<dynamic>;
+  final entries =
+      json.decode(
+            String.fromCharCodes(archive.findFile('entrydata.json')!.content),
+          )
+          as List<dynamic>;
   for (final entry in entries) {
     final entrydata = await EntrySaved.fromJson(entry as Map<String, dynamic>);
     await db.updateEntry(entrydata);

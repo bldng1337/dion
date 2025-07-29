@@ -68,7 +68,10 @@ class ParagraphReaderSettings extends StatelessWidget {
                 min: 1.0,
                 max: 10.0,
                 setting: settings
-                    .readerSettings.paragraphreader.text.paragraphspacing,
+                    .readerSettings
+                    .paragraphreader
+                    .text
+                    .paragraphspacing,
               ),
               SettingToggle(
                 title: 'Selectable',

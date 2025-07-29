@@ -60,24 +60,25 @@ class _ExtensionManagerState extends State<ExtensionManager> {
       title: const DionTextScroll('Manage Extensions'),
       actions: [
         IconButton(
-            onPressed: () async {
-              setState(() {
-                loading = true;
-              });
-              try {
-                await sourceExt.reload();
-              } catch (e, stack) {
-                logger.e(e, stackTrace: stack);
-                error = e;
-              }
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                loading = false;
-              });
-            },
-            icon: const Icon(Icons.refresh),),
+          onPressed: () async {
+            setState(() {
+              loading = true;
+            });
+            try {
+              await sourceExt.reload();
+            } catch (e, stack) {
+              logger.e(e, stackTrace: stack);
+              error = e;
+            }
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              loading = false;
+            });
+          },
+          icon: const Icon(Icons.refresh),
+        ),
         IconButton(
           onPressed: () async {
             try {
@@ -95,8 +96,9 @@ class _ExtensionManagerState extends State<ExtensionManager> {
               for (final file in files) {
                 //I have no idea but android decides on some devices to rename dion.js to dion.es
                 final filename = file.name.replaceAll('.dion.es', '.dion.js');
-                await file
-                    .saveTo('${dir.extensionpath.absolute.path}/$filename');
+                await file.saveTo(
+                  '${dir.extensionpath.absolute.path}/$filename',
+                );
               }
               await sourceExt.reload();
             } catch (e, stack) {
@@ -129,10 +131,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
                       imageUrl: exts[i].data.icon,
                       width: 30,
                       height: 30,
-                      errorWidget: const Icon(
-                        Icons.image,
-                        size: 30,
-                      ),
+                      errorWidget: const Icon(Icons.image, size: 30),
                     ),
                   ),
                   if (exts[i].loading) const CircularProgressIndicator(),
@@ -149,8 +148,9 @@ class _ExtensionManagerState extends State<ExtensionManager> {
             ),
             onTap: () => exts[i].toggle(),
             onLongTap: () => context.push('/extension/${exts[i].data.id}'),
-            subtitle:
-                Text('${exts[i].data.desc ?? ''} v${exts[i].data.version}'),
+            subtitle: Text(
+              '${exts[i].data.desc ?? ''} v${exts[i].data.version}',
+            ),
           ),
         ),
       ),

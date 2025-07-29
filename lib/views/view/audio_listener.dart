@@ -36,45 +36,37 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         title: 'dion',
       ),
     );
-    Observer(
-      () async {
-        if (widget.source.source == null) {
-          return;
-        }
-        final source = widget.source.source!;
-        print('Source changed ${source.episode.name}');
-        print('Sourcedata ${source.source.sourcedata}');
-        if (source.source.sourcedata is! LinkSource_Mp3) {
-          return;
-        }
-        final sourcedata = source.source.sourcedata as LinkSource_Mp3;
-        final prog = source.episode.data.progress?.split(':');
-        print('Prog $prog');
-        Duration startduration = Duration.zero;
-        int chapterindex = 0;
-        if (prog != null) {
-          chapterindex = int.tryParse(prog[0]) ?? 0;
-          startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
-        }
-        print('Playing ${source.episode.name}');
-        await player.open(
-          Playlist(
-            [
-              for (final (index, chapter) in sourcedata.chapters.indexed)
-                Media(
-                  chapter.url,
-                  extras: {
-                    'title': chapter.title,
-                  },
-                  start: index == chapterindex ? startduration : Duration.zero,
-                ),
-            ],
-            index: chapterindex,
-          ),
-        );
-      },
-      [widget.source],
-    );
+    Observer(() async {
+      if (widget.source.source == null) {
+        return;
+      }
+      final source = widget.source.source!;
+      print('Source changed ${source.episode.name}');
+      print('Sourcedata ${source.source.sourcedata}');
+      if (source.source.sourcedata is! LinkSource_Mp3) {
+        return;
+      }
+      final sourcedata = source.source.sourcedata as LinkSource_Mp3;
+      final prog = source.episode.data.progress?.split(':');
+      print('Prog $prog');
+      Duration startduration = Duration.zero;
+      int chapterindex = 0;
+      if (prog != null) {
+        chapterindex = int.tryParse(prog[0]) ?? 0;
+        startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
+      }
+      print('Playing ${source.episode.name}');
+      await player.open(
+        Playlist([
+          for (final (index, chapter) in sourcedata.chapters.indexed)
+            Media(
+              chapter.url,
+              extras: {'title': chapter.title},
+              start: index == chapterindex ? startduration : Duration.zero,
+            ),
+        ], index: chapterindex),
+      );
+    }, [widget.source]);
     locate<PlayerService>().setSession(
       PlaySession(
         widget.source,
@@ -87,18 +79,12 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         },
       )..disposedBy(scope),
     );
-    Observer(
-      () {
-        player.setVolume(settings.audioBookSettings.volume.value);
-      },
-      [settings.audioBookSettings.volume],
-    ).disposedBy(scope);
-    Observer(
-      () {
-        player.setRate(settings.audioBookSettings.speed.value);
-      },
-      [settings.audioBookSettings.speed],
-    ).disposedBy(scope);
+    Observer(() {
+      player.setVolume(settings.audioBookSettings.volume.value);
+    }, [settings.audioBookSettings.volume]).disposedBy(scope);
+    Observer(() {
+      player.setRate(settings.audioBookSettings.speed.value);
+    }, [settings.audioBookSettings.speed]).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
     player.stream.completed.listen((event) {
@@ -138,8 +124,13 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         player.state.playlist.medias.length <= player.state.playlist.index) {
       return widget.source.episode.name;
     }
-    final title = player.state.playlist.medias[player.state.playlist.index]
-        .extras?['title'] as String?;
+    final title =
+        player
+                .state
+                .playlist
+                .medias[player.state.playlist.index]
+                .extras?['title']
+            as String?;
     if (title == null || title == 'default') {
       return widget.source.episode.name;
     }
@@ -159,11 +150,9 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     void onListen() {
       for (final stream in streams) {
         subscriptions.add(
-          stream.listen(
-            (event) {
-              controller.add(null);
-            },
-          ),
+          stream.listen((event) {
+            controller.add(null);
+          }),
         );
       }
     }

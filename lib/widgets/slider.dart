@@ -22,50 +22,50 @@ class DionSlider<T extends num> extends StatelessWidget {
   });
 
   T convert(num value) => switch (T) {
-        int => value.toInt() as T,
-        double => value.toDouble() as T,
-        _ => throw UnimplementedError(),
-      };
+    int => value.toInt() as T,
+    double => value.toDouble() as T,
+    _ => throw UnimplementedError(),
+  };
 
   @override
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Slider(
-          value: value.toDouble(),
-          min: min.toDouble(),
-          max: max.toDouble(),
-          divisions: (value is int) ? (max - min).abs().toInt() : null,
-          onChanged: (val) {
-            if (onChanged == null) return;
-            onChanged!(convert(val));
-          },
-          onChangeStart: (val) {
-            if (onChangeStart == null) return;
-            onChangeStart!(convert(val));
-          },
-          onChangeEnd: (val) {
-            if (onChangeEnd == null) return;
-            onChangeEnd!(convert(val));
-          },
-        ),
+        value: value.toDouble(),
+        min: min.toDouble(),
+        max: max.toDouble(),
+        divisions: (value is int) ? (max - min).abs().toInt() : null,
+        onChanged: (val) {
+          if (onChanged == null) return;
+          onChanged!(convert(val));
+        },
+        onChangeStart: (val) {
+          if (onChangeStart == null) return;
+          onChangeStart!(convert(val));
+        },
+        onChangeEnd: (val) {
+          if (onChangeEnd == null) return;
+          onChangeEnd!(convert(val));
+        },
+      ),
       DionThemeMode.cupertino => CupertinoSlider(
-          value: value.toDouble(),
-          onChanged: (val) {
-            if (onChanged == null) return;
-            onChanged!(convert(val));
-          },
-          onChangeStart: (val) {
-            if (onChangeStart == null) return;
-            onChangeStart!(convert(val));
-          },
-          onChangeEnd: (val) {
-            if (onChangeEnd == null) return;
-            onChangeEnd!(convert(val));
-          },
-          min: min.toDouble(),
-          max: max.toDouble(),
-          divisions: (value is int) ? (max - min).abs().toInt() : null,
-        ),
+        value: value.toDouble(),
+        onChanged: (val) {
+          if (onChanged == null) return;
+          onChanged!(convert(val));
+        },
+        onChangeStart: (val) {
+          if (onChangeStart == null) return;
+          onChangeStart!(convert(val));
+        },
+        onChangeEnd: (val) {
+          if (onChangeEnd == null) return;
+          onChangeEnd!(convert(val));
+        },
+        min: min.toDouble(),
+        max: max.toDouble(),
+        divisions: (value is int) ? (max - min).abs().toInt() : null,
+      ),
     };
   }
 }

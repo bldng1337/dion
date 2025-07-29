@@ -19,45 +19,27 @@ class Settings extends StatelessWidget {
             title: 'Reader Settings',
             children: [
               ListTile(
-                title: Text(
-                  'Paragraph Reader',
-                  style: context.bodyMedium,
-                ),
+                title: Text('Paragraph Reader', style: context.bodyMedium),
                 onTap: () => context.push('/settings/paragraphreader'),
               ),
               ListTile(
-                title: Text(
-                  'Audio Listener',
-                  style: context.bodyMedium,
-                ),
+                title: Text('Audio Listener', style: context.bodyMedium),
                 onTap: () => context.push('/settings/audiolistener'),
               ),
               ListTile(
-                title: Text(
-                  'Image List Reader',
-                  style: context.bodyMedium,
-                ),
+                title: Text('Image List Reader', style: context.bodyMedium),
                 onTap: () => context.push('/settings/imagelistreader'),
               ),
               ListTile(
-                title: Text(
-                  'Sync Settings',
-                  style: context.bodyMedium,
-                ),
+                title: Text('Sync Settings', style: context.bodyMedium),
                 onTap: () => context.push('/settings/sync'),
               ),
               ListTile(
-                title: Text(
-                  'Storage',
-                  style: context.bodyMedium,
-                ),
+                title: Text('Storage', style: context.bodyMedium),
                 onTap: () => context.push('/settings/storage'),
               ),
               ListTile(
-                title: Text(
-                  'Library',
-                  style: context.bodyMedium,
-                ),
+                title: Text('Library', style: context.bodyMedium),
                 onTap: () => context.push('/settings/library'),
               ),
             ],

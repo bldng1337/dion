@@ -139,7 +139,8 @@ class _BrowseState extends State<Browse>
 
 class EntryDisplay extends StatefulWidget {
   final Entry entry;
-  const EntryDisplay({super.key, required this.entry});
+  final bool showSaved;
+  const EntryDisplay({super.key, required this.entry, this.showSaved = true});
 
   @override
   State<EntryDisplay> createState() => _EntryDisplayState();
@@ -188,7 +189,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
             },
           ),
       ],
-      child: EntryCard(entry: item, showSaved: true),
+      child: EntryCard(entry: item, showSaved: widget.showSaved),
     );
   }
 }

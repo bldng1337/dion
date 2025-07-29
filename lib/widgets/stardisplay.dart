@@ -9,38 +9,34 @@ class Stardisplay extends StatelessWidget {
   final Color bgcolor;
   final int maxstars;
 
-  const Stardisplay(
-      {super.key,
-      this.icon = Icons.star,
-      required this.width,
-      required this.height,
-      required this.fill,
-      this.maxstars = 5,
-      this.bgcolor = Colors.grey,
-      this.color = Colors.white,})
-      : assert(fill <= 1);
+  const Stardisplay({
+    super.key,
+    this.icon = Icons.star,
+    required this.width,
+    required this.height,
+    required this.fill,
+    this.maxstars = 5,
+    this.bgcolor = Colors.grey,
+    this.color = Colors.white,
+  }) : assert(fill <= 1);
 
   @override
   Widget build(BuildContext context) {
     return ShaderMask(
-        blendMode: BlendMode.srcATop,
-        shaderCallback: (Rect rect) {
-          return LinearGradient(
-            stops: [0, fill, fill],
-            colors: [color, color, color.withOpacity(0)],
-          ).createShader(rect);
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(
-            5,
-            (index) => Icon(
-              icon,
-              size: width,
-              color: bgcolor,
-            ),
-          ),
+      blendMode: BlendMode.srcATop,
+      shaderCallback: (Rect rect) {
+        return LinearGradient(
+          stops: [0, fill, fill],
+          colors: [color, color, color.withOpacity(0)],
+        ).createShader(rect);
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          5,
+          (index) => Icon(icon, size: width, color: bgcolor),
         ),
-      );
+      ),
+    );
   }
 }

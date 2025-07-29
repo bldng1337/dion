@@ -56,10 +56,7 @@ class EpisodePath {
 
   void go(BuildContext context) {
     finishEpisode(this);
-    GoRouter.of(context).push(
-      '/view',
-      extra: [this],
-    );
+    GoRouter.of(context).push('/view', extra: [this]);
   }
 
   EpisodePath get next => EpisodePath(entry, episodenumber + 1);
@@ -107,10 +104,7 @@ class SourceSupplier with ChangeNotifier implements Disposable {
 
   SourceSupplier(EpisodePath episode) {
     streamcontroller = StreamController<SourcePath>();
-    cache = DionMapCache.fromsize(
-      maximumSize: 5,
-      loader: _loadSource,
-    );
+    cache = DionMapCache.fromsize(maximumSize: 5, loader: _loadSource);
     _episode = episode;
     _getSource();
   }

@@ -53,7 +53,7 @@ class Service {
 
   Future<T> locateAsync<T>() async {
     if (_services[T] == null) {
-      _services[T]= ServiceWaiter();
+      _services[T] = ServiceWaiter();
     }
     if (_services[T] is ServiceWaiter) {
       await _services[T].wait.future;
@@ -69,7 +69,6 @@ class Service {
     return _services[T] != null && _services[T] is! ServiceWaiter;
   }
 
-
   factory Service() {
     return _instance;
   }
@@ -77,5 +76,4 @@ class Service {
   Service._internal() {
     //init
   }
-
 }

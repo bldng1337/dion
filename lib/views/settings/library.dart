@@ -13,13 +13,7 @@ class LibrarySettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavScaff(
-      child: ListView(
-        children: const [
-          CategorySettings(),
-        ],
-      ),
-    );
+    return NavScaff(child: ListView(children: const [CategorySettings()]));
   }
 }
 
@@ -86,18 +80,14 @@ class CategorySettings extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('Add Category'),
-              DionTextbox(
-                onChanged: (value) => categoryname = value,
-              ),
+              DionTextbox(onChanged: (value) => categoryname = value),
               ElevatedButton(
                 onPressed: () async {
                   if (categoryname.isEmpty) {
                     Navigator.pop(context);
                     return;
                   }
-                  await db.updateCategory(
-                    Category(categoryname, null),
-                  );
+                  await db.updateCategory(Category(categoryname, null));
                   if (!context.mounted) {
                     return;
                   }

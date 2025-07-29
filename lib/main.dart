@@ -7,30 +7,26 @@ GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  initApp(
-    route: getRoutes(),
-  );
+  initApp(route: getRoutes());
 }
 
-void initApp({
-  required RouterConfig<Object> route,
-}) {
+void initApp({required RouterConfig<Object> route}) {
   const theme = DionTheme.material;
   runApp(
     InheritedDionTheme(
       theme: theme,
       child: switch (theme.mode) {
         DionThemeMode.material => MaterialApp.router(
-            theme: getTheme(theme.brightness),
-            darkTheme: getTheme(Brightness.dark),
-            routerConfig: route,
-          ),
+          theme: getTheme(theme.brightness),
+          darkTheme: getTheme(Brightness.dark),
+          routerConfig: route,
+        ),
         DionThemeMode.cupertino => CupertinoApp.router(
-            theme: MaterialBasedCupertinoThemeData(
-              materialTheme: getTheme(theme.brightness),
-            ),
-            routerConfig: route,
+          theme: MaterialBasedCupertinoThemeData(
+            materialTheme: getTheme(theme.brightness),
           ),
+          routerConfig: route,
+        ),
       },
     ),
   );

@@ -9,12 +9,13 @@ class SettingDropdown<T extends Enum> extends StatelessWidget {
   final String? description;
   final IconData? icon;
   final Setting<T, EnumMetaData<T>> setting;
-  const SettingDropdown(
-      {super.key,
-      required this.setting,
-      required this.title,
-      this.description,
-      this.icon,});
+  const SettingDropdown({
+    super.key,
+    required this.setting,
+    required this.title,
+    this.description,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -13,6 +13,7 @@ Future<ShareResult> shareURI(Uri url) {
 Future<ShareResult> shareFiles(List<File> files) {
   return Share.shareXFiles(files.map((e) => XFile(e.path)).toList());
 }
+
 Future<ShareResult> shareXFiles(List<XFile> files) {
   return Share.shareXFiles(files);
 }
@@ -22,36 +23,43 @@ extension UriShareExt on Uri {
     return shareURI(this);
   }
 }
+
 extension IterableShareExt on Iterable<File> {
   Future<ShareResult> share() {
     return shareFiles(toList());
   }
 }
+
 extension IterableXFileShareExt on Iterable<XFile> {
   Future<ShareResult> share() {
     return shareXFiles(toList());
   }
 }
+
 extension ListShareExt on List<File> {
   Future<ShareResult> share() {
     return shareFiles(this);
   }
 }
+
 extension ListXFileShareExt on List<XFile> {
   Future<ShareResult> share() {
     return shareXFiles(this);
   }
 }
+
 extension XFileShareExt on XFile {
   Future<ShareResult> share() {
     return shareXFiles([this]);
   }
 }
+
 extension FileShareExt on File {
   Future<ShareResult> share() {
     return shareFiles([this]);
   }
 }
+
 extension StringShareExt on String {
   Future<ShareResult> share() {
     return shareText(this);

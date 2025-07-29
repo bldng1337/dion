@@ -136,9 +136,7 @@ class ContextMenuState extends State<ContextMenu> {
       context: context,
       contextMenuBuilder: (BuildContext context) {
         return AdaptiveTextSelectionToolbar.buttonItems(
-          anchors: TextSelectionToolbarAnchors(
-            primaryAnchor: position,
-          ),
+          anchors: TextSelectionToolbarAnchors(primaryAnchor: position),
           buttonItems: widget.contextItems
               .map(
                 (e) => ContextMenuButtonItem(

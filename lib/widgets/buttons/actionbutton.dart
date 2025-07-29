@@ -13,17 +13,17 @@ class ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Loadable(
-          loading: const FloatingActionButton(
-            onPressed: null,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          builder: (context, _, setFuture) => FloatingActionButton(
-            onPressed: () {
-              setFuture(onPressed?.call());
-            },
-            child: child,
-          ),
+        loading: const FloatingActionButton(
+          onPressed: null,
+          child: Center(child: CircularProgressIndicator()),
         ),
+        builder: (context, _, setFuture) => FloatingActionButton(
+          onPressed: () {
+            setFuture(onPressed?.call());
+          },
+          child: child,
+        ),
+      ),
       DionThemeMode.cupertino => throw UnimplementedError(),
     };
   }

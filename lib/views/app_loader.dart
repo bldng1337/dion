@@ -38,7 +38,7 @@ class _AppLoaderState extends State<AppLoader> {
     setState(() {
       tasknames.remove(name);
     });
-    if (tasknames.isEmpty && mounted) {
+    if (tasknames.isEmpty && mounted && error == null) {
       widget.onComplete(context);
     }
   }

@@ -68,7 +68,8 @@ class LoadingBuilder<T> extends StatelessWidget {
     BuildContext context,
     Object error,
     StackTrace? stackTrace,
-  )? error;
+  )?
+  error;
   const LoadingBuilder({
     required this.future,
     required this.builder,
@@ -78,12 +79,12 @@ class LoadingBuilder<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final error = this.error ??
+    final error =
+        this.error ??
         (context, error, stackTrace) => ErrorDisplay(e: error, s: stackTrace);
-    final loading = this.loading ??
-        (context) => const Center(
-              child: CircularProgressIndicator(),
-            );
+    final loading =
+        this.loading ??
+        (context) => const Center(child: CircularProgressIndicator());
     return FutureBuilder(
       future: future,
       builder: (context, snapshot) {

@@ -24,7 +24,9 @@ class DirectoryProvider {
     logger.i('Initializing DirectoryProvider to $basepath');
     final temppath = basepath.sub('temp');
     try {
-      await temppath.delete(recursive: true);
+      if (await temppath.exists()) {
+        await temppath.delete(recursive: true);
+      }
       await temppath.create(recursive: true);
     } catch (e, stack) {
       logger.e(

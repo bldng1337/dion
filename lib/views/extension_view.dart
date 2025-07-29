@@ -1,5 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/service/source_extension.dart' hide Setting;
+import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/extension_setting.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/badge.dart';
@@ -41,9 +41,7 @@ class _ExtensionViewState extends State<ExtensionView> {
     if (error != null) {
       return NavScaff(
         title: Text('Error Loading ${extension?.name ?? ''}'),
-        child: Center(
-          child: ErrorDisplay(e: error),
-        ),
+        child: Center(child: ErrorDisplay(e: error)),
       );
     }
     if (extension == null) {
@@ -68,10 +66,7 @@ class _ExtensionViewState extends State<ExtensionView> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
-                        extension!.name,
-                        style: context.titleLarge,
-                      ),
+                      Text(extension!.name, style: context.titleLarge),
                       DionBadge(
                         color: Colors.grey,
                         child: Text(

@@ -18,8 +18,12 @@ class Foldabletext extends StatefulWidget {
   _FoldabletextState createState() => _FoldabletextState();
 }
 
-Size getTextSize(String text, TextStyle? style,
-    {double? width, TextAlign? textAlign,}) {
+Size getTextSize(
+  String text,
+  TextStyle? style, {
+  double? width,
+  TextAlign? textAlign,
+}) {
   final TextPainter textPainter = TextPainter(
     text: TextSpan(text: text, style: style),
     textAlign: textAlign ?? TextAlign.start,
@@ -34,41 +38,48 @@ class _FoldabletextState extends State<Foldabletext> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (getTextSize(widget.text, widget.style, width: constraints.maxWidth)
-                .height >
+        if (getTextSize(
+              widget.text,
+              widget.style,
+              width: constraints.maxWidth,
+            ).height >
             (widget.style?.fontSize ?? 14.0) * (widget.maxLines + 1)) {
           return StatefulBuilder(
-            builder: (context, setState) => AnimatedCrossFade(
-              duration: const Duration(milliseconds: 200),
-              crossFadeState: _isExpanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              firstChild: Column(
-                children: [
-                  Text(
+            builder: (context, setState) =>
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 200),
+                  crossFadeState: _isExpanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  firstChild: Column(
+                    children: [
+                      Text(
+                        widget.text,
+                        maxLines: widget.maxLines,
+                        overflow: TextOverflow.ellipsis,
+                        style: widget.style,
+                        textAlign: widget.textAlign,
+                      ),
+                      const Icon(Icons.keyboard_arrow_down),
+                    ],
+                  ),
+                  secondChild: Text(
                     widget.text,
-                    maxLines: widget.maxLines,
-                    overflow: TextOverflow.ellipsis,
                     style: widget.style,
                     textAlign: widget.textAlign,
                   ),
-                  const Icon(Icons.keyboard_arrow_down),
-                ],
-              ),
-              secondChild: Text(
-                widget.text,
-                style: widget.style,
-                textAlign: widget.textAlign,
-              ),
-            ).onTap(
-              () => setState(() {
-                _isExpanded = !_isExpanded;
-              }),
-            ),
+                ).onTap(
+                  () => setState(() {
+                    _isExpanded = !_isExpanded;
+                  }),
+                ),
           );
         }
-        return Text(widget.text,
-            style: widget.style, textAlign: widget.textAlign,);
+        return Text(
+          widget.text,
+          style: widget.style,
+          textAlign: widget.textAlign,
+        );
       },
     );
   }

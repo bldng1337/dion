@@ -26,11 +26,7 @@ class Activity {
   }
 
   Map<String, dynamic> toDBJson() {
-    return {
-      'type': 'activity',
-      'aid': id,
-      'time': time,
-    };
+    return {'type': 'activity', 'aid': id, 'time': time};
   }
 }
 
@@ -53,8 +49,9 @@ class EpisodeActivity extends Activity {
 
   factory EpisodeActivity.fromJson(Map<String, dynamic> json) {
     if (json['entry'] != null &&
-        locate<SourceExtension>()
-                .tryGetExtension(json['extensionid'] as String) !=
+        locate<SourceExtension>().tryGetExtension(
+              json['extensionid'] as String,
+            ) !=
             null) {
       return EpisodeActivity(
         fromepisode: json['fromepisode'] as int,

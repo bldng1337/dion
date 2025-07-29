@@ -51,18 +51,16 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
     datacontroller = DataSourceController<Entry>(
       extensions
           .map(
-            (e) => AsyncSource<Entry>(
-              (i) async {
-                if (token?.isDisposed ?? true) return [];
-                final res=await e.search(
-                  i,
-                  query,
-                  // token: token,
-                );
-                print('Got ${res.length} results');
-                return res;
-              },
-            )..name = e.data.name,
+            (e) => AsyncSource<Entry>((i) async {
+              if (token?.isDisposed ?? true) return [];
+              final res = await e.search(
+                i,
+                query,
+                // token: token,
+              );
+              print('Got ${res.length} results');
+              return res;
+            })..name = e.data.name,
           )
           .toList(),
     );
@@ -74,8 +72,9 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
-    extensions =
-        locate<SourceExtension>().getExtensions(extfilter: (e) => e.isenabled);
+    extensions = locate<SourceExtension>().getExtensions(
+      extfilter: (e) => e.isenabled,
+    );
     super.initState();
   }
 
@@ -90,8 +89,9 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
             hintText: 'Search',
             style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
             keyboardType: TextInputType.text,
-            hintStyle:
-                const WidgetStatePropertyAll(TextStyle(color: Colors.grey)),
+            hintStyle: const WidgetStatePropertyAll(
+              TextStyle(color: Colors.grey),
+            ),
             onSubmitted: (s) {
               if (s.isEmpty) {
                 context.go('/browse');

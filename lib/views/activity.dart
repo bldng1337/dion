@@ -98,10 +98,7 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
     };
     return Clickable(
       onTap: () {
-        context.push(
-          '/detail',
-          extra: [entry],
-        );
+        context.push('/detail', extra: [entry]);
       },
       child: DionBadge(
         color: context.theme.scaffoldBackgroundColor.lighten(5),
@@ -137,16 +134,18 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                     ),
                     Text(
                       '$action for ${activity.duration.formatrelative()}',
-                      style: context.labelSmall!
-                          .copyWith(color: context.theme.disabledColor),
+                      style: context.labelSmall!.copyWith(
+                        color: context.theme.disabledColor,
+                      ),
                     ),
                   ],
                 ).paddingOnly(left: 5),
               ),
               Text(
                 activity.time.formatrelative(),
-                style: context.labelSmall!
-                    .copyWith(color: context.theme.disabledColor),
+                style: context.labelSmall!.copyWith(
+                  color: context.theme.disabledColor,
+                ),
               ).paddingAll(15),
             ],
           ),
@@ -172,8 +171,10 @@ class _ActivityViewState extends State<ActivityView> {
     await for (final e in str) {
       if ((last != null && last.time.day != e.time.day) || last == null) {
         final time = e.time.date;
-        final dur = await locate<Database>()
-            .getActivityDuration(time, const Duration(days: 1));
+        final dur = await locate<Database>().getActivityDuration(
+          time,
+          const Duration(days: 1),
+        );
         yield Divider(e.time, dur);
       }
       yield await ActivityItem.getActionItem(e);
@@ -183,13 +184,9 @@ class _ActivityViewState extends State<ActivityView> {
 
   @override
   void initState() {
-    controller = DataSourceController(
-      [
-        SingleStreamSource(
-          (i) => getActionStream(i),
-        ),
-      ],
-    );
+    controller = DataSourceController([
+      SingleStreamSource((i) => getActionStream(i)),
+    ]);
     super.initState();
   }
 

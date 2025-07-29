@@ -42,12 +42,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
     }
     if (!loading) {
       return AlertDialog(
-        title: Text('Version ${widget.update.version} is available!',
-            style: context.titleLarge,),
-        content: Text(
-          widget.update.body,
-          style: context.bodyMedium,
+        title: Text(
+          'Version ${widget.update.version} is available!',
+          style: context.titleLarge,
         ),
+        content: Text(widget.update.body, style: context.bodyMedium),
         actions: [
           DionTextbutton(
             onPressed: () async {
@@ -92,9 +91,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(message),
-          LinearProgressIndicator(
-            value: progress,
-          ),
+          LinearProgressIndicator(value: progress),
         ],
       ),
     );

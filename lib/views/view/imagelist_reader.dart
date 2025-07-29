@@ -64,11 +64,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       Media(
         audio.link,
         // httpHeaders: widget.sourcedata.header,
-        extras: {
-          'from': audio.from,
-          'to': audio.to,
-          'link': audio.link,
-        },
+        extras: {'from': audio.from, 'to': audio.to, 'link': audio.link},
       ),
     );
   }
@@ -93,23 +89,17 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     offsetcontroller = ScrollOffsetController();
     itemPositionsListener = ItemPositionsListener.create();
     WakelockPlus.toggle(enable: true);
-    Observer(
-      () {
-        if (psettings.music.value) {
-          initPlayer();
-        } else {
-          player?.dispose();
-          player = null;
-        }
-      },
-      [psettings.music],
-    ).disposedBy(scope);
-    Observer(
-      () {
-        player?.setVolume(psettings.volume.value);
-      },
-      [psettings.volume],
-    ).disposedBy(scope);
+    Observer(() {
+      if (psettings.music.value) {
+        initPlayer();
+      } else {
+        player?.dispose();
+        player = null;
+      }
+    }, [psettings.music]).disposedBy(scope);
+    Observer(() {
+      player?.setVolume(psettings.volume.value);
+    }, [psettings.volume]).disposedBy(scope);
     if (psettings.music.value) {
       initPlayer();
     }
@@ -119,8 +109,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           .reduce(
             (ItemPosition min, ItemPosition position) =>
                 position.itemTrailingEdge < min.itemTrailingEdge
-                    ? position
-                    : min,
+                ? position
+                : min,
           )
           .index;
       widget.source.episode.data.progress = min.toString();
@@ -129,13 +119,10 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       }
       play();
     });
-    Observer(
-      () {
-        if (!controller.isAttached) return;
-        controller.jumpTo(index: 0);
-      },
-      [widget.supplier],
-    ).disposedBy(scope);
+    Observer(() {
+      if (!controller.isAttached) return;
+      controller.jumpTo(index: 0);
+    }, [widget.supplier]).disposedBy(scope);
     super.initState();
   }
 
@@ -150,22 +137,14 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
 
   Widget wrapScreen(BuildContext context, Widget child) {
     return ListenableBuilder(
-      listenable: Listenable.merge(
-        [
-          psettings.width,
-          psettings.adaptivewidth,
-        ],
-      ),
+      listenable: Listenable.merge([psettings.width, psettings.adaptivewidth]),
       builder: (context, child) {
         if (psettings.adaptivewidth.value && context.width < context.height) {
           return child!;
         }
         final width = context.width * (1 - (psettings.width.value / 100));
         final padding = width / 2;
-        return child!.paddingOnly(
-          left: padding,
-          right: padding,
-        );
+        return child!.paddingOnly(left: padding, right: padding);
       },
       child: child,
     );
@@ -242,10 +221,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
               }
               return nil;
             }
-            return wrapScreen(
-              context,
-              makeImage(context, images[index - 1]),
-            );
+            return wrapScreen(context, makeImage(context, images[index - 1]));
           },
           itemCount: images.length + 2,
         ),

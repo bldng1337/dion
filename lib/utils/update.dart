@@ -49,8 +49,12 @@ class Update {
       DateTime.parse(json['published_at'] as String),
       json['body'] as String,
       (json['assets'] as List<dynamic>)
-          .map((e) => UpdateAssets(
-              e['browser_download_url'] as String, e['name'] as String,),)
+          .map(
+            (e) => UpdateAssets(
+              e['browser_download_url'] as String,
+              e['name'] as String,
+            ),
+          )
           .toList(),
     );
   }
@@ -82,10 +86,12 @@ Future<void> downloadUpdate(
   Function(double? progress, String phase)? onReceiveProgress,
 }) async {
   final asset = switch (getPlatform()) {
-    CPlatform.android =>
-      update.assets.firstWhere((e) => e.filename.endsWith('.apk')),
-    CPlatform.windows =>
-      update.assets.firstWhere((e) => e.filename.endsWith('.exe')),
+    CPlatform.android => update.assets.firstWhere(
+      (e) => e.filename.endsWith('.apk'),
+    ),
+    CPlatform.windows => update.assets.firstWhere(
+      (e) => e.filename.endsWith('.exe'),
+    ),
     _ => throw UnimplementedError('Unsupported platform ${getPlatform()}'),
   };
   final dirprovider = locate<DirectoryProvider>();
@@ -128,7 +134,8 @@ Future<Update?> checkUpdate() async {
   final versions = (res.bodyToJson as List<dynamic>)
       .map((e) => Update.fromJson(e as Map<String, dynamic>))
       .where(
-          (e) => e.version.canonicalizedVersion != version.canonicalizedVersion,)
+        (e) => e.version.canonicalizedVersion != version.canonicalizedVersion,
+      )
       .where((e) => e.version >= version)
       .where(
         (e) =>
