@@ -10,7 +10,6 @@ import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_surrealdb/flutter_surrealdb.dart';
 import 'package:metis/metis.dart';
 import 'package:uuid/uuid.dart';
 

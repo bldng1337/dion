@@ -479,16 +479,16 @@ packages:
     dependency: transitive
     description:
       name: flutter_rust_bridge
-      sha256: b416ff56002789e636244fb4cc449f587656eff995e5a7169457eb0593fcaddb
+      sha256: "37ef40bc6f863652e865f0b2563ea07f0d3c58d8efad803cc01933a4b2ee067e"
       url: "https://pub.dev"
     source: hosted
-    version: "2.10.0"
+    version: "2.11.1"
   flutter_surrealdb:
-    dependency: "direct main"
+    dependency: transitive
     description:
       path: "."
-      ref: d48c5b3dc1f389cd3a243e276c0453b7cc922095
-      resolved-ref: d48c5b3dc1f389cd3a243e276c0453b7cc922095
+      ref: "540875520a888b34e08a849254bdd74f80533f0e"
+      resolved-ref: "540875520a888b34e08a849254bdd74f80533f0e"
       url: "https://github.com/bldng1337/flutter_surrealdb.git"
     source: git
     version: "0.0.1"
@@ -818,8 +818,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "82cc097a67647c393215fdf678d132c19bd48845"
-      resolved-ref: "82cc097a67647c393215fdf678d132c19bd48845"
+      ref: "97125751e23307167a94ff0d68515085c77b8268"
+      resolved-ref: "97125751e23307167a94ff0d68515085c77b8268"
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"
@@ -1019,8 +1019,8 @@ packages:
     dependency: "direct main"
     description:
       path: "dart/rdion_runtime"
-      ref: "50b7cddc75c61b1924246d3c294c80b26194c25b"
-      resolved-ref: "50b7cddc75c61b1924246d3c294c80b26194c25b"
+      ref: "1e6d05df29e40303114903f6c03e3f40dd508d34"
+      resolved-ref: "1e6d05df29e40303114903f6c03e3f40dd508d34"
       url: "https://github.com/bldng1337/dion-runtime.git"
     source: git
     version: "0.0.1"
@@ -1036,10 +1036,10 @@ packages:
     dependency: "direct main"
     description:
       name: rhttp
-      sha256: "9dc9608187979c98cdb9164f0ef037ec65b14584c4ef6c866744170fa508cf8e"
+      sha256: e8f0a8756a931598b7d9c4107a4afe93c2b81cbf8c45e532ba9dc52e12bbaa35
       url: "https://pub.dev"
     source: hosted
-    version: "0.12.0"
+    version: "0.13.0"
   rxdart:
     dependency: transitive
     description:
