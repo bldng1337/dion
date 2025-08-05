@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:dionysos/service/preference.dart';
+import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/settings.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -9,6 +12,32 @@ abstract class PreferenceMetaData<T> extends SettingMetaData<T> {
   final String id;
   @override
   const PreferenceMetaData(this.id);
+
+  @override
+  T initValue(T t) {
+    final prefs = locate<PreferenceService>();
+    try {
+      final value = prefs.getString(id);
+      if (value == null) return t;
+      return parse(value) ?? t;
+    } catch (e, stack) {
+      logger.e('Error loading preference', error: e, stackTrace: stack);
+      prefs.remove(id);
+    }
+    return t;
+  }
+
+  @override
+  void onChange(T t) {
+    final prefs = locate<PreferenceService>();
+    try {
+      prefs.setString(id, stringify(t));
+    } catch (e, stack) {
+      logger.e('Error saving preference $this', error: e, stackTrace: stack);
+      prefs.remove(id);
+    }
+    super.onChange(t);
+  }
 
   String stringify(T value);
   T? parse(String value);

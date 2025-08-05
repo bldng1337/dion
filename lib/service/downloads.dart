@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/network.dart';

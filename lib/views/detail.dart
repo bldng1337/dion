@@ -1,7 +1,10 @@
 import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/Category.dart';
+import 'package:dionysos/data/entry/entry.dart';
+import 'package:dionysos/data/entry/entry_detailed.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';

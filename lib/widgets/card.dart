@@ -2,7 +2,8 @@ import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:country_flags/country_flags.dart';
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/widgets/badge.dart';

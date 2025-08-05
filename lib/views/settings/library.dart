@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/service.dart';
@@ -87,7 +88,7 @@ class CategorySettings extends StatelessWidget {
                     Navigator.pop(context);
                     return;
                   }
-                  await db.updateCategory(Category(categoryname, null));
+                  await db.updateCategory(Category.construct(categoryname));
                   if (!context.mounted) {
                     return;
                   }

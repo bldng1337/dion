@@ -1,5 +1,8 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry.dart';
+import 'package:dionysos/data/entry/entry_detailed.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
@@ -26,8 +29,9 @@ class Extension extends ChangeNotifier {
 
   set meta(ExtensionMetaData value) {
     _meta = value;
-    locate<Database>().setExtensionMetaData(this, value);
-    notifyListeners();
+    locate<Database>()
+        .setExtensionMetaData(value)
+        .then((_) => notifyListeners());
   }
 
   String get id => data.id;
@@ -104,12 +108,12 @@ class Extension extends ChangeNotifier {
     final db = locate<Database>();
     final res = await _proxy.browse(page: page, sort: sort, token: token);
     return Future.wait(
-      res.map((e) => e.wrap(this)).map((ent) async {
-        final saved = await db.isSaved(ent);
+      res.map((entry) => EntryImpl(entry, this)).map((entry) async {
+        final saved = await db.isSaved(entry);
         if (saved != null) {
           return saved;
         }
-        return ent;
+        return entry;
       }).toList(),
     );
   }
@@ -122,12 +126,12 @@ class Extension extends ChangeNotifier {
     final res = await _proxy.search(page: page, filter: filter, token: token);
     final db = locate<Database>();
     return await Future.wait(
-      res.map((e) => e.wrap(this)).map((ent) async {
-        final saved = await db.isSaved(ent);
+      res.map((entry) => EntryImpl(entry, this)).map((entry) async {
+        final saved = await db.isSaved(entry);
         if (saved != null) {
           return saved;
         }
-        return ent;
+        return entry;
       }).toList(),
     );
   }
@@ -185,53 +189,19 @@ class SourceExtensionSettingMetaData<T> extends SettingMetaData<T>
   rust.Setting get setting => extsetting.setting;
 }
 
-abstract class SourceExtension {
-  Future<void> reload();
-  Extension getExtension(String id);
-  Extension? tryGetExtension(String id);
-
-  List<Extension> getExtensions({bool Function(Extension e)? extfilter});
-
-  Stream<List<Entry>> search(
-    int page,
-    String filter, {
-    bool Function(Extension e)? extfilter,
-    rust.CancelToken? token,
-  });
-  Stream<List<Entry>> browse(
-    int page,
-    rust.Sort sort, {
-    bool Function(Extension e)? extfilter,
-    rust.CancelToken? token,
-  });
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token});
-  Future<EntrySaved> update(
-    EntrySaved e, {
-    rust.CancelToken? token,
-    Map<String, rust.Setting> settings = const {},
-  });
-  Future<Entry?> fromUrl(String url, {rust.CancelToken? token});
-  Future<SourcePath> source(
-    EpisodePath ep, {
-    rust.CancelToken? token,
-    Map<String, rust.Setting> settings = const {},
-  });
-
-  static Future<void> ensureInitialized() async {
-    register<SourceExtension>(await SourceExtensionImpl().init());
-  }
-}
-
-class SourceExtensionImpl implements SourceExtension {
+class SourceExtension {
   final _extensions = <Extension>[];
 
-  Future<SourceExtensionImpl> init() async {
+  Future<SourceExtension> init() async {
     await rust.RustLib.init();
     await reload();
     return this;
   }
 
-  @override
+  static Future<void> ensureInitialized() async {
+    register<SourceExtension>(await SourceExtension().init());
+  }
+
   Stream<List<Entry>> browse(
     int page,
     rust.Sort sort, {
@@ -241,17 +211,10 @@ class SourceExtensionImpl implements SourceExtension {
     return Stream.fromFutures(
       getExtensions(extfilter: extfilter)
           .where((e) => e.isenabled)
-          .map(
-            (e) async => (await e._proxy.browse(
-              page: page,
-              sort: sort,
-              token: token,
-            )).map((ent) => ent.wrap(e)).toList(),
-          ),
+          .map((e) async => (await e.browse(page, sort)).toList()),
     );
   }
 
-  @override
   Stream<List<Entry>> search(
     int page,
     String filter, {
@@ -261,79 +224,57 @@ class SourceExtensionImpl implements SourceExtension {
     return Stream.fromFutures(
       getExtensions(extfilter: extfilter)
           .where((e) => e.isenabled)
-          .map(
-            (e) async => (await e._proxy.search(
-              page: page,
-              filter: filter,
-              token: token,
-            )).map((ent) => ent.wrap(e)).toList(),
-          ),
+          .map((e) async => (await e.search(page, filter)).toList()),
     );
   }
 
-  @override
-  Future<EntryDetailed> detail(
-    Entry e, {
-    rust.CancelToken? token,
-    Map<String, rust.Setting> settings = const {},
-  }) async {
+  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
+    if (e is EntryImpl) {
+      throw Exception('Use update(EntrySaved) instead');
+    }
     return EntryDetailedImpl(
       await e.extension._proxy.detail(
         entryid: e.id,
         token: token,
-        settings: settings,
+        settings: {},
       ),
       e.extension,
     );
   }
 
-  @override
-  Future<EntrySaved> update(
-    EntrySaved e, {
-    rust.CancelToken? token,
-    Map<String, rust.Setting> settings = const {},
-  }) async {
-    return EntrySavedImpl(
-      await e.extension._proxy.detail(
-        entryid: e.id,
-        token: token,
-        settings: settings,
-      ),
-      e.extension,
-      e.episodedata,
-      e.episode,
-      e.categories,
+  Future<EntrySaved> update(EntrySaved e, {rust.CancelToken? token}) async {
+    final newdata = await e.extension._proxy.detail(
+      entryid: e.id,
+      token: token,
+      settings: e.rawsettings ?? {},
     );
+    e.entry = newdata;
+    await e.save();
+    return e;
   }
 
-  @override
-  Future<SourcePath> source(
-    EpisodePath ep, {
-    rust.CancelToken? token,
-    Map<String, rust.Setting> settings = const {},
-  }) async {
+  Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
+    final entry = ep.entry;
     return SourcePath(
       ep,
       await ep.extension._proxy.source(
         epid: ep.episode.id,
         token: token,
-        settings: settings,
+        settings: entry is EntrySaved ? entry.rawsettings ?? {} : {},
       ),
     );
   }
 
-  @override
   Future<Entry?> fromUrl(String url, {rust.CancelToken? token}) async {
     for (final e in _extensions) {
       final result = await e._proxy.fromurl(url: url, token: token);
       if (result != null) {
-        return result.wrap(e);
+        return EntryImpl(result, e);
       }
     }
     return null;
   }
 
-  @override
   Extension getExtension(String id) {
     final ext = tryGetExtension(id);
     if (ext == null) {
@@ -342,12 +283,10 @@ class SourceExtensionImpl implements SourceExtension {
     return ext;
   }
 
-  @override
   Extension? tryGetExtension(String id) {
     return _extensions.where((e) => e.data.id == id).firstOrNull;
   }
 
-  @override
   Future<void> reload() async {
     for (final e in _extensions) {
       e.dispose();
@@ -370,7 +309,6 @@ class SourceExtensionImpl implements SourceExtension {
     }
   }
 
-  @override
   List<Extension> getExtensions({bool Function(Extension e)? extfilter}) {
     return _extensions.where((e) => extfilter == null || extfilter(e)).toList();
   }

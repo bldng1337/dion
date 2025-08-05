@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:dionysos/data/appsettings.dart';
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
@@ -69,6 +69,7 @@ class Storage extends StatelessWidget {
   }
 }
 
+const archiveVersion = 1;
 Future<Archive> createBackup() async {
   final db = locate<Database>();
   final entries = [];
@@ -81,7 +82,7 @@ Future<Archive> createBackup() async {
     ArchiveFile.string(
       'dionmeta.json',
       json.encode({
-        'version': 1,
+        'version': archiveVersion,
         'content': ['entries'],
       }),
     ),

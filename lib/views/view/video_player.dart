@@ -71,7 +71,6 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           httpHeaders: sourcedata.headers,
         ),
       );
-      print('Opening ${sourcedata.link}');
       await player.setSubtitleTrack(SubtitleTrack.no());
     }, [widget.source]);
     locate<PlayerService>().setSession(

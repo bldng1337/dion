@@ -1,10 +1,10 @@
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/Category.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse.dart';
-import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/tabbar.dart';
@@ -56,9 +56,10 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     if (controllers.isEmpty) {
       return NavScaff(
         destination: homedestinations,
-        child: DynamicGrid<Entry>(
+        child: DynamicGrid<EntrySaved>(
           showDataSources: false,
-          itemBuilder: (BuildContext context, item) => EntryCard(entry: item),
+          itemBuilder: (BuildContext context, item) =>
+              EntryDisplay(entry: item, showSaved: false),
           controller: datacontroller,
         ),
       );

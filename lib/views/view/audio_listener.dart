@@ -41,21 +41,17 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         return;
       }
       final source = widget.source.source!;
-      print('Source changed ${source.episode.name}');
-      print('Sourcedata ${source.source.sourcedata}');
       if (source.source.sourcedata is! LinkSource_Mp3) {
         return;
       }
       final sourcedata = source.source.sourcedata as LinkSource_Mp3;
       final prog = source.episode.data.progress?.split(':');
-      print('Prog $prog');
       Duration startduration = Duration.zero;
       int chapterindex = 0;
       if (prog != null) {
         chapterindex = int.tryParse(prog[0]) ?? 0;
         startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
       }
-      print('Playing ${source.episode.name}');
       await player.open(
         Playlist([
           for (final (index, chapter) in sourcedata.chapters.indexed)
@@ -107,13 +103,11 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   @override
   void initState() {
     initPlayer();
-    print('Init AudioListener');
     super.initState();
   }
 
   @override
   void dispose() {
-    print('Disposing AudioListener');
     widget.source.episode.save();
     player.dispose();
     super.dispose();

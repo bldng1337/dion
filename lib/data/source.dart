@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:dionysos/data/activity.dart';
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry_detailed.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cache.dart';
@@ -65,11 +66,7 @@ class EpisodePath {
 
   Future<SourcePath> loadSource(CancelToken? tok) async {
     final srcExt = locate<SourceExtension>();
-    final res = await srcExt.source(
-      this,
-      token: tok,
-      settings: entry.rawsettings ?? {},
-    );
+    final res = await srcExt.source(this, token: tok);
     return res;
   }
 

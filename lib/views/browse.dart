@@ -1,5 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry.dart';
+import 'package:dionysos/data/entry/entry_detailed.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
@@ -184,7 +186,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
           ContextMenuItem(
             label: 'Remove from Library',
             onTap: () async {
-              item = await (item as EntrySaved).delete();
+              await (item as EntrySaved).delete();
               setState(() {});
             },
           ),

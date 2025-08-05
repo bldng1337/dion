@@ -15,6 +15,7 @@ abstract class EnumMetaData<T extends Enum> extends SettingMetaData<T> {
 class SettingMetaData<T> {
   const SettingMetaData();
   void onChange(T t) {}
+  T initValue(T t) => t;
 }
 
 /*
@@ -99,10 +100,12 @@ class Setting<T, M extends SettingMetaData<T>> with ChangeNotifier {
   late T _value;
   final T _initialvalue;
 
-  Setting(T initial, this.metadata) : _initialvalue = initial, _value = initial;
+  Setting(T initial, this.metadata)
+    : _initialvalue = initial,
+      _value = metadata.initValue(initial);
   Setting.fromValue(T initial, T value, this.metadata)
     : _initialvalue = initial,
-      _value = value;
+      _value = metadata.initValue(value);
 
   T get intialValue => _initialvalue;
   T get value => _value;

@@ -1,19 +1,22 @@
 import 'dart:math';
 
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:metis/adapter/dataclass.dart';
+import 'package:metis/metis.dart';
 import 'package:uuid/uuid.dart';
 
-class Activity {
+class Activity with DBConstClass {
   final DateTime time;
   final String id;
 
   const Activity(this.time, this.id);
 
-  factory Activity.fromDBJson(Map<String, dynamic> json) {
+  factory Activity.fromJson(Map<String, dynamic> json) {
     switch (json['type']) {
       case 'episode':
         return EpisodeActivity.fromJson(json);
@@ -25,9 +28,13 @@ class Activity {
     }
   }
 
+  @override
   Map<String, dynamic> toDBJson() {
     return {'type': 'activity', 'aid': id, 'time': time};
   }
+
+  @override
+  DBRecord get dbId => DBRecord('activity', id);
 }
 
 class EpisodeActivity extends Activity {
@@ -100,7 +107,7 @@ class EpisodeActivity extends Activity {
       'type': 'episode',
       'fromepisode': fromepisode,
       'toepisode': toepisode,
-      'entry': entry?.toJson(),
+      'entry': entry?.toEntryJson(),
       'extensionid': extensionid,
       'duration': duration.inSeconds,
     };
@@ -108,31 +115,35 @@ class EpisodeActivity extends Activity {
 }
 
 Future<void> finishEpisode(EpisodePath ep) async {
-  final db = locate<Database>();
-  final activity = await db.getLastActivity();
-  if (activity != null &&
-      activity is EpisodeActivity &&
-      activity.extensionid == ep.extension.id &&
-      activity.time
-          .add(activity.duration)
-          .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
+  try {
+    final db = locate<Database>();
+    final activity = await db.getLastActivity();
+    if (activity != null &&
+        activity is EpisodeActivity &&
+        activity.extensionid == ep.extension.id &&
+        activity.time
+            .add(activity.duration)
+            .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
+      await db.addActivity(
+        activity.copyWith(
+          toepisode: max(ep.episodenumber, activity.toepisode),
+          fromepisode: min(ep.episodenumber, activity.fromepisode),
+          duration: DateTime.now().difference(activity.time),
+        ),
+      );
+      return;
+    }
     await db.addActivity(
-      activity.copyWith(
-        toepisode: max(ep.episodenumber, activity.toepisode),
-        fromepisode: min(ep.episodenumber, activity.fromepisode),
-        duration: DateTime.now().difference(activity.time),
+      EpisodeActivity(
+        id: const Uuid().v4(),
+        fromepisode: ep.episodenumber,
+        toepisode: ep.episodenumber,
+        entry: ep.entry,
+        extensionid: ep.extension.id,
+        time: DateTime.now(),
       ),
     );
-    return;
+  } catch (e, stack) {
+    logger.e(e, stackTrace: stack);
   }
-  await db.addActivity(
-    EpisodeActivity(
-      id: const Uuid().v4(),
-      fromepisode: ep.episodenumber,
-      toepisode: ep.episodenumber,
-      entry: ep.entry,
-      extensionid: ep.extension.id,
-      time: DateTime.now(),
-    ),
-  );
 }

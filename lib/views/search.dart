@@ -1,5 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
@@ -28,11 +28,8 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
 
   @override
   void didChangeDependencies() {
-    print('Search didChangeDependencies');
     final query = GoRouterState.of(context).pathParameters['query'] ?? '';
-    print('Got query $query');
     if (query == (lastquery ?? '')) return;
-    print('Query valid $query');
     lastquery = query;
     search(query);
     controller.text = query;
@@ -40,13 +37,11 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
   }
 
   Future<void> search(String query) async {
-    print('Searching for $query');
     if (!(token?.isDisposed ?? true)) {
       token!.cancel();
       token!.dispose();
     }
     token = CancelToken()..disposedBy(scope);
-    print('swapping datacontroller');
     datacontroller?.dispose();
     datacontroller = DataSourceController<Entry>(
       extensions
@@ -58,14 +53,12 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
                 query,
                 // token: token,
               );
-              print('Got ${res.length} results');
               return res;
             })..name = e.data.name,
           )
           .toList(),
     );
     datacontroller!.requestMore();
-    print('swapped datacontroller');
     // setState(() {});
   }
 
@@ -97,7 +90,6 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
                 context.go('/browse');
                 return;
               }
-              print('Going to search $s');
               context.go('/search/$s');
             },
           ).paddingAll(5),

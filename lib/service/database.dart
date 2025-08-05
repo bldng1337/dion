@@ -1,60 +1,27 @@
-import 'dart:convert';
-
+import 'package:async/async.dart';
+import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/data/appsettings.dart';
-import 'package:dionysos/data/entry.dart';
+import 'package:dionysos/data/entry/entry.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
+import 'package:metis/adapter/dataclass.dart';
+import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
-import 'package:uuid/uuid.dart';
 
-class ExtensionMetaData {
-  final String id;
-  final bool enabled;
-  const ExtensionMetaData(this.id, this.enabled);
-
-  @override
-  String toString() {
-    return 'ExtensionMetaData{id: $id, enabled: $enabled}';
-  }
-
-  ExtensionMetaData copyWith({String? id, bool? enabled}) {
-    return ExtensionMetaData(id ?? this.id, enabled ?? this.enabled);
-  }
-}
-
-class Category {
-  final DBRecord? id;
-  final String name;
-
-  Category(this.name, this.id);
-
-  Category copyWith({String? name, DBRecord? id}) {
-    return Category(name ?? this.name, id ?? this.id);
-  }
-
-  Category.fromJson(Map<String, dynamic> json)
-    : name = json['name'] as String,
-      id = json['id'] as DBRecord?;
-
-  Map<String, dynamic> toJson() => {'name': name, 'id': id};
-
-  @override
-  bool operator ==(Object other) {
-    return other is Category && other.name == name && other.id == id;
-  }
-
-  @override
-  int get hashCode => Object.hash(name, id);
-}
+const dbVersion = 1;
 
 class Database extends ChangeNotifier {
   late final AdapterSurrealDB db;
+
+  DBDataClassAdapter get adapter => db.getAdapter();
 
   static Future<void> ensureInitialized() async {
     final db = Database();
@@ -77,60 +44,66 @@ class Database extends ChangeNotifier {
   Future<void> initDB(AdapterSurrealDB db) async {
     await db.use(db: 'default', namespace: 'app');
     await db.setMigrationAdapter(
-      version: 1,
+      version: dbVersion,
       migrationName: 'app',
       onMigrate: (db, from, to) async {},
-      onCreate: (db) async {
-        //TODO: Fix this
-        // await db.query(
-        //   query: await rootBundle.loadString('assets/db/schema/schema.surql'),
-        // );
+      onCreate: (db) async {},
+    );
+    await db.setCrdtAdapter(
+      tablesToSync: const {
+        SyncTable(
+          version: dbVersion,
+          range: VersionRange.exact(dbVersion),
+          table: DBTable('entry'),
+        ),
+        SyncTable(
+          version: dbVersion,
+          range: VersionRange.exact(dbVersion),
+          table: DBTable('category'),
+        ),
       },
     );
-    await db.setCrdtAdapter(tablesToSync: {const DBTable('entry')});
+    final dataclass = await db.setDataClassAdapter();
+    dataclass.registerDataClass(Category.fromJson);
+    dataclass.registerDataClass(EntrySaved.fromJson);
+    dataclass.registerDataClass(Activity.fromJson);
+    dataclass.registerDataClass(ExtensionMetaData.fromJson);
+    this.db = db;
   }
 
-  Future<void> init() async {
+  Future<void> init({bool inMemory = false}) async {
     await RustLib.init();
     final dir = await locateAsync<DirectoryProvider>();
-    db = await AdapterSurrealDB.newFile(dir.databasepath.absolute.path);
-    await initDB(db);
+    late final AdapterSurrealDB currentdb;
+    if (inMemory) {
+      currentdb = await AdapterSurrealDB.newMem();
+    } else {
+      currentdb = await AdapterSurrealDB.newFile(
+        dir.databasepath.absolute.path,
+      );
+    }
+    await initDB(currentdb);
   }
 
   Future<List<Category>> getCategories() async {
-    final [dbres as List<dynamic>?] = await db.query(
-      query: 'SELECT * FROM category',
-    );
-    if (dbres == null || dbres.isEmpty) return [];
-    return dbres
-        .map((e) => Category.fromJson(e as Map<String, dynamic>))
+    return await adapter
+        .queryDataClasses<Category>(query: 'SELECT * FROM category')
         .toList();
   }
 
   Future<void> updateCategory(Category category) async {
-    final id = category.id ?? DBRecord('category', const Uuid().v4());
-    await db.upsert(
-      res: id,
-      data: category.copyWith(id: id).toJson(),
-    );
+    await adapter.save(category);
     notifyListeners();
   }
 
   Future<void> removeCategory(Category category) async {
-    await db.delete(res: category.id!);
+    await adapter.delete(category);
     notifyListeners();
   }
 
   Future<List<Category>> getCategory(List<DBRecord> ids) async {
     if (ids.isEmpty) return [];
-    final [dbres as List<dynamic>?] = await db.query(
-      query: 'SELECT * FROM category WHERE id IN \$ids',
-      vars: {'ids': ids},
-    );
-    if (dbres == null || dbres.isEmpty) return [];
-    return dbres
-        .map((e) => Category.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return adapter.selectDataClasses<Category>(ids).toList();
   }
 
   Stream<EntrySaved> getEntriesInCategory(
@@ -154,58 +127,29 @@ class Database extends ChangeNotifier {
   Stream<EntrySaved> getEntriesSQL(
     String sqlfilter,
     Map<String, dynamic>? vars,
-  ) async* {
-    final [dbres as List<dynamic>?] = await db.query(
-      query: sqlfilter,
-      vars: vars,
-    );
-    if (dbres == null || dbres.isEmpty) return;
-    for (final entry in dbres) {
-      try {
-        yield await EntrySaved.fromJson(entry as Map<String, dynamic>);
-      } catch (e, stack) {
-        if (e is ExtensionNotFoundException) {
-          await db.delete(res: entry['id'] as Resource);
-        }
-        logger.e('Error loading entry', error: e, stackTrace: stack);
-      }
-    }
+  ) {
+    return adapter.queryDataClasses<EntrySaved>(query: sqlfilter, vars: vars);
   }
 
   Future<Activity?> getLastActivity() async {
-    final [dbres as List<dynamic>?] = await db.query(
-      query: 'SELECT * FROM activity ORDER BY time DESC LIMIT 1',
-    );
-    if (dbres == null || dbres.isEmpty) return null;
-    final activity = Activity.fromDBJson(dbres[0] as Map<String, dynamic>);
-    return activity;
+    return adapter
+        .queryDataClasses<Activity>(
+          query: 'SELECT * FROM activity ORDER BY time DESC LIMIT 1',
+        )
+        .firstOrNull;
   }
 
   Future<void> addActivity(Activity activity) async {
-    await db.upsert(
-      res: DBRecord('activity', activity.id),
-      data: activity.toDBJson(),
-    );
+    await adapter.save(activity);
     notifyListeners();
   }
 
-  Stream<Activity> getActivityStream(int page, int limit) async* {
-    final [dbres as List<dynamic>?] = await db.query(
+  Stream<Activity> getActivityStream(int page, int limit) {
+    return adapter.queryDataClasses<Activity>(
       query:
           'SELECT * FROM activity ORDER BY time DESC LIMIT \$limit START \$offset*\$limit',
       vars: {'limit': limit, 'offset': page},
     );
-    if (dbres == null || dbres.isEmpty) return;
-    for (final e in dbres) {
-      if (e is! Map<String, dynamic>) {
-        continue;
-      }
-      try {
-        yield Activity.fromDBJson(e);
-      } catch (err) {
-        logger.e('Error loading activity $e', error: err);
-      }
-    }
   }
 
   Future<Duration> getActivityDuration(DateTime time, Duration duration) async {
@@ -226,27 +170,12 @@ WHERE
     return Duration(seconds: dbres as int);
   }
 
-  DBRecord _constructDBEntryRecord(String entryid, String extensionid) =>
-      DBRecord('entry', base64.encode(utf8.encode('${entryid}_$extensionid')));
-
   Future<EntrySaved?> isSaved(Entry entry) async {
-    final dbentry = await db.select(
-      res: _constructDBEntryRecord(entry.id, entry.extension.id),
-    );
-    if (dbentry == null) return null;
-    return EntrySaved.fromJson(dbentry as Map<String, dynamic>);
+    return adapter.selectDataClass(constructEntryDBRecord(entry));
   }
 
-  Future<EntrySaved?> getEntry(String id, Extension extension) async {
-    final dbentry = await db.select(
-      res: _constructDBEntryRecord(id, extension.data.id),
-    );
-    if (dbentry == null) return null;
-    return EntrySaved.fromJson(dbentry as Map<String, dynamic>);
-  }
-
-  Future<void> removeEntry(EntryDetailed entry) async {
-    await db.delete(res: _constructDBEntryRecord(entry.id, entry.extension.id));
+  Future<void> removeEntry(EntrySaved entry) async {
+    await adapter.delete(entry);
     notifyListeners();
     final download = locate<DownloadService>();
     try {
@@ -261,45 +190,38 @@ WHERE
     }
   }
 
-  Future<void> updateEntry(EntryDetailed entry) async {
-    await db.upsert(
-      res: _constructDBEntryRecord(entry.id, entry.extension.id),
-      data: entry,
-    );
+  Future<void> updateEntry(EntrySaved entry) async {
+    await adapter.save(entry);
     notifyListeners();
   }
 
   Future<void> clear() async {
     await db.query(query: 'DELETE entry');
     await db.query(query: 'DELETE activity');
+    await db.query(query: 'DELETE category');
+    await db.query(query: 'DELETE extension');
   }
 
   Future<void> merge(String path) async {
     final otherdb = await AdapterSurrealDB.newFile(path);
     try {
       await initDB(otherdb);
-      await db.getAdapter<CrdtAdapter>().mergeCrdt(otherdb.getAdapter());
+      final CrdtAdapter adapter = db.getAdapter<CrdtAdapter>();
+      await db.getAdapter<CrdtAdapter>().sync(adapter.syncRepo);
     } finally {
       otherdb.dispose();
     }
   }
 
   Future<ExtensionMetaData> getExtensionMetaData(ExtensionData extdata) async {
-    final data = await db.select(res: DBRecord('extension', extdata.id));
-    if (data != null) {
-      return ExtensionMetaData(extdata.id, data['enabled'] as bool);
-    }
-    return ExtensionMetaData(extdata.id, true);
+    final data = await adapter.selectDataClass<ExtensionMetaData>(
+      constructExtensionDBRecord(extdata.id),
+    );
+    return data ?? ExtensionMetaData.empty(extdata.id);
   }
 
-  Future<void> setExtensionMetaData(
-    Extension extension,
-    ExtensionMetaData data,
-  ) async {
-    await db.upsert(
-      res: DBRecord('extension', data.id),
-      data: {'enabled': data.enabled},
-    );
+  Future<void> setExtensionMetaData(ExtensionMetaData data) async {
+    await adapter.save(data);
     notifyListeners();
   }
 }

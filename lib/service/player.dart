@@ -176,7 +176,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
           id: session.eppath.name,
           title: session.eppath.name,
           album: session.eppath.entry.title,
-          artist: session.eppath.entry.auther?[0],
+          artist: session.eppath.entry.author?[0],
           duration: session.player.state.duration,
           artUri: session.eppath.cover != null
               ? Uri.tryParse(session.eppath.cover!)
@@ -196,7 +196,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
         id: session.eppath.name,
         title: session.eppath.name,
         album: session.eppath.entry.title,
-        artist: session.eppath.entry.auther?[0],
+        artist: session.eppath.entry.author?[0],
         duration: session.player.state.duration,
         artUri: session.eppath.cover != null
             ? Uri.tryParse(session.eppath.cover!)
