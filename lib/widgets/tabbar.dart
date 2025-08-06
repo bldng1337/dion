@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/material.dart';
@@ -67,17 +69,34 @@ class _MaterialTabBarState extends State<MaterialTabBar>
     controller = TabController(length: tabcount, vsync: this);
     controller.addListener(() {
       if (controller.index == tabcount - 1 && widget.trailing != null) {
-        controller.animateTo(tabcount - 2);
+        controller.animateTo(max(0, tabcount - 2));
       }
     });
     super.initState();
   }
 
   @override
-  Widget build(BuildContext context) {
+  void didUpdateWidget(MaterialTabBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
     if (controller.length != tabcount) {
+      controller.dispose();
       controller = TabController(length: tabcount, vsync: this);
+      controller.addListener(() {
+        if (controller.index == tabcount - 1 && widget.trailing != null) {
+          controller.animateTo((tabcount - 2).clamp(0, tabcount - 2));
+        }
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         TabBar(

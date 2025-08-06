@@ -93,7 +93,7 @@ void showEditCategoriesDialog(BuildContext context, EntrySaved entry) {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Add Category'),
+            const Text('Edit Categories'),
             DionMultiDropdown(
               defaultItem: const Text('Choose a category'),
               items: value

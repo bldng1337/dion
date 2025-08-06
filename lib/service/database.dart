@@ -129,10 +129,11 @@ class Database extends ChangeNotifier {
       query: 'SELECT count() FROM entry WHERE count(categories) = 0',
     );
     if (res.isEmpty) return 0;
-    return res[0]['count'] as int;
+    return (res[0]['count'] as int?) ?? 0;
   }
 
   Future<int> getNumEntries(Category? category) async {
+    //TODO: Rework
     if (category == null) {
       final [res as List<dynamic>] = await db.query(
         query: 'SELECT count() FROM entry',

@@ -159,7 +159,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         if (subtitles.isNotEmpty)
           DropdownButton(
             value: subtitle,
-            icon: const Icon(Icons.subtitles, color: Colors.white),
+            icon: const Icon(Icons.subtitles),
             items: subtitles
                 .map((e) => DropdownMenuItem(value: e, child: Text(e.title)))
                 .toList(),
@@ -175,10 +175,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             },
           ),
         DionIconbutton(
-          icon: Icon(
-            epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
-            color: Colors.white,
-          ),
+          icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
           onPressed: () async {
             epdata.bookmark = !epdata.bookmark;
             await widget.source.episode.save();
@@ -188,14 +185,11 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           },
         ),
         DionIconbutton(
-          icon: const Icon(Icons.open_in_browser, color: Colors.white),
+          icon: const Icon(Icons.open_in_browser),
           onPressed: () =>
               launchUrl(Uri.parse(widget.source.episode.episode.url)),
         ),
-        DionIconbutton(
-          icon: const Icon(Icons.settings, color: Colors.white),
-          onPressed: () {},
-        ),
+        DionIconbutton(icon: const Icon(Icons.settings), onPressed: () {}),
       ],
       title: StreamBuilder(
         stream: player.stream.playlist,
@@ -231,7 +225,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                     },
                   ).paddingAll(25.0)
                 else
-                  25.widthBox,
+                  85.widthBox,
                 StreamBuilder(
                   stream: player.stream.playing,
                   builder: (context, snapshot) => DionIconbutton(
@@ -259,7 +253,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                     },
                   ).paddingAll(25.0)
                 else
-                  25.widthBox,
+                  85.widthBox,
               ],
             ),
             fullscreen: MaterialVideoControlsThemeData(

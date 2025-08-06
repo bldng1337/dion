@@ -58,11 +58,11 @@ class EpisodePath {
       download.download(
         Iterable.generate(
           min(
-                entry.settings.downloadNextEpisodes.value + episodenumber + 1,
+                entry.settings.downloadNextEpisodes.value + episodenumber,
                 episodes.length - 1,
               ) -
               episodenumber,
-          (index) => EpisodePath(entry, episodenumber + index),
+          (index) => EpisodePath(entry, episodenumber + 1 + index),
         ),
       );
       if (entry.settings.deleteOnFinish.value) {
@@ -84,7 +84,7 @@ class EpisodePath {
                 episodes.length - 1,
               ) -
               episodenumber,
-          (index) => EpisodePath(entry, episodenumber + index),
+          (index) => EpisodePath(entry, episodenumber + 1 + index),
         ),
       );
     }

@@ -199,7 +199,14 @@ class SourceExtensionSettingMetaData<T> extends SettingMetaData<T>
   @override
   String getLabel(T value) => switch (setting.ui) {
     final rust.SettingUI_Dropdown dropdown =>
-      dropdown.options.firstWhere((e) => e.value == value).label,
+      dropdown.options
+          .firstWhere(
+            (e) => e.value == value,
+            orElse: () => throw ArgumentError(
+              'Value $value not found in dropdown options',
+            ),
+          )
+          .label,
     _ => throw UnimplementedError(
       'Settingvalue conversion for $runtimeType not implemented',
     ),

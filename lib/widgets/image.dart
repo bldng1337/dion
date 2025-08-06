@@ -9,6 +9,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -206,13 +207,13 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
+                          DionIconbutton(
                             onPressed: () {
                               Navigator.pop(context);
                             },
                             icon: const Icon(Icons.close),
                           ),
-                          IconButton(
+                          DionIconbutton(
                             onPressed: () async {
                               final cache = locate<CacheService>().imgcache;
                               final fileinfo = await cache
@@ -227,9 +228,9 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                             },
                             icon: const Icon(Icons.share),
                           ),
-                          IconButton(
-                            onPressed: () {
-                              launchUrl(Uri.parse(widget.imageUrl!));
+                          DionIconbutton(
+                            onPressed: () async {
+                              await launchUrl(Uri.parse(widget.imageUrl!));
                             },
                             icon: const Icon(Icons.open_in_browser),
                           ),

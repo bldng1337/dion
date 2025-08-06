@@ -25,6 +25,7 @@ class Library extends StatefulWidget {
 }
 
 class PseudoCategory implements Category {
+  @override
   final String name;
   final DataSource<EntrySaved> entriesource;
 
@@ -89,6 +90,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
       Future.microtask(() async {
         final db = locate<Database>();
         if (await db.getNumEntriesWithoutCategory() == 0) return;
+        if (!mounted) return;
         setCategory(
           PseudoCategory(
             'No Category',
@@ -97,15 +99,17 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
             ),
           ),
         );
+        setState(() {});
       });
     }
     locate<Database>().getCategories().then((cats) async {
       final db = locate<Database>();
       for (final cat in cats) {
         if (await db.getNumEntries(cat) == 0) continue;
+        if (!mounted) return;
         setCategory(cat);
       }
-      setState(() {});
+      if (mounted) setState(() {});
     });
     super.initState();
   }

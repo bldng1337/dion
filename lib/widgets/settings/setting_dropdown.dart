@@ -16,19 +16,7 @@ class SettingDropdown<T> extends StatelessWidget {
     this.description,
     this.icon,
   });
-  /*
-DionPopupMenu(
-          items: setting.metadata.values
-              .map(
-                (e) => DionPopupMenuItem(
-                  label: Text(e.name),
-                  onTap: () => setting.value = e.value,
-                ),
-              )
-              .toList(),
-          child: Text(setting.metadata.getLabel(setting.value)),
-        )
-  */
+
   @override
   Widget build(BuildContext context) {
     final tile = DionListTile(

@@ -37,15 +37,16 @@ class EntrySettingMetaData<T> extends SettingMetaData<T>
     final rust.SettingUI_Dropdown dropdown =>
       dropdown.options.map((e) => EnumValue(e.label, e.value as T)).toList(),
     _ => throw UnimplementedError(
-      'Settingvalue conversion for $runtimeType not implemented',
+      'Setting UI type ${setting.ui.runtimeType} not supported for conversion in $runtimeType',
     ),
   };
+
   @override
   String getLabel(T value) => switch (setting.ui) {
     final rust.SettingUI_Dropdown dropdown =>
       dropdown.options.firstWhere((e) => e.value == value).label,
     _ => throw UnimplementedError(
-      'Settingvalue conversion for $runtimeType not implemented',
+      'Setting UI type ${setting.ui.runtimeType} not supported for label lookup in $runtimeType',
     ),
   };
 }
@@ -138,6 +139,7 @@ class EntrySavedSettings {
       'hideFinishedEpisodes': hideFinishedEpisodes.value,
       'downloadNextEpisodes': downloadNextEpisodes.value,
       'deleteOnFinish': deleteOnFinish.value,
+      'onlyShowBookmarked': onlyShowBookmarked.value,
     };
   }
 }
