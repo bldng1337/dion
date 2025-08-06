@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dionysos/views/view/update_settings.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse.dart';
@@ -96,6 +97,11 @@ GoRouter getRoutes() => GoRouter(
       pageBuilder: (context, state) =>
           getTransition(context, state, const Settings()),
       routes: [
+        GoRoute(
+          path: '/update',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const UpdateSettings()),
+        ),
         GoRoute(
           path: '/paragraphreader',
           pageBuilder: (context, state) =>

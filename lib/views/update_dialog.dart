@@ -4,6 +4,7 @@ import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UpdateDialog extends StatefulWidget {
   final Update update;
@@ -35,6 +36,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
             child: const Text('Close'),
             onPressed: () {
               Navigator.of(context).pop();
+            },
+          ),
+          DionTextbutton(
+            child: const Text('Go to download page'),
+            onPressed: () {
+              launchUrl(Uri.parse(widget.update.link));
             },
           ),
         ],

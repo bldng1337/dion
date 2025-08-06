@@ -65,20 +65,31 @@ class Update {
   }
 }
 
-Future<void> notify(Update update) async {
-  if (settings.update.lastnotified.value.canonicalizedVersion ==
-      update.version.canonicalizedVersion) {
-    return;
-  }
-  if (kDebugMode) {
-    return;
+Future<void> notify(Update update, {bool force = false}) async {
+  if (!force) {
+    if (settings.update.lastnotified.value.canonicalizedVersion ==
+        update.version.canonicalizedVersion) {
+      return;
+    }
+    final version = await getVersion();
+    final versiondiff = (
+      (update.version.major - version.major).abs().sign,
+      (update.version.minor - version.minor).abs().sign,
+      (update.version.patch - version.patch).abs().sign,
+    );
+    if (!settings.update.patch.value && versiondiff == (0, 0, 1)) {
+      return;
+    }
+    if (!settings.update.minor.value && versiondiff == (0, 1, 0)) {
+      return;
+    }
   }
   settings.update.lastnotified.value = update.version;
-  logger.i('New update available: ${update.version}');
   await showDialog(
     context: navigatorKey.currentContext!,
     builder: (context) => UpdateDialog(update: update),
   );
+  logger.i('Notifying user of update');
 }
 
 Future<void> downloadUpdate(
@@ -96,14 +107,12 @@ Future<void> downloadUpdate(
   };
   final dirprovider = locate<DirectoryProvider>();
   final file = dirprovider.temppath.getFile(asset.filename);
-  await InternetFile.save(
+  await InternetFile.streamToFile(
     asset.url,
     file,
-    headers: const HttpHeaders.map({
-      HttpHeaderName.userAgent: 'bldng1337/dion',
-    }),
-    onReceiveProgress: (current, max) =>
-        onReceiveProgress?.call(current / max, 'Downloading ${asset.filename}'),
+    headers: {'userAgent': 'bldng1337/dion'},
+    onReceiveProgress: (prog) =>
+        onReceiveProgress?.call(prog, 'Downloading ${asset.filename}'),
   );
   onReceiveProgress?.call(null, 'Installing ${asset.filename}');
   switch (getPlatform()) {
@@ -131,38 +140,50 @@ Future<Update?> checkUpdate() async {
       HttpHeaderName.userAgent: 'bldng1337/dion',
     }),
   );
-  final versions = (res.bodyToJson as List<dynamic>)
+  var versions = (res.bodyToJson as List<dynamic>)
       .map((e) => Update.fromJson(e as Map<String, dynamic>))
+      .toList();
+  logger.i('Found ${versions.length} update(s)');
+  versions = versions
       .where(
         (e) => e.version.canonicalizedVersion != version.canonicalizedVersion,
       )
-      .where((e) => e.version >= version)
+      .toList();
+  logger.i('Found ${versions.length} update(s)');
+  for (final e in versions) {
+    logger.i(
+      'Checking ${e.version.canonicalizedVersion}>=$version ${e.version >= version}',
+    );
+  }
+  versions = versions.where((e) => e.version >= version).toList();
+  logger.i('Found ${versions.length} update(s)');
+  versions = versions
       .where(
         (e) =>
             !e.version.isPreRelease ||
             (settings.update.channel.value == UpdateChannel.beta),
       )
       .toList();
+  logger.i('Found ${versions.length} update(s)');
   if (versions.isEmpty) {
     return null;
   }
   final newversion = versions.first;
-  if (!newversion.version.isPreRelease ||
-      (newversion.version.major == version.major &&
-          (newversion.version.minor == version.minor ||
-              !settings.update.minor.value) &&
-          (newversion.version.patch == version.patch ||
-              !settings.update.patch.value))) {
-    return null;
-  }
   return newversion;
 }
 
-Future<void> checkVersion() async {
+Future<void> checkVersion({bool force = false}) async {
+  if (!force) {
+    if (kDebugMode) {
+      return;
+    }
+  }
   try {
+    logger.i('Checking for updates');
     final update = await checkUpdate();
     if (update == null) return;
-    notify(update);
+    logger.i('New update available: ${update.version}');
+    await notify(update, force: force);
   } catch (e, stack) {
     logger.e('Failed to check for updates', error: e, stackTrace: stack);
   }

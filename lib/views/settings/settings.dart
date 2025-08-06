@@ -31,7 +31,7 @@ class Settings extends StatelessWidget {
                 onTap: () => context.push('/settings/imagelistreader'),
               ),
               ListTile(
-                title: Text('Sync Settings', style: context.bodyMedium),
+                title: Text('Sync', style: context.bodyMedium),
                 onTap: () => context.push('/settings/sync'),
               ),
               ListTile(
@@ -41,6 +41,10 @@ class Settings extends StatelessWidget {
               ListTile(
                 title: Text('Library', style: context.bodyMedium),
                 onTap: () => context.push('/settings/library'),
+              ),
+              ListTile(
+                title: Text('Update', style: context.bodyMedium),
+                onTap: () => context.push('/settings/update'),
               ),
             ],
           ),
