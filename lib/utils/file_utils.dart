@@ -13,6 +13,10 @@ extension FileUtils on File {
     return p.basename(path);
   }
 
+  String get filenameWithoutExtension {
+    return p.basenameWithoutExtension(path);
+  }
+
   String get extension {
     return p.extension(path, 99);
   }

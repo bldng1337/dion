@@ -5,10 +5,10 @@ import 'dart:io';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/directoryprovider.dart';
-import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/internetfile.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/ratelimit.dart';
 import 'package:dionysos/utils/service.dart';
@@ -25,12 +25,12 @@ class DownloadTask extends Task {
   Future<void> handleMetadata(Directory dir) async {
     if (ep.episode.cover != null) {
       status = 'Fetching Thumbnail';
-      await streamToFile(
+      await InternetFile.streamToFile(
         ep.episode.cover!,
-        'cover',
-        dir,
+        InternetFile.fromURI(ep.episode.cover!, dir, filename: 'cover'),
         headers: ep.episode.coverHeader,
         onReceiveProgress: (current) => progress = current,
+        rhttpToken: rhttpToken,
       );
       progress = null;
     }
@@ -64,22 +64,22 @@ class DownloadTask extends Task {
         switch (source.sourcedata) {
           case final LinkSource_Epub data:
             status = 'Downloading Epub';
-            final filename = await streamToFile(
+            final filename = await InternetFile.streamToFile(
               data.link,
-              'data',
-              dir,
+              InternetFile.fromURI(data.link, dir, filename: 'data'),
               onReceiveProgress: (current) => progress = current,
+              rhttpToken: rhttpToken,
             );
             progress = null;
             index['filetype'] = 'epub';
             index['filename'] = filename;
           case final LinkSource_Pdf data:
             status = 'Downloading PDF';
-            final filename = await streamToFile(
+            final filename = await InternetFile.streamToFile(
               data.link,
-              'data',
-              dir,
+              InternetFile.fromURI(data.link, dir, filename: 'data'),
               onReceiveProgress: (current) => progress = current,
+              rhttpToken: rhttpToken,
             );
             progress = null;
             index['filetype'] = 'pdf';
@@ -89,33 +89,37 @@ class DownloadTask extends Task {
             index['type'] = 'imagelist';
             final imagedata = [];
             for (final (index, image) in data.links.indexed) {
-              final name = await streamToFile(
+              final file = await InternetFile.streamToFile(
                 image,
-                'image$index',
-                dir,
+                InternetFile.fromURI(image, dir, filename: 'image$index'),
                 onReceiveProgress: (current) =>
                     progress = (index + current) / data.links.length,
                 headers: data.header,
+                rhttpToken: rhttpToken,
               );
               progress = null;
-              imagedata.add(name);
+              imagedata.add(file.filename);
             }
             index['images'] = imagedata;
             if (data.audio != null) {
               status = 'Downloading Audio';
               final audiodata = [];
               for (final (index, audio) in data.audio!.indexed) {
-                final name = await streamToFile(
+                final file = await InternetFile.streamToFile(
                   audio.link,
-                  'audio$index',
-                  dir,
+                  InternetFile.fromURI(
+                    audio.link,
+                    dir,
+                    filename: 'audio$index',
+                  ),
                   onReceiveProgress: (current) =>
                       progress = (index + current) / data.audio!.length,
                   headers: data.header,
+                  rhttpToken: rhttpToken,
                 );
                 progress = null;
                 audiodata.add({
-                  'name': name,
+                  'name': file.filename,
                   'from': audio.from,
                   'to': audio.to,
                 });
@@ -124,174 +128,34 @@ class DownloadTask extends Task {
             }
           case final LinkSource_M3u8 data:
             status = 'Downloading m3u8';
-            final res = await downloadm3u8(
+            final file = await InternetFile.downloadm3u8(
               data.link,
-              'playlist',
-              dir,
+              InternetFile.fromURI(data.link, dir, filename: 'playlist'),
               headers: data.headers,
               onReceiveProgress: (current) => progress = current,
+              rhttpToken: rhttpToken,
             );
             index['type'] = 'm3u8';
-            index['playlist'] = res;
+            index['playlist'] = file.filename;
           case final LinkSource_Mp3 data:
             status = 'Downloading MP3';
             final audiodata = [];
             for (final (index, audio) in data.chapters.indexed) {
-              final name = await streamToFile(
+              final file = await InternetFile.streamToFile(
                 audio.url,
-                'audio$index',
-                dir,
+                InternetFile.fromURI(audio.url, dir, filename: 'audio$index'),
                 onReceiveProgress: (current) =>
                     progress = (index + current) / data.chapters.length,
+                rhttpToken: rhttpToken,
               );
               progress = null;
-              audiodata.add({'title': audio.title, 'name': name});
+              audiodata.add({'title': audio.title, 'name': file.filename});
             }
             index['type'] = 'mp3';
             index['audio'] = audiodata;
         }
     }
     await dir.getFile('index.json').writeAsString(jsonEncode(index));
-  }
-
-  Function(int, int)? toRhttpProgress(
-    void Function(double)? onReceiveProgress,
-  ) {
-    if (onReceiveProgress == null) return null;
-    return (count, total) {
-      if (total < 0) return;
-      onReceiveProgress(count / total);
-    };
-  }
-
-  Future<String> downloadm3u8(
-    String link,
-    String name,
-    Directory dir, {
-    Map<String, String>? headers,
-    void Function(double)? onReceiveProgress,
-  }) async {
-    final network = locate<NetworkService>();
-    status = 'Fetching m3u8 file';
-    final res = await network.client.get(
-      link,
-      headers: headers != null ? rhttp.HttpHeaders.rawMap(headers) : null,
-      cancelToken: rhttpToken,
-    );
-    final m3u8 = res.body.split('\n');
-    if (m3u8[0] != '#EXTM3U') {
-      throw Exception('Invalid m3u8 file');
-    }
-
-    final contentdir = dir.sub(name);
-    if (!await contentdir.exists()) {
-      await contentdir.create(recursive: true);
-    }
-    status = 'Downloading m3u8 content';
-    final playlist = m3u8.sublist(1);
-    var part = 0;
-    final urimatcher = RegExp('URI="(.*)"');
-    final newplaylist = <String>[];
-    for (var (index, e) in playlist.indexed) {
-      onReceiveProgress?.call(index / playlist.length.toDouble());
-      if (e.trim().isEmpty) continue;
-      final links = e.startsWith('#')
-          ? urimatcher
-                .allMatches(e)
-                .map((e) => e.group(1))
-                .where((e) => e != null)
-                .cast<String>()
-                .map((e) => e.trim())
-                .where((e) => e.isNotEmpty)
-          : [e];
-      for (final artefactLink in links) {
-        if (artefactLink.endsWith('.m3u8') || artefactLink.endsWith('.m3u')) {
-          final res = await downloadm3u8(
-            formatURI(artefactLink, link),
-            'artefact$part',
-            contentdir,
-            headers: headers,
-            onReceiveProgress: onReceiveProgress != null
-                ? (progress) => onReceiveProgress(
-                    (progress + index) / playlist.length.toDouble(),
-                  )
-                : null,
-          );
-          part++;
-          e = e.replaceAll(
-            artefactLink,
-            contentdir.getFile(res).relativePath(dir),
-          );
-        } else {
-          final res = await streamToFile(
-            formatURI(artefactLink, link),
-            'artefact$part',
-            contentdir,
-            headers: headers,
-            onReceiveProgress: onReceiveProgress != null
-                ? (progress) => onReceiveProgress(
-                    (progress + index) / playlist.length.toDouble(),
-                  )
-                : null,
-          );
-          part++;
-          e = e.replaceAll(
-            artefactLink,
-            contentdir.getFile(res).relativePath(dir),
-          );
-        }
-      }
-      newplaylist.add(e);
-    }
-    status = 'Writing m3u8 file';
-    progress = null;
-    final fileending = parseFileending(link) ?? 'm3u8';
-    await dir
-        .getFile('$name$fileending')
-        .writeAsString('#EXTM3U\n${newplaylist.join('\n')}');
-    return '$name$fileending';
-  }
-
-  String formatURI(String link, String location) {
-    if (!['http://', 'https://'].any((e) => link.startsWith(e))) {
-      return '${location.substring(0, location.lastIndexOf('/'))}/$link';
-    }
-    return link;
-  }
-
-  String? parseFileending(String link) {
-    final dotIndex = link.lastIndexOf('.');
-    if (dotIndex == -1) {
-      return null;
-    }
-    final fileending = link.substring(dotIndex);
-    if (fileending.isEmpty ||
-        fileending.contains('/') ||
-        fileending.contains('?')) {
-      return null;
-    }
-    return fileending;
-  }
-
-  Future<String> streamToFile(
-    String link,
-    String name,
-    Directory dir, {
-    Map<String, String>? headers,
-    void Function(double)? onReceiveProgress,
-  }) async {
-    final network = locate<NetworkService>();
-    final stream = await network.client.getStream(
-      link,
-      cancelToken: rhttpToken,
-      onReceiveProgress: toRhttpProgress(onReceiveProgress),
-      headers: headers != null ? rhttp.HttpHeaders.rawMap(headers) : null,
-    );
-    final fileending = parseFileending(link) ?? '';
-    final file = dir.getFile('$name$fileending');
-    await file.streamToFile(stream.body);
-
-    return file.filename;
   }
 
   @override
