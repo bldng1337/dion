@@ -61,8 +61,7 @@ class SettingView<
   T get _value => setting._value as T;
 
   @override
-  // TODO: implement _initialvalue
-  T get _initialvalue => throw UnimplementedError();
+  T get _initialvalue => setting._initialvalue as T;
 
   @override
   void addCollection<_T, _M extends SettingMetaData<_T>>(
