@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/source_extension.dart';

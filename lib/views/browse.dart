@@ -5,7 +5,7 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
-import 'package:dionysos/utils/extension_setting.dart';
+import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/settings/library.dart';

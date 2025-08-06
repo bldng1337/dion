@@ -5,7 +5,7 @@ import 'package:dionysos/utils/cache.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/ratelimit.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/utils/settings.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/tree.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inline_result/inline_result.dart';

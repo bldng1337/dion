@@ -1,5 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/utils/settings.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/slider.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +11,7 @@ class SettingSlider<T extends num> extends StatelessWidget {
   final Setting<T, dynamic> setting;
   final T min;
   final T max;
+  final T? step;
   const SettingSlider({
     super.key,
     required this.title,
@@ -19,6 +20,7 @@ class SettingSlider<T extends num> extends StatelessWidget {
     required this.setting,
     required this.min,
     required this.max,
+    this.step,
   });
 
   @override
@@ -40,6 +42,7 @@ class SettingSlider<T extends num> extends StatelessWidget {
                   max: max,
                   onChanged: (p0) => setState(() => value = p0),
                   onChangeEnd: (p0) => setting.value = p0,
+                  step: step,
                 ),
               ).expanded(),
             ],

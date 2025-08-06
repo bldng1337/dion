@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/network.dart';

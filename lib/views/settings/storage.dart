@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
-import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/service.dart';

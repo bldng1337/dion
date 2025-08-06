@@ -1,4 +1,4 @@
-import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:flutter/material.dart';

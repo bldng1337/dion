@@ -1,6 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/Category.dart';
-import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/async.dart';

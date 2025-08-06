@@ -1,5 +1,5 @@
-import 'package:dionysos/data/appsettings.dart';
-import 'package:dionysos/utils/settings.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_directory.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';

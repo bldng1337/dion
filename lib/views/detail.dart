@@ -5,6 +5,9 @@ import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/settings/entry_settings.dart';
+import 'package:dionysos/data/settings/extension_setting.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';
@@ -12,11 +15,9 @@ import 'package:dionysos/service/source_extension.dart' hide DropdownItem;
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/color.dart';
-import 'package:dionysos/utils/extension_setting.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/utils/settings.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/bounds.dart';
@@ -298,44 +299,46 @@ class _SettingsPopupState extends State<SettingsPopup>
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SettingTitle(title: 'Entry Settings'),
-          if (controller != null)
-            DionMultiDropdown(
-              defaultItem: const Text('Choose a category'),
-              controller: controller,
-              onSelectionChange: (selection) async {
-                widget.entry.categories = selection;
-              },
-            ).paddingAll(10),
-          SettingToggle(
-            title: 'Reverse Order',
-            setting: widget.entry.settings.reverse,
-          ),
-          SettingToggle(
-            title: 'Hide Finished Episodes',
-            setting: widget.entry.settings.hideFinishedEpisodes,
-          ),
-          SettingToggle(
-            title: 'Only Show Bookmarked Episodes',
-            setting: widget.entry.settings.onlyShowBookmarked,
-          ),
-          SettingSlider(
-            title: 'Autodownload Next Episodes',
-            setting: widget.entry.settings.downloadNextEpisodes,
-            min: 0,
-            max: 10,
-          ),
-          SettingToggle(
-            title: 'Delete On Finish',
-            setting: widget.entry.settings.deleteOnFinish,
-          ),
-          const SettingTitle(title: 'Extension Settings'),
-          for (final setting in extsettings)
-            ExtensionSettingView(setting: setting),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SettingTitle(title: 'Entry Settings'),
+            if (controller != null)
+              DionMultiDropdown(
+                defaultItem: const Text('Choose a category'),
+                controller: controller,
+                onSelectionChange: (selection) async {
+                  widget.entry.categories = selection;
+                },
+              ).paddingAll(10),
+            SettingToggle(
+              title: 'Reverse Order',
+              setting: widget.entry.settings.reverse,
+            ),
+            SettingToggle(
+              title: 'Hide Finished Episodes',
+              setting: widget.entry.settings.hideFinishedEpisodes,
+            ),
+            SettingToggle(
+              title: 'Only Show Bookmarked Episodes',
+              setting: widget.entry.settings.onlyShowBookmarked,
+            ),
+            SettingSlider(
+              title: 'Autodownload Next Episodes',
+              setting: widget.entry.settings.downloadNextEpisodes,
+              min: 0,
+              max: 10,
+            ),
+            SettingToggle(
+              title: 'Delete On Finish',
+              setting: widget.entry.settings.deleteOnFinish,
+            ),
+            const SettingTitle(title: 'Extension Settings'),
+            for (final setting in extsettings)
+              ExtensionSettingView(setting: setting),
+          ],
+        ),
       ),
     );
   }
@@ -933,48 +936,54 @@ class EpisodeTile extends StatelessWidget {
           ).expanded(),
         ],
       ),
-      trailing: SizedBox(
-        width: 40,
-        height: 40,
-        child: StreamBuilder(
-          stream: locate<DownloadService>().getStatus(episodepath),
-          builder: (context, snapshot) {
-            return switch (snapshot.data?.status) {
-              Status.nodownload => DionIconbutton(
-                icon: const Icon(Icons.download),
-                onPressed: () async {
-                  await locate<DownloadService>().download([episodepath]);
+      trailing: episodepath.entry is! EntrySaved
+          ? null
+          : SizedBox(
+              width: 40,
+              height: 40,
+              child: StreamBuilder(
+                stream: locate<DownloadService>().getStatus(episodepath),
+                builder: (context, snapshot) {
+                  return switch (snapshot.data?.status) {
+                    Status.nodownload => DionIconbutton(
+                      icon: const Icon(Icons.download),
+                      onPressed: () async {
+                        await locate<DownloadService>().download([episodepath]);
+                      },
+                    ),
+                    Status.downloading => ListenableBuilder(
+                      listenable: snapshot.data!.task!,
+                      builder: (context, child) => switch (snapshot
+                          .data
+                          ?.task
+                          ?.taskstatus) {
+                        TaskStatus.idle => const Icon(Icons.pending_actions),
+                        TaskStatus.running || null => CircularProgressIndicator(
+                          value: snapshot.data?.task?.progress,
+                        ),
+                        TaskStatus.error => DionIconbutton(
+                          icon: const Icon(Icons.error),
+                          onPressed: () {
+                            snapshot.data!.task!.clearError();
+                            final mngr = locate<TaskManager>();
+                            mngr.update();
+                          },
+                        ),
+                      },
+                    ),
+                    null => const CircularProgressIndicator(),
+                    Status.downloaded => DionIconbutton(
+                      icon: const Icon(Icons.check),
+                      onPressed: () async {
+                        await locate<DownloadService>().deleteEpisode(
+                          episodepath,
+                        );
+                      },
+                    ),
+                  };
                 },
               ),
-              Status.downloading => ListenableBuilder(
-                listenable: snapshot.data!.task!,
-                builder: (context, child) =>
-                    switch (snapshot.data?.task?.taskstatus) {
-                      TaskStatus.idle => const Icon(Icons.pending_actions),
-                      TaskStatus.running || null => CircularProgressIndicator(
-                        value: snapshot.data?.task?.progress,
-                      ),
-                      TaskStatus.error => DionIconbutton(
-                        icon: const Icon(Icons.error),
-                        onPressed: () {
-                          snapshot.data!.task!.clearError();
-                          final mngr = locate<TaskManager>();
-                          mngr.update();
-                        },
-                      ),
-                    },
-              ),
-              null => const CircularProgressIndicator(),
-              Status.downloaded => DionIconbutton(
-                icon: const Icon(Icons.check),
-                onPressed: () async {
-                  await locate<DownloadService>().deleteEpisode(episodepath);
-                },
-              ),
-            };
-          },
-        ),
-      ),
+            ),
     );
   }
 }

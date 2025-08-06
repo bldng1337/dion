@@ -1,5 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/utils/settings.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/buttons/togglebutton.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:flutter/material.dart';

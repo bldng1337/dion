@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dionysos/data/Category.dart';
-import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';

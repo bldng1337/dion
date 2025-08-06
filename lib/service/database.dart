@@ -1,10 +1,10 @@
 import 'package:async/async.dart';
 import 'package:dionysos/data/Category.dart';
-import 'package:dionysos/data/activity.dart';
-import 'package:dionysos/data/appsettings.dart';
+import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/preference.dart';
