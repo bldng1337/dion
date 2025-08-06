@@ -23,12 +23,25 @@ class DionTab {
 
 class DionTabBar extends StatelessWidget {
   final List<DionTab> tabs;
-  const DionTabBar({super.key, required this.tabs});
+  final Widget? trailing;
+  final bool hideIfSingle;
+  const DionTabBar({
+    super.key,
+    required this.tabs,
+    this.trailing,
+    this.hideIfSingle = true,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (tabs.isEmpty) {
+      return nil;
+    }
+    if (hideIfSingle && tabs.length == 1) {
+      return tabs.first.child;
+    }
     return switch (context.diontheme.mode) {
-      DionThemeMode.material => MaterialTabBar(tabs: tabs),
+      DionThemeMode.material => MaterialTabBar(tabs: tabs, trailing: trailing),
       DionThemeMode.cupertino => throw UnimplementedError(),
     };
   }
@@ -36,7 +49,8 @@ class DionTabBar extends StatelessWidget {
 
 class MaterialTabBar extends StatefulWidget {
   final List<DionTab> tabs;
-  const MaterialTabBar({super.key, required this.tabs});
+  final Widget? trailing;
+  const MaterialTabBar({super.key, required this.tabs, this.trailing});
 
   @override
   State<MaterialTabBar> createState() => _MaterialTabBarState();
@@ -46,26 +60,40 @@ class _MaterialTabBarState extends State<MaterialTabBar>
     with TickerProviderStateMixin {
   late TabController controller;
 
+  int get tabcount => widget.tabs.length + (widget.trailing != null ? 1 : 0);
+
   @override
   void initState() {
-    controller = TabController(length: widget.tabs.length, vsync: this);
+    controller = TabController(length: tabcount, vsync: this);
+    controller.addListener(() {
+      if (controller.index == tabcount - 1 && widget.trailing != null) {
+        controller.animateTo(tabcount - 2);
+      }
+    });
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (controller.length != widget.tabs.length) {
-      controller = TabController(length: widget.tabs.length, vsync: this);
+    if (controller.length != tabcount) {
+      controller = TabController(length: tabcount, vsync: this);
     }
     return Column(
       children: [
         TabBar(
-          tabs: widget.tabs.map((e) => e.tab.paddingAll(5)).toList(),
+          isScrollable: true,
+          tabs: [
+            ...widget.tabs.map((e) => e.tab.paddingAll(5)),
+            if (widget.trailing != null) widget.trailing!,
+          ],
           controller: controller,
         ),
         TabBarView(
           controller: controller,
-          children: widget.tabs.map((e) => e.child).toList(),
+          children: [
+            ...widget.tabs.map((e) => e.child),
+            if (widget.trailing != null) nil,
+          ],
         ).expanded(),
       ],
     );

@@ -79,7 +79,6 @@ class PreferenceDoubleMetaData extends PreferenceMetaData<double> {
 
 class PreferenceEnumMetaData<T extends Enum> extends PreferenceMetaData<T>
     implements EnumMetaData<T> {
-  @override
   final List<T> enumvalues;
   const PreferenceEnumMetaData(super.id, this.enumvalues);
 
@@ -89,6 +88,15 @@ class PreferenceEnumMetaData<T extends Enum> extends PreferenceMetaData<T>
 
   @override
   String stringify(T value) => value.name;
+
+  @override
+  List<EnumValue<T>> get values =>
+      enumvalues.map((e) => EnumValue(e.name, e)).toList();
+
+  @override
+  String getLabel(T value) {
+    return value.name;
+  }
 }
 
 class PreferenceDirectoryMetaData extends PreferenceMetaData<Directory?> {
@@ -116,6 +124,13 @@ enum ReaderMode { paginated }
 enum UpdateChannel { stable, beta }
 
 final settings = (
+  library: (
+    showAllTab: Setting(false, const PreferenceBoolMetaData('library.showall')),
+    showNoneTab: Setting(
+      true,
+      const PreferenceBoolMetaData('library.shownone'),
+    ),
+  ),
   audioBookSettings: (
     volume: Setting(50.0, const PreferenceDoubleMetaData('audiobook.volume')),
     speed: Setting(1.0, const PreferenceDoubleMetaData('audiobook.speed')),

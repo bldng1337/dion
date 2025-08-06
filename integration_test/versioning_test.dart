@@ -65,6 +65,7 @@ entrydata.EntryDetailed getEntryDetailed(Extension ext) =>
     );
 
 entrydata.EntrySaved getEntrySaved(Extension ext) => entrydata.EntrySaved(
+  settings: entrydata.EntrySavedSettings.defaultSettings(),
   entry: const EntryDetailed(
     id: 'test',
     url: 'url',

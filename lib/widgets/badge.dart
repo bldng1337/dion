@@ -19,7 +19,7 @@ class DionBadge extends StatelessWidget {
         borderRadius: const BorderRadius.all(Radius.circular(4)),
         color: color ?? context.theme.primaryColor,
       ),
-      child: Center(child: child).paddingAll(noPadding ? 0 : 3),
+      child: child.paddingAll(noPadding ? 0 : 3),
     ).paddingAll(3);
   }
 }

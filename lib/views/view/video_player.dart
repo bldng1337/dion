@@ -159,7 +159,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         if (subtitles.isNotEmpty)
           DropdownButton(
             value: subtitle,
-            icon: const Icon(Icons.subtitles),
+            icon: const Icon(Icons.subtitles, color: Colors.white),
             items: subtitles
                 .map((e) => DropdownMenuItem(value: e, child: Text(e.title)))
                 .toList(),
@@ -175,7 +175,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             },
           ),
         DionIconbutton(
-          icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
+          icon: Icon(
+            epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
+            color: Colors.white,
+          ),
           onPressed: () async {
             epdata.bookmark = !epdata.bookmark;
             await widget.source.episode.save();
@@ -185,11 +188,14 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           },
         ),
         DionIconbutton(
-          icon: const Icon(Icons.open_in_browser),
+          icon: const Icon(Icons.open_in_browser, color: Colors.white),
           onPressed: () =>
               launchUrl(Uri.parse(widget.source.episode.episode.url)),
         ),
-        DionIconbutton(icon: const Icon(Icons.settings), onPressed: () {}),
+        DionIconbutton(
+          icon: const Icon(Icons.settings, color: Colors.white),
+          onPressed: () {},
+        ),
       ],
       title: StreamBuilder(
         stream: player.stream.playlist,
@@ -215,11 +221,17 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
               primaryButtonBar: [
                 if (widget.source.episode.hasprev)
                   DionIconbutton(
-                    icon: const Icon(Icons.skip_previous, size: 35),
+                    icon: const Icon(
+                      Icons.skip_previous,
+                      size: 35,
+                      color: Colors.white,
+                    ),
                     onPressed: () {
                       widget.source.episode.goPrev(widget.source);
                     },
-                  ).paddingAll(25.0),
+                  ).paddingAll(25.0)
+                else
+                  25.widthBox,
                 StreamBuilder(
                   stream: player.stream.playing,
                   builder: (context, snapshot) => DionIconbutton(
@@ -228,6 +240,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                           ? Icons.pause
                           : Icons.play_arrow,
                       size: 35,
+                      color: Colors.white,
                     ),
                     onPressed: () async {
                       player.playOrPause();
@@ -236,11 +249,17 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 ).paddingAll(25.0),
                 if (widget.source.episode.hasnext)
                   DionIconbutton(
-                    icon: const Icon(Icons.skip_next, size: 35),
+                    icon: const Icon(
+                      Icons.skip_next,
+                      size: 35,
+                      color: Colors.white,
+                    ),
                     onPressed: () {
                       widget.source.episode.goNext(widget.source);
                     },
-                  ).paddingAll(25.0),
+                  ).paddingAll(25.0)
+                else
+                  25.widthBox,
               ],
             ),
             fullscreen: MaterialVideoControlsThemeData(

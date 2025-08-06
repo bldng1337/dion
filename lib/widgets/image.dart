@@ -7,6 +7,7 @@ import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
+import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/foundation.dart';
@@ -71,8 +72,8 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
         .getImageFile(
           url,
           headers: httpHeaders,
-          maxHeight: height?.toInt(),
-          maxWidth: width?.toInt(),
+          // maxHeight: height?.toInt(),
+          // maxWidth: width?.toInt(),
         )
         .where((e) => e is FileInfo)
         .last;
@@ -193,10 +194,15 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
             builder: (context) => Dialog.fullscreen(
               backgroundColor: Colors.transparent,
               child: GestureDetector(
-                child: Column(
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
                   children: [
-                    buildImage(context, fullscreen: true).expanded(),
-                    Center(
+                    InteractiveViewer(
+                      minScale: 0.1,
+                      maxScale: 6,
+                      child: buildImage(context, fullscreen: true),
+                    ),
+                    DionBadge(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -229,7 +235,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                           ),
                         ],
                       ),
-                    ),
+                    ).paddingOnly(bottom: 5),
                   ],
                 ).paddingAll(20),
                 onTap: () {
@@ -246,8 +252,8 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
   }
 
   Widget buildImage(BuildContext context, {bool fullscreen = false}) {
-    final width = fullscreen ? null : widget.width;
-    final height = fullscreen ? null : widget.height;
+    final width = fullscreen ? context.width : widget.width;
+    final height = fullscreen ? context.height : widget.height;
     final boxfit = fullscreen
         ? BoxFit.contain
         : widget.boxFit ?? BoxFit.contain;
@@ -261,7 +267,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         height: height,
         httpHeaders: widget.httpHeaders,
       ),
-      filterQuality: widget.filterQuality ?? FilterQuality.medium,
+      filterQuality: widget.filterQuality ?? FilterQuality.high,
       width: width,
       height: height,
       fit: boxfit,

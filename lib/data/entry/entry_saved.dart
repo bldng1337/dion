@@ -31,6 +31,23 @@ class EntrySettingMetaData<T> extends SettingMetaData<T>
 
   @override
   rust.Setting get setting => entry._getSetting(settingkey)!;
+
+  @override
+  List<EnumValue<T>> get values => switch (setting.ui) {
+    final rust.SettingUI_Dropdown dropdown =>
+      dropdown.options.map((e) => EnumValue(e.label, e.value as T)).toList(),
+    _ => throw UnimplementedError(
+      'Settingvalue conversion for $runtimeType not implemented',
+    ),
+  };
+  @override
+  String getLabel(T value) => switch (setting.ui) {
+    final rust.SettingUI_Dropdown dropdown =>
+      dropdown.options.firstWhere((e) => e.value == value).label,
+    _ => throw UnimplementedError(
+      'Settingvalue conversion for $runtimeType not implemented',
+    ),
+  };
 }
 
 class EpisodeData {
@@ -68,12 +85,71 @@ class EpisodeData {
   }
 }
 
+class EntrySavedSettings {
+  Setting<bool, SettingMetaData> reverse;
+  Setting<bool, SettingMetaData> hideFinishedEpisodes;
+  Setting<bool, SettingMetaData> onlyShowBookmarked;
+
+  Setting<int, SettingMetaData> downloadNextEpisodes;
+  Setting<bool, SettingMetaData> deleteOnFinish;
+
+  EntrySavedSettings({
+    bool? reverse,
+    bool? hideFinishedEpisodes,
+    int? downloadNextEpisodes,
+    bool? deleteOnFinish,
+    bool? onlyShowBookmarked,
+  }) : reverse = Setting(reverse ?? false, const SettingMetaData()),
+       hideFinishedEpisodes = Setting(
+         hideFinishedEpisodes ?? false,
+         const SettingMetaData(),
+       ),
+       onlyShowBookmarked = Setting(
+         onlyShowBookmarked ?? false,
+         const SettingMetaData(),
+       ),
+       downloadNextEpisodes = Setting(
+         downloadNextEpisodes ?? 0,
+         const SettingMetaData(),
+       ),
+       deleteOnFinish = Setting(
+         deleteOnFinish ?? false,
+         const SettingMetaData(),
+       );
+
+  factory EntrySavedSettings.defaultSettings() {
+    return EntrySavedSettings();
+  }
+
+  factory EntrySavedSettings.fromJson(dynamic json) {
+    if (json == null) return EntrySavedSettings.defaultSettings();
+    return EntrySavedSettings(
+      reverse: json['reverse'] as bool,
+      hideFinishedEpisodes: json['hideFinishedEpisodes'] as bool,
+      downloadNextEpisodes: json['downloadNextEpisodes'] as int,
+      deleteOnFinish: json['deleteOnFinish'] as bool,
+      onlyShowBookmarked: json['onlyShowBookmarked'] as bool,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'reverse': reverse.value,
+      'hideFinishedEpisodes': hideFinishedEpisodes.value,
+      'downloadNextEpisodes': downloadNextEpisodes.value,
+      'deleteOnFinish': deleteOnFinish.value,
+    };
+  }
+}
+
 class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   @override
   final Extension extension;
   rust.EntryDetailed entry;
 
   List<Category> categories;
+  EntrySavedSettings settings;
+
   List<EpisodeData> _episodedata;
   int episode;
 
@@ -83,6 +159,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     required List<EpisodeData> episodedata,
     required this.extension,
     required this.episode,
+    required this.settings,
   }) : _episodedata = episodedata;
 
   factory EntrySaved.fromEntryDetailed(EntryDetailedImpl entry) {
@@ -92,6 +169,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
       episodedata: [],
       extension: entry.extension,
       episode: 0,
+      settings: EntrySavedSettings.defaultSettings(),
     );
   }
 
@@ -129,7 +207,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     return entry.settings?[key];
   }
 
-  List<Setting<dynamic, EntrySettingMetaData<dynamic>>> get settings {
+  List<Setting<dynamic, EntrySettingMetaData<dynamic>>> get extsettings {
     if (rawsettings == null) return [];
     return rawsettings!.entries
         .map((e) => e.value.toSetting(EntrySettingMetaData(this, e.key)))
@@ -188,9 +266,13 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     return this;
   }
 
-  Future<void> save() async {}
+  Future<void> save() async {
+    await locate<Database>().updateEntry(this);
+  }
 
-  Future<void> delete() async {}
+  Future<void> delete() async {
+    await locate<Database>().removeEntry(this);
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -218,6 +300,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
           [],
       extension: exts.getExtension(json['extensionid'] as String),
       episode: (json['episode'] as int?) ?? 0,
+      settings: EntrySavedSettings.fromJson(json['settings']),
     );
   }
 

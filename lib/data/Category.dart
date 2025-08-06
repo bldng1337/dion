@@ -1,6 +1,10 @@
 import 'dart:async';
 
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/versioning.dart';
+import 'package:dionysos/service/database.dart';
+import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/metis.dart';
 import 'package:uuid/uuid.dart';
@@ -41,4 +45,8 @@ class Category with DBConstClass {
 
   @override
   FutureOr<Map<String, dynamic>> toDBJson() => toJson();
+
+  DataSource<EntrySaved> getEntries() => SingleStreamSource(
+    (i) => locate<Database>().getEntriesInCategory(this, i, 25),
+  );
 }

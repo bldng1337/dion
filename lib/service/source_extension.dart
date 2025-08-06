@@ -187,6 +187,23 @@ class SourceExtensionSettingMetaData<T> extends SettingMetaData<T>
 
   @override
   rust.Setting get setting => extsetting.setting;
+
+  @override
+  List<EnumValue<T>> get values => switch (setting.ui) {
+    final rust.SettingUI_Dropdown dropdown =>
+      dropdown.options.map((e) => EnumValue(e.label, e.value as T)).toList(),
+    _ => throw UnimplementedError(
+      'Settingvalue conversion for $runtimeType not implemented',
+    ),
+  };
+  @override
+  String getLabel(T value) => switch (setting.ui) {
+    final rust.SettingUI_Dropdown dropdown =>
+      dropdown.options.firstWhere((e) => e.value == value).label,
+    _ => throw UnimplementedError(
+      'Settingvalue conversion for $runtimeType not implemented',
+    ),
+  };
 }
 
 class SourceExtension {
@@ -229,7 +246,7 @@ class SourceExtension {
   }
 
   Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
-    if (e is EntryImpl) {
+    if (e is EntryDetailedImpl) {
       throw Exception('Use update(EntrySaved) instead');
     }
     return EntryDetailedImpl(

@@ -8,6 +8,7 @@ import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/extension_setting.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
@@ -188,6 +189,13 @@ class _EntryDisplayState extends State<EntryDisplay> {
             onTap: () async {
               await (item as EntrySaved).delete();
               setState(() {});
+            },
+          ),
+        if (item is EntrySaved)
+          ContextMenuItem(
+            label: 'Edit Categories',
+            onTap: () async {
+              showEditCategoriesDialog(context, item as EntrySaved);
             },
           ),
       ],

@@ -32,6 +32,9 @@ import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/settings/setting_slider.dart';
+import 'package:dionysos/widgets/settings/setting_title.dart';
+import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:dionysos/widgets/tabbar.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
@@ -264,12 +267,12 @@ class SettingsPopup extends StatefulWidget {
 class _SettingsPopupState extends State<SettingsPopup>
     with StateDisposeScopeMixin {
   MultiDropdownController<Category>? controller;
-  late final List<Setting<dynamic, EntrySettingMetaData<dynamic>>> settings;
+  late final List<Setting<dynamic, EntrySettingMetaData<dynamic>>> extsettings;
   @override
   void initState() {
     super.initState();
     final db = locate<Database>();
-    settings = widget.entry.settings;
+    extsettings = widget.entry.extsettings;
     scope.addDispose(() {
       widget.entry.save();
     });
@@ -286,24 +289,51 @@ class _SettingsPopupState extends State<SettingsPopup>
   }
 
   @override
+  void dispose() {
+    widget.entry.save();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Settings'),
+          const SettingTitle(title: 'Entry Settings'),
           if (controller != null)
             DionMultiDropdown(
               defaultItem: const Text('Choose a category'),
               controller: controller,
               onSelectionChange: (selection) async {
                 widget.entry.categories = selection;
-                await widget.entry.save();
               },
             ).paddingAll(10),
-          const Text('Extension Settings'),
-          for (final setting in settings)
+          SettingToggle(
+            title: 'Reverse Order',
+            setting: widget.entry.settings.reverse,
+          ),
+          SettingToggle(
+            title: 'Hide Finished Episodes',
+            setting: widget.entry.settings.hideFinishedEpisodes,
+          ),
+          SettingToggle(
+            title: 'Only Show Bookmarked Episodes',
+            setting: widget.entry.settings.onlyShowBookmarked,
+          ),
+          SettingSlider(
+            title: 'Autodownload Next Episodes',
+            setting: widget.entry.settings.downloadNextEpisodes,
+            min: 0,
+            max: 10,
+          ),
+          SettingToggle(
+            title: 'Delete On Finish',
+            setting: widget.entry.settings.deleteOnFinish,
+          ),
+          const SettingTitle(title: 'Extension Settings'),
+          for (final setting in extsettings)
             ExtensionSettingView(setting: setting),
         ],
       ),
@@ -527,10 +557,15 @@ class EntryInfo extends StatelessWidget {
         isEntryDetailed(
           context: context,
           entry: entry,
-          isdetailed: (entry) => DionBadge(
-            color: context.primaryColor.lighten(5),
-            child: CustomUIWidget(ui: entry.ui, extension: entry.extension),
-          ).paddingAll(5),
+          isdetailed: (entry) => entry.ui == null
+              ? nil
+              : DionBadge(
+                  color: context.theme.primaryColor.lighten(5),
+                  child: CustomUIWidget(
+                    ui: entry.ui,
+                    extension: entry.extension,
+                  ),
+                ).paddingAll(5),
           isnt: () => nil,
           shimmer: false,
         ),
@@ -596,148 +631,231 @@ class _EpListState extends State<EpList> with StateDisposeScopeMixin {
     return List.empty();
   }
 
+  List<ContextMenuItem> get contextItems => [
+    ContextMenuItem(
+      label: 'Bookmark',
+      onTap: () async {
+        for (final int i in selection) {
+          final data = (widget.entry as EntrySaved).getEpisodeData(i);
+          data.bookmark = true;
+        }
+        selected.clear();
+        setState(() {});
+        await (widget.entry as EntrySaved).save();
+      },
+    ),
+    ContextMenuItem(
+      label: 'Remove Bookmark',
+      onTap: () async {
+        for (final int i in selection) {
+          final data = (widget.entry as EntrySaved).getEpisodeData(i);
+          data.bookmark = false;
+        }
+        selected.clear();
+        setState(() {});
+        await (widget.entry as EntrySaved).save();
+      },
+    ),
+    ContextMenuItem(
+      label: 'Mark as finished',
+      onTap: () async {
+        for (final int i in selection) {
+          final data = (widget.entry as EntrySaved).getEpisodeData(i);
+          data.finished = true;
+        }
+        selected.clear();
+        setState(() {});
+        await (widget.entry as EntrySaved).save();
+      },
+    ),
+    ContextMenuItem(
+      label: 'Mark as unfinished',
+      onTap: () async {
+        for (final int i in selection) {
+          final data = (widget.entry as EntrySaved).getEpisodeData(i);
+          data.finished = false;
+          data.progress = null;
+        }
+        selected.clear();
+        setState(() {});
+        await (widget.entry as EntrySaved).save();
+      },
+    ),
+    ContextMenuItem(
+      label: 'Download',
+      onTap: () async {
+        final download = locate<DownloadService>();
+        await download.download(
+          selection.map((index) => EpisodePath(widget.entry, index)),
+        );
+        selected.clear();
+        setState(() {});
+      },
+    ),
+    ContextMenuItem(
+      label: 'Delete Download',
+      onTap: () async {
+        final download = locate<DownloadService>();
+        await download.deleteEpisodes(
+          selection.map((index) => EpisodePath(widget.entry, index)),
+        );
+        selected.clear();
+        setState(() {});
+      },
+    ),
+    if (selection.length == 1) ...[
+      ContextMenuItem(
+        label: 'Open in Browser',
+        onTap: () async {
+          await launchUrl(
+            Uri.parse(widget.entry.episodes[selection.first].url),
+          );
+        },
+      ),
+    ],
+    ContextMenuItem(
+      label: 'Select to this episode',
+      onTap: () async {
+        selected.clear();
+        selected.addAll(
+          Iterable.generate(
+            selection.reduce((a, b) => max(a, b)) + 1,
+            (index) => index,
+          ),
+        );
+        setState(() {});
+      },
+    ),
+    if (widget.entry is EntrySaved)
+      ContextMenuItem(
+        label: 'Select finished episodes',
+        onTap: () async {
+          selected.clear();
+          selected.addAll(
+            widget.entry.episodes.indexed
+                .where(
+                  (e) => (widget.entry as EntrySaved)
+                      .getEpisodeData(e.$1)
+                      .finished,
+                )
+                .map((e) => e.$1)
+                .toList(),
+          );
+          setState(() {});
+        },
+      ),
+    if (widget.entry is EntrySaved)
+      ContextMenuItem(
+        label: 'Select unfinished episodes',
+        onTap: () async {
+          selected.clear();
+          selected.addAll(
+            widget.entry.episodes.indexed
+                .where(
+                  (e) => !(widget.entry as EntrySaved)
+                      .getEpisodeData(e.$1)
+                      .finished,
+                )
+                .map((e) => e.$1)
+                .toList(),
+          );
+          setState(() {});
+        },
+      ),
+    ContextMenuItem(
+      label: 'Select All',
+      onTap: () async {
+        selected.clear();
+        selected.addAll(
+          widget.entry.episodes.indexed.map((e) => e.$1).toList(),
+        );
+        setState(() {});
+      },
+    ),
+    if (selected.isNotEmpty)
+      ContextMenuItem(
+        label: 'Clear Selection',
+        onTap: () async {
+          selected.clear();
+          setState(() {});
+        },
+      ),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final entry = widget.entry;
     return ContextMenu(
       selectionActive: selected.isNotEmpty,
-      active: widget.entry is EntrySaved,
-      contextItems: [
-        ContextMenuItem(
-          label: 'Open in Browser',
-          onTap: () async {
-            await launchUrl(Uri.parse(widget.entry.url));
-          },
-        ),
-        ContextMenuItem(
-          label: 'Bookmark',
-          onTap: () async {
-            for (final int i in selection) {
-              final data = (widget.entry as EntrySaved).getEpisodeData(i);
-              data.bookmark = true;
-            }
-            selected.clear();
-            setState(() {});
-            await (widget.entry as EntrySaved).save();
-          },
-        ),
-        ContextMenuItem(
-          label: 'Remove Bookmark',
-          onTap: () async {
-            for (final int i in selection) {
-              final data = (widget.entry as EntrySaved).getEpisodeData(i);
-              data.bookmark = false;
-            }
-            selected.clear();
-            setState(() {});
-            await (widget.entry as EntrySaved).save();
-          },
-        ),
-        ContextMenuItem(
-          label: 'Mark as watched',
-          onTap: () async {
-            for (final int i in selection) {
-              final data = (widget.entry as EntrySaved).getEpisodeData(i);
-              data.finished = true;
-            }
-            selected.clear();
-            setState(() {});
-            await (widget.entry as EntrySaved).save();
-          },
-        ),
-        ContextMenuItem(
-          label: 'Mark as unwatched',
-          onTap: () async {
-            for (final int i in selection) {
-              final data = (widget.entry as EntrySaved).getEpisodeData(i);
-              data.finished = false;
-              data.progress = null;
-            }
-            selected.clear();
-            setState(() {});
-            await (widget.entry as EntrySaved).save();
-          },
-        ),
-        ContextMenuItem(
-          label: 'Download',
-          onTap: () async {
-            final download = locate<DownloadService>();
-            await download.download(
-              selection.map((index) => EpisodePath(widget.entry, index)),
+      active: entry is EntrySaved,
+      contextItems: contextItems,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          if (entry is EntrySaved) entry.settings.reverse,
+          if (entry is EntrySaved) entry.settings.hideFinishedEpisodes,
+          if (entry is EntrySaved) entry.settings.onlyShowBookmarked,
+        ]),
+        builder: (context, child) {
+          // ignore: avoid_bool_literals_in_conditional_expressions
+          final reverse = entry is EntrySaved
+              ? entry.settings.reverse.value
+              : false;
+          // ignore: avoid_bool_literals_in_conditional_expressions
+          final hideFinishedEpisodes = entry is EntrySaved
+              ? entry.settings.hideFinishedEpisodes.value
+              : false;
+          // ignore: avoid_bool_literals_in_conditional_expressions
+          final onlyShowBookmarked = entry is EntrySaved
+              ? entry.settings.onlyShowBookmarked.value
+              : false;
+          Iterable<(int, Episode)> elist = widget.elist.indexed;
+          if (onlyShowBookmarked) {
+            elist = elist.where(
+              (e) => entry.getEpisodeData(e.$1).bookmark == true,
             );
-            selected.clear();
-            setState(() {});
-          },
-        ),
-        ContextMenuItem(
-          label: 'Delete Downloads',
-          onTap: () async {
-            final download = locate<DownloadService>();
-            await download.deleteEpisodes(
-              selection.map((index) => EpisodePath(widget.entry, index)),
+          }
+          if (hideFinishedEpisodes) {
+            elist = elist.where(
+              (e) => entry.getEpisodeData(e.$1).finished == false,
             );
-            selected.clear();
-            setState(() {});
-          },
-        ),
-        ContextMenuItem(
-          label: 'Download to this episode',
-          onTap: () async {
-            final download = locate<DownloadService>();
-            await download.download(
-              Iterable.generate(
-                selection.reduce((a, b) => max(a, b)) + 1,
-                (index) => EpisodePath(widget.entry, index),
-              ),
-            );
-            selected.clear();
-            setState(() {});
-          },
-        ),
-        ContextMenuItem(
-          label: 'Mark to this episode',
-          onTap: () async {
-            for (int i = 0; i <= selection.reduce((a, b) => max(a, b)); i++) {
-              final data = (widget.entry as EntrySaved).getEpisodeData(i);
-              data.finished = true;
-            }
-            selected.clear();
-            setState(() {});
-            await (widget.entry as EntrySaved).save();
-          },
-        ),
-      ],
-      child: ListView.builder(
-        key: PageStorageKey<String>(
-          '${widget.entry.extension.id}->${widget.entry.id}',
-        ),
-        controller: controller,
-        prototypeItem: EpisodeTile(
-          episodepath: EpisodePath(widget.entry, 0),
-          selection: false,
-          isSelected: false,
-          onSelect: () {},
-        ),
-        padding: EdgeInsets.zero,
-        itemCount: widget.elist.length,
-        itemBuilder: (BuildContext context, int index) => MouseRegion(
-          onEnter: (e) {
-            hovering = index;
-          },
-          child: EpisodeTile(
-            disabled: widget.entry.extension.isenabled == false,
-            episodepath: EpisodePath(widget.entry, index),
-            selection: selected.isNotEmpty,
-            isSelected: selected.contains(index),
-            onSelect: () {
-              if (selected.contains(index)) {
-                selected.remove(index);
-              } else {
-                selected.add(index);
-              }
-              setState(() {});
+          }
+          elist = reverse ? elist.toList().reversed : elist;
+          final list = elist.toList();
+          return ListView.builder(
+            key: PageStorageKey<String>('${entry.extension.id}->${entry.id}'),
+            controller: controller,
+            prototypeItem: EpisodeTile(
+              episodepath: EpisodePath(entry, 0),
+              selection: false,
+              isSelected: false,
+              onSelect: () {},
+            ),
+            padding: EdgeInsets.zero,
+            itemCount: list.length,
+            itemBuilder: (BuildContext context, int eindex) {
+              final index = list[eindex].$1;
+              return MouseRegion(
+                onEnter: (e) {
+                  hovering = index;
+                },
+                child: EpisodeTile(
+                  disabled: entry.extension.isenabled == false,
+                  episodepath: EpisodePath(entry, index),
+                  selection: selected.isNotEmpty,
+                  isSelected: selected.contains(index),
+                  onSelect: () {
+                    if (selected.contains(index)) {
+                      selected.remove(index);
+                    } else {
+                      selected.add(index);
+                    }
+                    setState(() {});
+                  },
+                ),
+              );
             },
-          ),
-        ),
+          );
+        },
       ),
     );
   }

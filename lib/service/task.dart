@@ -77,6 +77,7 @@ abstract class Task extends ChangeNotifier {
   bool finished = false;
   bool running = false;
   Object? error;
+  Future<void>? task;
 
   String _status = 'Pending';
   String get status => _status;
@@ -116,7 +117,8 @@ abstract class Task extends ChangeNotifier {
     running = true;
     error = null;
     notifyListeners();
-    onRun()
+    task = onRun();
+    task!
         .then((value) {
           finished = true;
           running = false;
@@ -170,25 +172,10 @@ class TaskManager extends ChangeNotifier {
     List<String>? categoryids,
   }) {
     final controller = StreamController<Task?>();
-    Task? getTask() {
-      if (categoryids != null) {
-        TaskCategory? cat = root;
-        for (final id in categoryids) {
-          cat = cat!.getCategory(id);
-          if (cat == null) return null;
-        }
-        return cat!.tasks.where(filter).firstOrNull;
-      }
-      return root
-          .traverseBreathFirst()
-          .expand((cat) => cat.tasks)
-          .where(filter)
-          .firstOrNull;
-    }
 
     Task? last;
     void callback() {
-      final current = getTask();
+      final current = getTask(filter, categoryids: categoryids);
       if (current == last) return;
       last = current;
       controller.add(current);
@@ -238,5 +225,25 @@ class TaskManager extends ChangeNotifier {
 
   static Future<void> ensureInitialized() async {
     register<TaskManager>(TaskManager());
+  }
+
+  Task? getTask(bool Function(Task) filter, {List<String>? categoryids}) {
+    if (categoryids != null) {
+      TaskCategory? cat = root;
+      for (final id in categoryids) {
+        cat = cat!.getCategory(id);
+        if (cat == null) return null;
+      }
+      return cat!
+          .traverseBreathFirst()
+          .expand((cat) => cat.tasks)
+          .where(filter)
+          .firstOrNull;
+    }
+    return root
+        .traverseBreathFirst()
+        .expand((cat) => cat.tasks)
+        .where(filter)
+        .firstOrNull;
   }
 }

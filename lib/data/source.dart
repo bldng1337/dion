@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:dionysos/data/activity.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
@@ -51,11 +52,42 @@ class EpisodePath {
     if (!hasnext) return;
     data.finished = true;
     supplier.episode = next;
+    final entry = this.entry;
+    if (entry is EntrySaved) {
+      final download = locate<DownloadService>();
+      download.download(
+        Iterable.generate(
+          min(
+                entry.settings.downloadNextEpisodes.value + episodenumber + 1,
+                episodes.length - 1,
+              ) -
+              episodenumber,
+          (index) => EpisodePath(entry, episodenumber + index),
+        ),
+      );
+      if (entry.settings.deleteOnFinish.value) {
+        download.deleteEpisode(this);
+      }
+    }
     finishEpisode(this);
     save();
   }
 
   void go(BuildContext context) {
+    final entry = this.entry;
+    if (entry is EntrySaved) {
+      final download = locate<DownloadService>();
+      download.download(
+        Iterable.generate(
+          min(
+                entry.settings.downloadNextEpisodes.value + episodenumber,
+                episodes.length - 1,
+              ) -
+              episodenumber,
+          (index) => EpisodePath(entry, episodenumber + index),
+        ),
+      );
+    }
     finishEpisode(this);
     GoRouter.of(context).push('/view', extra: [this]);
   }
@@ -175,6 +207,10 @@ class SourceSupplier with ChangeNotifier implements Disposable {
       tok = CancelToken();
     }
     final download = locate<DownloadService>();
+    final dowloadStatus = await download.getCurrentStatus(eppath);
+    if (dowloadStatus.task?.task != null) {
+      await dowloadStatus.task?.task;
+    }
     if (await download.isDownloaded(eppath)) {
       try {
         return SourcePath(eppath, (await download.getDownloaded(eppath))!);

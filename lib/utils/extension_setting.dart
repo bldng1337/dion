@@ -1,5 +1,6 @@
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/settings.dart' as appsettings;
+import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_numberbox.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_textbox.dart';
@@ -63,7 +64,8 @@ extension SettingExtension on rust.Setting {
 }
 
 abstract class ExtensionSettingMetaData<T>
-    extends appsettings.SettingMetaData<T> {
+    extends appsettings.SettingMetaData<T>
+    implements appsettings.EnumMetaData<T> {
   rust.Setting get setting;
   String get id;
 }
@@ -91,9 +93,10 @@ class ExtensionSettingView<T extends ExtensionSettingMetaData>
           title: textbox.label,
           setting: setting.cast<String, ExtensionSettingMetaData<String>>(),
         ),
-        final SettingUI_Dropdown setting => Text(
-          'Dropdown: ${setting.label}',
-        ), //TODO: implement dropdown
+        final SettingUI_Dropdown dropdown => SettingDropdown(
+          title: dropdown.label,
+          setting: setting,
+        ),
         _ => Text(
           'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}',
         ),

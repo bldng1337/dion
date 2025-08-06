@@ -8,14 +8,30 @@ class SettingCollection<T, M extends SettingMetaData<T>> {
   }
 }
 
-abstract class EnumMetaData<T extends Enum> extends SettingMetaData<T> {
-  List<T> get enumvalues;
+class EnumValue<T> {
+  final String name;
+  final T value;
+  const EnumValue(this.name, this.value);
+}
+
+abstract class EnumMetaData<T> extends SettingMetaData<T> {
+  List<EnumValue<T>> get values;
+  String getLabel(T value);
 }
 
 class SettingMetaData<T> {
   const SettingMetaData();
   void onChange(T t) {}
   T initValue(T t) => t;
+}
+
+class CallbackSettingMetaData<T> extends SettingMetaData<T> {
+  final void Function(T) onChangeCallback;
+  const CallbackSettingMetaData({required this.onChangeCallback});
+  @override
+  void onChange(T t) {
+    onChangeCallback(t);
+  }
 }
 
 /*

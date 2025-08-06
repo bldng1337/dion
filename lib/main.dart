@@ -1,4 +1,5 @@
 import 'package:dionysos/routes.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,9 @@ GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    logger.e('FlutterError', error: details.exception, stackTrace: details.stack);
+  };
   initApp(route: getRoutes());
 }
 

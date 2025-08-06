@@ -106,6 +106,13 @@ class Database extends ChangeNotifier {
     return adapter.selectDataClasses<Category>(ids).toList();
   }
 
+  Stream<EntrySaved> getEntriesWithoutCategory(int page, int limit) {
+    return getEntriesSQL(
+      'SELECT * FROM entry WHERE count(categories) = 0 LIMIT \$limit START \$offset*\$limit',
+      {'limit': limit, 'offset': page},
+    );
+  }
+
   Stream<EntrySaved> getEntriesInCategory(
     Category category,
     int page,
@@ -115,6 +122,30 @@ class Database extends ChangeNotifier {
       'SELECT * FROM entry WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit',
       {'limit': limit, 'offset': page, 'category': category.id},
     );
+  }
+
+  Future<int> getNumEntriesWithoutCategory() async {
+    final [res as List<dynamic>] = await db.query(
+      query: 'SELECT count() FROM entry WHERE count(categories) = 0',
+    );
+    if (res.isEmpty) return 0;
+    return res[0]['count'] as int;
+  }
+
+  Future<int> getNumEntries(Category? category) async {
+    if (category == null) {
+      final [res as List<dynamic>] = await db.query(
+        query: 'SELECT count() FROM entry',
+      );
+      if (res.isEmpty) return 0;
+      return res[0]['count'] as int;
+    }
+    final [res as List<dynamic>] = await db.query(
+      query: 'SELECT count() FROM entry WHERE categories CONTAINS \$category',
+      vars: {'category': category.id},
+    );
+    if (res.isEmpty) return 0;
+    return res[0]['count'] as int;
   }
 
   Stream<EntrySaved> getEntries(int page, int limit) {

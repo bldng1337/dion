@@ -327,6 +327,7 @@ class DownloadService {
   final Ratelimit ratelimit = LeakyBucketRatelimit.fromRate(1);
 
   Future<void> download(Iterable<EpisodePath> eps) async {
+    logger.i('Downloading ${eps.length} episodes');
     try {
       for (final ep in eps) {
         if (await isDownloaded(ep)) {
@@ -341,6 +342,21 @@ class DownloadService {
     } catch (e, stack) {
       logger.e('Error downloading episode', error: e, stackTrace: stack);
     }
+  }
+
+  Future<DownloadStatus> getCurrentStatus(EpisodePath ep) async {
+    final mngr = locate<TaskManager>();
+    if (await isDownloaded(ep)) {
+      return const DownloadStatus(Status.downloaded);
+    }
+    final task = mngr.getTask(
+      (e) => e is DownloadTask && e.ep == ep,
+      categoryids: ['download', ep.extension.id],
+    );
+    return DownloadStatus(
+      task != null ? Status.downloading : Status.nodownload,
+      task: task,
+    );
   }
 
   Stream<DownloadStatus> getStatus(EpisodePath ep) {
@@ -477,6 +493,7 @@ class DownloadService {
   }
 
   Future<void> deleteEpisodes(Iterable<EpisodePath> eps) async {
+    logger.i('Deleting ${eps.length} episodes');
     for (final ep in eps) {
       await deleteEpisode(ep);
     }
