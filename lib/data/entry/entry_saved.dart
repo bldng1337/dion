@@ -5,51 +5,16 @@ import 'dart:math';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
+import 'package:dionysos/data/settings/entry_settings.dart';
+import 'package:dionysos/data/settings/extension_setting.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/extension_setting.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/utils/settings.dart';
-import 'package:flutter_surrealdb/flutter_surrealdb.dart';
 import 'package:metis/adapter/dataclass.dart';
+import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
-
-class EntrySettingMetaData<T> extends SettingMetaData<T>
-    implements ExtensionSettingMetaData<T> {
-  final EntrySaved entry;
-  final String settingkey;
-  const EntrySettingMetaData(this.entry, this.settingkey);
-
-  @override
-  void onChange(T val) {
-    entry.setSetting(settingkey, val);
-  }
-
-  @override
-  String get id => settingkey;
-
-  @override
-  rust.Setting get setting => entry._getSetting(settingkey)!;
-
-  @override
-  List<EnumValue<T>> get values => switch (setting.ui) {
-    final rust.SettingUI_Dropdown dropdown =>
-      dropdown.options.map((e) => EnumValue(e.label, e.value as T)).toList(),
-    _ => throw UnimplementedError(
-      'Setting UI type ${setting.ui.runtimeType} not supported for conversion in $runtimeType',
-    ),
-  };
-
-  @override
-  String getLabel(T value) => switch (setting.ui) {
-    final rust.SettingUI_Dropdown dropdown =>
-      dropdown.options.firstWhere((e) => e.value == value).label,
-    _ => throw UnimplementedError(
-      'Setting UI type ${setting.ui.runtimeType} not supported for label lookup in $runtimeType',
-    ),
-  };
-}
 
 class EpisodeData {
   bool bookmark;
@@ -205,7 +170,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     entry = entry.copyWith(settings: newsettings);
   }
 
-  rust.Setting? _getSetting(String key) {
+  rust.Setting? getSetting(String key) {
     return entry.settings?[key];
   }
 

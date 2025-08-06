@@ -1,5 +1,5 @@
+import 'package:dionysos/data/settings/settings.dart' as appsettings;
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/utils/settings.dart' as appsettings;
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_numberbox.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
@@ -25,21 +25,6 @@ extension SettingvalueExtension on Settingvalue {
       ),
     };
   }
-}
-
-extension DymanicSetting on dynamic {
-  Settingvalue toSettingvalue() => switch (this) {
-    final Settingvalue val => val,
-    final num val => Settingvalue_Number(
-      val: val.toDouble(),
-      defaultVal: val.toDouble(),
-    ),
-    final String val => Settingvalue_String(val: val, defaultVal: val),
-    final bool val => Settingvalue_Boolean(val: val, defaultVal: val),
-    _ => throw UnimplementedError(
-      'Settingvalue conversion for $runtimeType not implemented',
-    ),
-  };
 }
 
 extension SettingExtension on rust.Setting {
@@ -83,7 +68,8 @@ class ExtensionSettingView<T extends ExtensionSettingMetaData>
           title: slider.label,
           setting: setting.cast<double, ExtensionSettingMetaData<double>>(),
           max: slider.max,
-          min: slider.min, //TODO: step
+          min: slider.min,
+          step: slider.step,
         ),
         final SettingUI_Checkbox checkbox => SettingToggle(
           title: checkbox.label,
