@@ -3,12 +3,12 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
+import 'package:dionysos/data/settings/extension_setting.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
-import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/data/settings/settings.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
@@ -46,7 +46,7 @@ class Extension extends ChangeNotifier {
     rust.SourceExtensionProxy proxy,
     Database db,
   ) async {
-    await proxy.setEnabled(enabled: true);
+    await proxy.setEnabled(enabled: true); //TODO: Rework this
     final settingids = await proxy.getSettingsIds();
     await proxy.setEnabled(enabled: false);
     final extdata = await proxy.getData();
@@ -151,66 +151,6 @@ class Extension extends ChangeNotifier {
       enable();
     }
   }
-}
-
-class SourceExtensionSettingMetaData<T> extends SettingMetaData<T>
-    implements ExtensionSettingMetaData<T> {
-  @override
-  final String id;
-  final rust.ExtensionSetting extsetting;
-  final rust.SourceExtensionProxy extension;
-
-  const SourceExtensionSettingMetaData(
-    this.id,
-    this.extsetting,
-    this.extension,
-  );
-
-  @override
-  void onChange(T v) {
-    final newval = switch (extsetting.setting.val) {
-      final rust.Settingvalue_String val => rust.Settingvalue_String(
-        val: v as String,
-        defaultVal: val.defaultVal,
-      ),
-      final rust.Settingvalue_Number val => rust.Settingvalue_Number(
-        val: v as double,
-        defaultVal: val.defaultVal,
-      ),
-      final rust.Settingvalue_Boolean val => rust.Settingvalue_Boolean(
-        val: v as bool,
-        defaultVal: val.defaultVal,
-      ),
-    };
-    extension.setSetting(name: id, value: newval);
-  }
-
-  @override
-  rust.Setting get setting => extsetting.setting;
-
-  @override
-  List<EnumValue<T>> get values => switch (setting.ui) {
-    final rust.SettingUI_Dropdown dropdown =>
-      dropdown.options.map((e) => EnumValue(e.label, e.value as T)).toList(),
-    _ => throw UnimplementedError(
-      'Settingvalue conversion for $runtimeType not implemented',
-    ),
-  };
-  @override
-  String getLabel(T value) => switch (setting.ui) {
-    final rust.SettingUI_Dropdown dropdown =>
-      dropdown.options
-          .firstWhere(
-            (e) => e.value == value,
-            orElse: () => throw ArgumentError(
-              'Value $value not found in dropdown options',
-            ),
-          )
-          .label,
-    _ => throw UnimplementedError(
-      'Settingvalue conversion for $runtimeType not implemented',
-    ),
-  };
 }
 
 class SourceExtension {
