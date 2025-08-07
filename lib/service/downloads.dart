@@ -185,6 +185,9 @@ class DownloadStatus {
   String toString() {
     return 'DownloadStatus{status: $status, task: $task}';
   }
+
+  bool get isDownloadingOrDownloaded =>
+      status == Status.downloading || status == Status.downloaded;
 }
 
 class DownloadService {
@@ -194,7 +197,7 @@ class DownloadService {
     logger.i('Downloading ${eps.length} episodes');
     try {
       for (final ep in eps) {
-        if (await isDownloaded(ep)) {
+        if ((await getCurrentStatus(ep)).isDownloadingOrDownloaded) {
           continue;
         }
         final mngr = locate<TaskManager>();

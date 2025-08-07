@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/tree.dart';
 import 'package:flutter/widgets.dart';
@@ -130,6 +131,7 @@ abstract class Task extends ChangeNotifier {
           finished = false;
           running = false;
           onFailed(e);
+          logger.e(e);
           final mngr = locate<TaskManager>();
           mngr.update();
           notifyListeners();
