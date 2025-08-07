@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/material.dart';
@@ -27,11 +25,13 @@ class DionTabBar extends StatelessWidget {
   final List<DionTab> tabs;
   final Widget? trailing;
   final bool hideIfSingle;
+  final bool scrollable;
   const DionTabBar({
     super.key,
     required this.tabs,
     this.trailing,
     this.hideIfSingle = true,
+    this.scrollable = false,
   });
 
   @override
@@ -43,7 +43,11 @@ class DionTabBar extends StatelessWidget {
       return tabs.first.child;
     }
     return switch (context.diontheme.mode) {
-      DionThemeMode.material => MaterialTabBar(tabs: tabs, trailing: trailing),
+      DionThemeMode.material => MaterialTabBar(
+        tabs: tabs,
+        trailing: trailing,
+        scrollable: scrollable,
+      ),
       DionThemeMode.cupertino => throw UnimplementedError(),
     };
   }
@@ -52,7 +56,13 @@ class DionTabBar extends StatelessWidget {
 class MaterialTabBar extends StatefulWidget {
   final List<DionTab> tabs;
   final Widget? trailing;
-  const MaterialTabBar({super.key, required this.tabs, this.trailing});
+  final bool scrollable;
+  const MaterialTabBar({
+    super.key,
+    required this.tabs,
+    this.trailing,
+    required this.scrollable,
+  });
 
   @override
   State<MaterialTabBar> createState() => _MaterialTabBarState();
@@ -66,13 +76,20 @@ class _MaterialTabBarState extends State<MaterialTabBar>
 
   @override
   void initState() {
+    createController();
+    super.initState();
+  }
+
+  void createController() {
     controller = TabController(length: tabcount, vsync: this);
     controller.addListener(() {
       if (controller.index == tabcount - 1 && widget.trailing != null) {
-        controller.animateTo(max(0, tabcount - 2));
+        controller.offset = 0;
+        final safeIndex = (tabcount - 2).clamp(0, tabcount - 2);
+        controller.index = safeIndex;
+        controller.animateTo(safeIndex);
       }
     });
-    super.initState();
   }
 
   @override
@@ -80,12 +97,7 @@ class _MaterialTabBarState extends State<MaterialTabBar>
     super.didUpdateWidget(oldWidget);
     if (controller.length != tabcount) {
       controller.dispose();
-      controller = TabController(length: tabcount, vsync: this);
-      controller.addListener(() {
-        if (controller.index == tabcount - 1 && widget.trailing != null) {
-          controller.animateTo((tabcount - 2).clamp(0, tabcount - 2));
-        }
-      });
+      createController();
     }
   }
 
@@ -100,7 +112,7 @@ class _MaterialTabBarState extends State<MaterialTabBar>
     return Column(
       children: [
         TabBar(
-          isScrollable: true,
+          isScrollable: widget.scrollable,
           tabs: [
             ...widget.tabs.map((e) => e.tab.paddingAll(5)),
             if (widget.trailing != null) widget.trailing!,

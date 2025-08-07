@@ -123,6 +123,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
       child: controllers.isEmpty
           ? const Center(child: DionProgressBar())
           : DionTabBar(
+              scrollable: true,
               tabs: [
                 for (final cat in controllers.keys)
                   DionTab(
