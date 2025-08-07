@@ -8,9 +8,9 @@ class ImgCache extends CacheManager with ImageCacheManager {
   ImgCache(super.config);
 }
 
-abstract class CacheService {
-  const CacheService();
-  ImgCache get imgcache;
+class CacheService {
+  final ImgCache imgcache;
+  const CacheService(this.imgcache);
 
   static Future<void> ensureInitialized() async {
     await locateAsync<NetworkService>();
@@ -19,7 +19,9 @@ abstract class CacheService {
         'imgcache',
         stalePeriod: const Duration(days: 7),
         maxNrOfCacheObjects: 50,
-        repo: JsonCacheInfoRepository(databaseName: 'imgcache'),
+        repo: JsonCacheInfoRepository(
+          databaseName: 'imgcache',
+        ), //TODO: Save this in the database
         fileSystem: IOFileSystem('imgcache'),
         fileService: HttpFileService(
           httpClient: await RhttpCompatibleClient.create(),
@@ -27,12 +29,6 @@ abstract class CacheService {
       ),
     );
     logger.i('CacheService initialized');
-    register<CacheService>(CacheServiceImpl(imgcache));
+    register<CacheService>(CacheService(imgcache));
   }
-}
-
-class CacheServiceImpl extends CacheService {
-  @override
-  final ImgCache imgcache;
-  const CacheServiceImpl(this.imgcache);
 }
