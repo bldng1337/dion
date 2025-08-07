@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:dionysos/views/settings/update_settings.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse.dart';
@@ -17,6 +16,7 @@ import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/settings/storage.dart';
 import 'package:dionysos/views/settings/sync.dart';
+import 'package:dionysos/views/settings/update_settings.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';

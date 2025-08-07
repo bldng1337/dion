@@ -13,7 +13,8 @@ import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moment_dart/moment_dart.dart';
 

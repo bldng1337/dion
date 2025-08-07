@@ -1,18 +1,21 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/Category.dart';
-import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show Icons, showAdaptiveDialog, showDialog;
+import 'package:flutter/widgets.dart';
 
 class LibrarySettings extends StatelessWidget {
   const LibrarySettings({super.key});
@@ -39,12 +42,12 @@ class LibrarySettings extends StatelessWidget {
 
 void showUpdateDialog(BuildContext context, Category category) {
   final db = locate<Database>();
-  showAdaptiveDialog(
+  showDialog(
     context: context,
     builder: (context) {
       var categoryname = category.name;
       final controller = TextEditingController(text: categoryname);
-      return Dialog(
+      return DionDialog(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -54,7 +57,7 @@ void showUpdateDialog(BuildContext context, Category category) {
               controller: controller,
               onChanged: (value) => categoryname = value,
             ),
-            ElevatedButton(
+            DionTextbutton(
               onPressed: () async {
                 if (categoryname.isEmpty) {
                   await db.removeCategory(category);
@@ -86,7 +89,7 @@ void showUpdateDialog(BuildContext context, Category category) {
 void showEditCategoriesDialog(BuildContext context, EntrySaved entry) {
   showAdaptiveDialog(
     context: context,
-    builder: (context) => Dialog(
+    builder: (context) => DionDialog(
       child: LoadingBuilder(
         future: locate<Database>().getCategories(),
         builder: (context, value) => Column(
@@ -134,14 +137,14 @@ void showAddCategoryDialog(BuildContext context) {
     context: context,
     builder: (context) {
       var categoryname = '';
-      return Dialog(
+      return DionDialog(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Add Category'),
             DionTextbox(onChanged: (value) => categoryname = value),
-            ElevatedButton(
+            DionTextbutton(
               onPressed: () async {
                 if (categoryname.isEmpty) {
                   Navigator.pop(context);

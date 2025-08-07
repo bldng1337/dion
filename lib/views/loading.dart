@@ -9,7 +9,7 @@ import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/update.dart';
-import 'package:dionysos/views/app_loader.dart';
+import 'package:dionysos/widgets/app_loader.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';

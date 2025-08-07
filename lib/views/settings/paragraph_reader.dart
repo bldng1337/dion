@@ -4,7 +4,7 @@ import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 class ParagraphReaderSettings extends StatelessWidget {
   const ParagraphReaderSettings({super.key});

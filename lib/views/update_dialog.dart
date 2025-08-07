@@ -2,8 +2,10 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
-import 'package:flutter/material.dart';
+import 'package:dionysos/widgets/progress.dart';
+import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdateDialog extends StatefulWidget {
@@ -28,7 +30,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
   @override
   Widget build(BuildContext context) {
     if (error != null) {
-      return AlertDialog(
+      return DionAlertDialog(
         title: const Text('Error Installing Update'),
         content: ErrorDisplay(e: error),
         actions: [
@@ -48,7 +50,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       );
     }
     if (!loading) {
-      return AlertDialog(
+      return DionAlertDialog(
         title: Text(
           'Version ${widget.update.version} is available!',
           style: context.titleLarge,
@@ -92,13 +94,13 @@ class _UpdateDialogState extends State<UpdateDialog> {
         ],
       );
     }
-    return AlertDialog(
+    return DionAlertDialog(
       title: const Text('Installing Update...'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(message),
-          LinearProgressIndicator(value: progress),
+          DionProgressBar(value: progress, type: DionProgressType.linear),
         ],
       ),
     );

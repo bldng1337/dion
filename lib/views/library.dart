@@ -11,9 +11,11 @@ import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/tabbar.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:metis/metis.dart';
 
@@ -119,7 +121,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     return NavScaff(
       destination: homedestinations,
       child: controllers.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: DionProgressBar())
           : DionTabBar(
               tabs: [
                 for (final cat in controllers.keys)

@@ -2,7 +2,7 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 class UpdateSettings extends StatelessWidget {
   const UpdateSettings({super.key});

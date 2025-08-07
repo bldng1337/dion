@@ -7,8 +7,9 @@ import 'package:dionysos/views/view/imagelist_reader.dart';
 import 'package:dionysos/views/view/paragraphlist_reader.dart';
 import 'package:dionysos/views/view/video_player.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart' hide Action;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -75,7 +76,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
         getView(),
         NavScaff(
           title: Text('Loading ${source?.episode.name ?? ''} ...'),
-          child: const Center(child: CircularProgressIndicator()),
+          child: const Center(child: DionProgressBar()),
         ),
       ],
     );

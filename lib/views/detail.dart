@@ -27,11 +27,13 @@ import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/context_menu.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
@@ -39,7 +41,9 @@ import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:dionysos/widgets/tabbar.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show Colors, Icons, Theme, VisualDensity, showDialog;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -122,7 +126,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       );
     }
     if (entry == null) {
-      return const NavScaff(child: Center(child: CircularProgressIndicator()));
+      return const NavScaff(child: Center(child: DionProgressBar()));
     }
     if (entry is EntryDetailed) {
       return ListenableBuilder(
@@ -251,9 +255,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 }
 
 void showSettingPopup(BuildContext context, EntrySaved entry) {
-  showAdaptiveDialog(
+  showDialog(
     context: context,
-    builder: (context) => Dialog(child: SettingsPopup(entry: entry)),
+    builder: (context) => DionDialog(child: SettingsPopup(entry: entry)),
   );
 }
 
@@ -885,7 +889,7 @@ class EpisodeTile extends StatelessWidget {
     return DionListTile(
       disabled: disabled,
       selected: isSelected,
-      visualDensity: VisualDensity.comfortable,
+      visualDensity: VisualDensity.comfortable, //TODO: Fix sometime
       onLongTap: onSelect,
       onTap: selection ? onSelect : () => episodepath.go(context),
       title: Row(
@@ -953,25 +957,25 @@ class EpisodeTile extends StatelessWidget {
                     ),
                     Status.downloading => ListenableBuilder(
                       listenable: snapshot.data!.task!,
-                      builder: (context, child) => switch (snapshot
-                          .data
-                          ?.task
-                          ?.taskstatus) {
-                        TaskStatus.idle => const Icon(Icons.pending_actions),
-                        TaskStatus.running || null => CircularProgressIndicator(
-                          value: snapshot.data?.task?.progress,
-                        ),
-                        TaskStatus.error => DionIconbutton(
-                          icon: const Icon(Icons.error),
-                          onPressed: () {
-                            snapshot.data!.task!.clearError();
-                            final mngr = locate<TaskManager>();
-                            mngr.update();
+                      builder: (context, child) =>
+                          switch (snapshot.data?.task?.taskstatus) {
+                            TaskStatus.idle => const Icon(
+                              Icons.pending_actions,
+                            ),
+                            TaskStatus.running || null => DionProgressBar(
+                              value: snapshot.data?.task?.progress,
+                            ),
+                            TaskStatus.error => DionIconbutton(
+                              icon: const Icon(Icons.error),
+                              onPressed: () {
+                                snapshot.data!.task!.clearError();
+                                final mngr = locate<TaskManager>();
+                                mngr.update();
+                              },
+                            ),
                           },
-                        ),
-                      },
                     ),
-                    null => const CircularProgressIndicator(),
+                    null => const DionProgressBar(),
                     Status.downloaded => DionIconbutton(
                       icon: const Icon(Icons.check),
                       onPressed: () async {

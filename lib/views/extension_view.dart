@@ -1,13 +1,15 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
+import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors;
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 class ExtensionView extends StatefulWidget {
@@ -47,7 +49,7 @@ class _ExtensionViewState extends State<ExtensionView> {
     if (extension == null) {
       return const NavScaff(
         title: Text('Loading ...'),
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: DionProgressBar()),
       );
     }
     return NavScaff(

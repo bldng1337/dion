@@ -8,9 +8,11 @@ import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -157,11 +159,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     return NavScaff(
       actions: [
         if (subtitles.isNotEmpty)
-          DropdownButton(
+          DionDropdown(
             value: subtitle,
-            icon: const Icon(Icons.subtitles),
             items: subtitles
-                .map((e) => DropdownMenuItem(value: e, child: Text(e.title)))
+                .map((e) => DionDropdownItem(value: e, label: e.title))
                 .toList(),
             onChanged: (value) {
               subtitle = value;
@@ -258,7 +259,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             ),
             fullscreen: MaterialVideoControlsThemeData(
               topButtonBar: [
-                IconButton(
+                DionIconbutton(
                   onPressed: () {
                     exitFullscreen(context);
                     context.pop();
@@ -288,14 +289,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                   onPressed: () => {},
                 ),
                 if (subtitles.isNotEmpty)
-                  DropdownButton(
+                  DionDropdown(
                     value: subtitle,
-                    icon: const Icon(Icons.subtitles),
                     items: subtitles
-                        .map(
-                          (e) =>
-                              DropdownMenuItem(value: e, child: Text(e.title)),
-                        )
+                        .map((e) => DionDropdownItem(value: e, label: e.title))
                         .toList(),
                     onChanged: (value) {
                       subtitle = value;

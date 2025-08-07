@@ -3,7 +3,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_directory.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 class SyncSettings extends StatelessWidget {
   const SyncSettings({super.key});

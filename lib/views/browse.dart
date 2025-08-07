@@ -2,21 +2,24 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
-import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/settings/library.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Icons, showDialog;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -123,7 +126,7 @@ class _BrowseState extends State<Browse>
             ),
             onSubmitted: (s) => context.go('/search/$s'),
             actions: [
-              IconButton(
+              DionIconbutton(
                 icon: const Icon(Icons.settings),
                 onPressed: () => showSettingPopup(context, this),
               ),
@@ -205,9 +208,9 @@ class _EntryDisplayState extends State<EntryDisplay> {
 }
 
 void showSettingPopup(BuildContext context, BrowseInterface browse) {
-  showAdaptiveDialog(
+  showDialog(
     context: context,
-    builder: (context) => Dialog(child: SettingsPopup(browse: browse)),
+    builder: (context) => DionDialog(child: SettingsPopup(browse: browse)),
   );
 }
 

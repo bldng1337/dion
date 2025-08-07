@@ -4,13 +4,16 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 class ExtensionManager extends StatefulWidget {
@@ -51,7 +54,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
       return NavScaff(
         title: const DionTextScroll('Manage Extensions'),
         destination: homedestinations,
-        child: const Center(child: CircularProgressIndicator()),
+        child: const Center(child: DionProgressBar()),
       );
     }
     final sourceExt = locate<SourceExtension>();
@@ -59,7 +62,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
     return NavScaff(
       title: const DionTextScroll('Manage Extensions'),
       actions: [
-        IconButton(
+        DionIconbutton(
           onPressed: () async {
             setState(() {
               loading = true;
@@ -79,7 +82,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
           },
           icon: const Icon(Icons.refresh),
         ),
-        IconButton(
+        DionIconbutton(
           onPressed: () async {
             try {
               setState(() {
@@ -134,7 +137,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
                       errorWidget: const Icon(Icons.image, size: 30),
                     ),
                   ),
-                  if (exts[i].loading) const CircularProgressIndicator(),
+                  if (exts[i].loading) const DionProgressBar(),
                 ],
               ),
             ),
