@@ -1,17 +1,12 @@
 import 'package:dionysos/utils/service.dart';
 import 'package:rhttp/rhttp.dart';
 
-abstract class NetworkService {
-  RhttpClient get client;
+class NetworkService {
+  final RhttpClient client;
+  NetworkService(this.client);
 
   static Future<void> ensureInitialized() async {
     await Rhttp.init();
-    register<NetworkService>(NetworkServiceImpl(await RhttpClient.create()));
+    register<NetworkService>(NetworkService(await RhttpClient.create()));
   }
-}
-
-class NetworkServiceImpl extends NetworkService {
-  @override
-  final RhttpClient client;
-  NetworkServiceImpl(this.client);
 }

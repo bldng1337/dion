@@ -22,8 +22,7 @@ Future<MockNetworkService> mockNetworkService() async {
 }
 
 class MockNetworkService extends NetworkService {
-  @override
-  final RhttpClient client = MockRhttpClient();
+  MockNetworkService() : super(MockRhttpClient());
 }
 
 class MockRhttpClient extends Mock implements RhttpClient {}
