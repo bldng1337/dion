@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:dionysos/views/view/update_settings.dart';
+import 'package:dionysos/views/settings/update_settings.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse.dart';

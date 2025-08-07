@@ -89,7 +89,6 @@ Future<void> notify(Update update, {bool force = false}) async {
     context: navigatorKey.currentContext!,
     builder: (context) => UpdateDialog(update: update),
   );
-  logger.i('Notifying user of update');
 }
 
 Future<void> downloadUpdate(
@@ -140,31 +139,19 @@ Future<Update?> checkUpdate() async {
       HttpHeaderName.userAgent: 'bldng1337/dion',
     }),
   );
-  var versions = (res.bodyToJson as List<dynamic>)
+  final versions = (res.bodyToJson as List<dynamic>)
       .map((e) => Update.fromJson(e as Map<String, dynamic>))
-      .toList();
-  logger.i('Found ${versions.length} update(s)');
-  versions = versions
       .where(
         (e) => e.version.canonicalizedVersion != version.canonicalizedVersion,
       )
-      .toList();
-  logger.i('Found ${versions.length} update(s)');
-  for (final e in versions) {
-    logger.i(
-      'Checking ${e.version.canonicalizedVersion}>=$version ${e.version >= version}',
-    );
-  }
-  versions = versions.where((e) => e.version >= version).toList();
-  logger.i('Found ${versions.length} update(s)');
-  versions = versions
+      .where((e) => e.version >= version)
       .where(
         (e) =>
             !e.version.isPreRelease ||
             (settings.update.channel.value == UpdateChannel.beta),
       )
       .toList();
-  logger.i('Found ${versions.length} update(s)');
+
   if (versions.isEmpty) {
     return null;
   }

@@ -40,8 +40,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
           ),
           DionTextbutton(
             child: const Text('Go to download page'),
-            onPressed: () {
-              launchUrl(Uri.parse(widget.update.link));
+            onPressed: () async {
+              await launchUrl(Uri.parse(widget.update.link));
             },
           ),
         ],
