@@ -167,7 +167,7 @@ class _ActivityViewState extends State<ActivityView> {
   late final DataSourceController<IRenderable> controller;
 
   Stream<IRenderable> getActionStream(int index) async* {
-    final str = locate<Database>().getActivityStream(index, 10);
+    final str = locate<Database>().getActivities(index, 10);
     Activity? last;
     await for (final e in str) {
       if ((last != null && last.time.day != e.time.day) || last == null) {

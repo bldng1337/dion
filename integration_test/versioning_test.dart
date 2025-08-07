@@ -124,7 +124,7 @@ void main() {
         final mockext = MockExtension();
         when(() => srcextension.getExtension(any())).thenReturn(mockext);
         when(
-          () => mockdb.getCategory([const DBRecord('category', 'test')]),
+          () => mockdb.getCategoriesbyId([const DBRecord('category', 'test')]),
         ).thenAnswer(
           (_) => Future.value([
             const Category('test', DBRecord('category', 'test')),
@@ -188,7 +188,7 @@ void main() {
       test('Create Backup', () async {
         final mockdb = await mockDatabase();
         when(
-          () => mockdb.getCategory([const DBRecord('category', 'test')]),
+          () => mockdb.getCategoriesbyId([const DBRecord('category', 'test')]),
         ).thenAnswer(
           (_) => Future.value([
             const Category('test', DBRecord('category', 'test')),
@@ -211,7 +211,7 @@ void main() {
       test('Apply Backup', () async {
         final mockdb = await mockDatabase();
         when(
-          () => mockdb.getCategory([const DBRecord('category', 'test')]),
+          () => mockdb.getCategoriesbyId([const DBRecord('category', 'test')]),
         ).thenAnswer(
           (_) => Future.value([
             const Category('test', DBRecord('category', 'test')),

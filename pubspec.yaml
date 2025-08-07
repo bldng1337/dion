@@ -60,7 +60,7 @@ dependencies:
   metis:
     git:
       url: https://github.com/bldng1337/metis.git
-      ref: 128eef60546f8e8aac5f98d16a928febddc3f6d5
+      ref: 9c0132bdb18840fdaa138ef410abba907e6878bb
   path: ^1.9.0
   rhttp: ^0.13.0
   flutter_cache_manager: ^3.4.1

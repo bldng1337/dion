@@ -17,6 +17,10 @@ import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
 
 const dbVersion = 1;
+const entryTable = DBTable('entry');
+const categoryTable = DBTable('category');
+const activityTable = DBTable('activity');
+const extensionTable = DBTable('extension');
 
 class Database extends ChangeNotifier {
   late final AdapterSurrealDB db;
@@ -28,16 +32,15 @@ class Database extends ChangeNotifier {
     await db.init();
     register<Database>(db);
     logger.i('Initialised Database!');
-    await locateAsync<PreferenceService>();
+    await locateAsync<PreferenceService>(); //Rework this into a more sane way
     if (settings.sync.enabled.value && settings.sync.path.value != null) {
       logger.i('Syncing database with local file...');
-      locate<Database>()
-          .merge(settings.sync.path.value!.absolute.path)
-          .then(
-            (_) => logger.i('Synced database with local file!'),
-            onError: (e) =>
-                logger.e('Failed to sync database with local file!', error: e),
-          );
+      try {
+        await locate<Database>().merge(settings.sync.path.value!.absolute.path);
+        logger.i('Synced database with local file!');
+      } catch (e) {
+        logger.e('Failed to sync database with local file!', error: e);
+      }
     }
   }
 
@@ -54,12 +57,17 @@ class Database extends ChangeNotifier {
         SyncTable(
           version: dbVersion,
           range: VersionRange.exact(dbVersion),
-          table: DBTable('entry'),
+          table: entryTable,
         ),
         SyncTable(
           version: dbVersion,
           range: VersionRange.exact(dbVersion),
-          table: DBTable('category'),
+          table: categoryTable,
+        ),
+        SyncTable(
+          version: dbVersion,
+          range: VersionRange.exact(dbVersion),
+          table: extensionTable,
         ),
       },
     );
@@ -73,11 +81,11 @@ class Database extends ChangeNotifier {
 
   Future<void> init({bool inMemory = false}) async {
     await RustLib.init();
-    final dir = await locateAsync<DirectoryProvider>();
     late final AdapterSurrealDB currentdb;
     if (inMemory) {
       currentdb = await AdapterSurrealDB.newMem();
     } else {
+      final dir = await locateAsync<DirectoryProvider>();
       currentdb = await AdapterSurrealDB.newFile(
         dir.databasepath.absolute.path,
       );
@@ -85,10 +93,10 @@ class Database extends ChangeNotifier {
     await initDB(currentdb);
   }
 
+  // Category
+
   Future<List<Category>> getCategories() async {
-    return await adapter
-        .queryDataClasses<Category>(query: 'SELECT * FROM category')
-        .toList();
+    return await adapter.selectDataClasses<Category>(categoryTable).toList();
   }
 
   Future<void> updateCategory(Category category) async {
@@ -101,62 +109,75 @@ class Database extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<Category>> getCategory(List<DBRecord> ids) async {
+  Future<List<Category>> getCategoriesbyId(Iterable<DBRecord> ids) async {
     if (ids.isEmpty) return [];
-    return adapter.selectDataClasses<Category>(ids).toList();
+    final res = await Future.wait(
+      ids.map((e) => adapter.selectDataClass<Category>(e)),
+    );
+    return res.nonNulls.toList();
   }
 
-  Stream<EntrySaved> getEntriesWithoutCategory(int page, int limit) {
-    return getEntriesSQL(
-      'SELECT * FROM entry WHERE count(categories) = 0 LIMIT \$limit START \$offset*\$limit',
-      {'limit': limit, 'offset': page},
+  Future<int> getNumEntries() async {
+    return await _countSQL(
+      query: 'SELECT count() FROM type::table(\$entry)',
+      vars: {'entry': entryTable.tb},
+    );
+  }
+
+  Future<int> getNumEntriesInCategory(Category? category) async {
+    if (category == null) {
+      return await _countSQL(
+        query:
+            'SELECT count() FROM type::table(\$entry) WHERE count(categories) = 0',
+        vars: {'entry': entryTable.tb},
+      );
+    }
+    return await _countSQL(
+      query:
+          'SELECT count() FROM type::table(\$entry) WHERE categories CONTAINS \$category',
+      vars: {'category': category.id, 'entry': entryTable.tb},
+    );
+  }
+
+  Stream<EntrySaved> getEntries(int page, int limit) {
+    return _getEntriesSQL(
+      'SELECT * FROM type::table(\$entry) LIMIT \$limit START \$offset*\$limit',
+      {'limit': limit, 'offset': page, 'entry': entryTable.tb},
     );
   }
 
   Stream<EntrySaved> getEntriesInCategory(
-    Category category,
+    Category? category,
     int page,
     int limit,
   ) {
-    return getEntriesSQL(
-      'SELECT * FROM entry WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit',
-      {'limit': limit, 'offset': page, 'category': category.id},
-    );
-  }
-
-  Future<int> getNumEntriesWithoutCategory() async {
-    final [res as List<dynamic>] = await db.query(
-      query: 'SELECT count() FROM entry WHERE count(categories) = 0',
-    );
-    if (res.isEmpty) return 0;
-    return (res[0]['count'] as int?) ?? 0;
-  }
-
-  Future<int> getNumEntries(Category? category) async {
-    //TODO: Rework
     if (category == null) {
-      final [res as List<dynamic>] = await db.query(
-        query: 'SELECT count() FROM entry',
+      return _getEntriesSQL(
+        'SELECT * FROM type::table(\$entry) WHERE count(categories) = 0 LIMIT \$limit START \$offset*\$limit',
+        {'limit': limit, 'offset': page, 'entry': entryTable.tb},
       );
-      if (res.isEmpty) return 0;
-      return res[0]['count'] as int;
     }
-    final [res as List<dynamic>] = await db.query(
-      query: 'SELECT count() FROM entry WHERE categories CONTAINS \$category',
-      vars: {'category': category.id},
+    return _getEntriesSQL(
+      'SELECT * FROM type::table(\$entry) WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit',
+      {
+        'limit': limit,
+        'offset': page,
+        'category': category.id,
+        'entry': entryTable.tb,
+      },
     );
+  }
+
+  Future<int> _countSQL({
+    required String query,
+    Map<String, dynamic>? vars,
+  }) async {
+    final [res as List<dynamic>] = await db.query(query: query, vars: vars);
     if (res.isEmpty) return 0;
     return res[0]['count'] as int;
   }
 
-  Stream<EntrySaved> getEntries(int page, int limit) {
-    return getEntriesSQL(
-      'SELECT * FROM entry LIMIT \$limit START \$offset*\$limit',
-      {'limit': limit, 'offset': page},
-    );
-  }
-
-  Stream<EntrySaved> getEntriesSQL(
+  Stream<EntrySaved> _getEntriesSQL(
     String sqlfilter,
     Map<String, dynamic>? vars,
   ) {
@@ -166,7 +187,9 @@ class Database extends ChangeNotifier {
   Future<Activity?> getLastActivity() async {
     return adapter
         .queryDataClasses<Activity>(
-          query: 'SELECT * FROM activity ORDER BY time DESC LIMIT 1',
+          query:
+              'SELECT * FROM type::table(\$activity) ORDER BY time DESC LIMIT 1',
+          vars: {'activity': activityTable.tb},
         )
         .firstOrNull;
   }
@@ -176,7 +199,7 @@ class Database extends ChangeNotifier {
     notifyListeners();
   }
 
-  Stream<Activity> getActivityStream(int page, int limit) {
+  Stream<Activity> getActivities(int page, int limit) {
     return adapter.queryDataClasses<Activity>(
       query:
           'SELECT * FROM activity ORDER BY time DESC LIMIT \$limit START \$offset*\$limit',
@@ -218,7 +241,7 @@ WHERE
         error: e,
         stackTrace: stack,
       );
-      // Consider whether to rethrow or continue
+      // TODO: Consider whether to rethrow or continue
     }
   }
 

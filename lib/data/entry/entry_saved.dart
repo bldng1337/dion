@@ -257,7 +257,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     final db = locate<Database>();
     return EntrySaved(
       entry: rust.EntryDetailed.fromJson(json['entry'] as Map<String, dynamic>),
-      categories: await db.getCategory(
+      categories: await db.getCategoriesbyId(
         fromDynamic((json['categories'] as List<dynamic>?) ?? []).toList(),
       ),
       episodedata:

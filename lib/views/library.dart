@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:dionysos/data/Category.dart';
-import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/observer.dart';
@@ -89,13 +89,13 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     if (settings.library.showNoneTab.value) {
       Future.microtask(() async {
         final db = locate<Database>();
-        if (await db.getNumEntriesWithoutCategory() == 0) return;
+        if (await db.getNumEntriesInCategory(null) == 0) return;
         if (!mounted) return;
         setCategory(
           PseudoCategory(
             'No Category',
             SingleStreamSource(
-              (i) => locate<Database>().getEntriesWithoutCategory(i, 25),
+              (i) => locate<Database>().getEntriesInCategory(null, i, 25),
             ),
           ),
         );
@@ -105,7 +105,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     locate<Database>().getCategories().then((cats) async {
       final db = locate<Database>();
       for (final cat in cats) {
-        if (await db.getNumEntries(cat) == 0) continue;
+        if (await db.getNumEntriesInCategory(cat) == 0) continue;
         if (!mounted) return;
         setCategory(cat);
       }
