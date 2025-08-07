@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DirectoryProvider {
   final Directory basepath;
@@ -22,7 +23,8 @@ class DirectoryProvider {
   static Future<void> ensureInitialized() async {
     final basepath = await getBasePath();
     logger.i('Initializing DirectoryProvider to $basepath');
-    final temppath = basepath.sub('temp');
+
+    final temppath = (await getTemporaryDirectory()).sub('dion');
     try {
       if (await temppath.exists()) {
         await temppath.delete(recursive: true);
