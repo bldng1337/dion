@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path/path.dart' as p;
 
 @immutable
 class DionNetworkImage extends ImageProvider<DionNetworkImage> {
@@ -63,9 +64,6 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
     assert(key == this);
     if (url.startsWith('file://')) {
       final filePath = url.substring('file://'.length);
-      if (filePath.contains('..') || !filePath.startsWith('/')) {
-        throw ArgumentError('Invalid file path: $filePath');
-      }
       return decode(await ImmutableBuffer.fromFilePath(filePath));
     }
     final cache = locate<CacheService>().imgcache;
