@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dionysos/data/settings/settings.dart';
@@ -119,11 +120,28 @@ class VersionMetaData extends PreferenceMetaData<Version> {
   String stringify(Version value) => value.canonicalizedVersion;
 }
 
+class StringListMetaData extends PreferenceMetaData<List<String>> {
+  const StringListMetaData(super.id);
+
+  @override
+  List<String> parse(String value) =>
+      (json.decode(value) as List<dynamic>).cast<String>();
+
+  @override
+  String stringify(List<String> value) => json.encode(value);
+}
+
 enum ReaderMode { paginated }
 
 enum UpdateChannel { stable, beta }
 
 final settings = (
+  extension: (
+    repositories: Setting(
+      [],
+      const StringListMetaData('extension.repositories'),
+    ),
+  ),
   library: (
     showAllTab: Setting(false, const PreferenceBoolMetaData('library.showall')),
     showNoneTab: Setting(

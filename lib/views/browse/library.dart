@@ -7,7 +7,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/views/browse.dart';
+import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
