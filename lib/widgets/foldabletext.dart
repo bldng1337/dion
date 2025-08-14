@@ -6,12 +6,14 @@ class Foldabletext extends StatefulWidget {
   final int maxLines;
   final TextStyle? style;
   final TextAlign? textAlign;
+  final bool animate;
   const Foldabletext(
     this.text, {
     super.key,
     this.maxLines = 3,
     this.style,
     this.textAlign,
+    this.animate = true,
   });
 
   @override
@@ -44,6 +46,34 @@ class _FoldabletextState extends State<Foldabletext> {
               width: constraints.maxWidth,
             ).height >
             (widget.style?.fontSize ?? 14.0) * (widget.maxLines + 1)) {
+          if (!widget.animate) {
+            return StatefulBuilder(
+              builder: (context, setState) =>
+                  (!_isExpanded
+                          ? Column(
+                              children: [
+                                Text(
+                                  widget.text,
+                                  maxLines: widget.maxLines,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: widget.style,
+                                  textAlign: widget.textAlign,
+                                ),
+                                const Icon(Icons.keyboard_arrow_down),
+                              ],
+                            )
+                          : Text(
+                              widget.text,
+                              style: widget.style,
+                              textAlign: widget.textAlign,
+                            ))
+                      .onTap(
+                        () => setState(() {
+                          _isExpanded = !_isExpanded;
+                        }),
+                      ),
+            );
+          }
           return StatefulBuilder(
             builder: (context, setState) =>
                 AnimatedCrossFade(
