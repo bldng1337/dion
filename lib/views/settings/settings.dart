@@ -47,6 +47,14 @@ class Settings extends StatelessWidget {
                 title: Text('Update', style: context.bodyMedium),
                 onTap: () => context.push('/settings/update'),
               ),
+              DionListTile(
+                title: Text('Active Tasks', style: context.bodyMedium),
+                onTap: () => context.push('/settings/tasks'),
+              ),
+              DionListTile(
+                title: Text('Developer Settings', style: context.bodyMedium),
+                onTap: () => context.push('/dev'),
+              ),
             ],
           ),
         ],

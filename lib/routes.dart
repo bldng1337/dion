@@ -4,18 +4,21 @@ import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse.dart';
 import 'package:dionysos/views/detail.dart';
-import 'package:dionysos/views/extension_manager.dart';
-import 'package:dionysos/views/extension_view.dart';
+import 'package:dionysos/views/extension/extension_manager.dart';
+import 'package:dionysos/views/extension/extension_view.dart';
 import 'package:dionysos/views/library.dart';
 import 'package:dionysos/views/loading.dart';
 import 'package:dionysos/views/search.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
+import 'package:dionysos/views/settings/developer.dart';
+import 'package:dionysos/views/settings/developer/log.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
 import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/settings/storage.dart';
 import 'package:dionysos/views/settings/sync.dart';
+import 'package:dionysos/views/settings/tasks.dart';
 import 'package:dionysos/views/settings/update_settings.dart';
 import 'package:dionysos/views/view.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -93,6 +96,18 @@ GoRouter getRoutes() => GoRouter(
           getTransition(context, state, const Library()),
     ),
     GoRoute(
+      path: '/dev',
+      pageBuilder: (context, state) =>
+          getTransition(context, state, const DeveloperSettings()),
+      routes: [
+        GoRoute(
+          path: '/logs',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const LogView()),
+        ),
+      ],
+    ),
+    GoRoute(
       path: '/settings',
       pageBuilder: (context, state) =>
           getTransition(context, state, const Settings()),
@@ -131,6 +146,11 @@ GoRouter getRoutes() => GoRouter(
           path: '/library',
           pageBuilder: (context, state) =>
               getTransition(context, state, const LibrarySettings()),
+        ),
+        GoRoute(
+          path: '/tasks',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const ActiveTasksSettings()),
         ),
       ],
     ),

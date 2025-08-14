@@ -20,6 +20,11 @@ class MemoryOutput extends LogOutput with ChangeNotifier {
 
   final ListQueue<OutputEvent> buffer;
 
+  void clear() {
+    buffer.clear();
+    notifyListeners();
+  }
+
   MemoryOutput({this.bufferSize = 20}) : buffer = ListQueue(bufferSize);
 
   @override
