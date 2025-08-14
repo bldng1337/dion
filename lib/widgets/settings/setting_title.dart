@@ -14,7 +14,14 @@ class SettingTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (children == null) {
+      return ListTile(
+        leading: icon != null ? Icon(icon) : null,
+        title: Text(title, style: context.titleLarge),
+      );
+    }
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         ListTile(
           leading: icon != null ? Icon(icon) : null,
