@@ -10,6 +10,7 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
@@ -41,6 +42,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   late final ScrollOffsetController offsetcontroller;
   late final ItemPositionsListener itemPositionsListener;
   Player? player;
+  bool _ctrlIsPressed = false;
 
   void play() {
     if (player == null) return;
@@ -124,6 +126,12 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       if (!controller.isAttached) return;
       controller.jumpTo(index: 0);
     }, [widget.supplier]).disposedBy(scope);
+    KeyObserver((event) {
+      if (_ctrlIsPressed == HardwareKeyboard.instance.isControlPressed) return;
+      setState(() {
+        _ctrlIsPressed = HardwareKeyboard.instance.isControlPressed;
+      });
+    }).disposedBy(scope);
     super.initState();
   }
 
@@ -194,37 +202,48 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       ],
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: ScrollablePositionedList.builder(
-          physics: const ClampingScrollPhysics(),
-          scrollOffsetController: offsetcontroller,
-          itemScrollController: controller,
-          itemPositionsListener: itemPositionsListener,
-          initialScrollIndex: int.tryParse(epdata.progress ?? '0') ?? 0,
-          minCacheExtent: 12,
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              if (widget.source.episode.hasprev) {
-                return DionTextbutton(
-                  child: const Text('Previous'),
-                  onPressed: () =>
-                      widget.source.episode.goPrev(widget.supplier),
-                );
-              }
-              return nil;
-            }
-            if (index - 1 == images.length) {
-              if (widget.source.episode.hasnext) {
-                return DionTextbutton(
-                  child: const Text('Next'),
-                  onPressed: () =>
-                      widget.source.episode.goNext(widget.supplier),
-                );
-              }
-              return nil;
-            }
-            return wrapScreen(context, makeImage(context, images[index - 1]));
-          },
-          itemCount: images.length + 2,
+        child: InteractiveViewer(
+          minScale: 0.1,
+          maxScale: 10,
+          panAxis: PanAxis.horizontal,
+          scaleEnabled: _ctrlIsPressed,
+          child: wrapScreen(
+            context,
+            ScrollablePositionedList.builder(
+              physics: _ctrlIsPressed
+                  ? const NeverScrollableScrollPhysics()
+                  : const ClampingScrollPhysics(),
+              scrollOffsetController: offsetcontroller,
+              itemScrollController: controller,
+              itemPositionsListener: itemPositionsListener,
+              initialScrollIndex: int.tryParse(epdata.progress ?? '0') ?? 0,
+              minCacheExtent: 12,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  if (widget.source.episode.hasprev) {
+                    return DionTextbutton(
+                      child: const Text('Previous'),
+                      onPressed: () =>
+                          widget.source.episode.goPrev(widget.supplier),
+                    );
+                  }
+                  return nil;
+                }
+                if (index - 1 == images.length) {
+                  if (widget.source.episode.hasnext) {
+                    return DionTextbutton(
+                      child: const Text('Next'),
+                      onPressed: () =>
+                          widget.source.episode.goNext(widget.supplier),
+                    );
+                  }
+                  return nil;
+                }
+                return makeImage(context, images[index - 1]);
+              },
+              itemCount: images.length + 2,
+            ),
+          ),
         ),
       ),
     );
