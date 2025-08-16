@@ -138,7 +138,7 @@ enum UpdateChannel { stable, beta }
 final settings = (
   extension: (
     repositories: Setting(
-      [],
+      <String>[],
       const StringListMetaData('extension.repositories'),
     ),
   ),

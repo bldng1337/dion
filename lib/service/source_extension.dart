@@ -10,6 +10,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
+import 'package:pub_semver/pub_semver.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 export 'package:rdion_runtime/rdion_runtime.dart'
@@ -26,6 +27,8 @@ class Extension extends ChangeNotifier {
   bool loading = false;
 
   ExtensionMetaData get meta => _meta;
+
+  Version get version => Version.parse(data.version ?? '0.0.0');
 
   set meta(ExtensionMetaData value) {
     _meta = value;
@@ -153,8 +156,9 @@ class Extension extends ChangeNotifier {
   }
 }
 
-class SourceExtension {
+class SourceExtension with ChangeNotifier {
   final _extensions = <Extension>[];
+  bool loading = false;
 
   Future<SourceExtension> init() async {
     await rust.RustLib.init();
@@ -252,6 +256,8 @@ class SourceExtension {
   }
 
   Future<void> reload() async {
+    loading = true;
+    notifyListeners();
     for (final e in _extensions) {
       e.dispose();
     }
@@ -271,6 +277,8 @@ class SourceExtension {
         e.enable();
       }
     }
+    loading = false;
+    notifyListeners();
   }
 
   List<Extension> getExtensions({bool Function(Extension e)? extfilter}) {

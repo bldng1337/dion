@@ -7,3 +7,4 @@ class SerializeVersion {
 const entrySerializeVersion = SerializeVersion(1, 1);
 const extensionSerializeVersion = SerializeVersion(1, 1);
 const categorySerializeVersion = SerializeVersion(1, 1);
+const repoindexSerializeVersion = SerializeVersion(1, 1);

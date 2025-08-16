@@ -81,7 +81,7 @@ class InternetFile {
         for (final artefactLink in links) {
           if (artefactLink.endsWith('.m3u8') || artefactLink.endsWith('.m3u')) {
             final res = await downloadm3u8(
-              _formatURI(artefactLink, link),
+              formatRelativeURI(artefactLink, link),
               contentdir.getFile('artefact$part'),
               headers: headers,
               onReceiveProgress: onReceiveProgress != null
@@ -94,7 +94,7 @@ class InternetFile {
             e = e.replaceAll(artefactLink, res.relativePath(dir));
           } else {
             final res = await streamToFile(
-              _formatURI(artefactLink, link),
+              formatRelativeURI(artefactLink, link),
               contentdir.getFile('artefact$part'),
               headers: headers,
               onReceiveProgress: onReceiveProgress != null
@@ -129,7 +129,7 @@ class InternetFile {
     };
   }
 
-  static String _formatURI(String link, String location) {
+  static String formatRelativeURI(String link, String location) {
     if (!['http://', 'https://'].any((e) => link.startsWith(e))) {
       return '${location.substring(0, location.lastIndexOf('/'))}/$link';
     }

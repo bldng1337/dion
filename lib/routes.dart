@@ -12,6 +12,7 @@ import 'package:dionysos/views/browse/search.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/developer.dart';
 import 'package:dionysos/views/settings/developer/log.dart';
+import 'package:dionysos/views/settings/extension.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
@@ -151,6 +152,11 @@ GoRouter getRoutes() => GoRouter(
           path: '/tasks',
           pageBuilder: (context, state) =>
               getTransition(context, state, const ActiveTasksSettings()),
+        ),
+        GoRoute(
+          path: '/extension',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const ExtensionSettings()),
         ),
       ],
     ),

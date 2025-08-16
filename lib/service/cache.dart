@@ -1,4 +1,6 @@
+import 'package:dionysos/data/extension_repo.dart';
 import 'package:dionysos/service/network.dart';
+import 'package:dionysos/utils/cache.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -10,7 +12,8 @@ class ImgCache extends CacheManager with ImageCacheManager {
 
 class CacheService {
   final ImgCache imgcache;
-  const CacheService(this.imgcache);
+  final DionMapCache<String, ExtensionRepo> repocache;
+  const CacheService(this.imgcache, this.repocache);
 
   static Future<void> ensureInitialized() async {
     await locateAsync<NetworkService>();
@@ -28,7 +31,12 @@ class CacheService {
         ),
       ),
     );
+    final repocache = DionMapCache.fromsize(
+      maximumSize: 50,
+      loader: (String key) => ExtensionRepo.rawRequest(key),
+      invalidator: (key, duration) => duration.inHours > 6,
+    );
     logger.i('CacheService initialized');
-    register<CacheService>(CacheService(imgcache));
+    register<CacheService>(CacheService(imgcache, repocache));
   }
 }

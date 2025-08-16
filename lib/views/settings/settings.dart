@@ -55,6 +55,10 @@ class Settings extends StatelessWidget {
                 title: Text('Developer Settings', style: context.bodyMedium),
                 onTap: () => context.push('/dev'),
               ),
+              DionListTile(
+                title: Text('Extension Settings', style: context.bodyMedium),
+                onTap: () => context.push('/settings/extension'),
+              ),
             ],
           ),
         ],
