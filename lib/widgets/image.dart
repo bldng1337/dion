@@ -197,7 +197,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                   children: [
                     InteractiveViewer(
                       minScale: 0.1,
-                      maxScale: 6,
+                      maxScale: 10,
                       child: buildImage(context, fullscreen: true),
                     ),
                     DionBadge(
