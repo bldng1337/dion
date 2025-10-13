@@ -54,7 +54,7 @@ class ContextMenuState extends State<ContextMenu> {
         if (!mounted) return;
         _bottomSheetController = Scaffold.of(context).showBottomSheet(
           (BuildContext context) => SizedBox(
-            height: 50,
+            height: 75,
             child: ListView(
               shrinkWrap: true,
               scrollDirection: Axis.horizontal,

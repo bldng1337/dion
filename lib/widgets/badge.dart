@@ -5,10 +5,12 @@ class DionBadge extends StatelessWidget {
   final Widget child;
   final Color? color;
   final bool noPadding;
+  final bool noMargin;
   const DionBadge({
     super.key,
     required this.child,
     this.color,
+    this.noMargin = false,
     this.noPadding = false,
   });
 
@@ -17,9 +19,9 @@ class DionBadge extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(4)),
-        color: color ?? context.theme.primaryColor,
+        color: color ?? context.theme.colorScheme.surfaceContainer,
       ),
       child: child.paddingAll(noPadding ? 0 : 3),
-    ).paddingAll(3);
+    ).paddingAll(noMargin ? 0 : 3);
   }
 }

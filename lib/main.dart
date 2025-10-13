@@ -9,7 +9,11 @@ GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterError.onError = (details) {
-    logger.e('FlutterError', error: details.exception, stackTrace: details.stack);
+    logger.e(
+      'FlutterError',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
   };
   initApp(route: getRoutes());
 }
@@ -22,7 +26,7 @@ void initApp({required RouterConfig<Object> route}) {
       child: switch (theme.mode) {
         DionThemeMode.material => MaterialApp.router(
           theme: getTheme(theme.brightness),
-          darkTheme: getTheme(Brightness.dark),
+          // darkTheme: getTheme(Brightness.dark),
           routerConfig: route,
         ),
         DionThemeMode.cupertino => CupertinoApp.router(

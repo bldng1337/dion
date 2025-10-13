@@ -7,7 +7,7 @@ version: 2.0.0-beta.25
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
-
+  flutter: ">=3.32.0"
 
 dependencies:
   flutter:
@@ -63,7 +63,7 @@ dependencies:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
       ref: 1e6d05df29e40303114903f6c03e3f40dd508d34
-  
+
   # pdfx: ^2.8.0
   # flutter_inappwebview: ^6.1.5
   # feedback: ^3.1.0
@@ -87,7 +87,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/icon.png
-
 
 flutter_launcher_icons:
   android: launcher_icon

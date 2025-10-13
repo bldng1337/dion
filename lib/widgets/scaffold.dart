@@ -34,6 +34,7 @@ class NavScaff extends StatelessWidget {
         appBar: AppBar(title: title, actions: actions),
         body: child,
         bottomNavigationBar: NavigationBar(
+          height: 60,
           backgroundColor: context.backgroundColor,
           selectedIndex: index >= 0 ? index : 0,
           destinations: destination
@@ -97,20 +98,32 @@ class NavScaff extends StatelessWidget {
                             minHeight: constraint.maxHeight,
                           ),
                           child: IntrinsicHeight(
-                            child: NavigationRail(
-                              backgroundColor: Theme.of(context).highlightColor,
-                              onDestinationSelected: (i) =>
-                                  context.go(destination[i].path),
-                              labelType: NavigationRailLabelType.all,
-                              destinations: destination
-                                  .map(
-                                    (e) => NavigationRailDestination(
-                                      icon: Icon(e.ico),
-                                      label: Text(e.name),
-                                    ),
-                                  )
-                                  .toList(),
-                              selectedIndex: index >= 0 ? index : null,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  right: BorderSide(
+                                    color: context
+                                        .theme
+                                        .colorScheme
+                                        .surfaceContainer,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                              child: NavigationRail(
+                                onDestinationSelected: (i) =>
+                                    context.go(destination[i].path),
+                                labelType: NavigationRailLabelType.all,
+                                destinations: destination
+                                    .map(
+                                      (e) => NavigationRailDestination(
+                                        icon: Icon(e.ico),
+                                        label: Text(e.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                selectedIndex: index >= 0 ? index : null,
+                              ),
                             ),
                           ),
                         ),
@@ -123,6 +136,9 @@ class NavScaff extends StatelessWidget {
           ),
         ),
         appBar: AppBar(
+          toolbarHeight: 50,
+          leadingWidth: 50,
+          titleSpacing: 0,
           title: title,
           actions: actions,
           leading: destination.isEmpty ? null : nil,

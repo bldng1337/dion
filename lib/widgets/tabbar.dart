@@ -6,19 +6,6 @@ class DionTab {
   final Widget child;
   final Widget tab;
   const DionTab({required this.child, required this.tab});
-
-  @override
-  String toString() {
-    return 'Tab{child: $child, tab: $tab}';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is DionTab && other.child == child && other.tab == tab;
-  }
-
-  @override
-  int get hashCode => Object.hash(child, tab);
 }
 
 class DionTabBar extends StatelessWidget {
@@ -72,7 +59,8 @@ class _MaterialTabBarState extends State<MaterialTabBar>
     with TickerProviderStateMixin {
   late TabController controller;
 
-  int get tabcount => widget.tabs.length + (widget.trailing != null ? 1 : 0);
+  int get tabcount =>
+      widget.tabs.length; // + (widget.trailing != null ? 1 : 0);
 
   @override
   void initState() {
@@ -83,12 +71,12 @@ class _MaterialTabBarState extends State<MaterialTabBar>
   void createController() {
     controller = TabController(length: tabcount, vsync: this);
     controller.addListener(() {
-      if (controller.index == tabcount - 1 && widget.trailing != null) {
-        controller.offset = 0;
-        final safeIndex = (tabcount - 2).clamp(0, tabcount - 2);
-        controller.index = safeIndex;
-        controller.animateTo(safeIndex);
-      }
+      // if (controller.index == tabcount - 1 && widget.trailing != null) {
+      //   controller.offset = 0;
+      //   final safeIndex = (tabcount - 2).clamp(0, tabcount - 2);
+      //   controller.index = safeIndex;
+      //   controller.animateTo(safeIndex);
+      // }
     });
   }
 
@@ -111,20 +99,38 @@ class _MaterialTabBarState extends State<MaterialTabBar>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TabBar(
-          isScrollable: widget.scrollable,
-          tabs: [
-            ...widget.tabs.map((e) => e.tab.paddingAll(5)),
-            if (widget.trailing != null) widget.trailing!,
-          ],
-          controller: controller,
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: context.theme.colorScheme.surfaceContainer,
+                width: 1.5,
+              ),
+            ),
+          ),
+          child: widget.trailing != null
+              ? Row(
+                  children: [
+                    TabBar(
+                      tabAlignment: TabAlignment.start,
+                      isScrollable: widget.scrollable,
+                      tabs: [...widget.tabs.map((e) => e.tab.paddingAll(5))],
+                      controller: controller,
+                      dividerColor: Colors.transparent,
+                    ),
+                    widget.trailing!,
+                  ],
+                )
+              : TabBar(
+                  isScrollable: widget.scrollable,
+                  tabs: [...widget.tabs.map((e) => e.tab.paddingAll(5))],
+                  controller: controller,
+                  dividerColor: Colors.transparent,
+                ),
         ),
         TabBarView(
           controller: controller,
-          children: [
-            ...widget.tabs.map((e) => e.child),
-            if (widget.trailing != null) nil,
-          ],
+          children: widget.tabs.map((e) => e.child).toList(),
         ).expanded(),
       ],
     );

@@ -115,6 +115,7 @@ class _BrowseState extends State<Browse>
     return NavScaff(
       destination: homedestinations,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DionSearchbar(
             controller: controller,

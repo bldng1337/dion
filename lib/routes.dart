@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse/browse.dart';
+import 'package:dionysos/views/browse/library.dart';
+import 'package:dionysos/views/browse/search.dart';
 import 'package:dionysos/views/detail.dart';
 import 'package:dionysos/views/extension/extension_manager.dart';
 import 'package:dionysos/views/extension/extension_view.dart';
-import 'package:dionysos/views/browse/library.dart';
 import 'package:dionysos/views/loading.dart';
-import 'package:dionysos/views/browse/search.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/developer.dart';
 import 'package:dionysos/views/settings/developer/log.dart';
@@ -30,7 +30,7 @@ final homedestinations = [
   Destination(ico: Icons.bookmark, name: 'Library', path: '/library'),
   Destination(ico: Icons.update, name: 'Activity', path: '/activity'),
   Destination(ico: Icons.search, name: 'Browse', path: '/browse'),
-  Destination(ico: Icons.extension, name: 'Manage Extensions', path: '/manage'),
+  Destination(ico: Icons.extension, name: 'Extensions', path: '/manage'),
   Destination(ico: Icons.settings, name: 'Settings', path: '/settings'),
 ];
 
@@ -163,8 +163,6 @@ GoRouter getRoutes() => GoRouter(
   ],
 );
 
-enum Transition { fade, none }
-
 Page getTransition(
   BuildContext context,
   GoRouterState state,
@@ -193,6 +191,8 @@ class MyExtraCodec extends Codec<Object?, Object?> {
   @override
   Converter<Object?, Object?> get encoder => const _MyExtraEncoder();
 }
+
+enum Transition { fade, none }
 
 class _MyExtraDecoder extends Converter<Object?, Object?> {
   const _MyExtraDecoder();

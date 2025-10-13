@@ -70,7 +70,6 @@ class _ExtensionViewState extends State<ExtensionView> {
                     children: [
                       Text(extension!.name, style: context.titleLarge),
                       DionBadge(
-                        color: Colors.grey,
                         child: Text(
                           extension!.data.version ?? '',
                           style: context.bodyMedium,

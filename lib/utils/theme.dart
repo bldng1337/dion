@@ -42,18 +42,17 @@ ThemeData getTheme(Brightness b) {
   const Color darkaccent = Color(0xFF796394);
   const Color darkshade = Color.fromARGB(255, 40, 36, 40);
   final Color shade = b == Brightness.dark ? darkshade : lightshade;
-  final Color ishade = b == Brightness.light ? darkshade : lightshade;
   final Color accent = b == Brightness.dark ? darkaccent : lightaccent;
   final ColorScheme colorScheme =
       ColorScheme.fromSeed(brightness: b, seedColor: primary).copyWith(
-        primary: primary,
-        onPrimary: lightshade,
-        secondary: accent,
-        onSecondary: lightshade,
-        tertiary: accent,
-        onTertiary: lightshade,
-        surface: shade,
-        onSurface: ishade,
+        // primary: primary,
+        // onPrimary: lightshade,
+        // secondary: accent,
+        // onSecondary: lightshade,
+        // tertiary: accent,
+        // onTertiary: lightshade,
+        // surface: shade,
+        // onSurface: ishade,
       );
   return ThemeData(
     colorScheme: colorScheme,

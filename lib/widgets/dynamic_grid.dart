@@ -404,45 +404,56 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
   Widget build(BuildContext context) {
     // loadMore();
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.showDataSources)
-          SizedBox(
+          Container(
             height: 40,
-            child: ListenableBuilder(
-              listenable: widget.controller,
-              builder: (context, child) => ListView(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                scrollDirection: Axis.horizontal,
-                children: [
-                  ...widget.controller.sources.map(
-                    (e) => DionBadge(
-                      color: e.name.color,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (e.isfinished)
-                            const Icon(Icons.close, size: 20).paddingAll(2),
-                          if (!e.isfinished && !e.requesting)
-                            const Icon(Icons.check, size: 20).paddingAll(2),
-                          if (e.requesting)
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: const CircularProgressIndicator(
-                                color: Colors.white70,
-                                strokeWidth: 2,
-                              ).paddingAll(2),
-                            ),
-                          Text(e.name).paddingAll(2),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: context.theme.colorScheme.surfaceContainer,
+                  width: 1.5,
+                ),
               ),
             ),
-          ).paddingAll(5),
+            child: Center(
+              child: ListenableBuilder(
+                listenable: widget.controller,
+                builder: (context, child) => ListView(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    ...widget.controller.sources.map(
+                      (e) => DionBadge(
+                        color: e.name.color,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (e.isfinished)
+                              const Icon(Icons.close, size: 20).paddingAll(2),
+                            if (!e.isfinished && !e.requesting)
+                              const Icon(Icons.check, size: 20).paddingAll(2),
+                            if (e.requesting)
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: const CircularProgressIndicator(
+                                  color: Colors.white70,
+                                  strokeWidth: 2,
+                                ).paddingAll(2),
+                              ),
+                            Text(e.name).paddingAll(2),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ListenableBuilder(
           listenable: widget.controller,
           builder: (context, child) => GridView.builder(
@@ -477,7 +488,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                 },
               );
             },
-          ).paddingAll(10).expanded(),
+          ).paddingAll(0).expanded(),
         ),
       ],
     );

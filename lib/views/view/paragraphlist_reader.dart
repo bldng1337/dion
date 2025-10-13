@@ -166,7 +166,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           return child!;
         },
         child: ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
           child: ListView.builder(
             controller: controller,
             itemBuilder: (context, index) {

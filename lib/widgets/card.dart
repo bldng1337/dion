@@ -57,11 +57,11 @@ class Card extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Theme.of(context).shadowColor.withOpacity(0.1),
-                  Theme.of(context).shadowColor.withOpacity(0.45),
-                  Theme.of(context).shadowColor.withOpacity(0.85),
+                  Theme.of(context).shadowColor.withValues(alpha: 0.1),
+                  Theme.of(context).shadowColor.withValues(alpha: 0.45),
+                  Theme.of(context).shadowColor.withValues(alpha: 0.85),
                 ],
-                stops: const [0.0, 0.6, 0.85, 1],
+                stops: const [0.0, 0.6, 0.8, 1],
               ),
             ),
             child: Column(
@@ -89,7 +89,7 @@ class Card extends StatelessWidget {
     return ClipRRect(
       clipBehavior: Clip.antiAliasWithSaveLayer,
       borderRadius: switch (context.diontheme.mode) {
-        DionThemeMode.material => BorderRadius.circular(10),
+        DionThemeMode.material => BorderRadius.circular(5),
         DionThemeMode.cupertino => BorderRadius.circular(5),
       },
       child: onTap != null
@@ -106,6 +106,7 @@ class EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Entry entry = this.entry;
     return Card(
       imageUrl: entry.cover,
       httpHeaders: entry.coverHeader,
@@ -118,11 +119,16 @@ class EntryCard extends StatelessWidget {
           ),
         if (entry is EntrySaved)
           Text(
-            '${(entry as EntrySaved).latestEpisode}/${(entry as EntrySaved).totalEpisodes}',
+            '${entry.latestEpisode}/${entry.totalEpisodes}${entry.status == ReleaseStatus.releasing ? '+' : ''}',
             style: context.textTheme.labelSmall,
+            textAlign: TextAlign.center,
           ),
         if (entry.length != null && entry is! EntrySaved)
-          Text(entry.length!.toString(), style: context.textTheme.labelSmall),
+          Text(
+            '${entry.length}',
+            style: context.textTheme.labelSmall,
+            textAlign: TextAlign.center,
+          ),
         Icon(switch (entry.mediaType) {
           MediaType.audio => Icons.music_note,
           MediaType.video => Icons.videocam,
@@ -132,16 +138,15 @@ class EntryCard extends StatelessWidget {
         }, size: 15),
       ],
       trailingBadges: [
-        if (entry is EntrySaved &&
-            (entry as EntrySaved).language.toLowerCase() != 'unknown')
-          switch (FlagCode.fromCountryCode((entry as EntrySaved).language)) {
+        if (entry is EntrySaved && entry.language.toLowerCase() != 'unknown')
+          switch (FlagCode.fromCountryCode(entry.language)) {
             null => CountryFlag.fromLanguageCode(
-              (entry as EntrySaved).language,
+              entry.language,
               height: 15,
               width: 15,
             ),
             _ => CountryFlag.fromCountryCode(
-              (entry as EntrySaved).language,
+              entry.language,
               height: 15,
               width: 15,
             ),
@@ -158,7 +163,7 @@ class EntryCard extends StatelessWidget {
                   fill: entry.rating!,
                   width: 12,
                   height: 12,
-                  color: context.theme.colorScheme.primary,
+                  color: Colors.white70,
                 ),
                 const Spacer(),
                 if (entry.views != null)
@@ -167,12 +172,12 @@ class EntryCard extends StatelessWidget {
                       const Icon(
                         Icons.remove_red_eye,
                         size: 13,
-                        color: Colors.grey,
+                        color: Colors.white70,
                       ).paddingOnly(right: 2),
                       Text(
                         NumberFormat.compact().format(entry.views),
                         style: context.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
+                          color: Colors.white70,
                         ),
                       ),
                     ],

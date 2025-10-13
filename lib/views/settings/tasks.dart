@@ -47,7 +47,6 @@ class ActiveTasksSettings extends StatelessWidget {
               children: [
                 for (final task in tasks)
                   DionBadge(
-                    color: context.theme.primaryColor.lighten(5),
                     child: ListenableBuilder(
                       listenable: task,
                       builder: (context, _) {

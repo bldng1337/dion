@@ -40,12 +40,16 @@ class _FoldabletextState extends State<Foldabletext> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (getTextSize(
+        final textSize =
+            getTextSize(
               widget.text,
               widget.style,
               width: constraints.maxWidth,
-            ).height >
-            (widget.style?.fontSize ?? 14.0) * (widget.maxLines + 1)) {
+            ).height -
+            24 * 2;
+        final maxHeight =
+            (widget.style?.fontSize ?? 14.0) * (widget.maxLines + 1);
+        if (textSize > maxHeight) {
           if (!widget.animate) {
             return StatefulBuilder(
               builder: (context, setState) =>
@@ -59,7 +63,7 @@ class _FoldabletextState extends State<Foldabletext> {
                                   style: widget.style,
                                   textAlign: widget.textAlign,
                                 ),
-                                const Icon(Icons.keyboard_arrow_down),
+                                const Icon(Icons.keyboard_arrow_down, size: 24),
                               ],
                             )
                           : Text(
@@ -90,7 +94,7 @@ class _FoldabletextState extends State<Foldabletext> {
                         style: widget.style,
                         textAlign: widget.textAlign,
                       ),
-                      const Icon(Icons.keyboard_arrow_down),
+                      const Icon(Icons.keyboard_arrow_down, size: 24),
                     ],
                   ),
                   secondChild: Text(

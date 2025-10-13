@@ -73,7 +73,6 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
     if (extension == null) {
       return Clickable(
         child: DionBadge(
-          color: context.theme.scaffoldBackgroundColor.lighten(5),
           child: SizedBox(
             height: 100,
             child: Row(
@@ -103,7 +102,6 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
         context.push('/detail', extra: [entry]);
       },
       child: DionBadge(
-        color: context.theme.scaffoldBackgroundColor.lighten(5),
         child: SizedBox(
           height: 160,
           child: Row(

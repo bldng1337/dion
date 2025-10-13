@@ -23,6 +23,11 @@ class DionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return material.Dialog(child: child);
+    return material.Dialog(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(4)),
+      ),
+      child: child,
+    );
   }
 }
