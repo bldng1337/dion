@@ -1,4 +1,4 @@
-<h1><img src="./assets/icon/icon.svg" alt="logo of dion" width="200" height="150"> dion</h1>
+<h1><img src="./assets/icon/icon.svg" alt="logo of dion" width="130" height="130"> dion</h1>
 
 <div align="center">
 <img alt="GitHub Tag" src="https://img.shields.io/github/v/tag/bldng1337/dion?label=version&style=for-the-badge&color=77a26e">
@@ -29,27 +29,27 @@ An overview of the architecture can be found [here](ARCHITECTURE.md).
 ## Screenshots
 
 <p align="center">
-  <img src="./docs/screenshots/settings_desktop.png" alt="Settings (desktop)" width="1200" />
+  <img src="./docs/screenshots/entry_desktop.png" alt="Entry / Series detail (desktop)" width="800" />
 </p>
 
 <p align="center">
-  <img src="./docs/screenshots/activity_desktop.png" alt="Activity (desktop)" width="1200" />
+  <img src="./docs/screenshots/entry_mobile.png" alt="Entry / Series detail (mobile)" width="300" />
 </p>
 
 <p align="center">
-  <img src="./docs/screenshots/entry_desktop.png" alt="Entry / Series detail (desktop)" width="1200" />
+  <img src="./docs/screenshots/library_desktop.png" alt="Library (desktop)" width="800" />
 </p>
 
 <p align="center">
-  <img src="./docs/screenshots/entry_mobile.png" alt="Entry / Series detail (mobile)" width="360" />
+  <img src="./docs/screenshots/library_mobile.png" alt="Library (mobile)" width="300" />
 </p>
 
 <p align="center">
-  <img src="./docs/screenshots/library_desktop.png" alt="Library (desktop)" width="1200" />
+  <img src="./docs/screenshots/settings_desktop.png" alt="Settings (desktop)" width="800" />
 </p>
 
 <p align="center">
-  <img src="./docs/screenshots/library_mobile.png" alt="Library (mobile)" width="360" />
+  <img src="./docs/screenshots/activity_desktop.png" alt="Activity (desktop)" width="800" />
 </p>
 
 
