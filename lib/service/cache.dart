@@ -1,5 +1,4 @@
 import 'package:dionysos/service/network.dart';
-import 'package:dionysos/utils/cache.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';

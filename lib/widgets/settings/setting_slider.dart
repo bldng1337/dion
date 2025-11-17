@@ -28,7 +28,7 @@ class SettingSlider<T extends num> extends StatelessWidget {
     if (v is double) {
       int precision = 2;
       if (step is double) {
-        final s = (step as double).toString();
+        final s = (step! as double).toString();
         if (s.contains('.')) {
           precision = s.split('.').last.length;
         }

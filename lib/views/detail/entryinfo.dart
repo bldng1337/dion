@@ -1,12 +1,13 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
-import 'package:dionysos/data/CustomUI.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/utils/color.dart';
+import 'package:dionysos/utils/custom_ui.dart';
 import 'package:dionysos/utils/placeholder.dart';
+import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/detail/detail.dart';
 import 'package:dionysos/widgets/badge.dart';
@@ -25,43 +26,6 @@ import 'package:intl/intl.dart';
 class EntryInfo extends StatelessWidget {
   final Entry entry;
   const EntryInfo({super.key, required this.entry});
-
-  //TODO: Extract this into a seperate Widget
-  Widget buildWarningBox(
-    BuildContext context, {
-    required String message,
-    String? buttonText,
-    FutureOr<void> Function()? onTap,
-  }) {
-    return ColoredBox(
-      color: context.theme.colorScheme.errorContainer,
-      child: Row(
-        children: [
-          Icon(
-            Icons.error,
-            color: context.theme.colorScheme.error,
-          ).paddingOnly(right: 5),
-          Text(
-            message,
-            style: context.bodyLarge!.copyWith(
-              color: context.theme.colorScheme.onErrorContainer,
-            ),
-          ),
-          if (buttonText != null) const Spacer(),
-          if (buttonText != null)
-            DionTextbutton(
-              style: ButtonStyle(
-                foregroundColor: WidgetStateProperty.all(
-                  context.theme.colorScheme.onErrorContainer,
-                ),
-              ),
-              onPressed: onTap,
-              child: Text(buttonText),
-            ),
-        ],
-      ).paddingAll(5),
-    ).paddingAll(5);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -283,5 +247,42 @@ class EntryInfo extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  //TODO: Extract this into a seperate Widget
+  Widget buildWarningBox(
+    BuildContext context, {
+    required String message,
+    String? buttonText,
+    FutureOr<void> Function()? onTap,
+  }) {
+    return ColoredBox(
+      color: context.theme.colorScheme.errorContainer,
+      child: Row(
+        children: [
+          Icon(
+            Icons.error,
+            color: context.theme.colorScheme.error,
+          ).paddingOnly(right: 5),
+          Text(
+            message,
+            style: context.bodyLarge!.copyWith(
+              color: context.theme.colorScheme.onErrorContainer,
+            ),
+          ),
+          if (buttonText != null) const Spacer(),
+          if (buttonText != null)
+            DionTextbutton(
+              style: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(
+                  context.theme.colorScheme.onErrorContainer,
+                ),
+              ),
+              onPressed: onTap,
+              child: Text(buttonText),
+            ),
+        ],
+      ).paddingAll(5),
+    ).paddingAll(5);
   }
 }

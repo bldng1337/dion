@@ -71,9 +71,9 @@ Future<Directory> getPath(String name, {bool create = true}) async {
 
 Future<Directory> getBasePath() async {
   if (kDebugMode) {
-    return (await getApplicationDocumentsDirectory())
-        .sub('diondev')
-        .create(recursive: true);
+  return (await getApplicationDocumentsDirectory())
+      .sub('diondev')
+      .create(recursive: true);
   }
   return (await getApplicationDocumentsDirectory())
       .sub('dion')

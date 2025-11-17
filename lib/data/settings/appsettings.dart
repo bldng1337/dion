@@ -140,31 +140,35 @@ final settings = (
     repositories: Setting(
       <String>[],
       const StringListMetaData('extension.repositories'),
-    ),
+    )..addCollection(preferenceCollection),
   ),
   library: (
-    showAllTab: Setting(false, const PreferenceBoolMetaData('library.showall')),
-    showNoneTab: Setting(
-      true,
-      const PreferenceBoolMetaData('library.shownone'),
-    ),
+    showAllTab: Setting(false, const PreferenceBoolMetaData('library.showall'))
+      ..addCollection(preferenceCollection),
+    showNoneTab: Setting(true, const PreferenceBoolMetaData('library.shownone'))
+      ..addCollection(preferenceCollection),
   ),
   audioBookSettings: (
-    volume: Setting(50.0, const PreferenceDoubleMetaData('audiobook.volume')),
-    speed: Setting(1.0, const PreferenceDoubleMetaData('audiobook.speed')),
+    volume: Setting(50.0, const PreferenceDoubleMetaData('audiobook.volume'))
+      ..addCollection(preferenceCollection),
+    speed: Setting(1.0, const PreferenceDoubleMetaData('audiobook.speed'))
+      ..addCollection(preferenceCollection),
     // subtitle: Setting( TODO
     //   true,
     //   const PreferenceBoolMetaData('audiobook.subtitle'),
     // ),
   ),
   update: (
-    enabled: Setting(true, const PreferenceBoolMetaData('update.enabled')),
+    enabled: Setting(true, const PreferenceBoolMetaData('update.enabled'))
+      ..addCollection(preferenceCollection),
     channel: Setting(
       UpdateChannel.beta,
       const PreferenceEnumMetaData('update.channel', UpdateChannel.values),
-    ),
-    minor: Setting(true, const PreferenceBoolMetaData('update.minor')),
-    patch: Setting(true, const PreferenceBoolMetaData('update.patch')),
+    )..addCollection(preferenceCollection),
+    minor: Setting(true, const PreferenceBoolMetaData('update.minor'))
+      ..addCollection(preferenceCollection),
+    patch: Setting(true, const PreferenceBoolMetaData('update.patch'))
+      ..addCollection(preferenceCollection),
     lastnotified: Setting(
       Version.none,
       const VersionMetaData('update.lastnotified'),

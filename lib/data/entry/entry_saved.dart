@@ -285,7 +285,6 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
             length: json['entry']['length'] as int?,
             meta: (json['entry']['meta'] as Map<String, dynamic>?)?.cast(),
             rating: json['entry']['rating'] as double?,
-            ui: null,
             views: json['entry']['views'] as double?,
             titles: [json['entry']['title'] as String],
             mediaType: JsonMediaType.fromJson(json['entry']['mediaType']),
@@ -357,6 +356,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     return {
       'version': entrySerializeVersion.current,
       'type': 'entry',
+      'boundExtensionId': boundExtensionId,
       'entry': rust.Entry(
         id: entry.id,
         url: entry.url,

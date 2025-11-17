@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/adapter/dataclass.dart';
@@ -40,7 +39,7 @@ class Activity with DBConstClass {
 class EpisodeActivity extends Activity {
   final int fromepisode;
   final int toepisode;
-  final Entry? entry;
+  final Entry entry;
   final String extensionid;
   final Duration duration;
 
@@ -55,25 +54,10 @@ class EpisodeActivity extends Activity {
   }) : super(time, id);
 
   factory EpisodeActivity.fromJson(Map<String, dynamic> json) {
-    if (json['entry'] != null &&
-        locate<SourceExtension>().tryGetExtension(
-              json['extensionid'] as String,
-            ) !=
-            null) {
-      return EpisodeActivity(
-        fromepisode: json['fromepisode'] as int,
-        toepisode: json['toepisode'] as int,
-        entry: Entry.fromJson(json['entry'] as Map<String, dynamic>),
-        extensionid: json['extensionid'] as String,
-        duration: Duration(seconds: json['duration'] as int),
-        time: json['time'] as DateTime,
-        id: json['aid'] as String,
-      );
-    }
     return EpisodeActivity(
       fromepisode: json['fromepisode'] as int,
       toepisode: json['toepisode'] as int,
-      entry: null,
+      entry: Entry.fromJson(json['entry'] as Map<String, dynamic>),
       extensionid: json['extensionid'] as String,
       duration: Duration(seconds: json['duration'] as int),
       time: json['time'] as DateTime,
@@ -107,7 +91,7 @@ class EpisodeActivity extends Activity {
       'type': 'episode',
       'fromepisode': fromepisode,
       'toepisode': toepisode,
-      'entry': entry?.toEntryJson(),
+      'entry': entry.toEntryJson(),
       'extensionid': extensionid,
       'duration': duration.inSeconds,
     };

@@ -28,7 +28,6 @@ abstract class Entry {
   static Entry fromJson(Map<String, dynamic> json) {
     switch (json['version']) {
       case 1:
-        print("Upgrade entry from version 1 to 2");
         return EntryImpl(
           rust.Entry(
             id: EntryId(uid: json['entry']['id'] as String),
@@ -116,12 +115,4 @@ class EntryImpl implements Entry {
       'entry': _entry.toJson(),
     };
   }
-}
-
-extension ReleaseStatusExt on ReleaseStatus {
-  String asString() => switch (this) {
-    ReleaseStatus.complete => 'Complete',
-    ReleaseStatus.releasing => 'Releasing',
-    ReleaseStatus.unknown => 'Unknown',
-  };
 }

@@ -33,7 +33,7 @@ entrydata.Entry getEntry() => const entrydata.EntryImpl(
     views: 1,
     length: 1,
   ),
-  "test",
+  'test',
 );
 
 entrydata.EntryDetailed getEntryDetailed() => const entrydata.EntryDetailedImpl(
@@ -57,7 +57,7 @@ entrydata.EntryDetailed getEntryDetailed() => const entrydata.EntryDetailedImpl(
       ),
     ],
   ),
-  "test",
+  'test',
   {},
 );
 
@@ -83,7 +83,7 @@ entrydata.EntrySaved getEntrySaved() => entrydata.EntrySaved(
       ),
     ],
   ),
-  boundExtensionId: "test",
+  boundExtensionId: 'test',
   extensionSettings: {},
   episodedata: [entrydata.EpisodeData.empty()],
   episode: 0,

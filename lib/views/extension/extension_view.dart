@@ -1,5 +1,4 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/badge.dart';
@@ -78,8 +77,7 @@ class _ExtensionViewState extends State<ExtensionView> {
                       ).paddingAll(5),
                     ],
                   ),
-                  if (extension!.data.author != null &&
-                      extension!.data.author!.isNotEmpty)
+                  if (extension!.data.author.isNotEmpty)
                     Text(
                       'by ${extension!.data.author}',
                       style: context.bodyMedium,
