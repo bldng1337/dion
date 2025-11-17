@@ -9,37 +9,44 @@ import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 abstract class EntryDetailed extends Entry {
+  Map<String, rust.Setting> get extensionSettings;
   CustomUI? get ui;
   ReleaseStatus get status;
   String get description;
+  List<String>? get titles;
   String get language;
   List<Episode> get episodes;
   List<String>? get genres;
-  List<String>? get alttitles;
 
   FutureOr<EntrySaved> toSaved();
   FutureOr<EntryDetailed> refresh({CancelToken? token});
 }
 
 class EntryDetailedImpl implements EntryDetailed {
+  @override
+  final Map<String, rust.Setting> extensionSettings;
   final rust.EntryDetailed entry;
   @override
-  final Extension extension;
+  final String boundExtensionId;
 
-  const EntryDetailedImpl(this.entry, this.extension);
+  const EntryDetailedImpl(
+    this.entry,
+    this.boundExtensionId,
+    this.extensionSettings,
+  );
 
   @override
-  String get id => entry.id;
+  EntryId get id => entry.id;
   @override
   String get url => entry.url;
   @override
-  String get title => entry.title;
+  String get title => entry.titles.first;
+  @override
+  List<String> get titles => entry.titles;
   @override
   MediaType get mediaType => entry.mediaType;
   @override
-  String? get cover => entry.cover;
-  @override
-  Map<String, String>? get coverHeader => entry.coverHeader;
+  Link? get cover => entry.cover;
   @override
   List<String>? get author => entry.author;
   @override
@@ -61,7 +68,8 @@ class EntryDetailedImpl implements EntryDetailed {
   @override
   List<String>? get genres => entry.genres;
   @override
-  List<String>? get alttitles => entry.alttitles;
+  Extension? get extension =>
+      locate<SourceExtension>().tryGetExtension(boundExtensionId);
 
   @override
   Future<EntryDetailed> refresh({CancelToken? token}) {
@@ -84,10 +92,10 @@ class EntryDetailedImpl implements EntryDetailed {
   bool operator ==(Object other) =>
       other is EntryDetailedImpl &&
       other.entry == entry &&
-      other.extension == extension;
+      other.boundExtensionId == boundExtensionId;
 
   @override
-  int get hashCode => Object.hashAll([entry, extension]);
+  int get hashCode => Object.hashAll([entry, boundExtensionId]);
 
   @override
   DBRecord get dbId => constructEntryDBRecord(this);
@@ -100,16 +108,15 @@ class EntryDetailedImpl implements EntryDetailed {
       'entry': rust.Entry(
         id: entry.id,
         url: entry.url,
-        title: entry.title,
+        title: entry.titles.first,
         mediaType: entry.mediaType,
         cover: entry.cover,
-        coverHeader: entry.coverHeader,
         author: entry.author,
         rating: entry.rating,
         views: entry.views,
         length: entry.length,
       ).toJson(),
-      'extensionid': extension.id,
+      'boundExtensionId': boundExtensionId,
     };
   }
 }

@@ -29,7 +29,7 @@ dependencies:
   path: ^1.9.0
   flutter_cache_manager: ^3.4.1
   inline_result: ^2.0.0
-  awesome_extensions: ^2.0.19
+  awesome_extensions: ^2.0.26
   path_provider: ^2.1.5
   intl: ^0.20.2
   moment_dart: ^5.2.3
@@ -62,7 +62,7 @@ dependencies:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 1e6d05df29e40303114903f6c03e3f40dd508d34
+      ref: e5cfe22d79b8a1357b3103c8ecde43e6bdc93264
 
   # pdfx: ^2.8.0
   # flutter_inappwebview: ^6.1.5
@@ -104,3 +104,6 @@ inno_bundle:
   publisher: bldng
   name: dion
   installer_icon: windows/runner/resources/app_icon.ico
+
+tags:
+  writing:

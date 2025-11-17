@@ -37,12 +37,12 @@ class DionTheme {
 
 ThemeData getTheme(Brightness b) {
   const Color primary = Color(0xFF6BA368);
-  const Color lightshade = Color(0xFFF4F7F5);
-  const Color lightaccent = Color(0xFF808181);
-  const Color darkaccent = Color(0xFF796394);
-  const Color darkshade = Color.fromARGB(255, 40, 36, 40);
-  final Color shade = b == Brightness.dark ? darkshade : lightshade;
-  final Color accent = b == Brightness.dark ? darkaccent : lightaccent;
+  // const Color lightshade = Color(0xFFF4F7F5);
+  // const Color lightaccent = Color(0xFF808181);
+  // const Color darkaccent = Color(0xFF796394);
+  // const Color darkshade = Color.fromARGB(255, 40, 36, 40);
+  // final Color shade = b == Brightness.dark ? darkshade : lightshade;
+  // final Color accent = b == Brightness.dark ? darkaccent : lightaccent;
   final ColorScheme colorScheme =
       ColorScheme.fromSeed(brightness: b, seedColor: primary).copyWith(
         // primary: primary,

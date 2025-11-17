@@ -19,20 +19,31 @@ class SettingDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tile = DionListTile(
-      leading: icon != null ? Icon(icon) : null,
-      trailing: ListenableBuilder(
-        listenable: setting,
-        builder: (context, child) => DionDropdown(
-          items: setting.metadata.values
-              .map((e) => DionDropdownItem(label: e.name, value: e.value))
-              .toList(),
+    final items = setting.metadata.values
+        .map((e) => DionDropdownItem<T>(label: e.name, value: e.value))
+        .toList();
+
+    final tile = ListenableBuilder(
+      listenable: setting,
+      builder: (context, child) => DionListTile(
+        leading: icon != null ? Icon(icon) : null,
+        trailing: DionDropdown<T>(
+          items: items,
           value: setting.value,
-          onChanged: (value) => setting.value = value ?? setting.intialValue,
+          onChanged: (value) {
+            if (value == null) {
+              try {
+                setting.value = setting.intialValue;
+              } catch (_) {}
+            } else {
+              setting.value = value;
+            }
+          },
         ),
-      ),
-      title: Text(title, style: context.titleMedium),
-    ).paddingAll(5);
+        title: Text(title, style: context.titleMedium),
+      ).paddingAll(5),
+    );
+
     if (description != null) {
       return tile.withTooltip(description!);
     }

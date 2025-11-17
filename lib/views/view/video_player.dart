@@ -34,10 +34,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   List<Subtitles> get subtitles {
     if (widget.source.source == null) return [];
     final source = widget.source.source!;
-    if (source.source.sourcedata is! LinkSource_M3u8) {
+    if (source.source is! Source_M3u8) {
       return [];
     }
-    final sourcedata = source.source.sourcedata as LinkSource_M3u8;
+    final sourcedata = source.source as Source_M3u8;
     return sourcedata.sub;
   }
 
@@ -55,10 +55,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         return;
       }
       final source = widget.source.source!;
-      if (source.source.sourcedata is! LinkSource_M3u8) {
+      if (source.source is! Source_M3u8) {
         return;
       }
-      final sourcedata = source.source.sourcedata as LinkSource_M3u8;
+      final sourcedata = source.source as Source_M3u8;
       final prog = source.episode.data.progress?.split(':');
       Duration startduration = Duration.zero;
       // int chapterindex = 0;
@@ -68,9 +68,9 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       }
       await player.open(
         Media(
-          sourcedata.link,
+          sourcedata.link.url,
+          httpHeaders: sourcedata.link.header,
           start: startduration,
-          httpHeaders: sourcedata.headers,
         ),
       );
       await player.setSubtitleTrack(SubtitleTrack.no());
@@ -171,8 +171,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 return;
               }
               player.setSubtitleTrack(
-                SubtitleTrack.uri(value.url, title: value.title),
-              );
+                SubtitleTrack.uri(value.url.url, title: value.title),
+              ); //TODO: Think about headers
             },
           ),
         DionIconbutton(
@@ -301,8 +301,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                         return;
                       }
                       player.setSubtitleTrack(
-                        SubtitleTrack.uri(value.url, title: value.title),
-                      );
+                        SubtitleTrack.uri(value.url.url, title: value.title),
+                      ); //TODO: Think about headers
                     },
                   ),
               ],

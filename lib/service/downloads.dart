@@ -23,12 +23,13 @@ class DownloadTask extends Task {
   DownloadTask(this.ep) : super('Downloading ${ep.episode.name}');
 
   Future<void> handleMetadata(Directory dir) async {
-    if (ep.episode.cover != null) {
+    final cover = ep.episode.cover;
+    if (cover != null) {
       status = 'Fetching Thumbnail';
       await InternetFile.streamToFile(
-        ep.episode.cover!,
-        InternetFile.fromURI(ep.episode.cover!, dir, filename: 'cover'),
-        headers: ep.episode.coverHeader,
+        cover.url,
+        InternetFile.fromURI(cover.url, dir, filename: 'cover'),
+        headers: cover.header,
         onReceiveProgress: (current) => progress = current,
         rhttpToken: rhttpToken,
       );
@@ -50,110 +51,108 @@ class DownloadTask extends Task {
     final source = await ep.loadSource(token);
 
     final Map<String, dynamic> index = {'version': downloadVersion};
+
     switch (source.source) {
-      case final Source_Data source:
-        switch (source.sourcedata) {
-          case final DataSource_Paragraphlist paragraphs:
-            index['type'] = 'paragraphlist';
-            status = 'Writing Content';
-            await dir
-                .getFile('data.txt')
-                .writeAsString(jsonEncode(paragraphs.paragraphs));
+      case final Source_Paragraphlist paragraphs:
+        index['type'] = 'paragraphlist';
+        status = 'Writing Content';
+        await dir
+            .getFile('data.txt')
+            .writeAsString(jsonEncode(paragraphs.paragraphs));
+      case final Source_Epub data:
+        status = 'Downloading Epub';
+        final filename = await InternetFile.streamToFile(
+          data.link.url,
+          InternetFile.fromURI(data.link.url, dir, filename: 'data'),
+          headers: data.link.header,
+          onReceiveProgress: (current) => progress = current,
+          rhttpToken: rhttpToken,
+        );
+        progress = null;
+        index['filetype'] = 'epub';
+        index['filename'] = filename;
+      case final Source_Pdf data:
+        status = 'Downloading PDF';
+        final filename = await InternetFile.streamToFile(
+          data.link.url,
+          InternetFile.fromURI(data.link.url, dir, filename: 'data'),
+          headers: data.link.header,
+          onReceiveProgress: (current) => progress = current,
+          rhttpToken: rhttpToken,
+        );
+        progress = null;
+        index['filetype'] = 'pdf';
+        index['filename'] = filename;
+      case final Source_Imagelist data:
+        status = 'Downloading Images';
+        index['type'] = 'imagelist';
+        final imagedata = [];
+        for (final (index, image) in data.links.indexed) {
+          final file = await InternetFile.streamToFile(
+            image.url,
+            InternetFile.fromURI(image.url, dir, filename: 'image$index'),
+            headers: image.header,
+            onReceiveProgress: (current) =>
+                progress = (index + current) / data.links.length,
+            rhttpToken: rhttpToken,
+          );
+          progress = null;
+          imagedata.add(file.filename);
         }
-      case final Source_Directlink source:
-        switch (source.sourcedata) {
-          case final LinkSource_Epub data:
-            status = 'Downloading Epub';
-            final filename = await InternetFile.streamToFile(
-              data.link,
-              InternetFile.fromURI(data.link, dir, filename: 'data'),
-              onReceiveProgress: (current) => progress = current,
+        index['images'] = imagedata;
+        if (data.audio != null) {
+          status = 'Downloading Audio';
+          final audiodata = [];
+          for (final (index, audio) in data.audio!.indexed) {
+            final file = await InternetFile.streamToFile(
+              audio.link.url,
+              InternetFile.fromURI(
+                audio.link.url,
+                dir,
+                filename: 'audio$index',
+              ),
+              headers: audio.link.header,
+              onReceiveProgress: (current) =>
+                  progress = (index + current) / data.audio!.length,
               rhttpToken: rhttpToken,
             );
             progress = null;
-            index['filetype'] = 'epub';
-            index['filename'] = filename;
-          case final LinkSource_Pdf data:
-            status = 'Downloading PDF';
-            final filename = await InternetFile.streamToFile(
-              data.link,
-              InternetFile.fromURI(data.link, dir, filename: 'data'),
-              onReceiveProgress: (current) => progress = current,
-              rhttpToken: rhttpToken,
-            );
-            progress = null;
-            index['filetype'] = 'pdf';
-            index['filename'] = filename;
-          case final LinkSource_Imagelist data:
-            status = 'Downloading Images';
-            index['type'] = 'imagelist';
-            final imagedata = [];
-            for (final (index, image) in data.links.indexed) {
-              final file = await InternetFile.streamToFile(
-                image,
-                InternetFile.fromURI(image, dir, filename: 'image$index'),
-                onReceiveProgress: (current) =>
-                    progress = (index + current) / data.links.length,
-                headers: data.header,
-                rhttpToken: rhttpToken,
-              );
-              progress = null;
-              imagedata.add(file.filename);
-            }
-            index['images'] = imagedata;
-            if (data.audio != null) {
-              status = 'Downloading Audio';
-              final audiodata = [];
-              for (final (index, audio) in data.audio!.indexed) {
-                final file = await InternetFile.streamToFile(
-                  audio.link,
-                  InternetFile.fromURI(
-                    audio.link,
-                    dir,
-                    filename: 'audio$index',
-                  ),
-                  onReceiveProgress: (current) =>
-                      progress = (index + current) / data.audio!.length,
-                  headers: data.header,
-                  rhttpToken: rhttpToken,
-                );
-                progress = null;
-                audiodata.add({
-                  'name': file.filename,
-                  'from': audio.from,
-                  'to': audio.to,
-                });
-              }
-              index['audio'] = audiodata;
-            }
-          case final LinkSource_M3u8 data:
-            status = 'Downloading m3u8';
-            final file = await InternetFile.downloadm3u8(
-              data.link,
-              InternetFile.fromURI(data.link, dir, filename: 'playlist'),
-              headers: data.headers,
-              onReceiveProgress: (current) => progress = current,
-              rhttpToken: rhttpToken,
-            );
-            index['type'] = 'm3u8';
-            index['playlist'] = file.filename;
-          case final LinkSource_Mp3 data:
-            status = 'Downloading MP3';
-            final audiodata = [];
-            for (final (index, audio) in data.chapters.indexed) {
-              final file = await InternetFile.streamToFile(
-                audio.url,
-                InternetFile.fromURI(audio.url, dir, filename: 'audio$index'),
-                onReceiveProgress: (current) =>
-                    progress = (index + current) / data.chapters.length,
-                rhttpToken: rhttpToken,
-              );
-              progress = null;
-              audiodata.add({'title': audio.title, 'name': file.filename});
-            }
-            index['type'] = 'mp3';
-            index['audio'] = audiodata;
+            audiodata.add({
+              'name': file.filename,
+              'from': audio.from,
+              'to': audio.to,
+            });
+          }
+          index['audio'] = audiodata;
         }
+      case final Source_M3u8 data:
+        status = 'Downloading m3u8';
+        final file = await InternetFile.downloadm3u8(
+          data.link.url,
+          InternetFile.fromURI(data.link.url, dir, filename: 'playlist'),
+          headers: data.link.header,
+          onReceiveProgress: (current) => progress = current,
+          rhttpToken: rhttpToken,
+        );
+        index['type'] = 'm3u8';
+        index['playlist'] = file.filename;
+      case final Source_Mp3 data:
+        status = 'Downloading MP3';
+        final audiodata = [];
+        for (final (index, audio) in data.chapters.indexed) {
+          final file = await InternetFile.streamToFile(
+            audio.url.url,
+            InternetFile.fromURI(audio.url.url, dir, filename: 'audio$index'),
+            headers: audio.url.header,
+            onReceiveProgress: (current) =>
+                progress = (index + current) / data.chapters.length,
+            rhttpToken: rhttpToken,
+          );
+          progress = null;
+          audiodata.add({'title': audio.title, 'name': file.filename});
+        }
+        index['type'] = 'mp3';
+        index['audio'] = audiodata;
     }
     await dir.getFile('index.json').writeAsString(jsonEncode(index));
   }
@@ -203,7 +202,10 @@ class DownloadService {
         final mngr = locate<TaskManager>();
         mngr.root
             .createOrGetCategory('download', 'Download', concurrency: null)
-            .createOrGetCategory(ep.extension.id, ep.extension.name)
+            .createOrGetCategory(
+              ep.extensionid,
+              ep.extension?.name ?? 'Unknown',
+            )
             .enqueue(DownloadTask(ep));
       }
     } catch (e, stack) {
@@ -218,7 +220,7 @@ class DownloadService {
     }
     final task = mngr.getTask(
       (e) => e is DownloadTask && e.ep == ep,
-      categoryids: ['download', ep.extension.id],
+      categoryids: ['download', ep.extensionid],
     );
     return DownloadStatus(
       task != null ? Status.downloading : Status.nodownload,
@@ -230,7 +232,7 @@ class DownloadService {
     final mngr = locate<TaskManager>();
     final stream = mngr.onTaskChange(
       (e) => e is DownloadTask && e.ep == ep,
-      categoryids: ['download', ep.extension.id],
+      categoryids: ['download', ep.extensionid],
     );
     StreamSubscription<FileSystemEvent>? filewatcher;
     final controller = StreamController<DownloadStatus>();
@@ -283,66 +285,57 @@ class DownloadService {
       }
       switch (index['type']) {
         case 'paragraphlist':
-          return Source.data(
-            sourcedata: DataSource.paragraphlist(
-              paragraphs:
-                  (json.decode(await path.getFile('data.txt').readAsString())
-                          as List<dynamic>)
-                      .cast(),
-            ),
+          return Source.paragraphlist(
+            paragraphs:
+                (json.decode(await path.getFile('data.txt').readAsString())
+                        as List<dynamic>)
+                    .cast(),
           );
         case 'epub':
-          return Source.directlink(
-            sourcedata: LinkSource.epub(
-              link: path.getFile(index['filename'] as String).fileURL,
-            ),
+          return Source.epub(
+            link: Link(url: path.getFile(index['filename'] as String).fileURL),
           );
         case 'pdf':
-          return Source.directlink(
-            sourcedata: LinkSource.pdf(
-              link: path.getFile(index['filename'] as String).fileURL,
-            ),
+          return Source.pdf(
+            link: Link(url: path.getFile(index['filename'] as String).fileURL),
           );
         case 'imagelist':
           final images = index['images'] as List<dynamic>;
           final audio = index['audio'] as List<dynamic>?;
-          return Source.directlink(
-            sourcedata: LinkSource.imagelist(
-              links: images
-                  .map((e) => path.getFile(e as String).fileURL)
-                  .toList(),
-              audio: audio
-                  ?.map(
-                    (e) => ImageListAudio(
-                      from: e['from'] as int,
-                      to: e['to'] as int,
-                      link: path.getFile(e['name'] as String).fileURL,
-                    ),
-                  )
-                  .toList(),
-            ),
+          return Source.imagelist(
+            links: images
+                .map((e) => Link(url: path.getFile(e as String).fileURL))
+                .toList(),
+            audio: audio
+                ?.map(
+                  (e) => ImageListAudio(
+                    from: e['from'] as int,
+                    to: e['to'] as int,
+                    link: Link(url: path.getFile(e['name'] as String).fileURL),
+                  ),
+                )
+                .toList(),
           );
         case 'mp3':
           final audio = index['audio'] as List<dynamic>;
-          return Source.directlink(
-            sourcedata: LinkSource.mp3(
-              chapters: audio
-                  .map(
-                    (e) => UrlChapter(
-                      title: e['title'] as String,
-                      url: path.getFile(e['name'] as String).fileURL,
-                    ),
-                  )
-                  .toList(),
-            ),
+          return Source.mp3(
+            chapters: audio
+                .map(
+                  (e) => Mp3Chapter(
+                    title: e['title'] as String,
+                    url: Link(url: path.getFile(e['name'] as String).fileURL),
+                  ),
+                )
+                .toList(),
           );
         case 'm3u8':
           final playlist = path.getFile(index['playlist'] as String);
           if (!await playlist.exists()) {
             return null;
           }
-          return Source.directlink(
-            sourcedata: LinkSource.m3U8(link: playlist.fileURL, sub: []),
+          return Source.m3U8(
+            link: Link(url: playlist.fileURL),
+            sub: [],
           );
         default:
           return null;
@@ -354,8 +347,8 @@ class DownloadService {
   static Directory _getDownloadPath(EpisodePath ep) {
     final dir = locate<DirectoryProvider>().downloadspath;
     return dir
-        .sub(pathEncode(ep.extension.id))
-        .sub(pathEncode(ep.entry.id))
+        .sub(pathEncode(ep.extensionid))
+        .sub(pathEncode(ep.entry.id.uid))
         .sub(pathEncode(ep.episodenumber.toString()));
   }
 
@@ -388,8 +381,8 @@ class DownloadService {
       return;
     }
     await path
-        .sub(pathEncode(entry.extension.id))
-        .sub(pathEncode(entry.id))
+        .sub(pathEncode(entry.boundExtensionId))
+        .sub(pathEncode(entry.id.uid))
         .delete(recursive: true);
   }
 

@@ -8,6 +8,8 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:pub_semver/pub_semver.dart';
@@ -19,8 +21,11 @@ export 'package:rdion_runtime/rdion_runtime.dart'
 class Extension extends ChangeNotifier {
   Extension(this.data, this._proxy, this.isenabled, this.settings, this._meta);
   final rust.ExtensionData data;
-  final rust.SourceExtensionProxy _proxy;
-  final List<Setting<dynamic, SourceExtensionSettingMetaData<dynamic>>>
+  final rust.ProxyExtension _proxy;
+  final Map<
+    rust.SettingKind,
+    List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>>
+  >
   settings;
   ExtensionMetaData _meta;
   bool isenabled;
@@ -28,7 +33,7 @@ class Extension extends ChangeNotifier {
 
   ExtensionMetaData get meta => _meta;
 
-  Version get version => Version.parse(data.version ?? '0.0.0');
+  Version get version => Version.parse(data.version);
 
   set meta(ExtensionMetaData value) {
     _meta = value;
@@ -43,30 +48,45 @@ class Extension extends ChangeNotifier {
     return data.name.replaceAll('-', ' ').capitalize;
   }
 
-  rust.SourceExtensionProxy get internalProxy => _proxy;
-
   static Future<Extension> fromProxy(
-    rust.SourceExtensionProxy proxy,
+    rust.ProxyExtension proxy,
     Database db,
   ) async {
-    await proxy.setEnabled(enabled: true); //TODO: Rework this
-    final settingids = await proxy.getSettingsIds();
-    await proxy.setEnabled(enabled: false);
-    final extdata = await proxy.getData();
+    final Map<
+      rust.SettingKind,
+      List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>>
+    >
+    settingsmap = {};
+    for (final kind in rust.SettingKind.values) {
+      final settingids = await proxy.getSettingIds(kind: kind);
+      final settings = await Future.wait(
+        settingids.map((id) async {
+          final set = await proxy.getSetting(id: id, kind: kind);
+          final setting =
+              Setting<dynamic, ExtensionSettingMetaData<dynamic>>.fromValue(
+                set.default_.data,
+                set.value.data,
+                ExtensionSettingMetaData(
+                  kind,
+                  proxy,
+                  id,
+                  set.label,
+                  set.visible,
+                  set.ui,
+                ),
+              );
+          return setting;
+        }),
+      );
+      settingsmap[kind] = settings;
+    }
+    final extdata = await proxy.getExtensionData();
     final extmeta = await db.getExtensionMetaData(extdata);
     return Extension(
       extdata,
       proxy,
       await proxy.isEnabled(),
-      await Future.wait(
-        settingids.map((id) async {
-          final set = await proxy.getSetting(name: id);
-          final setting = set.setting.toSetting(
-            SourceExtensionSettingMetaData(id, set, proxy),
-          );
-          return setting;
-        }),
-      ),
+      settingsmap,
       extmeta,
     );
   }
@@ -103,15 +123,12 @@ class Extension extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<List<Entry>> browse(
-    int page,
-    rust.Sort sort, {
-    rust.CancelToken? token,
-  }) async {
+  Future<List<Entry>> browse(int page, {rust.CancelToken? token}) async {
     final db = locate<Database>();
-    final res = await _proxy.browse(page: page, sort: sort, token: token);
+    final res = await _proxy.browse(page: page, token: token);
+    //TODO: Take advantage of the additional data that EntryList Provides
     return Future.wait(
-      res.map((entry) => EntryImpl(entry, this)).map((entry) async {
+      res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
         final saved = await db.isSaved(entry);
         if (saved != null) {
           return saved;
@@ -129,7 +146,7 @@ class Extension extends ChangeNotifier {
     final res = await _proxy.search(page: page, filter: filter, token: token);
     final db = locate<Database>();
     return await Future.wait(
-      res.map((entry) => EntryImpl(entry, this)).map((entry) async {
+      res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
         final saved = await db.isSaved(entry);
         if (saved != null) {
           return saved;
@@ -137,6 +154,56 @@ class Extension extends ChangeNotifier {
         return entry;
       }).toList(),
     );
+  }
+
+  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
+    if (e.boundExtensionId != id) {
+      throw Exception(
+        'Extension mismatch: expected $id, got ${e.boundExtensionId}',
+      );
+    }
+    final res = switch (e) {
+      final EntrySaved saved => await _proxy.detail(
+        entryid: saved.id,
+        token: token,
+        settings: saved.extensionSettings,
+      ),
+      final EntryDetailed detail => await _proxy.detail(
+        entryid: detail.id,
+        token: token,
+        settings: detail.extensionSettings,
+      ),
+      final Entry entry => await _proxy.detail(
+        entryid: entry.id,
+        token: token,
+        settings: {},
+      ),
+    };
+    if (e is EntrySaved) {
+      e.entry = res.entry;
+      e.extensionSettings =
+          res.settings; //TODO: Think about possible race conditions here
+      return e;
+    }
+    return EntryDetailedImpl(res.entry, id, res.settings);
+  }
+
+  Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
+    final entry = ep.entry;
+    final res = await _proxy.source(
+      epid: ep.episode.id,
+      token: token,
+      settings: entry.extensionSettings,
+    );
+    if (entry is EntrySaved) {
+      entry.extensionSettings =
+          res.settings; //TODO: Think about possible race conditions here
+    }
+    return SourcePath(ep, res.source);
+  }
+
+  Future<bool> handleUrl(String url, {rust.CancelToken? token}) async {
+    return await _proxy.handleUrl(url: url, token: token);
   }
 
   @override
@@ -158,10 +225,52 @@ class Extension extends ChangeNotifier {
 
 class SourceExtension with ChangeNotifier {
   final _extensions = <Extension>[];
+  late final rust.ProxyAdapter adapter;
   bool loading = false;
 
   Future<SourceExtension> init() async {
+    final dir = await locateAsync<DirectoryProvider>();
     await rust.RustLib.init();
+    final managerclient = await rust.ManagerClient.init(
+      getClient: (data) => rust.ExtensionClient.init(
+        loadData: (key) async {
+          try {
+            final file = dir.extensionpath
+                .sub(data.id)
+                .sub('data')
+                .getFile(key);
+            if (!await file.exists()) {
+              return '';
+            }
+            return await file.readAsString();
+          } catch (e) {
+            logger.e('Failed to read data $key for extension $data', error: e);
+            return '';
+          }
+        },
+        storeData: (String key, String value) async {
+          try {
+            await dir.extensionpath
+                .sub(data.id)
+                .sub('data')
+                .getFile(key)
+                .writeAsString(value);
+          } catch (e) {
+            logger.e('Failed to store data $key for extension $data', error: e);
+          }
+        },
+        doAction: (rust.Action action) {},
+        requestPermission: (rust.Permission permission, String? message) {
+          logger.i('Requesting permission $permission for extension $data');
+          //TODO: Implement this
+          return false;
+        },
+        getPath: () =>
+            dir.extensionpath.sub(data.id).sub('native').absolute.path,
+      ),
+      getPath: () => dir.extensionpath.absolute.path,
+    );
+    adapter = await rust.ProxyAdapter.initDion(client: managerclient);
     await reload();
     return this;
   }
@@ -171,15 +280,14 @@ class SourceExtension with ChangeNotifier {
   }
 
   Stream<List<Entry>> browse(
-    int page,
-    rust.Sort sort, {
+    int page, {
     bool Function(Extension e)? extfilter,
     rust.CancelToken? token,
   }) {
     return Stream.fromFutures(
       getExtensions(extfilter: extfilter)
           .where((e) => e.isenabled)
-          .map((e) async => (await e.browse(page, sort)).toList()),
+          .map((e) async => (await e.browse(page)).toList()),
     );
   }
 
@@ -197,50 +305,30 @@ class SourceExtension with ChangeNotifier {
   }
 
   Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
-    if (e is EntryDetailedImpl) {
-      throw Exception('Use update(EntrySaved) instead');
+    final ext = e.extension;
+    if (ext == null) {
+      throw Exception('Extension not found for id ${e.boundExtensionId}');
     }
-    return EntryDetailedImpl(
-      await e.extension._proxy.detail(
-        entryid: e.id,
-        token: token,
-        settings: {},
-      ),
-      e.extension,
-    );
-  }
-
-  Future<EntrySaved> update(EntrySaved e, {rust.CancelToken? token}) async {
-    final newdata = await e.extension._proxy.detail(
-      entryid: e.id,
-      token: token,
-      settings: e.rawsettings ?? {},
-    );
-    e.entry = newdata;
-    await e.save();
-    return e;
+    return await ext.detail(e, token: token);
   }
 
   Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
     final entry = ep.entry;
-    return SourcePath(
-      ep,
-      await ep.extension._proxy.source(
-        epid: ep.episode.id,
-        token: token,
-        settings: entry is EntrySaved ? entry.rawsettings ?? {} : {},
-      ),
-    );
+    final ext = entry.extension;
+    if (ext == null) {
+      throw Exception('Extension not found for id ${entry.boundExtensionId}');
+    }
+    return await ext.source(ep, token: token);
   }
 
-  Future<Entry?> fromUrl(String url, {rust.CancelToken? token}) async {
+  Future<bool> handleUrl(String url, {rust.CancelToken? token}) async {
     for (final e in _extensions) {
-      final result = await e._proxy.fromurl(url: url, token: token);
-      if (result != null) {
-        return EntryImpl(result, e);
+      final result = await e.handleUrl(url, token: token);
+      if (result) {
+        return true;
       }
     }
-    return null;
+    return false;
   }
 
   Extension getExtension(String id) {
@@ -257,24 +345,19 @@ class SourceExtension with ChangeNotifier {
 
   Future<void> reload() async {
     loading = true;
-    notifyListeners();
     for (final e in _extensions) {
       e.dispose();
     }
     _extensions.clear();
-    final dir = await locateAsync<DirectoryProvider>();
-    final extmanager = rust.SourceExtensionManagerProxy(
-      path: dir.extensionpath.absolute.path,
-    );
-    final exts = await extmanager.getExtensions();
-    extmanager.dispose();
+    notifyListeners();
+    final exts = await adapter.getExtensions();
     final db = await locateAsync<Database>();
     _extensions.addAll(
       await Future.wait(exts.map((e) => Extension.fromProxy(e, db))),
     );
     for (final e in _extensions) {
       if (e.meta.enabled) {
-        e.enable();
+        e.enable(); // TODO: Do we check the enabled state before querying the extension everywhere?
       }
     }
     loading = false;

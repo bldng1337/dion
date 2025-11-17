@@ -23,34 +23,49 @@ class SettingSlider<T extends num> extends StatelessWidget {
     this.step,
   });
 
+  String _formatValue(T v) {
+    if (v is int) return v.toString();
+    if (v is double) {
+      int precision = 2;
+      if (step is double) {
+        final s = (step as double).toString();
+        if (s.contains('.')) {
+          precision = s.split('.').last.length;
+        }
+      }
+      return v.toStringAsFixed(precision);
+    }
+    return v.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
-    var value = setting.value;
-    final tile = DionListTile(
-      leading: icon != null ? Icon(icon) : null,
-      subtitle: ListenableBuilder(
-        listenable: setting,
-        builder: (context, child) => ListenableBuilder(
-          listenable: setting,
-          builder: (context, child) => Row(
+    final tile = ListenableBuilder(
+      listenable: setting,
+      builder: (context, child) {
+        final current = setting.value;
+        T local = current;
+        return DionListTile(
+          leading: icon != null ? Icon(icon) : null,
+          subtitle: Row(
             children: [
-              Text(value.toStringAsPrecision(2)),
+              Text(_formatValue(current)),
               StatefulBuilder(
                 builder: (context, setState) => DionSlider<T>(
-                  value: value,
+                  value: local,
                   min: min,
                   max: max,
-                  onChanged: (p0) => setState(() => value = p0),
+                  onChanged: (p0) => setState(() => local = p0),
                   onChangeEnd: (p0) => setting.value = p0,
                   step: step,
                 ),
               ).expanded(),
             ],
           ),
-        ),
-      ),
-      title: Text(title, style: context.titleMedium),
-    ).paddingAll(5);
+          title: Text(title, style: context.titleMedium),
+        ).paddingAll(5);
+      },
+    );
     if (description != null) {
       return tile.withTooltip(description!);
     }

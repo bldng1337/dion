@@ -18,6 +18,7 @@ import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
+import 'package:dionysos/widgets/settings/dion_runtime.dart';
 import 'package:flutter/material.dart' show Colors, Icons, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
@@ -29,11 +30,6 @@ abstract class BrowseInterface {
   set extensions(List<Extension> value);
 }
 
-abstract class Filterable {
-  Sort get sort;
-  set sort(Sort value);
-}
-
 class Browse extends StatefulWidget {
   const Browse({super.key});
 
@@ -43,33 +39,11 @@ class Browse extends StatefulWidget {
 
 class _BrowseState extends State<Browse>
     with StateDisposeScopeMixin
-    implements BrowseInterface, Filterable {
+    implements BrowseInterface {
   late final TextEditingController controller;
   late DataSourceController<Entry> datacontroller;
   late List<Extension> extension;
   late final CancelToken? token;
-
-  Sort _sort = Sort.popular;
-
-  @override
-  Sort get sort => _sort;
-
-  @override
-  set sort(Sort value) {
-    setState(() {
-      _sort = value;
-      datacontroller = DataSourceController<Entry>(
-        extension
-            .map(
-              (e) =>
-                  AsyncSource<Entry>((i) => e.browse(i, _sort))
-                    ..name = e.data.name,
-            )
-            .toList(),
-      );
-      datacontroller.requestMore();
-    });
-  }
 
   @override
   List<Extension> get extensions => extension;
@@ -81,9 +55,7 @@ class _BrowseState extends State<Browse>
       datacontroller = DataSourceController<Entry>(
         extension
             .map(
-              (e) =>
-                  AsyncSource<Entry>((i) => e.browse(i, _sort))
-                    ..name = e.data.name,
+              (e) => AsyncSource<Entry>((i) => e.browse(i))..name = e.data.name,
             )
             .toList(),
       );
@@ -100,9 +72,7 @@ class _BrowseState extends State<Browse>
     datacontroller = DataSourceController<Entry>(
       extensions
           .map(
-            (e) =>
-                AsyncSource<Entry>((i) => e.browse(i, _sort))
-                  ..name = e.data.name,
+            (e) => AsyncSource<Entry>((i) => e.browse(i))..name = e.data.name,
           )
           .toList(),
     )..disposedBy(scope);
@@ -231,29 +201,12 @@ class _SettingsPopupState extends State<SettingsPopup> {
 
   @override
   Widget build(BuildContext context) {
-    final filterable = widget.browse is Filterable
-        ? widget.browse as Filterable
-        : null;
     return Padding(
       padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Search Settings'),
-          if (filterable != null)
-            DionDropdown<Sort>(
-              value: filterable.sort,
-              items: const [
-                DionDropdownItem<Sort>(value: Sort.popular, label: 'Popular'),
-                DionDropdownItem<Sort>(value: Sort.latest, label: 'Latest'),
-                DionDropdownItem<Sort>(value: Sort.updated, label: 'Updated'),
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-                filterable.sort = value;
-                setState(() {});
-              },
-            ),
           for (final e in widget.browse.extensions) showExtension(context, e),
         ].notNullWidget(),
       ),
@@ -263,9 +216,7 @@ class _SettingsPopupState extends State<SettingsPopup> {
   Widget? showExtension(BuildContext context, Extension e) {
     if (e.loading ||
         !e.isenabled ||
-        !e.settings.any(
-          (s) => s.metadata.extsetting.settingtype == Settingtype.search,
-        )) {
+        (e.settings[SettingKind.search]?.isEmpty ?? true)) {
       return null;
     }
     return Padding(
@@ -275,7 +226,7 @@ class _SettingsPopupState extends State<SettingsPopup> {
         children: [
           Row(
             children: [
-              DionImage(imageUrl: e.data.icon ?? '', width: 24, height: 24),
+              DionImage(imageUrl: e.data.icon, width: 24, height: 24),
               Text(
                 e.data.name,
                 style: const TextStyle(fontSize: 16),
@@ -290,11 +241,8 @@ class _SettingsPopupState extends State<SettingsPopup> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final setting in e.settings.where(
-                  (s) =>
-                      s.metadata.extsetting.settingtype == Settingtype.search,
-                ))
-                  ExtensionSettingView(setting: setting),
+                for (final setting in e.settings[SettingKind.search]!)
+                  DionRuntimeSettingView(setting: setting),
               ],
             ),
           ),

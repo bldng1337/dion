@@ -21,21 +21,28 @@ class SettingDirectory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tile = DionListTile(
-      leading: icon != null ? Icon(icon) : null,
-      trailing: IconButton(
-        onPressed: () {
-          getDirectoryPath().then((value) {
-            if (value == null) {
-              return;
-            }
-            setting.value = Directory(value);
-          });
-        },
-        icon: const Icon(Icons.folder),
-      ),
-      title: Text(title, style: context.titleMedium),
-    ).paddingAll(5);
+    final tile = ListenableBuilder(
+      listenable: setting,
+      builder: (context, child) {
+        final currentPath = setting.value?.path;
+        return DionListTile(
+          leading: icon != null ? Icon(icon) : null,
+          subtitle: currentPath != null ? Text(currentPath) : null,
+          trailing: IconButton(
+            onPressed: () async {
+              final value = await getDirectoryPath();
+              if (value == null) return;
+              try {
+                setting.value = Directory(value);
+              } catch (_) {}
+            },
+            icon: const Icon(Icons.folder),
+          ),
+          title: Text(title, style: context.titleMedium),
+        ).paddingAll(5);
+      },
+    );
+
     if (description != null) {
       return tile.withTooltip(description!);
     }

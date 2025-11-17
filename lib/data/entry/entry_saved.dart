@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
-import 'package:dionysos/data/settings/entry_settings.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/versioning.dart';
@@ -111,11 +110,13 @@ class EntrySavedSettings {
 
 class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   @override
-  final Extension extension;
+  String boundExtensionId;
   rust.EntryDetailed entry;
 
   List<Category> categories;
-  EntrySavedSettings settings;
+  @override
+  Map<String, rust.Setting> extensionSettings;
+  EntrySavedSettings savedSettings;
 
   List<EpisodeData> _episodedata;
   int episode;
@@ -124,9 +125,10 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     required this.entry,
     required this.categories,
     required List<EpisodeData> episodedata,
-    required this.extension,
+    required this.boundExtensionId,
     required this.episode,
-    required this.settings,
+    required this.savedSettings,
+    required this.extensionSettings,
   }) : _episodedata = episodedata;
 
   factory EntrySaved.fromEntryDetailed(EntryDetailedImpl entry) {
@@ -134,9 +136,10 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
       entry: entry.entry,
       categories: [],
       episodedata: [],
-      extension: entry.extension,
+      boundExtensionId: entry.boundExtensionId,
       episode: 0,
-      settings: EntrySavedSettings.defaultSettings(),
+      savedSettings: EntrySavedSettings.defaultSettings(),
+      extensionSettings: entry.extensionSettings,
     );
   }
 
@@ -160,39 +163,46 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   }
 
   void setSetting(String key, dynamic value) {
-    if (rawsettings == null) return;
-    final setting = rawsettings![key];
+    final setting = extensionSettings[key];
     if (setting == null) return;
-    final newsettings = {
-      ...rawsettings!,
-      key: setting.copyWith(val: setting.val.updateWith(value)),
-    };
-    entry = entry.copyWith(settings: newsettings);
+    extensionSettings[key] = setting.copyWith(
+      value: setting.value.updateWith(value),
+    );
   }
 
   rust.Setting? getSetting(String key) {
-    return entry.settings?[key];
+    return extensionSettings[key];
   }
 
   List<Setting<dynamic, EntrySettingMetaData<dynamic>>> get extsettings {
-    if (rawsettings == null) return [];
-    return rawsettings!.entries
-        .map((e) => e.value.toSetting(EntrySettingMetaData(this, e.key)))
-        .toList();
+    return extensionSettings.entries.map((e) {
+      final meta = EntrySettingMetaData(
+        this,
+        e.key,
+        e.value.label,
+        e.value.visible,
+        e.value.ui,
+      );
+      return Setting.fromValue(
+        e.value.default_.data as dynamic,
+        e.value.value.data,
+        meta,
+      );
+    }).toList();
   }
 
   @override
-  String get id => entry.id;
+  EntryId get id => entry.id;
   @override
   String get url => entry.url;
   @override
-  String get title => entry.title;
+  String get title => entry.titles.first;
+  @override
+  List<String>? get titles => entry.titles;
   @override
   MediaType get mediaType => entry.mediaType;
   @override
-  String? get cover => entry.cover;
-  @override
-  Map<String, String>? get coverHeader => entry.coverHeader;
+  Link? get cover => entry.cover;
   @override
   List<String>? get author => entry.author;
   @override
@@ -214,7 +224,8 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   @override
   List<String>? get genres => entry.genres;
   @override
-  List<String>? get alttitles => entry.alttitles;
+  Extension? get extension =>
+      locate<SourceExtension>().tryGetExtension(boundExtensionId);
 
   @override
   FutureOr<EntryDetailed> toDetailed({rust.CancelToken? token}) {
@@ -228,7 +239,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
 
   @override
   FutureOr<EntryDetailed> refresh({CancelToken? token}) async {
-    await locate<SourceExtension>().update(this, token: token);
+    await locate<SourceExtension>().detail(this, token: token);
     await save();
     return this;
   }
@@ -245,18 +256,86 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     return {
       'version': entrySerializeVersion.current,
       'entry': entry.toJson(),
-      'extensionid': extension.id,
+      'extensionid': boundExtensionId,
       'episodedata': episodedata,
       'episode': episode,
       'categories': categories.map((e) => e.id).toList(),
+      'savedSettings': savedSettings.toJson(),
+      'extensionSettings': extensionSettings.map((key, value) {
+        return MapEntry(key, value.toJson());
+      }),
     };
   }
 
   static Future<EntrySaved> fromJson(Map<String, dynamic> json) async {
-    final exts = locate<SourceExtension>();
     final db = locate<Database>();
+    switch (json['version']) {
+      case 1:
+        return EntrySaved(
+          entry: rust.EntryDetailed(
+            id: EntryId(uid: json['entry']['id'] as String),
+            url: json['entry']['url'] as String,
+            author: (json['entry']['author'] as List<dynamic>?)?.cast(),
+            cover: Link(
+              url: json['entry']['cover'] as String,
+              header: (json['entry']['coverHeader'] as Map<String, dynamic>?)
+                  ?.cast(),
+            ),
+            genres: (json['entry']['genres'] as List<dynamic>?)?.cast(),
+            length: json['entry']['length'] as int?,
+            meta: (json['entry']['meta'] as Map<String, dynamic>?)?.cast(),
+            rating: json['entry']['rating'] as double?,
+            ui: null,
+            views: json['entry']['views'] as double?,
+            titles: [json['entry']['title'] as String],
+            mediaType: JsonMediaType.fromJson(json['entry']['mediaType']),
+            status: JsonReleaseStatus.fromJson(json['entry']['status']),
+            description: json['entry']['description'] as String,
+            language: json['entry']['language'] as String,
+            episodes: (json['entry']['episodes'] as List<dynamic>)
+                .map(
+                  (ep) => Episode(
+                    id: EpisodeId(uid: ep['id'] as String),
+                    name: ep['name'] as String,
+                    url: ep['url'] as String,
+                    cover: ep['cover'] != null
+                        ? Link(
+                            url: ep['cover'] as String,
+                            header: (ep['coverheader'] as Map<String, dynamic>?)
+                                ?.cast(),
+                          )
+                        : null,
+                    description: ep['description'] as String?,
+                    timestamp: ep['timestamp'] as String?,
+                  ),
+                )
+                .toList(),
+          ),
+          categories: await db.getCategoriesbyId(
+            fromDynamic((json['categories'] as List<dynamic>?) ?? []).toList(),
+          ),
+          episodedata:
+              (json['episodedata'] as List<dynamic>?)
+                  ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
+                  .toList() ??
+              [],
+          boundExtensionId: json['extensionid'] as String,
+          episode: (json['episode'] as int?) ?? 0,
+          savedSettings: EntrySavedSettings.fromJson(json['settings']),
+          extensionSettings:
+              (json['extensionSettings'] as Map<String, dynamic>?)?.map(
+                (key, value) => MapEntry(
+                  key,
+                  rust.JsonSetting.fromJson(value as Map<String, dynamic>),
+                ),
+              ) ??
+              {},
+        );
+    }
     return EntrySaved(
-      entry: rust.EntryDetailed.fromJson(json['entry'] as Map<String, dynamic>),
+      entry: rust.JsonEntryDetailed.fromJson(
+        json['entry'] as Map<String, dynamic>,
+      ),
       categories: await db.getCategoriesbyId(
         fromDynamic((json['categories'] as List<dynamic>?) ?? []).toList(),
       ),
@@ -265,9 +344,11 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
               ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      extension: exts.getExtension(json['extensionid'] as String),
+      boundExtensionId: json['extensionid'] as String,
       episode: (json['episode'] as int?) ?? 0,
-      settings: EntrySavedSettings.fromJson(json['settings']),
+      savedSettings: EntrySavedSettings.fromJson(json['savedSettings']),
+      extensionSettings:
+          (json['entry']['settings'] as Map<String, dynamic>?)?.cast() ?? {},
     );
   }
 
@@ -279,23 +360,19 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
       'entry': rust.Entry(
         id: entry.id,
         url: entry.url,
-        title: entry.title,
+        title: entry.titles.first,
         mediaType: entry.mediaType,
         cover: entry.cover,
-        coverHeader: entry.coverHeader,
         author: entry.author,
         rating: entry.rating,
         views: entry.views,
         length: entry.length,
       ).toJson(),
-      'extensionid': extension.id,
     };
   }
 
   @override
   DBRecord get dbId => constructEntryDBRecord(this);
-
-  Map<String, rust.Setting>? get rawsettings => entry.settings;
 
   @override
   FutureOr<Map<String, dynamic>> toDBJson() {
@@ -305,7 +382,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
 
 DBRecord constructEntryDBRecord(Entry entry) => DBRecord(
   'entry',
-  base64.encode(utf8.encode('${entry.id}_${entry.extension.id}')),
+  base64.encode(utf8.encode('${entry.id.uid}_${entry.boundExtensionId}')),
 );
 
 Iterable<DBRecord> fromDynamic(Iterable<dynamic> list) {

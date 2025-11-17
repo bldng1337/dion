@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
@@ -127,7 +128,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
               tabs: [
                 for (final cat in controllers.keys)
                   DionTab(
-                    tab: Text(cat.name),
+                    tab: Text(cat.name).paddingAll(6),
                     child: DynamicGrid<EntrySaved>(
                       showDataSources: false,
                       itemBuilder: (BuildContext context, item) =>

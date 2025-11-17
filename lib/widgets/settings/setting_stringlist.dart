@@ -5,50 +5,74 @@ import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:flutter/material.dart';
 
-class SettingStringList extends StatelessWidget {
+class SettingStringList extends StatefulWidget {
   final Setting<List<String>, dynamic> setting;
   const SettingStringList({super.key, required this.setting});
 
   @override
+  State<SettingStringList> createState() => _SettingStringListState();
+}
+
+class _SettingStringListState extends State<SettingStringList> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _addEntryFromController() {
+    final raw = _controller.text;
+    final entry = raw.trim();
+    if (entry.isEmpty) return;
+    widget.setting.value = widget.setting.value.withNewEntries([entry]);
+    _controller.clear();
+  }
+
+  void _removeIndex(int index) {
+    widget.setting.value = widget.setting.value.withoutIndex([index]);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: setting,
+      listenable: widget.setting,
       builder: (context, child) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (setting.value.isEmpty) const Text('No Entries'),
-          ...setting.value.indexed.map(
+          if (widget.setting.value.isEmpty) const Text('No Entries'),
+          ...widget.setting.value.indexed.map(
             (e) => DionListTile(
               title: Text(e.$2),
-              onTap: () {
-                setting.value = setting.value.withoutIndex([e.$1]);
-              },
+              trailing: DionIconbutton(
+                icon: const Icon(Icons.delete),
+                onPressed: () => _removeIndex(e.$1),
+              ),
+              onTap: () => _removeIndex(e.$1),
             ),
           ),
-          Builder(
-            builder: (context) {
-              String content = '';
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Expanded(
-                    child: DionTextbox(
-                      controller: TextEditingController(text: content),
-                      onChanged: (value) => content = value,
-                      onSubmitted: (value) =>
-                          setting.value = setting.value.withNewEntries([value]),
-                      maxLines: 1,
-                    ),
-                  ),
-                  DionIconbutton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () {
-                      setting.value = setting.value.withNewEntries([content]);
-                    },
-                  ),
-                ],
-              );
-            },
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(
+                child: DionTextbox(
+                  controller: _controller,
+                  onSubmitted: (_) => _addEntryFromController(),
+                  maxLines: 1,
+                ),
+              ),
+              DionIconbutton(
+                icon: const Icon(Icons.add),
+                onPressed: _addEntryFromController,
+              ),
+            ],
           ),
         ],
       ),

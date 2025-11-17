@@ -19,17 +19,18 @@ class SettingToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tile = DionListTile(
-      leading: icon != null ? Icon(icon) : null,
-      trailing: ListenableBuilder(
-        listenable: setting,
-        builder: (context, child) => Togglebutton(
+    final tile = ListenableBuilder(
+      listenable: setting,
+      builder: (context, child) => DionListTile(
+        leading: icon != null ? Icon(icon) : null,
+        trailing: Togglebutton(
           selected: setting.value,
           onPressed: () => setting.value = !setting.value,
         ),
-      ),
-      title: Text(title, style: context.titleMedium),
-    ).paddingAll(5);
+        title: Text(title, style: context.titleMedium),
+      ).paddingAll(5),
+    );
+
     if (description != null) {
       return tile.withTooltip(description!);
     }

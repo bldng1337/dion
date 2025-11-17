@@ -4,6 +4,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/selection.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
@@ -19,8 +20,7 @@ final psettings = settings.readerSettings.paragraphreader;
 class SimpleParagraphlistReader extends StatefulWidget {
   final SourcePath source;
   final SourceSupplier supplier;
-  DataSource_Paragraphlist get sourcedata =>
-      source.source.sourcedata as DataSource_Paragraphlist;
+  Source_Paragraphlist get sourcedata => source.source as Source_Paragraphlist;
   const SimpleParagraphlistReader({
     super.key,
     required this.source,
@@ -103,7 +103,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     );
   }
 
-  Widget makeParagraph(BuildContext context, String text) {
+  Widget wrapParagraph(BuildContext context, Paragraph text) {
     return ListenableBuilder(
       listenable: psettings.text.paragraphspacing,
       builder: (context, child) =>
@@ -114,8 +114,16 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           psettings.text.size,
           psettings.text.weight,
         ]),
-        builder: (context, child) => Text(
-          text,
+        builder: (context, child) => makeParagraph(context, text),
+      ),
+    );
+  }
+
+  Widget makeParagraph(BuildContext context, Paragraph text) {
+    switch (text) {
+      case final Paragraph_Text text:
+        return Text(
+          text.content,
           style: context.bodyLarge?.copyWith(
             height: psettings.text.linespacing.value,
             fontSize: psettings.text.size.value.toDouble(),
@@ -125,9 +133,13 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
               psettings.text.weight.value,
             ),
           ),
-        ),
-      ),
-    );
+        );
+      case Paragraph_CustomUI():
+        return ErrorDisplay(
+          e: Exception('CustomUI not implemented'),
+          message: 'CustomUI not yet implemented',
+        ); //TODO: Implement CustomUI
+    }
   }
 
   @override
@@ -200,7 +212,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
               }
               return wrapScreen(
                 context,
-                makeParagraph(context, paragraphs[index - 2]),
+                wrapParagraph(context, paragraphs[index - 2]),
               );
             },
             itemCount: paragraphs.length + 3,

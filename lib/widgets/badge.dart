@@ -19,7 +19,9 @@ class DionBadge extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(4)),
-        color: color ?? context.theme.colorScheme.surfaceContainer,
+        color:
+            color ??
+            context.theme.colorScheme.surfaceContainer.withValues(alpha: 0.85),
       ),
       child: child.paddingAll(noPadding ? 0 : 3),
     ).paddingAll(noMargin ? 0 : 3);

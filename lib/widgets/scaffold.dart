@@ -35,7 +35,7 @@ class NavScaff extends StatelessWidget {
         body: child,
         bottomNavigationBar: NavigationBar(
           height: 60,
-          backgroundColor: context.backgroundColor,
+          backgroundColor: context.theme.scaffoldBackgroundColor,
           selectedIndex: index >= 0 ? index : 0,
           destinations: destination
               .map(

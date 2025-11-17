@@ -120,7 +120,7 @@ Future<void> finishEpisode(EpisodePath ep) async {
     final activity = await db.getLastActivity();
     if (activity != null &&
         activity is EpisodeActivity &&
-        activity.extensionid == ep.extension.id &&
+        activity.extensionid == ep.extensionid &&
         activity.time
             .add(activity.duration)
             .isAfter(DateTime.now().subtract(const Duration(minutes: 30)))) {
@@ -139,7 +139,7 @@ Future<void> finishEpisode(EpisodePath ep) async {
         fromepisode: ep.episodenumber,
         toepisode: ep.episodenumber,
         entry: ep.entry,
-        extensionid: ep.extension.id,
+        extensionid: ep.extensionid,
         time: DateTime.now(),
       ),
     );

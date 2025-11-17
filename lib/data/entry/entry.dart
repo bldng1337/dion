@@ -9,13 +9,12 @@ import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 abstract class Entry {
-  Extension get extension;
-  String get id;
+  EntryId get id;
+  String get boundExtensionId;
   String get url;
   String get title;
   MediaType get mediaType;
-  String? get cover;
-  Map<String, String>? get coverHeader;
+  Link? get cover;
   List<String>? get author;
   double? get rating;
   double? get views;
@@ -24,11 +23,39 @@ abstract class Entry {
   DBRecord get dbId;
   Map<String, dynamic> toEntryJson();
 
+  Extension? get extension;
+
   static Entry fromJson(Map<String, dynamic> json) {
-    final exts = locate<SourceExtension>();
+    switch (json['version']) {
+      case 1:
+        print("Upgrade entry from version 1 to 2");
+        return EntryImpl(
+          rust.Entry(
+            id: EntryId(uid: json['entry']['id'] as String),
+            mediaType: JsonMediaType.fromJson(
+              json['entry']['mediaType'] as String,
+            ),
+            url: json['entry']['url'] as String,
+            title: json['entry']['title'] as String,
+            cover: Link(
+              url: json['entry']['cover'] as String,
+              header: (json['entry']['coverHeader'] as Map<String, dynamic>?)
+                  ?.cast(),
+            ),
+            author: (json['entry']['author'] as List<dynamic>?)?.cast(),
+            rating: json['entry']['rating'] as double?,
+            views: json['entry']['views'] as double?,
+            length: json['entry']['length'] as int?,
+          ),
+          json['extensionid'] as String,
+        );
+    }
+    if (json['version'] != entrySerializeVersion.current) {
+      throw Exception('Unsupported entry version ${json['version']}');
+    }
     return EntryImpl(
-      rust.Entry.fromJson(json['entry'] as Map<String, dynamic>),
-      exts.getExtension(json['extensionid'] as String),
+      rust.JsonEntry.fromJson(json['entry'] as Map<String, dynamic>),
+      json['boundExtensionId'] as String,
     );
   }
 }
@@ -36,11 +63,11 @@ abstract class Entry {
 class EntryImpl implements Entry {
   final rust.Entry _entry;
   @override
-  final Extension extension;
-  EntryImpl(this._entry, this.extension);
+  final String boundExtensionId;
+  const EntryImpl(this._entry, this.boundExtensionId);
 
   @override
-  String get id => _entry.id;
+  EntryId get id => _entry.id;
   @override
   String get url => _entry.url;
   @override
@@ -48,9 +75,7 @@ class EntryImpl implements Entry {
   @override
   rust.MediaType get mediaType => _entry.mediaType;
   @override
-  String? get cover => _entry.cover;
-  @override
-  Map<String, String>? get coverHeader => _entry.coverHeader;
+  Link? get cover => _entry.cover;
   @override
   List<String>? get author => _entry.author;
   @override
@@ -59,18 +84,19 @@ class EntryImpl implements Entry {
   double? get views => _entry.views;
   @override
   int? get length => _entry.length;
+  @override
+  Extension? get extension =>
+      locate<SourceExtension>().tryGetExtension(boundExtensionId);
 
   @override
-  int get hashCode => _entry.hashCode ^ extension.hashCode;
+  int get hashCode => _entry.hashCode;
   @override
   bool operator ==(Object other) =>
-      other is EntryImpl &&
-      other._entry == _entry &&
-      other.extension == extension;
+      other is EntryImpl && other._entry == _entry;
 
   @override
   String toString() {
-    return 'EntryImpl{_entry: $_entry, _extension: $extension}';
+    return 'EntryImpl{_entry: $_entry}';
   }
 
   @override
@@ -86,8 +112,8 @@ class EntryImpl implements Entry {
     return {
       'version': entrySerializeVersion.current,
       'type': 'entry',
+      'boundExtensionId': boundExtensionId,
       'entry': _entry.toJson(),
-      'extensionid': extension.id,
     };
   }
 }

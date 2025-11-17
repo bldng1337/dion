@@ -8,7 +8,8 @@ import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart' show Colors;
+import 'package:dionysos/widgets/settings/dion_runtime.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
@@ -97,13 +98,8 @@ class _ExtensionViewState extends State<ExtensionView> {
                       extension!.data.desc ?? '',
                       style: context.bodyMedium,
                     ),
-                  Text('Settings: ${extension!.settings.length}'),
-                  for (final e in extension!.settings.where(
-                    (set) =>
-                        set.metadata.extsetting.settingtype ==
-                        Settingtype.extension_,
-                  ))
-                    ExtensionSettingView(setting: e),
+                  for (final e in extension!.settings[SettingKind.extension_]!)
+                    DionRuntimeSettingView(setting: e),
                 ],
               ),
             ),

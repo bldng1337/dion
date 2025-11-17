@@ -179,9 +179,11 @@ class AudioPlayerHandler extends BaseAudioHandler {
           artist: session.eppath.entry.author?[0],
           duration: session.player.state.duration,
           artUri: session.eppath.cover != null
-              ? Uri.tryParse(session.eppath.cover!)
+              ? Uri.tryParse(session.eppath.cover!.url)
               : null,
-          artHeaders: session.eppath.entry.coverHeader,
+          artHeaders: session.eppath.cover != null
+              ? session.eppath.entry.cover!.header
+              : null,
           // rating: session.eppath.entry.rating != null
           //     ? Rating.newStarRating(
           //         RatingStyle.percentage,
@@ -199,9 +201,11 @@ class AudioPlayerHandler extends BaseAudioHandler {
         artist: session.eppath.entry.author?[0],
         duration: session.player.state.duration,
         artUri: session.eppath.cover != null
-            ? Uri.tryParse(session.eppath.cover!)
+            ? Uri.tryParse(session.eppath.cover!.url)
             : null,
-        artHeaders: session.eppath.entry.coverHeader,
+        artHeaders: session.eppath.cover != null
+            ? session.eppath.entry.cover!.header
+            : null,
         // rating: session.eppath.entry.rating != null
         //     ? Rating.newStarRating(
         //         RatingStyle.percentage,

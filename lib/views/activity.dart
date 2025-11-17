@@ -5,6 +5,7 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/badge.dart';
@@ -13,7 +14,7 @@ import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/material.dart' show Colors, Icons, BorderRadius;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moment_dart/moment_dart.dart';
@@ -22,20 +23,39 @@ abstract class IRenderable {
   Widget render(BuildContext context);
 }
 
-class Divider implements IRenderable {
+/// A header to separate activities by day. Replaces the previous `Divider` name.
+class DateHeader implements IRenderable {
   final DateTime date;
   final Duration duration;
-  const Divider(this.date, this.duration);
+  const DateHeader(this.date, this.duration);
 
   @override
   Widget render(BuildContext context) {
+    // A more prominent date header with an icon and a small duration badge.
     return DionListTile(
-      title: Text('  ${date.toDateString()}'),
-      trailing: Text(
-        duration.formatrelative(),
-        style: context.labelSmall!.copyWith(color: context.theme.disabledColor),
+      title: Row(
+        children: [
+          const Icon(Icons.calendar_today, size: 18).paddingOnly(right: 8),
+          Text(
+            date.toDateString(),
+            style: context.titleMedium!.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
-    );
+      subtitle: Text(
+        'Activities',
+        style: context.bodySmall!.copyWith(color: context.theme.disabledColor),
+      ),
+      trailing: DionBadge(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.timelapse, size: 14).paddingOnly(right: 6),
+            Text(duration.formatrelative(), style: context.labelSmall),
+          ],
+        ).paddingSymmetric(horizontal: 8, vertical: 6),
+      ),
+    ).paddingOnly(bottom: 6);
   }
 }
 
@@ -61,6 +81,7 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
   Extension? extension;
   EntrySaved? savedentry;
   EpisodeActivityItem(super.activity);
+
   @override
   Future<void> init() async {
     if (activity.entry == null) return;
@@ -73,22 +94,29 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
     if (extension == null) {
       return Clickable(
         child: DionBadge(
-          child: SizedBox(
+          child: Container(
             height: 100,
+            padding: const EdgeInsets.all(8),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(
-                  Icons.error,
+                  Icons.error_outline,
                   color: Colors.redAccent,
-                ).paddingOnly(right: 5),
-                const Text('Unkown Extension').paddingOnly(right: 5),
+                  size: 28,
+                ).paddingOnly(right: 8),
+                const Expanded(
+                  child: Text(
+                    'Unknown extension — content details unavailable',
+                    maxLines: 2,
+                  ),
+                ),
               ],
             ),
-          ).paddingAll(5),
+          ),
         ),
-      ).paddingOnly(bottom: 5);
+      ).paddingOnly(bottom: 8);
     }
+
     final Entry entry = savedentry ?? activity.entry!;
     final action = switch (entry.mediaType) {
       MediaType.audio => 'Listened to',
@@ -97,61 +125,103 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
       MediaType.comic => 'Read',
       _ => 'Consumed',
     };
+
     return Clickable(
       onTap: () {
         context.push('/detail', extra: [entry]);
       },
       child: DionBadge(
-        child: SizedBox(
-          height: 160,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(minHeight: 120, maxHeight: 200),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DionImage(
-                imageUrl: entry.cover,
-                boxFit: BoxFit.contain,
-                alignment: Alignment.center,
-                httpHeaders: entry.coverHeader,
-                width: 120,
-                height: 160,
-              ).paddingOnly(right: 5),
+              if (entry.cover != null)
+                Stack(
+                  children: [
+                    DionImage(
+                      imageUrl: entry.cover?.url,
+                      boxFit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      httpHeaders: entry.cover?.header,
+                    ),
+                    Row(
+                      children: [
+                        Icon(entry.mediaType.icon, size: 14),
+                        if (savedentry != null)
+                          const Icon(Icons.bookmark, size: 14),
+                      ].map((e) => DionBadge(child: e)).toList(),
+                    ),
+                  ],
+                ).paddingOnly(right: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       entry.title.trim(),
-                      maxLines: 1,
-                      style: context.titleLarge,
-                    ),
-                    Expanded(
-                      child: Text(
-                        (activity.fromepisode == activity.toepisode)
-                            ? '$action episode ${activity.fromepisode}'
-                            : '$action episode ${activity.fromepisode} - ${activity.toepisode}',
-                        style: context.bodyMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.titleLarge!.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.timer,
+                          size: 14,
+                          color: context.theme.disabledColor,
+                        ).paddingOnly(right: 3),
+                        Text(
+                          activity.duration.formatrelative(),
+                          style: context.labelSmall!.copyWith(
+                            color: context.theme.disabledColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.extension,
+                          size: 14,
+                          color: context.theme.disabledColor,
+                        ).paddingOnly(right: 3),
+                        Text(
+                          extension!.name,
+                          style: context.labelSmall!.copyWith(
+                            color: context.theme.disabledColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.calendar_month,
+                          size: 14,
+                          color: context.theme.disabledColor,
+                        ).paddingOnly(right: 3),
+                        Text(
+                          activity.time.formatrelative(),
+                          style: context.labelSmall!.copyWith(
+                            color: context.theme.disabledColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      '$action for ${activity.duration.formatrelative()}',
-                      style: context.labelSmall!.copyWith(
-                        color: context.theme.disabledColor,
-                      ),
+                      (activity.fromepisode == activity.toepisode)
+                          ? '$action episode ${activity.fromepisode}'
+                          : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
+                      style: context.bodyMedium,
                     ),
                   ],
-                ).paddingOnly(left: 5),
-              ),
-              Text(
-                activity.time.formatrelative(),
-                style: context.labelSmall!.copyWith(
-                  color: context.theme.disabledColor,
                 ),
-              ).paddingAll(15),
+              ),
             ],
           ),
-        ).paddingAll(5),
+        ),
       ),
-    ).paddingOnly(bottom: 5);
+    ).paddingOnly(bottom: 10);
   }
 }
 
@@ -175,7 +245,7 @@ class _ActivityViewState extends State<ActivityView> {
           time,
           const Duration(days: 1),
         );
-        yield Divider(e.time, dur);
+        yield DateHeader(e.time, dur);
       }
       yield await ActivityItem.getActionItem(e);
       last = e;

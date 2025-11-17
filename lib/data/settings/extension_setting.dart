@@ -1,175 +1,137 @@
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/settings.dart' as appsettings;
 import 'package:dionysos/service/source_extension.dart';
-import 'package:dionysos/widgets/settings/setting_dropdown.dart';
-import 'package:dionysos/widgets/settings/setting_numberbox.dart';
-import 'package:dionysos/widgets/settings/setting_slider.dart';
-import 'package:dionysos/widgets/settings/setting_textbox.dart';
-import 'package:dionysos/widgets/settings/setting_toggle.dart';
-import 'package:flutter/widgets.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
-extension SettingvalueExtension on Settingvalue {
-  Settingvalue updateWith(dynamic value) {
-    return switch ((value, this)) {
-      (final num val, final Settingvalue_Number settingval) =>
-        Settingvalue_Number(
-          val: val.toDouble(),
-          defaultVal: settingval.defaultVal,
-        ),
-      (final String val, final Settingvalue_String settingval) =>
-        Settingvalue_String(val: val, defaultVal: settingval.defaultVal),
-      (final bool val, final Settingvalue_Boolean settingval) =>
-        Settingvalue_Boolean(val: val, defaultVal: settingval.defaultVal),
-      _ => throw UnimplementedError(
-        'Settingvalue conversion for $runtimeType not implemented',
+extension SettingExtension on rust.Setting {
+  rust.Setting copyWith({
+    String? label,
+    bool? visible,
+    SettingValue? default_,
+    SettingValue? value,
+  }) {
+    return rust.Setting(
+      label: label ?? this.label,
+      visible: visible ?? this.visible,
+      default_: default_ ?? this.default_,
+      value: value ?? this.value,
+    );
+  }
+}
+
+extension SettingvalueExtension on SettingValue {
+  SettingValue updateWith(dynamic value) {
+    return switch ((this, value)) {
+      (final SettingValue_String _, final String value) => SettingValue.string(
+        data: value,
       ),
+      (final SettingValue_String _, final SettingValue_String value) =>
+        SettingValue.string(data: value.data),
+      (final SettingValue_Number _, final num value) => SettingValue.number(
+        data: value.toDouble(),
+      ),
+      (final SettingValue_Number _, final SettingValue_Number value) =>
+        SettingValue.number(data: value.data),
+      (final SettingValue_Boolean _, final bool value) => SettingValue.boolean(
+        data: value,
+      ),
+      (final SettingValue_Boolean _, final SettingValue_Boolean value) =>
+        SettingValue.boolean(data: value.data),
+      (final SettingValue_StringList _, final List<String> value) =>
+        SettingValue.stringList(data: value),
+      (final SettingValue_StringList _, final SettingValue_StringList value) =>
+        SettingValue.stringList(data: value.data.toList()),
+      _ => throw UnimplementedError(),
     };
   }
 }
 
-extension SettingExtension on rust.Setting {
-  appsettings.Setting<dynamic, T>
-  toSetting<T extends appsettings.SettingMetaData>(T meta) => switch (val) {
-    final rust.Settingvalue_String val => appsettings.Setting.fromValue(
-      val.defaultVal,
-      val.val,
-      meta,
-    ),
-    final rust.Settingvalue_Number val => appsettings.Setting.fromValue(
-      val.defaultVal,
-      val.val,
-      meta,
-    ),
-    final rust.Settingvalue_Boolean val => appsettings.Setting.fromValue(
-      val.defaultVal,
-      val.val,
-      meta,
+extension SettingValueExtension on dynamic {
+  SettingValue get asSettingValue => switch (this) {
+    final String data => SettingValue.string(data: data),
+    final num data => SettingValue.number(data: data.toDouble()),
+    final bool data => SettingValue.boolean(data: data),
+    final List<String> data => SettingValue.stringList(data: data),
+    _ => throw UnimplementedError(),
+  };
+}
+
+extension SettingValueDoubleExtension on double {
+  SettingValue get asSettingValue => SettingValue.number(data: this);
+}
+
+extension SettingValueStringExtension on String {
+  SettingValue get asSettingValue => SettingValue.string(data: this);
+}
+
+extension SettingValueBoolExtension on bool {
+  SettingValue get asSettingValue => SettingValue.boolean(data: this);
+}
+
+abstract class DionRuntimeSettingMetaData<T>
+    extends appsettings.SettingMetaData<T>
+    implements appsettings.EnumMetaData<T> {
+  final String id;
+
+  // Setting MetaData
+
+  final String label;
+  final bool visible;
+  final SettingsUI? ui;
+
+  DionRuntimeSettingMetaData(this.id, this.label, this.visible, this.ui);
+
+  @override
+  String getLabel(T value) => switch (ui) {
+    final SettingsUI_Dropdown dropdown =>
+      dropdown.options.firstWhere((e) => e.value == value).label,
+    _ => throw Exception('getLabel for ${ui.runtimeType} not implemented'),
+  };
+
+  @override
+  List<appsettings.EnumValue<T>> get values => switch (ui) {
+    final SettingsUI_Dropdown dropdown =>
+      dropdown.options
+          .map((e) => appsettings.EnumValue<T>(e.label, e.value as T))
+          .toList(),
+    _ => throw UnimplementedError(
+      'getLabel for ${ui.runtimeType} not implemented',
     ),
   };
 }
 
-abstract class ExtensionSettingMetaData<T>
-    extends appsettings.SettingMetaData<T>
-    implements appsettings.EnumMetaData<T> {
-  rust.Setting get setting;
-  String get id;
-}
-
-class SourceExtensionSettingMetaData<T> extends appsettings.SettingMetaData<T>
-    implements ExtensionSettingMetaData<T> {
-  @override
-  final String id;
-  final rust.ExtensionSetting extsetting;
-  final rust.SourceExtensionProxy extension;
-
-  const SourceExtensionSettingMetaData(
-    this.id,
-    this.extsetting,
-    this.extension,
+class ExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
+  final rust.ProxyExtension _extension;
+  final SettingKind kind;
+  ExtensionSettingMetaData(
+    this.kind,
+    this._extension,
+    super.id,
+    super.label,
+    super.visible,
+    super.ui,
   );
 
   @override
-  void onChange(T v) {
-    final newval = switch (extsetting.setting.val) {
-      final rust.Settingvalue_String val => rust.Settingvalue_String(
-        val: v as String,
-        defaultVal: val.defaultVal,
-      ),
-      final rust.Settingvalue_Number val => rust.Settingvalue_Number(
-        val: v as double,
-        defaultVal: val.defaultVal,
-      ),
-      final rust.Settingvalue_Boolean val => rust.Settingvalue_Boolean(
-        val: v as bool,
-        defaultVal: val.defaultVal,
-      ),
-    };
-    extension.setSetting(name: id, value: newval);
+  void onChange(T t) {
+    _extension.setSetting(id: id, kind: kind, value: t.asSettingValue);
+    super.onChange(t);
   }
-
-  @override
-  rust.Setting get setting => extsetting.setting;
-
-  @override
-  List<appsettings.EnumValue<T>> get values => switch (setting.ui) {
-    final rust.SettingUI_Dropdown dropdown =>
-      dropdown.options
-          .map((e) => appsettings.EnumValue(e.label, e.value as T))
-          .toList(),
-    _ => throw UnimplementedError(
-      'Settingvalue conversion for $runtimeType not implemented',
-    ),
-  };
-  @override
-  String getLabel(T value) => switch (setting.ui) {
-    final rust.SettingUI_Dropdown dropdown =>
-      dropdown.options
-          .firstWhere(
-            (e) => e.value == value,
-            orElse: () => throw ArgumentError(
-              'Value $value not found in dropdown options',
-            ),
-          )
-          .label,
-    _ => throw UnimplementedError(
-      'Settingvalue conversion for $runtimeType not implemented',
-    ),
-  };
 }
 
-class ExtensionSettingView<T extends ExtensionSettingMetaData>
-    extends StatelessWidget {
-  final appsettings.Setting<dynamic, ExtensionSettingMetaData<dynamic>> setting;
-  const ExtensionSettingView({super.key, required this.setting});
+class EntrySettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
+  final EntrySaved _entry;
+  EntrySettingMetaData(
+    this._entry,
+    super.id,
+    super.label,
+    super.visible,
+    super.ui,
+  );
 
   @override
-  Widget build(BuildContext context) {
-    if (setting.metadata.setting.ui != null) {
-      return switch (setting.metadata.setting.ui) {
-        final SettingUI_Slider slider => SettingSlider(
-          title: slider.label,
-          setting: setting.cast<double, ExtensionSettingMetaData<double>>(),
-          max: slider.max,
-          min: slider.min,
-          step: slider.step,
-        ),
-        final SettingUI_Checkbox checkbox => SettingToggle(
-          title: checkbox.label,
-          setting: setting.cast<bool, ExtensionSettingMetaData<bool>>(),
-        ),
-        final SettingUI_Textbox textbox => SettingTextbox(
-          title: textbox.label,
-          setting: setting.cast<String, ExtensionSettingMetaData<String>>(),
-        ),
-        final SettingUI_Dropdown dropdown => SettingDropdown(
-          title: dropdown.label,
-          setting: setting,
-        ),
-        _ => Text(
-          'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}',
-        ),
-      };
-    }
-    return switch (setting.intialValue) {
-      final int _ => SettingNumberbox(
-        title: setting.metadata.id,
-        setting: setting.cast<int, ExtensionSettingMetaData<int>>(),
-      ),
-      final double _ => SettingNumberbox(
-        title: setting.metadata.id,
-        setting: setting.cast<double, ExtensionSettingMetaData<double>>(),
-      ),
-      final bool _ => SettingToggle(
-        title: setting.metadata.id,
-        setting: setting.cast<bool, ExtensionSettingMetaData<bool>>(),
-      ),
-      final String _ => SettingTextbox(
-        title: setting.metadata.id,
-        setting: setting.cast<String, ExtensionSettingMetaData<String>>(),
-      ),
-      _ => Text(
-        'Setting: ${setting.metadata.id} has no known type ${setting.runtimeType}',
-      ),
-    };
+  void onChange(T t) {
+    _entry.setSetting(id, t.asSettingValue);
+    super.onChange(t);
   }
 }

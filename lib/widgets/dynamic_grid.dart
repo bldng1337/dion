@@ -111,9 +111,18 @@ class SingleStreamSource<T> extends DataSource<T> {
       },
       onError: (e, stack) {
         try {
-          streamController?.add(<Result<T>>[
-            Result.failure(e as Exception, stack is StackTrace ? stack : null),
-          ]);
+          if (e is Exception) {
+            streamController?.add(<Result<T>>[
+              Result.failure(e, stack is StackTrace ? stack : null),
+            ]);
+          } else {
+            streamController?.add(<Result<T>>[
+              Result.failure(
+                Exception(e.toString()),
+                stack is StackTrace ? stack : null,
+              ),
+            ]);
+          }
         } finally {
           isfinished = true;
         }

@@ -36,9 +36,7 @@ class EpisodePath {
   bool get hasprev => episodenumber > 0;
 
   String get name => episode.name;
-  String? get cover => episode.cover ?? entry.cover;
-  Map<String, String>? get coverHeader =>
-      episode.cover != null ? episode.coverHeader : entry.coverHeader;
+  Link? get cover => episode.cover ?? entry.cover;
 
   void goPrev(SourceSupplier supplier) {
     if (!hasprev) return;
@@ -58,14 +56,14 @@ class EpisodePath {
       download.download(
         Iterable.generate(
           min(
-                entry.settings.downloadNextEpisodes.value + episodenumber,
+                entry.savedSettings.downloadNextEpisodes.value + episodenumber,
                 episodes.length - 1,
               ) -
               episodenumber,
           (index) => EpisodePath(entry, episodenumber + 1 + index),
         ),
       );
-      if (entry.settings.deleteOnFinish.value) {
+      if (entry.savedSettings.deleteOnFinish.value) {
         download.deleteEpisode(this);
       }
     }
@@ -80,7 +78,7 @@ class EpisodePath {
       download.download(
         Iterable.generate(
           min(
-                entry.settings.downloadNextEpisodes.value + episodenumber,
+                entry.savedSettings.downloadNextEpisodes.value + episodenumber,
                 episodes.length - 1,
               ) -
               episodenumber,
@@ -94,7 +92,8 @@ class EpisodePath {
 
   EpisodePath get next => EpisodePath(entry, episodenumber + 1);
   EpisodePath get prev => EpisodePath(entry, episodenumber - 1);
-  Extension get extension => entry.extension;
+  Extension? get extension => entry.extension;
+  String get extensionid => entry.boundExtensionId;
 
   Future<SourcePath> loadSource(CancelToken? tok) async {
     final srcExt = locate<SourceExtension>();

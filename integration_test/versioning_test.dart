@@ -21,56 +21,26 @@ import 'utils/mock.dart';
 
 class MockExtension extends Mock implements Extension {}
 
-entrydata.Entry getEntry(Extension ext) => entrydata.EntryImpl(
-  const Entry(
-    id: 'id',
+entrydata.Entry getEntry() => const entrydata.EntryImpl(
+  Entry(
+    id: EntryId(uid: 'id'),
     url: 'url',
     title: 'title',
     mediaType: MediaType.comic,
-    cover: 'cover',
-    coverHeader: {'header': 'header'},
+    cover: Link(url: 'cover', header: {'header': 'header'}),
     author: ['author'],
     rating: 1.0,
     views: 1,
     length: 1,
   ),
-  ext,
+  "test",
 );
 
-entrydata.EntryDetailed getEntryDetailed(Extension ext) =>
-    entrydata.EntryDetailedImpl(
-      const EntryDetailed(
-        id: 'test',
-        url: 'url',
-        title: 'title',
-        coverHeader: {'header': 'header'},
-        author: ['author'],
-        ui: CustomUI.text(text: 'text'),
-        mediaType: MediaType.audio,
-        status: ReleaseStatus.releasing,
-        description: 'description',
-        language: 'language',
-        episodes: [
-          Episode(
-            id: 'id',
-            name: 'name',
-            url: 'url',
-            cover: 'cover',
-            coverHeader: {'header': 'header'},
-            timestamp: 'timestamp',
-          ),
-        ],
-      ),
-      ext,
-    );
-
-entrydata.EntrySaved getEntrySaved(Extension ext) => entrydata.EntrySaved(
-  settings: entrydata.EntrySavedSettings.defaultSettings(),
-  entry: const EntryDetailed(
-    id: 'test',
+entrydata.EntryDetailed getEntryDetailed() => const entrydata.EntryDetailedImpl(
+  EntryDetailed(
+    id: EntryId(uid: 'test'),
     url: 'url',
-    title: 'title',
-    coverHeader: {'header': 'header'},
+    titles: ['title'],
     author: ['author'],
     ui: CustomUI.text(text: 'text'),
     mediaType: MediaType.audio,
@@ -79,16 +49,42 @@ entrydata.EntrySaved getEntrySaved(Extension ext) => entrydata.EntrySaved(
     language: 'language',
     episodes: [
       Episode(
-        id: 'id',
+        id: EpisodeId(uid: 'id'),
         name: 'name',
         url: 'url',
-        cover: 'cover',
-        coverHeader: {'header': 'header'},
+        cover: Link(url: 'cover', header: {'header': 'header'}),
         timestamp: 'timestamp',
       ),
     ],
   ),
-  extension: ext,
+  "test",
+  {},
+);
+
+entrydata.EntrySaved getEntrySaved() => entrydata.EntrySaved(
+  savedSettings: entrydata.EntrySavedSettings.defaultSettings(),
+  entry: const EntryDetailed(
+    id: EntryId(uid: 'test'),
+    url: 'url',
+    titles: ['title'],
+    author: ['author'],
+    ui: CustomUI.text(text: 'text'),
+    mediaType: MediaType.audio,
+    status: ReleaseStatus.releasing,
+    description: 'description',
+    language: 'language',
+    episodes: [
+      Episode(
+        id: EpisodeId(uid: 'id'),
+        name: 'name',
+        url: 'url',
+        cover: Link(url: 'cover', header: {'header': 'header'}),
+        timestamp: 'timestamp',
+      ),
+    ],
+  ),
+  boundExtensionId: "test",
+  extensionSettings: {},
   episodedata: [entrydata.EpisodeData.empty()],
   episode: 0,
   categories: [const Category('test', DBRecord('category', 'test'))],
@@ -97,25 +93,28 @@ entrydata.EntrySaved getEntrySaved(Extension ext) => entrydata.EntrySaved(
 void main() {
   group('Versioning', () {
     setUpAll(() {
-      registerFallbackValue(getEntryDetailed(MockExtension()));
-      registerFallbackValue(getEntrySaved(MockExtension()));
+      registerFallbackValue(getEntryDetailed());
+      registerFallbackValue(getEntrySaved());
     });
     group('Entry', () {
-      test('Write current serialization', () async {
+      test('Write current serialization', () {
+        final currfile = Directory('data')
+            .sub('version')
+            .sub('entry')
+            .getFile('${entrySerializeVersion.current}.json');
+        if (currfile.existsSync()) {
+          return;
+        }
+        currfile.createSync(recursive: true);
         final ext = MockExtension();
         when(() => ext.id).thenReturn('test');
-        (Directory('data')
-                .sub('version')
-                .sub('entry')
-                .getFile('${entrySerializeVersion.current}.json')
-              ..createSync(recursive: true))
-            .writeAsStringSync(
-              jsonEncode({
-                'version': entrySerializeVersion.current,
-                'entry': getEntry(ext).toEntryJson(),
-                'entrysaved': getEntrySaved(ext).toJson(),
-              }),
-            );
+        currfile.writeAsStringSync(
+          jsonEncode({
+            'version': entrySerializeVersion.current,
+            'entry': getEntry().toEntryJson(),
+            'entrysaved': getEntrySaved().toJson(),
+          }),
+        );
       }, tags: ['writing']);
 
       test('Deserialize for every version', () async {
@@ -156,13 +155,14 @@ void main() {
         final path =
             (Directory('data').sub('version').sub('database')
                   ..createSync(recursive: true))
-                .sub('$dbVersion')
-                .absolute
-                .path;
-        await db.initDB(await AdapterSurrealDB.newFile(path));
+                .sub('$dbVersion');
+        if (path.existsSync()) {
+          return;
+        }
+        await db.initDB(await AdapterSurrealDB.newFile(path.absolute.path));
         final ext = MockExtension();
         when(() => ext.id).thenReturn('test');
-        final saved = getEntrySaved(ext);
+        final saved = getEntrySaved();
         for (final cat in saved.categories) {
           await db.updateCategory(cat);
         }
@@ -186,6 +186,13 @@ void main() {
 
     group('Backup', () {
       test('Create Backup', () async {
+        final file =
+            (Directory('data').sub('version').sub('backup')
+                  ..createSync(recursive: true))
+                .getFile('$archiveVersion.dpkg');
+        if (file.existsSync()) {
+          return;
+        }
         final mockdb = await mockDatabase();
         when(
           () => mockdb.getCategoriesbyId([const DBRecord('category', 'test')]),
@@ -197,14 +204,11 @@ void main() {
         final mockext = MockExtension();
         when(
           () => mockdb.getEntries(any(), any()),
-        ).thenAnswer((_) => Stream.fromIterable([getEntrySaved(mockext)]));
+        ).thenAnswer((_) => Stream.fromIterable([getEntrySaved()]));
 
         when(() => mockext.id).thenReturn('test');
         final archive = await createBackup();
-        final file =
-            (Directory('data').sub('version').sub('backup')
-                  ..createSync(recursive: true))
-                .getFile('$archiveVersion.dpkg');
+
         await file.create(recursive: true);
         await file.writeAsBytes(ZipEncoder().encodeBytes(archive));
       }, tags: ['writing']);
@@ -224,7 +228,7 @@ void main() {
         final mockext = MockExtension();
         when(
           () => mockdb.getEntries(any(), any()),
-        ).thenAnswer((_) => Stream.fromIterable([getEntrySaved(mockext)]));
+        ).thenAnswer((_) => Stream.fromIterable([getEntrySaved()]));
 
         when(() => mockext.id).thenReturn('test');
         for (final file in Directory('data/version/backup').listSync()) {

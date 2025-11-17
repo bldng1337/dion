@@ -108,8 +108,8 @@ class EntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final Entry entry = this.entry;
     return Card(
-      imageUrl: entry.cover,
-      httpHeaders: entry.coverHeader,
+      imageUrl: entry.cover?.url,
+      httpHeaders: entry.cover?.header,
       leadingBadges: [
         if (showSaved && entry is EntrySaved)
           Icon(
@@ -151,7 +151,7 @@ class EntryCard extends StatelessWidget {
               width: 15,
             ),
           },
-        DionImage(imageUrl: entry.extension.data.icon, width: 15, height: 15),
+        DionImage(imageUrl: entry.extension?.data.icon, width: 15, height: 15),
       ],
       bottom: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

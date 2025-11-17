@@ -4,7 +4,7 @@ import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:flutter/material.dart';
 
-class SettingTextbox extends StatelessWidget {
+class SettingTextbox extends StatefulWidget {
   final String title;
   final String? description;
   final IconData? icon;
@@ -18,27 +18,69 @@ class SettingTextbox extends StatelessWidget {
   });
 
   @override
+  State<SettingTextbox> createState() => _SettingTextboxState();
+}
+
+class _SettingTextboxState extends State<SettingTextbox> {
+  late final TextEditingController _controller;
+  late final VoidCallback _settingListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.setting.value);
+    _settingListener = () {
+      if (!mounted) return;
+      final newText = widget.setting.value;
+      if (_controller.text != newText) {
+        _controller.value = _controller.value.copyWith(
+          text: newText,
+          selection: TextSelection.collapsed(offset: newText.length),
+        );
+      }
+    };
+    widget.setting.addListener(_settingListener);
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingTextbox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.setting != widget.setting) {
+      oldWidget.setting.removeListener(_settingListener);
+      _controller.text = widget.setting.value;
+      widget.setting.addListener(_settingListener);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.setting.removeListener(_settingListener);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _applyControllerToSetting() {
+    final text = _controller.text;
+    if (text != widget.setting.value) {
+      widget.setting.value = text;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final value = setting.value;
-    final controller = TextEditingController(text: value);
     final tile = DionListTile(
-      leading: icon != null ? Icon(icon) : null,
-      subtitle: ListenableBuilder(
-        listenable: setting,
-        builder: (context, child) => ListenableBuilder(
-          listenable: setting,
-          builder: (context, child) => DionTextbox(
-            controller: controller,
-            onSubmitted: (value) => setting.value = value,
-            onTapOutside: (_) => setting.value = controller.text,
-            maxLines: 1,
-          ),
-        ),
+      leading: widget.icon != null ? Icon(widget.icon) : null,
+      subtitle: DionTextbox(
+        controller: _controller,
+        onSubmitted: (_) => _applyControllerToSetting(),
+        onTapOutside: (_) => _applyControllerToSetting(),
+        maxLines: 1,
       ),
-      title: Text(title, style: context.titleMedium),
+      title: Text(widget.title, style: context.titleMedium),
     ).paddingAll(5);
-    if (description != null) {
-      return tile.withTooltip(description!);
+
+    if (widget.description != null) {
+      return tile.withTooltip(widget.description!);
     }
     return tile;
   }

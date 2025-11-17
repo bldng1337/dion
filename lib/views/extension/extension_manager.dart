@@ -1,5 +1,4 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
-import 'package:dionysos/data/extension_repo.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/directoryprovider.dart';
@@ -30,17 +29,10 @@ class ExtensionManager extends StatefulWidget {
 class _ExtensionManagerState extends State<ExtensionManager> {
   bool loading = false;
   Object? error;
-  late Future<List<ExtensionRepo>> future;
-
-  Future<List<ExtensionRepo>> getRepos() async {
-    final repos = settings.extension.repositories;
-    return Future.wait(repos.value.map((e) => ExtensionRepo.fromURL(e)));
-  }
 
   @override
   void initState() {
     super.initState();
-    future = getRepos();
   }
 
   @override
@@ -84,9 +76,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
               loading = true;
             });
             try {
-              future = getRepos();
               await sourceExt.reload();
-              await future;
             } catch (e, stack) {
               logger.e(e, stackTrace: stack);
               error = e;
@@ -139,131 +129,16 @@ class _ExtensionManagerState extends State<ExtensionManager> {
       destination: homedestinations,
       child: DionTabBar(
         tabs: [
-          DionTab(child: ExtensionList(), tab: const Text('Installed')),
           DionTab(
-            child: ExtensionRepoList(future: future),
-            tab: const Text('Available'),
+            child: ExtensionList(),
+            tab: const Text('Installed').paddingAll(6),
           ),
+          // DionTab(
+          //   child: ExtensionRepoList(future: future),
+          //   tab: const Text('Available').paddingAll(6),
+          // ),
         ],
       ),
-    );
-  }
-}
-
-class ExtensionRepoList extends StatelessWidget {
-  final Future<List<ExtensionRepo>> future;
-  const ExtensionRepoList({required this.future});
-
-  @override
-  Widget build(BuildContext context) {
-    return LoadingBuilder(
-      future: future,
-      builder: (context, value) {
-        final extensions = value.expand((e) => e.extensions).toList();
-        final extmanager = locate<SourceExtension>();
-        return ListenableBuilder(
-          listenable: extmanager,
-          builder: (context, child) => ListView.builder(
-            itemCount: extensions.length,
-            itemBuilder: (context, i) => RepoExtensionView(ext: extensions[i]),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class RepoExtensionView extends StatefulWidget {
-  final RepoExtension ext;
-  const RepoExtensionView({super.key, required this.ext});
-
-  @override
-  State<RepoExtensionView> createState() => _RepoExtensionViewState();
-}
-
-class _RepoExtensionViewState extends State<RepoExtensionView> {
-  bool _loading = false;
-  double? _progress;
-  Object? _error;
-
-  Widget getTrailing(BuildContext context) {
-    if (_loading) {
-      return DionProgressBar(value: _progress);
-    }
-    if (_error != null) {
-      return DionIconbutton(
-        icon: const Icon(Icons.error),
-        tooltip: _error.toString(),
-        onPressed: () {
-          setState(() {
-            _error = null;
-          });
-        },
-      );
-    }
-    final installed = widget.ext.installed;
-    if (installed == null) {
-      return DionIconbutton(
-        icon: const Icon(Icons.download),
-        onPressed: () async {
-          try {
-            _loading = true;
-            _progress = null;
-            await widget.ext.install(
-              onProgress: (p0) => setState(() {
-                _progress = p0;
-              }),
-            );
-            _loading = false;
-          } catch (e, stack) {
-            logger.e(e, stackTrace: stack);
-            _error = e;
-          }
-        },
-      );
-    }
-    if (installed.version < widget.ext.version) {
-      return DionIconbutton(
-        icon: const Icon(Icons.update),
-        onPressed: () async {
-          try {
-            _loading = true;
-            _progress = null;
-            await widget.ext.install(
-              onProgress: (p0) => setState(() {
-                _progress = p0;
-              }),
-            );
-            _loading = false;
-          } catch (e, stack) {
-            logger.e(e, stackTrace: stack);
-            _error = e;
-          }
-        },
-      );
-    }
-    return nil;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DionListTile(
-      leading: DionImage(
-        imageUrl: widget.ext.data.icon,
-        width: 30,
-        height: 30,
-        errorWidget: const Icon(Icons.image, size: 30),
-      ),
-      title: Text(
-        widget.ext.data.name,
-        style: context.titleMedium!.copyWith(
-          color: widget.ext.isinstalled
-              ? context.theme.colorScheme.primary
-              : Colors.grey,
-        ),
-      ),
-      trailing: getTrailing(context),
-      subtitle: Text('v${widget.ext.data.version}'),
     );
   }
 }

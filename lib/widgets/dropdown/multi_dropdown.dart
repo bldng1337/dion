@@ -163,8 +163,8 @@ class _DionMultiDropdownState<T extends Object>
               child: Row(mainAxisAlignment: MainAxisAlignment.center),
             ),
           ).applyShimmer(
-            highlightColor: context.backgroundColor.lighten(20),
-            baseColor: context.backgroundColor,
+            highlightColor: context.theme.scaffoldBackgroundColor.lighten(20),
+            baseColor: context.theme.scaffoldBackgroundColor,
           ),
       builder: (context, child, setFuture) => ListenableBuilder(
         listenable: controller,

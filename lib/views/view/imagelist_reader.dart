@@ -24,8 +24,7 @@ final psettings = settings.readerSettings.imagelistreader;
 class SimpleImageListReader extends StatefulWidget {
   final SourcePath source;
   final SourceSupplier supplier;
-  LinkSource_Imagelist get sourcedata =>
-      source.source.sourcedata as LinkSource_Imagelist;
+  Source_Imagelist get sourcedata => source.source as Source_Imagelist;
   const SimpleImageListReader({
     super.key,
     required this.source,
@@ -65,8 +64,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     if (audio == null) return;
     player!.open(
       Media(
-        audio.link,
-        // httpHeaders: widget.sourcedata.header,
+        audio.link.url,
+        httpHeaders: audio.link.header,
         extras: {'from': audio.from, 'to': audio.to, 'link': audio.link},
       ),
     );
@@ -249,7 +248,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     );
   }
 
-  Widget makeImage(BuildContext context, String image) {
+  Widget makeImage(BuildContext context, Link image) {
     // return Container(
     //   width: context.width,
     //   height: context.height,
@@ -261,9 +260,9 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     //   // ),
     // );
     return DionImage(
-      imageUrl: image,
+      imageUrl: image.url,
       boxFit: BoxFit.fitWidth,
-      httpHeaders: widget.sourcedata.header,
+      httpHeaders: image.header,
       shouldAnimate: false,
       loadingBuilder: (context) => Container(
         height: context.height * 2,

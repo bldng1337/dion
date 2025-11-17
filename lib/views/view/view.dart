@@ -108,26 +108,18 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       return Container();
     }
     return switch (lastsource!.source) {
-      final Source_Data data => switch (data.sourcedata) {
-        final DataSource_Paragraphlist _ => SimpleParagraphlistReader(
-          source: lastsource!,
-          supplier: source!,
-        ),
-      },
-      final Source_Directlink link => switch (link.sourcedata) {
-        final LinkSource_Epub _ => throw UnimplementedError(
-          'Epub not supported yet',
-        ),
-        final LinkSource_Pdf _ => throw UnimplementedError(
-          'Pdf not supported yet',
-        ),
-        final LinkSource_Imagelist _ => SimpleImageListReader(
-          source: lastsource!,
-          supplier: source!,
-        ),
-        final LinkSource_M3u8 _ => SimpleVideoPlayer(source: source!),
-        final LinkSource_Mp3 _ => SimpleAudioListener(source: source!),
-      },
+      final Source_Paragraphlist _ => SimpleParagraphlistReader(
+        source: lastsource!,
+        supplier: source!,
+      ),
+      final Source_Epub _ => throw UnimplementedError('Epub not supported yet'),
+      final Source_Pdf _ => throw UnimplementedError('Pdf not supported yet'),
+      final Source_Imagelist _ => SimpleImageListReader(
+        source: lastsource!,
+        supplier: source!,
+      ),
+      final Source_M3u8 _ => SimpleVideoPlayer(source: source!),
+      final Source_Mp3 _ => SimpleAudioListener(source: source!),
     };
   }
 }

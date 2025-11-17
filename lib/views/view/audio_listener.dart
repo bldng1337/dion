@@ -42,10 +42,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         return;
       }
       final source = widget.source.source!;
-      if (source.source.sourcedata is! LinkSource_Mp3) {
+      if (source.source is! Source_Mp3) {
         return;
       }
-      final sourcedata = source.source.sourcedata as LinkSource_Mp3;
+      final sourcedata = source.source as Source_Mp3;
       final prog = source.episode.data.progress?.split(':');
       Duration startduration = Duration.zero;
       int chapterindex = 0;
@@ -57,7 +57,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         Playlist([
           for (final (index, chapter) in sourcedata.chapters.indexed)
             Media(
-              chapter.url,
+              chapter.url.url,
+              httpHeaders: chapter.url.header,
               extras: {'title': chapter.title},
               start: index == chapterindex ? startduration : Duration.zero,
             ),
@@ -213,8 +214,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             Expanded(
               child: Center(
                 child: DionImage(
-                  imageUrl: widget.source.episode.cover,
-                  httpHeaders: widget.source.episode.coverHeader,
+                  imageUrl: widget.source.episode.cover?.url,
+                  httpHeaders: widget.source.episode.cover?.header,
                 ).paddingOnly(bottom: 10),
               ),
             ),
