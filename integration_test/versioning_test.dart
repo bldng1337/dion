@@ -149,7 +149,7 @@ void main() {
     });
 
     group('Database', () {
-      setUpAll(() async => await metis.RustLib.init());
+      setUpAll(() async => await metis.SurrealDB.ensureInitialized());
       test('Write current DB version', () async {
         final db = Database();
         final path =
@@ -159,7 +159,9 @@ void main() {
         if (path.existsSync()) {
           return;
         }
-        await db.initDB(await AdapterSurrealDB.newFile(path.absolute.path));
+        await db.initDB(
+          await AdapterSurrealDB.connect('surrealkv://${path.absolute.path}'),
+        );
         final ext = MockExtension();
         when(() => ext.id).thenReturn('test');
         final saved = getEntrySaved();
@@ -177,7 +179,9 @@ void main() {
         when(() => srcextension.getExtension(any())).thenReturn(mockext);
         for (final file in Directory('data/version/database').listSync()) {
           final db = Database();
-          await db.initDB(await AdapterSurrealDB.newFile(file.path));
+          await db.initDB(
+            await AdapterSurrealDB.connect('surrealkv://${file.path}'),
+          );
           db.getEntries(0, 10);
           db.db.dispose();
         }

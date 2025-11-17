@@ -57,7 +57,7 @@ dependencies:
   metis:
     git:
       url: https://github.com/bldng1337/metis.git
-      ref: 9c0132bdb18840fdaa138ef410abba907e6878bb
+      ref: ec2ebeaf7cb744b2f47374938a5680f180aa5373
   rdion_runtime:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
@@ -104,6 +104,3 @@ inno_bundle:
   publisher: bldng
   name: dion
   installer_icon: windows/runner/resources/app_icon.ico
-
-tags:
-  writing:

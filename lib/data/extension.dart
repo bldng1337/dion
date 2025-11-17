@@ -20,7 +20,10 @@ class ExtensionMetaData with DBConstClass {
   }
 
   factory ExtensionMetaData.fromJson(Map<String, dynamic> json) =>
-      ExtensionMetaData((json['id'] as DBRecord).id, json['enabled'] as bool);
+      ExtensionMetaData(
+        (json['id'] as DBRecord).id as String,
+        json['enabled'] as bool,
+      );
 
   @override
   DBRecord get dbId => constructExtensionDBRecord(id);

@@ -45,7 +45,7 @@ class Database extends ChangeNotifier {
   }
 
   Future<void> initDB(AdapterSurrealDB db) async {
-    await db.use(db: 'default', namespace: 'app');
+    await db.use(db: 'default', ns: 'app');
     await db.setMigrationAdapter(
       version: dbVersion,
       migrationName: 'app',
@@ -80,14 +80,14 @@ class Database extends ChangeNotifier {
   }
 
   Future<void> init({bool inMemory = false}) async {
-    await RustLib.init();
+    await SurrealDB.ensureInitialized();
     late final AdapterSurrealDB currentdb;
     if (inMemory) {
-      currentdb = await AdapterSurrealDB.newMem();
+      currentdb = await AdapterSurrealDB.connect('memory://');
     } else {
       final dir = await locateAsync<DirectoryProvider>();
-      currentdb = await AdapterSurrealDB.newFile(
-        dir.databasepath.absolute.path,
+      currentdb = await AdapterSurrealDB.connect(
+        'surrealkv://${dir.databasepath.absolute.path}',
       );
     }
     await initDB(currentdb);
@@ -172,7 +172,7 @@ class Database extends ChangeNotifier {
     required String query,
     Map<String, dynamic>? vars,
   }) async {
-    final [res as List<dynamic>] = await db.query(query: query, vars: vars);
+    final [res as List<dynamic>] = await db.query(query, vars: vars);
     if (res.isEmpty) return 0;
     return res[0]['count'] as int;
   }
@@ -210,16 +210,15 @@ class Database extends ChangeNotifier {
   Future<Duration> getActivityDuration(DateTime time, Duration duration) async {
     final end = time.add(duration);
     final [dbres] = await db.query(
-      query:
-          '''
+      '''
 math::sum(
-SELECT VALUE duration FROM activity 
-WHERE 
+SELECT VALUE duration FROM activity
+WHERE
   time >= \$start AND
   time <= \$end AND
   duration > 0
 )'''
-              .trim(),
+          .trim(),
       vars: {'start': time, 'end': end},
     );
     return Duration(seconds: dbres as int);
@@ -251,14 +250,14 @@ WHERE
   }
 
   Future<void> clear() async {
-    await db.query(query: 'DELETE entry');
-    await db.query(query: 'DELETE activity');
-    await db.query(query: 'DELETE category');
-    await db.query(query: 'DELETE extension');
+    await db.query('DELETE entry');
+    await db.query('DELETE activity');
+    await db.query('DELETE category');
+    await db.query('DELETE extension');
   }
 
   Future<void> merge(String path) async {
-    final otherdb = await AdapterSurrealDB.newFile(path);
+    final otherdb = await AdapterSurrealDB.connect('surrealkv://$path');
     try {
       await initDB(otherdb);
       final CrdtAdapter adapter = db.getAdapter<CrdtAdapter>();
