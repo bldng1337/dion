@@ -57,6 +57,8 @@ class Extension extends ChangeNotifier {
       List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>>
     >
     settingsmap = {};
+    // Kind of stopgap solution until we persist settings
+    await proxy.setEnabled(enabled: true);
     for (final kind in rust.SettingKind.values) {
       final settingids = await proxy.getSettingIds(kind: kind);
       final settings = await Future.wait(
@@ -82,6 +84,7 @@ class Extension extends ChangeNotifier {
     }
     final extdata = await proxy.getExtensionData();
     final extmeta = await db.getExtensionMetaData(extdata);
+    await proxy.setEnabled(enabled: extmeta.enabled);
     return Extension(
       extdata,
       proxy,
@@ -355,11 +358,6 @@ class SourceExtension with ChangeNotifier {
     _extensions.addAll(
       await Future.wait(exts.map((e) => Extension.fromProxy(e, db))),
     );
-    for (final e in _extensions) {
-      if (e.meta.enabled) {
-        e.enable(); // TODO: Do we check the enabled state before querying the extension everywhere?
-      }
-    }
     loading = false;
     notifyListeners();
   }
