@@ -86,16 +86,19 @@ class _ExtensionViewState extends State<ExtensionView> {
               ).paddingAll(10),
             ],
           ).paddingAll(30),
+          const Divider(),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
                   if (extension!.data.desc != null &&
-                      extension!.data.desc!.isNotEmpty)
+                      extension!.data.desc!.isNotEmpty) ...[
                     Foldabletext(
                       extension!.data.desc ?? '',
                       style: context.bodyMedium,
                     ),
+                    const Divider(),
+                  ],
                   for (final e in extension!.settings[SettingKind.extension_]!)
                     DionRuntimeSettingView(setting: e),
                 ],
