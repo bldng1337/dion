@@ -321,14 +321,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
           boundExtensionId: json['extensionid'] as String,
           episode: (json['episode'] as int?) ?? 0,
           savedSettings: EntrySavedSettings.fromJson(json['settings']),
-          extensionSettings:
-              (json['extensionSettings'] as Map<String, dynamic>?)?.map(
-                (key, value) => MapEntry(
-                  key,
-                  rust.JsonSetting.fromJson(value as Map<String, dynamic>),
-                ),
-              ) ??
-              {},
+          extensionSettings: {},
         );
     }
     return EntrySaved(
@@ -347,7 +340,13 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
       episode: (json['episode'] as int?) ?? 0,
       savedSettings: EntrySavedSettings.fromJson(json['savedSettings']),
       extensionSettings:
-          (json['entry']['settings'] as Map<String, dynamic>?)?.cast() ?? {},
+          (json['extensionSettings'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              rust.JsonSetting.fromJson(value as Map<String, dynamic>),
+            ),
+          ) ??
+          {},
     );
   }
 
