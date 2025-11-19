@@ -58,7 +58,9 @@ class DownloadTask extends Task {
         status = 'Writing Content';
         await dir
             .getFile('data.txt')
-            .writeAsString(jsonEncode(paragraphs.paragraphs));
+            .writeAsString(
+              jsonEncode(paragraphs.paragraphs.map((e) => e.toJson()).toList()),
+            );
       case final Source_Epub data:
         status = 'Downloading Epub';
         final filename = await InternetFile.streamToFile(
@@ -289,7 +291,8 @@ class DownloadService {
             paragraphs:
                 (json.decode(await path.getFile('data.txt').readAsString())
                         as List<dynamic>)
-                    .cast(),
+                    .map((e) => JsonParagraph.fromJson(e))
+                    .toList(),
           );
         case 'epub':
           return Source.epub(
