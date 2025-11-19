@@ -131,7 +131,7 @@ abstract class Task extends ChangeNotifier {
           finished = false;
           running = false;
           onFailed(e);
-          logger.e(e);
+          logger.e(e, stackTrace: stack is StackTrace ? stack : null);
           final mngr = locate<TaskManager>();
           mngr.update();
           notifyListeners();
