@@ -4,12 +4,12 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/selection.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
-import 'package:flutter/material.dart' show Icons;
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,6 +40,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     final epdata = widget.source.episode.data;
     if (epdata.finished) return;
     if (controller.offset > 0 && controller.position.atEdge) {
+      if (epdata.finished) return;
       epdata.finished = true;
       widget.source.episode.save();
       return;
@@ -147,28 +148,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     final epdata = widget.source.episode.data;
     final paragraphs = widget.sourcedata.paragraphs;
     return NavScaff(
-      title: DionTextScroll(widget.source.name),
-      actions: [
-        DionIconbutton(
-          icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
-          onPressed: () async {
-            epdata.bookmark = !epdata.bookmark;
-            await widget.source.episode.save();
-            if (mounted) {
-              setState(() {});
-            }
-          },
-        ),
-        DionIconbutton(
-          icon: const Icon(Icons.open_in_browser),
-          onPressed: () =>
-              launchUrl(Uri.parse(widget.source.episode.episode.url)),
-        ),
-        DionIconbutton(
-          icon: const Icon(Icons.settings),
-          onPressed: () => context.push('/settings/paragraphreader'),
-        ),
-      ],
+      showNavbar: false,
       child: ListenableBuilder(
         listenable: psettings.text.selectable,
         builder: (context, child) {
@@ -178,44 +158,79 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           return child!;
         },
         child: ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
-          child: ListView.builder(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: CustomScrollView(
             controller: controller,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                if (widget.source.episode.hasprev) {
-                  return DionTextbutton(
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                title: DionTextScroll(widget.source.name),
+                actions: [
+                  DionIconbutton(
+                    icon: Icon(
+                      epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
+                    ),
+                    onPressed: () async {
+                      epdata.bookmark = !epdata.bookmark;
+                      await widget.source.episode.save();
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  DionIconbutton(
+                    icon: const Icon(Icons.open_in_browser),
+                    onPressed: () =>
+                        launchUrl(Uri.parse(widget.source.episode.episode.url)),
+                  ),
+                  DionIconbutton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => context.push('/settings/paragraphreader'),
+                  ),
+                ],
+              ),
+              if (widget.source.episode.hasprev)
+                SliverToBoxAdapter(
+                  child: DionTextbutton(
                     child: const Text('Previous'),
                     onPressed: () =>
                         widget.source.episode.goPrev(widget.supplier),
-                  );
-                }
-                return nil;
-              }
-              if (index == 1) {
-                return ListenableBuilder(
+                  ).paddingSymmetric(vertical: 32),
+                ),
+              SliverToBoxAdapter(
+                child: ListenableBuilder(
                   listenable: psettings.title,
                   builder: (context, child) => psettings.title.value
-                      ? Text(widget.source.name, style: context.titleLarge)
+                      ? wrapScreen(
+                          context,
+                          Text(
+                            widget.source.name,
+                            style: context.headlineMedium,
+                            textAlign: TextAlign.center,
+                          ).paddingSymmetric(vertical: 16),
+                        )
                       : nil,
-                );
-              }
-              if (index - 2 == paragraphs.length) {
-                if (widget.source.episode.hasnext) {
-                  return DionTextbutton(
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                sliver: SliverList.builder(
+                  itemBuilder: (context, index) => wrapScreen(
+                    context,
+                    wrapParagraph(context, paragraphs[index]),
+                  ),
+                  itemCount: paragraphs.length,
+                ),
+              ),
+              if (widget.source.episode.hasnext)
+                SliverToBoxAdapter(
+                  child: DionTextbutton(
                     child: const Text('Next'),
                     onPressed: () =>
                         widget.source.episode.goNext(widget.supplier),
-                  );
-                }
-                return nil;
-              }
-              return wrapScreen(
-                context,
-                wrapParagraph(context, paragraphs[index - 2]),
-              );
-            },
-            itemCount: paragraphs.length + 3,
+                  ).paddingSymmetric(vertical: 32),
+                ),
+            ],
           ),
         ),
       ),
