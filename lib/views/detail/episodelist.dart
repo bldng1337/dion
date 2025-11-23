@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
@@ -10,297 +8,108 @@ import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/context_menu.dart';
+
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/material.dart' show Icons, Theme, VisualDensity;
 import 'package:flutter/widgets.dart';
-import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-class EpisodeListUI extends StatefulWidget {
+class EpisodeListSliver extends StatefulWidget {
   final EntryDetailed entry;
-  const EpisodeListUI({super.key, required this.entry});
+  final List<int> selected;
+  final Function(int) onSelect;
+
+  const EpisodeListSliver({
+    super.key,
+    required this.entry,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
-  State<EpisodeListUI> createState() => _EpisodeListUIState();
+  State<EpisodeListSliver> createState() => _EpisodeListSliverState();
 }
 
-class _EpisodeListUIState extends State<EpisodeListUI> {
-  int selected = 0;
-  @override
-  void initState() {
-    if (widget.entry is EntrySaved) {
-      selected = (widget.entry as EntrySaved).episode;
-    }
-    super.initState();
-  }
+class _EpisodeListSliverState extends State<EpisodeListSliver> {
+  int? hovering;
 
   @override
   Widget build(BuildContext context) {
     final eplist = widget.entry.episodes;
     if (eplist.isEmpty) {
-      return Center(child: Text('No Episodes', style: context.labelLarge));
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Text('No Episodes', style: context.labelLarge).paddingAll(20),
+        ),
+      );
     }
-    return Column(children: [EpList(entry: widget.entry).expanded()]);
-  }
-}
 
-class EpList extends StatefulWidget {
-  final EntryDetailed entry;
-
-  List<Episode> get elist => entry.episodes;
-  const EpList({super.key, required this.entry});
-
-  @override
-  _EpListState createState() => _EpListState();
-}
-
-class _EpListState extends State<EpList> with StateDisposeScopeMixin {
-  late List<int> selected;
-  int? hovering;
-  late ScrollController controller;
-  int? last;
-
-  @override
-  void initState() {
-    selected = List.empty(growable: true);
-    controller = ScrollController()..disposedBy(scope);
-    super.initState();
-  }
-
-  List<int> get selection {
-    if (selected.isNotEmpty) return selected;
-    if (hovering != null) return [hovering!];
-    return List.empty();
-  }
-
-  List<ContextMenuItem> get contextItems => [
-    ContextMenuItem(
-      label: 'Bookmark',
-      onTap: () async {
-        for (final int i in selection) {
-          final data = (widget.entry as EntrySaved).getEpisodeData(i);
-          data.bookmark = true;
-        }
-        selected.clear();
-        setState(() {});
-        await (widget.entry as EntrySaved).save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Remove Bookmark',
-      onTap: () async {
-        for (final int i in selection) {
-          final data = (widget.entry as EntrySaved).getEpisodeData(i);
-          data.bookmark = false;
-        }
-        selected.clear();
-        setState(() {});
-        await (widget.entry as EntrySaved).save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Mark as finished',
-      onTap: () async {
-        for (final int i in selection) {
-          final data = (widget.entry as EntrySaved).getEpisodeData(i);
-          data.finished = true;
-        }
-        selected.clear();
-        setState(() {});
-        await (widget.entry as EntrySaved).save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Mark as unfinished',
-      onTap: () async {
-        for (final int i in selection) {
-          final data = (widget.entry as EntrySaved).getEpisodeData(i);
-          data.finished = false;
-          data.progress = null;
-        }
-        selected.clear();
-        setState(() {});
-        await (widget.entry as EntrySaved).save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Download',
-      onTap: () async {
-        final download = locate<DownloadService>();
-        await download.download(
-          selection.map((index) => EpisodePath(widget.entry, index)),
-        );
-        selected.clear();
-        setState(() {});
-      },
-    ),
-    ContextMenuItem(
-      label: 'Delete Download',
-      onTap: () async {
-        final download = locate<DownloadService>();
-        await download.deleteEpisodes(
-          selection.map((index) => EpisodePath(widget.entry, index)),
-        );
-        selected.clear();
-        setState(() {});
-      },
-    ),
-    if (selection.length == 1) ...[
-      ContextMenuItem(
-        label: 'Open in Browser',
-        onTap: () async {
-          await launchUrl(
-            Uri.parse(widget.entry.episodes[selection.first].url),
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        if (widget.entry is EntrySaved)
+          (widget.entry as EntrySaved).savedSettings.reverse,
+        if (widget.entry is EntrySaved)
+          (widget.entry as EntrySaved).savedSettings.hideFinishedEpisodes,
+        if (widget.entry is EntrySaved)
+          (widget.entry as EntrySaved).savedSettings.onlyShowBookmarked,
+      ]),
+      builder: (context, child) {
+        final entry = widget.entry;
+        // ignore: avoid_bool_literals_in_conditional_expressions
+        final reverse = entry is EntrySaved
+            ? entry.savedSettings.reverse.value
+            : false;
+        // ignore: avoid_bool_literals_in_conditional_expressions
+        final hideFinishedEpisodes = entry is EntrySaved
+            ? entry.savedSettings.hideFinishedEpisodes.value
+            : false;
+        // ignore: avoid_bool_literals_in_conditional_expressions
+        final onlyShowBookmarked = entry is EntrySaved
+            ? entry.savedSettings.onlyShowBookmarked.value
+            : false;
+        Iterable<(int, Episode)> elist = entry.episodes.indexed;
+        if (onlyShowBookmarked) {
+          elist = elist.where(
+            (e) => entry.getEpisodeData(e.$1).bookmark == true,
           );
-        },
-      ),
-    ],
-    ContextMenuItem(
-      label: 'Select to this episode',
-      onTap: () async {
-        final index = selection.reduce((a, b) => max(a, b)) + 1;
-        selected.clear();
-        selected.addAll(Iterable.generate(index, (index) => index));
-        setState(() {});
-      },
-    ),
-    if (widget.entry is EntrySaved)
-      ContextMenuItem(
-        label: 'Select finished episodes',
-        onTap: () async {
-          selected.clear();
-          selected.addAll(
-            widget.entry.episodes.indexed
-                .where(
-                  (e) => (widget.entry as EntrySaved)
-                      .getEpisodeData(e.$1)
-                      .finished,
-                )
-                .map((e) => e.$1)
-                .toList(),
+        }
+        if (hideFinishedEpisodes) {
+          elist = elist.where(
+            (e) => entry.getEpisodeData(e.$1).finished == false,
           );
-          setState(() {});
-        },
-      ),
-    if (widget.entry is EntrySaved)
-      ContextMenuItem(
-        label: 'Select unfinished episodes',
-        onTap: () async {
-          selected.clear();
-          selected.addAll(
-            widget.entry.episodes.indexed
-                .where(
-                  (e) => !(widget.entry as EntrySaved)
-                      .getEpisodeData(e.$1)
-                      .finished,
-                )
-                .map((e) => e.$1)
-                .toList(),
-          );
-          setState(() {});
-        },
-      ),
-    ContextMenuItem(
-      label: 'Select All',
-      onTap: () async {
-        selected.clear();
-        selected.addAll(
-          widget.entry.episodes.indexed.map((e) => e.$1).toList(),
-        );
-        setState(() {});
-      },
-    ),
-    if (selected.isNotEmpty)
-      ContextMenuItem(
-        label: 'Clear Selection',
-        onTap: () async {
-          selected.clear();
-          setState(() {});
-        },
-      ),
-  ];
+        }
+        elist = reverse ? elist.toList().reversed : elist;
+        final list = elist.toList();
 
-  @override
-  Widget build(BuildContext context) {
-    final entry = widget.entry;
-    return ContextMenu(
-      selectionActive: selected.isNotEmpty,
-      active: entry is EntrySaved,
-      contextItems: contextItems,
-      child: ListenableBuilder(
-        listenable: Listenable.merge([
-          if (entry is EntrySaved) entry.savedSettings.reverse,
-          if (entry is EntrySaved) entry.savedSettings.hideFinishedEpisodes,
-          if (entry is EntrySaved) entry.savedSettings.onlyShowBookmarked,
-        ]),
-        builder: (context, child) {
-          // ignore: avoid_bool_literals_in_conditional_expressions
-          final reverse = entry is EntrySaved
-              ? entry.savedSettings.reverse.value
-              : false;
-          // ignore: avoid_bool_literals_in_conditional_expressions
-          final hideFinishedEpisodes = entry is EntrySaved
-              ? entry.savedSettings.hideFinishedEpisodes.value
-              : false;
-          // ignore: avoid_bool_literals_in_conditional_expressions
-          final onlyShowBookmarked = entry is EntrySaved
-              ? entry.savedSettings.onlyShowBookmarked.value
-              : false;
-          Iterable<(int, Episode)> elist = widget.elist.indexed;
-          if (onlyShowBookmarked) {
-            elist = elist.where(
-              (e) => entry.getEpisodeData(e.$1).bookmark == true,
-            );
-          }
-          if (hideFinishedEpisodes) {
-            elist = elist.where(
-              (e) => entry.getEpisodeData(e.$1).finished == false,
-            );
-          }
-          elist = reverse ? elist.toList().reversed : elist;
-          final list = elist.toList();
-          return ListView.builder(
-            key: PageStorageKey<String>(
-              '${entry.boundExtensionId}->${entry.id}',
-            ),
-            controller: controller,
-            prototypeItem: EpisodeTile(
-              episodepath: EpisodePath(entry, 0),
-              selection: false,
-              isSelected: false,
-              onSelect: () {},
-            ),
-            padding: EdgeInsets.zero,
-            itemCount: list.length,
-            itemBuilder: (BuildContext context, int eindex) {
-              final index = list[eindex].$1;
-              return MouseRegion(
-                onEnter: (e) {
+        return SliverList.builder(
+          key: PageStorageKey<String>('${entry.boundExtensionId}->${entry.id}'),
+          itemCount: list.length,
+          itemBuilder: (BuildContext context, int eindex) {
+            final index = list[eindex].$1;
+            return MouseRegion(
+              onEnter: (e) {
+                setState(() {
                   hovering = index;
-                },
-                child: EpisodeTile(
-                  disabled: (entry.extension?.isenabled ?? false) == false,
-                  episodepath: EpisodePath(entry, index),
-                  selection: selected.isNotEmpty,
-                  isSelected: selected.contains(index),
-                  onSelect: () {
-                    if (selected.contains(index)) {
-                      selected.remove(index);
-                    } else {
-                      selected.add(index);
-                    }
-                    setState(() {});
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
+                });
+              },
+              onExit: (e) {
+                setState(() {
+                  hovering = null;
+                });
+              },
+              child: EpisodeTile(
+                disabled: (entry.extension?.isenabled ?? false) == false,
+                episodepath: EpisodePath(entry, index),
+                selection: widget.selected.isNotEmpty,
+                isSelected: widget.selected.contains(index),
+                onSelect: () => widget.onSelect(index),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

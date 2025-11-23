@@ -11,14 +11,15 @@ import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/detail/detail.dart';
 import 'package:dionysos/widgets/badge.dart';
-import 'package:dionysos/widgets/buttons/iconbutton.dart';
+
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/columnrow.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
-import 'package:flutter/material.dart' show ButtonStyle, Colors, Icons;
+import 'package:flutter/material.dart'
+    show ButtonStyle, Colors, FilledButton, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -29,8 +30,8 @@ class EntryInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(top: 6, left: 5, right: 7),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (entry is EntryDetailed &&
             ((entry as EntryDetailed).extension == null))
@@ -45,7 +46,6 @@ class EntryInfo extends StatelessWidget {
               await (entry as EntryDetailed).extension?.enable();
             },
           ),
-
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,12 +64,11 @@ class EntryInfo extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  DionTextScroll(
                     entry.title,
                     style: (context.width > 950)
                         ? context.headlineLarge
                         : context.headlineSmall,
-                    // pauseBetween: 1.seconds,
                   ),
                   if (entry.author != null && entry.author!.isNotEmpty)
                     DionTextScroll(
@@ -113,6 +112,35 @@ class EntryInfo extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
+                  SizedBox(
+                    height: 30,
+                    child: isEntryDetailed(
+                      context: context,
+                      entry: entry,
+                      isdetailed: (entry) => ListView(
+                        shrinkWrap: true,
+                        scrollDirection: Axis.horizontal,
+                        children:
+                            entry.genres
+                                ?.map(
+                                  (e) => DionBadge(
+                                    noMargin: true,
+                                    color: getColor(e),
+                                    child: Center(child: Text(e)),
+                                  ).paddingOnly(right: 5),
+                                )
+                                .toList() ??
+                            [],
+                      ),
+                      isnt: () => Row(
+                        children: getWords(4)
+                            .map(
+                              (e) => DionBadge(child: Center(child: Text(e))),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ).paddingOnly(bottom: 5),
                   if (entry.rating != null || entry.views != null)
                     SizedBox(
                       height: (context.width > 950) ? 50 : 80,
@@ -157,69 +185,54 @@ class EntryInfo extends StatelessWidget {
                           ],
                         ).paddingAll(5),
                       ),
+                    ).paddingOnly(bottom: 10),
+                  isEntryDetailed(
+                    context: context,
+                    entry: entry,
+                    isdetailed: (entry) => SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        icon: Icon(
+                          entry is EntrySaved
+                              ? Icons.library_books
+                              : Icons.library_add,
+                        ),
+                        label: Text(
+                          entry is EntrySaved ? 'In Library' : 'Add to Library',
+                        ),
+                        onPressed: () async {
+                          if (entry is EntrySaved) {
+                            final entrydetailed = await entry.delete();
+                            if (context.mounted) {
+                              GoRouter.of(
+                                context,
+                              ).replace('/detail', extra: [entrydetailed]);
+                            }
+                          } else {
+                            final saved = await entry.toSaved();
+                            if (context.mounted) {
+                              GoRouter.of(
+                                context,
+                              ).replace('/detail', extra: [saved]);
+                            }
+                          }
+                        },
+                      ),
                     ),
+                    isnt: () => SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: null,
+                        icon: Icon(Icons.library_add),
+                        label: Text('Add to Library'),
+                      ),
+                    ),
+                    shimmer: false,
+                  ),
                 ],
               ).paddingOnly(bottom: 5, left: 5).expanded(),
             ],
           ),
-        ),
-        SizedBox(
-          height: 40,
-          child: isEntryDetailed(
-            context: context,
-            entry: entry,
-            isdetailed: (entry) => ListView(
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              children:
-                  entry.genres
-                      ?.map(
-                        (e) => DionBadge(
-                          color: getColor(e),
-                          child: Center(child: Text(e)),
-                        ),
-                      )
-                      .toList() ??
-                  [],
-            ),
-            isnt: () => Row(
-              children: getWords(
-                4,
-              ).map((e) => DionBadge(child: Center(child: Text(e)))).toList(),
-            ),
-          ),
-        ),
-        isEntryDetailed(
-          context: context,
-          entry: entry,
-          isdetailed: (entry) => DionIconbutton(
-            icon: Icon(
-              entry is EntrySaved ? Icons.library_books : Icons.library_add,
-              size: 30,
-            ),
-            onPressed: () async {
-              if (entry is EntrySaved) {
-                final entrydetailed = await entry.delete();
-                if (context.mounted) {
-                  GoRouter.of(
-                    context,
-                  ).replace('/detail', extra: [entrydetailed]);
-                }
-              } else {
-                final saved = await entry.toSaved();
-                if (context.mounted) {
-                  GoRouter.of(context).replace('/detail', extra: [saved]);
-                }
-              }
-            },
-          ),
-          isnt: () => DionIconbutton(
-            icon: Icon(
-              entry is EntrySaved ? Icons.library_books : Icons.library_add,
-              size: 30,
-            ),
-          ),
-          shimmer: false,
         ),
         isEntryDetailed(
           context: context,
@@ -242,11 +255,10 @@ class EntryInfo extends StatelessWidget {
                     extension: entry.extension!,
                   ),
                 ).paddingAll(5),
-          isnt: () => nil,
           shimmer: false,
         ),
-      ],
-    );
+      ].where((e) => e != nil).toList(),
+    ).paddingOnly(top: 5, left: 5, right: 5);
   }
 
   //TODO: Extract this into a seperate Widget
