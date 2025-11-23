@@ -631,7 +631,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
               },
             );
           },
-        ).paddingAll(10).expanded(),
+        ).expanded(),
       ],
     );
   }

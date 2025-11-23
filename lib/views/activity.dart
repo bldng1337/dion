@@ -12,9 +12,8 @@ import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
-import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart' show BorderRadius, Colors, Icons;
+import 'package:flutter/material.dart' show BorderRadius, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moment_dart/moment_dart.dart';
@@ -31,31 +30,46 @@ class DateHeader implements IRenderable {
 
   @override
   Widget render(BuildContext context) {
-    // A more prominent date header with an icon and a small duration badge.
-    return DionListTile(
-      title: Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      child: Row(
         children: [
-          const Icon(Icons.calendar_today, size: 18).paddingOnly(right: 8),
           Text(
             date.toDateString(),
-            style: context.titleMedium!.copyWith(fontWeight: FontWeight.w600),
+            style: context.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: context.theme.colorScheme.onSurface,
+            ),
           ),
+          const Spacer(),
+          if (duration > Duration.zero)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: context.theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.timelapse,
+                    size: 14,
+                    color: context.theme.colorScheme.onSurfaceVariant,
+                  ).paddingOnly(right: 4),
+                  Text(
+                    duration.formatrelative(),
+                    style: context.labelSmall?.copyWith(
+                      color: context.theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
-      subtitle: Text(
-        'Activities',
-        style: context.bodySmall!.copyWith(color: context.theme.disabledColor),
-      ),
-      trailing: DionBadge(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.timelapse, size: 14).paddingOnly(right: 6),
-            Text(duration.formatrelative(), style: context.labelSmall),
-          ],
-        ).paddingSymmetric(horizontal: 8, vertical: 6),
-      ),
-    ).paddingOnly(bottom: 6);
+    );
   }
 }
 
@@ -91,29 +105,36 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
   @override
   Widget render(BuildContext context) {
     if (extension == null) {
-      return Clickable(
-        child: DionBadge(
-          child: Container(
-            height: 100,
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: Colors.redAccent,
-                  size: 28,
-                ).paddingOnly(right: 8),
-                const Expanded(
-                  child: Text(
-                    'Unknown extension — content details unavailable',
-                    maxLines: 2,
-                  ),
-                ),
-              ],
-            ),
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: context.theme.colorScheme.errorContainer.withValues(
+            alpha: 0.1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: context.theme.colorScheme.error.withValues(alpha: 0.2),
           ),
         ),
-      ).paddingOnly(bottom: 8);
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: context.theme.colorScheme.error,
+              size: 24,
+            ).paddingOnly(right: 12),
+            Expanded(
+              child: Text(
+                'Unknown extension — content details unavailable',
+                style: context.bodyMedium?.copyWith(
+                  color: context.theme.colorScheme.error,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     final Entry entry = savedentry ?? activity.entry;
@@ -129,98 +150,152 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
       onTap: () {
         context.push('/detail', extra: [entry]);
       },
-      child: DionBadge(
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          constraints: const BoxConstraints(minHeight: 120, maxHeight: 200),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: context.theme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(5),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (entry.cover != null)
-                Stack(
-                  children: [
-                    DionImage(
-                      imageUrl: entry.cover?.url,
-                      boxFit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      httpHeaders: entry.cover?.header,
-                    ),
-                    Row(
-                      children: [
-                        Icon(entry.mediaType.icon, size: 14),
-                        if (savedentry != null)
-                          const Icon(Icons.bookmark, size: 14),
-                      ].map((e) => DionBadge(child: e)).toList(),
-                    ),
-                  ],
-                ).paddingOnly(right: 12),
+              // Cover Image
+              if (entry.cover != null) _ActivityCover(entry: entry),
+
+              // Content
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.title.trim(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.titleLarge!.copyWith(
-                        fontWeight: FontWeight.w700,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title
+                      Text(
+                        entry.title.trim(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          height: 1.1,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.timer,
-                          size: 14,
-                          color: context.theme.disabledColor,
-                        ).paddingOnly(right: 3),
-                        Text(
-                          activity.duration.formatrelative(),
-                          style: context.labelSmall!.copyWith(
-                            color: context.theme.disabledColor,
-                          ),
+                      const SizedBox(height: 4),
+                      _ActivityMetadata(
+                        activity: activity,
+                        extensionName: extension!.name,
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Action & Episode Info
+                      Text(
+                        (activity.fromepisode == activity.toepisode)
+                            ? '$action episode ${activity.fromepisode}'
+                            : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
+                        style: context.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w400,
                         ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.extension,
-                          size: 14,
-                          color: context.theme.disabledColor,
-                        ).paddingOnly(right: 3),
-                        Text(
-                          extension!.name,
-                          style: context.labelSmall!.copyWith(
-                            color: context.theme.disabledColor,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.calendar_month,
-                          size: 14,
-                          color: context.theme.disabledColor,
-                        ).paddingOnly(right: 3),
-                        Text(
-                          activity.time.formatrelative(),
-                          style: context.labelSmall!.copyWith(
-                            color: context.theme.disabledColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      (activity.fromepisode == activity.toepisode)
-                          ? '$action episode ${activity.fromepisode}'
-                          : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
-                      style: context.bodyMedium,
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-    ).paddingOnly(bottom: 10);
+    );
+  }
+}
+
+class _ActivityCover extends StatelessWidget {
+  final Entry entry;
+
+  const _ActivityCover({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 100,
+      height: 140,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          DionImage(
+            imageUrl: entry.cover?.url,
+            boxFit: BoxFit.cover,
+            httpHeaders: entry.cover?.header,
+          ),
+          // Media Type Badge
+          Positioned(
+            top: 4,
+            left: 4,
+            child: DionBadge(child: Icon(entry.mediaType.icon, size: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityMetadata extends StatelessWidget {
+  final EpisodeActivity activity;
+  final String extensionName;
+
+  const _ActivityMetadata({
+    required this.activity,
+    required this.extensionName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return Wrap(
+      spacing: width < 500 ? 4 : 12,
+      runSpacing: 4,
+      children: [
+        _buildMetaItem(
+          context,
+          Icons.timer_outlined,
+          activity.duration.formatrelative(
+            form: width < 500 ? Abbreviation.full : Abbreviation.none,
+          ),
+          width,
+        ),
+        _buildMetaItem(context, Icons.extension_outlined, extensionName, width),
+        _buildMetaItem(
+          context,
+          Icons.access_time,
+          activity.time.formatrelative(),
+          width,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetaItem(
+    BuildContext context,
+    IconData icon,
+    String text,
+    double width,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: context.theme.disabledColor,
+        ).paddingOnly(right: width < 500 ? 2 : 4),
+        Text(
+          text,
+          style: context.labelSmall?.copyWith(
+            color: context.theme.disabledColor,
+          ),
+        ),
+      ],
+    );
   }
 }
 

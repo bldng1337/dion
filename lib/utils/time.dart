@@ -39,8 +39,11 @@ extension DurationExt on Duration {
   ///   the elapsed time. Defaults to DateTime.now()
   /// - If [allowFromNow] is passed, format will use the From prefix, ie. a date
   ///   5 minutes from now in 'en' locale will display as "5 minutes from now"
-  String formatrelative({String? locale}) {
-    return Moment.now().add(this).fromNow(dropPrefixOrSuffix: true);
+  String formatrelative({
+    String? locale,
+    Abbreviation form = Abbreviation.none,
+  }) {
+    return Moment.now().add(this).fromNow(dropPrefixOrSuffix: true, form: form);
   }
 
   Duration max(Duration other) {
