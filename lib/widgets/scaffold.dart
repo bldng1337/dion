@@ -17,6 +17,7 @@ class NavScaff extends StatelessWidget {
   final List<Widget>? actions;
   final Widget? title;
   final Widget? floatingActionButton;
+  final bool showNavbar;
 
   const NavScaff({
     super.key,
@@ -25,13 +26,14 @@ class NavScaff extends StatelessWidget {
     this.actions,
     this.title,
     this.floatingActionButton,
+    this.showNavbar = true,
   });
 
   Widget bottomNavBar(BuildContext context, int index) {
     return switch (context.diontheme.mode) {
       DionThemeMode.material => Scaffold(
         floatingActionButton: floatingActionButton,
-        appBar: AppBar(title: title, actions: actions),
+        appBar: showNavbar ? AppBar(title: title, actions: actions) : null,
         body: child,
         bottomNavigationBar: NavigationBar(
           height: 60,
@@ -135,14 +137,17 @@ class NavScaff extends StatelessWidget {
             ],
           ),
         ),
-        appBar: AppBar(
-          toolbarHeight: 50,
-          leadingWidth: 50,
-          titleSpacing: 0,
-          title: title,
-          actions: actions,
-          leading: destination.isEmpty ? null : nil,
-        ),
+
+        appBar: showNavbar
+            ? AppBar(
+                toolbarHeight: 50,
+                leadingWidth: 50,
+                titleSpacing: 0,
+                title: title,
+                actions: actions,
+                leading: destination.isEmpty ? null : nil,
+              )
+            : null,
       ),
       DionThemeMode.cupertino => CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
