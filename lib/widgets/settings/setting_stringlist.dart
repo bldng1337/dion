@@ -3,6 +3,7 @@ import 'package:dionysos/utils/immutable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 
 class SettingStringList extends StatefulWidget {
@@ -44,37 +45,39 @@ class _SettingStringListState extends State<SettingStringList> {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.setting,
-      builder: (context, child) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.setting.value.isEmpty) const Text('No Entries'),
-          ...widget.setting.value.indexed.map(
-            (e) => DionListTile(
-              title: Text(e.$2),
-              trailing: DionIconbutton(
-                icon: const Icon(Icons.delete),
-                onPressed: () => _removeIndex(e.$1),
-              ),
-              onTap: () => _removeIndex(e.$1),
-            ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Expanded(
-                child: DionTextbox(
-                  controller: _controller,
-                  onSubmitted: (_) => _addEntryFromController(),
-                  maxLines: 1,
+      builder: (context, child) => SettingTileWrapper(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.setting.value.isEmpty) const Text('No Entries'),
+            ...widget.setting.value.indexed.map(
+              (e) => DionListTile(
+                title: Text(e.$2),
+                trailing: DionIconbutton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () => _removeIndex(e.$1),
                 ),
+                onTap: () => _removeIndex(e.$1),
               ),
-              DionIconbutton(
-                icon: const Icon(Icons.add),
-                onPressed: _addEntryFromController,
-              ),
-            ],
-          ),
-        ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(
+                  child: DionTextbox(
+                    controller: _controller,
+                    onSubmitted: (_) => _addEntryFromController(),
+                    maxLines: 1,
+                  ),
+                ),
+                DionIconbutton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _addEntryFromController,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

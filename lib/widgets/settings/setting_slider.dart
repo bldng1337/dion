@@ -1,6 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:dionysos/widgets/slider.dart';
 import 'package:flutter/material.dart';
 
@@ -45,25 +46,27 @@ class SettingSlider<T extends num> extends StatelessWidget {
       builder: (context, child) {
         final current = setting.value;
         T local = current;
-        return DionListTile(
-          leading: icon != null ? Icon(icon) : null,
-          subtitle: Row(
-            children: [
-              Text(_formatValue(current)),
-              StatefulBuilder(
-                builder: (context, setState) => DionSlider<T>(
-                  value: local,
-                  min: min,
-                  max: max,
-                  onChanged: (p0) => setState(() => local = p0),
-                  onChangeEnd: (p0) => setting.value = p0,
-                  step: step,
-                ),
-              ).expanded(),
-            ],
+        return SettingTileWrapper(
+          child: DionListTile(
+            leading: icon != null ? Icon(icon) : null,
+            subtitle: Row(
+              children: [
+                Text(_formatValue(current)),
+                StatefulBuilder(
+                  builder: (context, setState) => DionSlider<T>(
+                    value: local,
+                    min: min,
+                    max: max,
+                    onChanged: (p0) => setState(() => local = p0),
+                    onChangeEnd: (p0) => setting.value = p0,
+                    step: step,
+                  ),
+                ).expanded(),
+              ],
+            ),
+            title: Text(title, style: context.titleMedium),
           ),
-          title: Text(title, style: context.titleMedium),
-        ).paddingAll(5);
+        );
       },
     );
     if (description != null) {

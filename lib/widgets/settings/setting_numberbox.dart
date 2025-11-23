@@ -2,6 +2,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -87,21 +88,23 @@ class _SettingNumberboxState<T extends num> extends State<SettingNumberbox<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final tile = DionListTile(
-      leading: widget.icon != null ? Icon(widget.icon) : null,
-      subtitle: DionTextbox(
-        controller: _controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          SinglePeriodEnforcer(),
-          FilteringTextInputFormatter.allow(RegExp(r'[\d\.]')),
-        ],
-        onSubmitted: (_) => _applyControllerValueToSetting(),
-        onTapOutside: (_) => _applyControllerValueToSetting(),
-        maxLines: 1,
+    final tile = SettingTileWrapper(
+      child: DionListTile(
+        leading: widget.icon != null ? Icon(widget.icon) : null,
+        subtitle: DionTextbox(
+          controller: _controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            SinglePeriodEnforcer(),
+            FilteringTextInputFormatter.allow(RegExp(r'[\d\.]')),
+          ],
+          onSubmitted: (_) => _applyControllerValueToSetting(),
+          onTapOutside: (_) => _applyControllerValueToSetting(),
+          maxLines: 1,
+        ),
+        title: Text(widget.title, style: context.titleMedium),
       ),
-      title: Text(widget.title, style: context.titleMedium),
-    ).paddingAll(5);
+    );
 
     if (widget.description != null) {
       return tile.withTooltip(widget.description!);
