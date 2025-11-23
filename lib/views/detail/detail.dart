@@ -32,35 +32,11 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Detail screen.
-///
-/// This file focuses on correct scrollbar behavior:
-/// - Only a single explicit scrollbar is shown (platform-added scrollbars are disabled).
-/// - The scrollbar thumb is offset from the top by the visible app bar height so it
-///   doesn't draw over the app bar area.
-/// - The offset is updated dynamically while scrolling (so when the cover collapses
-///   the thumb position moves with it).
-/// - The scrollbar thumb is shown only while hovering or actively scrolling and
-///   hides after a short delay when idle.
 class Detail extends StatefulWidget {
   const Detail({super.key});
 
   @override
   _DetailState createState() => _DetailState();
-}
-
-class _NoPlatformScrollbarBehavior extends ScrollBehavior {
-  const _NoPlatformScrollbarBehavior();
-
-  // Prevent the framework from inserting platform scrollbars automatically.
-  @override
-  Widget buildScrollbar(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    return child;
-  }
 }
 
 class _DetailState extends State<Detail> with StateDisposeScopeMixin {
@@ -70,25 +46,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   StackTrace? errstack;
   List<int> selected = [];
 
-  // Scroll controller used by the CustomScrollView and the RawScrollbar
   late final ScrollController _scrollController;
-
-  // Notifier for top padding of the scrollbar thumb (the thumb's top inset).
-  // This value follows the visible app bar height (statusbar+toolbar up to expandedHeight).
-  final ValueNotifier<double> _scrollbarTopInset = ValueNotifier<double>(0.0);
-
-  // Notifier for whether the scrollbar thumb should be visible (hovering or scrolling).
-  final ValueNotifier<bool> _showScrollbar = ValueNotifier<bool>(false);
-
-  // Timer used to auto-hide the scrollbar after scrolling stops and pointer is not over it.
-  Timer? _hideTimer;
-
-  // Tracks whether pointer is over the scrollbar area (to avoid hiding while hovered).
-  bool _pointerOverScrollbar = false;
-
-  // Cached values used by the scroll listener to compute visible appbar height fast.
-  double _cachedExpandedHeight = 0.0;
-  double _cachedToolbarTop = 0.0;
 
   List<ContextMenuItem> get contextItems => [
     ContextMenuItem(
@@ -291,59 +249,11 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     loadEntry();
   }
 
-  void _onScroll() {
-    // Update visible app bar height and set scrollbar inset accordingly.
-    final offset = _scrollController.hasClients
-        ? _scrollController.offset
-        : 0.0;
-    final expanded = _cachedExpandedHeight;
-    final toolbarTop = _cachedToolbarTop;
-
-    if (expanded <= 0) {
-      // No expandable area, keep inset at toolbarTop (status + toolbar).
-      _scrollbarTopInset.value = toolbarTop;
-      return;
-    }
-
-    final double visible = max(toolbarTop, expanded - offset);
-    // small threshold to avoid noisy updates
-    if ((_scrollbarTopInset.value - visible).abs() > 0.5) {
-      _scrollbarTopInset.value = visible;
-    }
-  }
-
-  void _showScrollbarTemporarily() {
-    _hideTimer?.cancel();
-    _showScrollbar.value = true;
-    // Hide after a delay if pointer not over the scrollbar area.
-    _hideTimer = Timer(const Duration(milliseconds: 900), () {
-      if (!_pointerOverScrollbar) {
-        _showScrollbar.value = false;
-      }
-    });
-  }
-
   @override
   void initState() {
     super.initState();
     tok = CancelToken()..disposedBy(scope);
     _scrollController = ScrollController()..disposedBy(scope);
-    _scrollController.addListener(_onScroll);
-
-    // default inset (status bar + toolbar) - will be overwritten in first build
-    final window = WidgetsBinding.instance.window;
-    _scrollbarTopInset.value = window.padding.top + kToolbarHeight;
-    _showScrollbar.value = false;
-  }
-
-  @override
-  void dispose() {
-    _hideTimer?.cancel();
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    _scrollbarTopInset.dispose();
-    _showScrollbar.dispose();
-    super.dispose();
   }
 
   @override
@@ -416,19 +326,6 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           icon: const Icon(Icons.open_in_browser),
         ),
     ];
-
-    // compute values used by the scroll listener for dynamic inset calculation
-    final bool hasCover = entry?.cover?.url != null;
-    final double expandedHeight = hasCover ? context.height * 0.25 : 0.0;
-    final double toolbarTop =
-        MediaQuery.of(context).padding.top + kToolbarHeight;
-
-    _cachedExpandedHeight = expandedHeight;
-    _cachedToolbarTop = toolbarTop;
-
-    // ensure the inset matches current scroll position after build
-    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
-
     return NavScaff(
       showNavbar: false,
       floatingActionButton:
@@ -451,139 +348,76 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         active: entry is EntrySaved,
         contextItems: contextItems,
         child: ScrollConfiguration(
-          // disable any automatic platform scrollbars for this subtree
-          behavior: const _NoPlatformScrollbarBehavior(),
-          child: ValueListenableBuilder<double>(
-            valueListenable: _scrollbarTopInset,
-            builder: (ctx, topInset, _) {
-              return ValueListenableBuilder<bool>(
-                valueListenable: _showScrollbar,
-                builder: (ctx2, show, _) {
-                  // Wrap the RawScrollbar in MouseRegion to detect pointer hover
-                  // over the scrollbar area so we don't hide while hovered.
-                  return MouseRegion(
-                    onEnter: (_) {
-                      _pointerOverScrollbar = true;
-                      _showScrollbar.value = true;
-                      _hideTimer?.cancel();
-                    },
-                    onExit: (_) {
-                      _pointerOverScrollbar = false;
-                      // start hide timer
-                      _hideTimer?.cancel();
-                      _hideTimer = Timer(const Duration(milliseconds: 700), () {
-                        if (!_pointerOverScrollbar) {
-                          _showScrollbar.value = false;
-                        }
-                      });
-                    },
-                    child: NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        // show scrollbar while actively scrolling and schedule hide
-                        if (notification is ScrollStartNotification ||
-                            notification is ScrollUpdateNotification) {
-                          _showScrollbarTemporarily();
-                        } else if (notification is ScrollEndNotification) {
-                          // schedule hide once scrolling stops
-                          _hideTimer?.cancel();
-                          _hideTimer = Timer(
-                            const Duration(milliseconds: 700),
-                            () {
-                              if (!_pointerOverScrollbar) {
-                                _showScrollbar.value = false;
-                              }
-                            },
-                          );
-                        }
-                        // do not consume the notification
-                        return false;
-                      },
-                      child: RawScrollbar(
-                        controller: _scrollController,
-                        thumbVisibility: show,
-                        radius: const Radius.circular(6),
-                        thickness: 6,
-                        // dynamic top padding follows the visible app bar height
-                        padding: EdgeInsets.only(top: topInset),
-                        child: CustomScrollView(
-                          controller: _scrollController,
-                          slivers: [
-                            if (entry?.cover?.url != null)
-                              SliverAppBar(
-                                expandedHeight: expandedHeight,
-                                pinned: true,
-                                backgroundColor:
-                                    context.theme.appBarTheme.backgroundColor,
-                                surfaceTintColor: Colors.transparent,
-                                actions: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: context
-                                          .theme
-                                          .appBarTheme
-                                          .backgroundColor,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(children: actions),
-                                  ).paddingOnly(right: 5),
-                                ],
-                                leading: Center(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: context
-                                          .theme
-                                          .appBarTheme
-                                          .backgroundColor,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: DionIconbutton(
-                                      icon: const Icon(Icons.arrow_back),
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                flexibleSpace: FlexibleSpaceBar(
-                                  collapseMode: CollapseMode.pin,
-                                  background: DionImage(
-                                    imageUrl: entry?.cover?.url,
-                                    filterQuality: FilterQuality.high,
-                                    boxFit: BoxFit.cover,
-                                    httpHeaders: entry?.cover?.header,
-                                    errorWidget: Container(
-                                      color: context.theme.colorScheme.surface,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              SliverAppBar(pinned: true, actions: actions),
-                            SliverToBoxAdapter(child: EntryInfo(entry: entry!)),
-                            if (entry is EntryDetailed)
-                              EpisodeListSliver(
-                                entry: entry! as EntryDetailed,
-                                selected: selected,
-                                onSelect: (index) {
-                                  if (selected.contains(index)) {
-                                    selected.remove(index);
-                                  } else {
-                                    selected.add(index);
-                                  }
-                                  setState(() {});
-                                },
-                              ),
-                            const SliverPadding(
-                              padding: EdgeInsets.only(bottom: 100),
-                            ),
-                          ],
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: RawScrollbar(
+            controller: _scrollController,
+            radius: const Radius.circular(6),
+            thickness: 6,
+            padding: const EdgeInsets.only(top: kToolbarHeight),
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                if (entry?.cover?.url != null)
+                  SliverAppBar(
+                    expandedHeight: 300,
+                    pinned: true,
+                    backgroundColor: context.theme.appBarTheme.backgroundColor,
+                    surfaceTintColor: Colors.transparent,
+                    actions: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: context.theme.appBarTheme.backgroundColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(children: actions),
+                      ).paddingOnly(right: 5),
+                    ],
+                    leading: Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: context.theme.appBarTheme.backgroundColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: DionIconbutton(
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
                         ),
                       ),
                     ),
-                  );
-                },
-              );
-            },
+                    flexibleSpace: FlexibleSpaceBar(
+                      collapseMode: CollapseMode.pin,
+                      background: DionImage(
+                        imageUrl: entry?.cover?.url,
+                        filterQuality: FilterQuality.high,
+                        boxFit: BoxFit.cover,
+                        httpHeaders: entry?.cover?.header,
+                        errorWidget: Container(
+                          color: context.theme.colorScheme.surface,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverAppBar(pinned: true, actions: actions),
+                SliverToBoxAdapter(child: EntryInfo(entry: entry!)),
+                if (entry is EntryDetailed)
+                  EpisodeListSliver(
+                    entry: entry! as EntryDetailed,
+                    selected: selected,
+                    onSelect: (index) {
+                      if (selected.contains(index)) {
+                        selected.remove(index);
+                      } else {
+                        selected.add(index);
+                      }
+                      setState(() {});
+                    },
+                  ),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+              ],
+            ),
           ),
         ),
       ),
