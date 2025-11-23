@@ -70,8 +70,8 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
         .getImageFile(
           url,
           headers: httpHeaders,
-          // maxHeight: height?.toInt(),
-          // maxWidth: width?.toInt(),
+          maxHeight: height?.toInt(),
+          maxWidth: width?.toInt(),
         )
         .where((e) => e is FileInfo)
         .last;
@@ -82,9 +82,7 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
       PaintingBinding.instance.imageCache.evict(key);
       throw StateError('$file is empty and cannot be loaded as an image.');
     }
-    return (file.runtimeType == File)
-        ? decode(await ImmutableBuffer.fromFilePath(file.path))
-        : decode(await ImmutableBuffer.fromUint8List(await file.readAsBytes()));
+    return decode(await ImmutableBuffer.fromFilePath(file.path));
   }
 
   @override
@@ -289,12 +287,25 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         if (wasSynchronouslyLoaded) {
           return image;
         }
-        final isloaded = frame != null;
-        final child = isloaded ? image : getLoading(context);
+        final isLoaded = frame != null;
+        final child = isLoaded ? image : getLoading(context);
         if (!widget.shouldAnimate) {
           return child;
         }
-        return AnimatedSwitcher(duration: 400.milliseconds, child: child);
+        return AnimatedSwitcher(
+          duration: 400.milliseconds,
+          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+            return Stack(
+              fit: StackFit.passthrough,
+              alignment: Alignment.center,
+              children: <Widget>[
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
+          child: child,
+        );
       },
     );
   }
