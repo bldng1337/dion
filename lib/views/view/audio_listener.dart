@@ -30,6 +30,7 @@ class SimpleAudioListener extends StatefulWidget {
 class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
   late final Player player;
+  late final Observer sourceObserver;
   Future<void> initPlayer() async {
     player = Player(
       configuration: const PlayerConfiguration(
@@ -37,7 +38,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         title: 'dion',
       ),
     );
-    Observer(() async {
+    sourceObserver= Observer(() async {
       if (widget.source.source == null) {
         return;
       }
@@ -64,7 +65,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             ),
         ], index: chapterindex),
       );
-    }, [widget.source]);
+    }, widget.source);
     locate<PlayerService>().setSession(
       PlaySession(
         widget.source,
@@ -79,10 +80,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     );
     Observer(() {
       player.setVolume(settings.audioBookSettings.volume.value);
-    }, [settings.audioBookSettings.volume]).disposedBy(scope);
+    }, settings.audioBookSettings.volume).disposedBy(scope);
     Observer(() {
       player.setRate(settings.audioBookSettings.speed.value);
-    }, [settings.audioBookSettings.speed]).disposedBy(scope);
+    }, settings.audioBookSettings.speed).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
     player.stream.completed.listen((event) {
@@ -100,6 +101,12 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         widget.source.preload(widget.source.episode.next);
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    sourceObserver.swapListener(widget.source);
   }
 
   @override

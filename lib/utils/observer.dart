@@ -4,21 +4,19 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class Observer implements Disposable {
   final Function() callback;
-  late final Listenable notifier;
-  Observer(
-    this.callback,
-    List<ChangeNotifier> notifiers, {
-    bool callOnInit = true,
-  }) {
-    if (notifiers.length > 1) {
-      notifier = Listenable.merge(notifiers);
-    } else {
-      notifier = notifiers[0];
-    }
+  Listenable listener;
+  Observer(this.callback, this.listener, {bool callOnInit = true}) {
     if (callOnInit) {
       callback();
     }
-    notifier.addListener(callback);
+    listener.addListener(callback);
+  }
+
+  void swapListener(Listenable newListener) {
+    if(listener==newListener) return;
+    listener.removeListener(callback);
+    listener = newListener;
+    listener.addListener(callback);
   }
 
   @override
@@ -28,7 +26,7 @@ class Observer implements Disposable {
 
   @override
   Future<void> dispose() {
-    notifier.removeListener(callback);
+    listener.removeListener(callback);
     return Future.value();
   }
 }

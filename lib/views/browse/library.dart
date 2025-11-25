@@ -78,7 +78,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
         }
         setState(() {});
       }
-    }, [locate<Database>()]).disposedBy(scope);
+    }, locate<Database>()).disposedBy(scope);
 
     if (settings.library.showAllTab.value) {
       setCategory(

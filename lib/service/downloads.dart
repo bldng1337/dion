@@ -194,6 +194,10 @@ class DownloadStatus {
 class DownloadService {
   final Ratelimit ratelimit = LeakyBucketRatelimit.fromRate(1);
 
+  static Future<void> ensureInitialized() async {
+    register<DownloadService>(DownloadService());
+  }
+
   Future<void> download(Iterable<EpisodePath> eps) async {
     logger.i('Downloading ${eps.length} episodes');
     try {
@@ -387,10 +391,6 @@ class DownloadService {
         .sub(pathEncode(entry.boundExtensionId))
         .sub(pathEncode(entry.id.uid))
         .delete(recursive: true);
-  }
-
-  static Future<void> ensureInitialized() async {
-    register<DownloadService>(DownloadService());
   }
 }
 

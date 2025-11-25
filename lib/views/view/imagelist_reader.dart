@@ -40,6 +40,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   late final ItemScrollController controller;
   late final ScrollOffsetController offsetcontroller;
   late final ItemPositionsListener itemPositionsListener;
+  late final Observer supplierObserver;
   Player? player;
   bool _ctrlIsPressed = false;
 
@@ -98,14 +99,14 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
         player?.dispose();
         player = null;
       }
-    }, [psettings.music]).disposedBy(scope);
+    }, psettings.music).disposedBy(scope);
     Observer(() {
       player?.setVolume(psettings.volume.value);
-    }, [psettings.volume]).disposedBy(scope);
+    }, psettings.volume).disposedBy(scope);
     if (psettings.music.value) {
       initPlayer();
     }
-    itemPositionsListener.itemPositions.addListener(() {
+    Observer(() {
       final int min = itemPositionsListener.itemPositions.value
           .where((ItemPosition position) => position.itemTrailingEdge > 0)
           .reduce(
@@ -120,11 +121,12 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
         widget.supplier.preload(widget.source.episode.next);
       }
       play();
-    });
-    Observer(() {
+    }, itemPositionsListener.itemPositions).disposedBy(scope);
+
+    supplierObserver = Observer(() {
       if (!controller.isAttached) return;
       controller.jumpTo(index: 0);
-    }, [widget.supplier]).disposedBy(scope);
+    }, widget.supplier)..disposedBy(scope);
     KeyObserver((event) {
       if (_ctrlIsPressed == HardwareKeyboard.instance.isControlPressed) return;
       setState(() {
@@ -132,6 +134,12 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       });
     }).disposedBy(scope);
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    supplierObserver.swapListener(widget.supplier);
   }
 
   @override

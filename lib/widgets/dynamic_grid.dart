@@ -530,21 +530,29 @@ class DynamicList<T> extends StatefulWidget {
 
 class _DynamicListState<T> extends State<DynamicList<T>>
     with StateDisposeScopeMixin {
+  late final Observer controllerObserver;
   late final ScrollController controller;
+
 
   @override
   void initState() {
     controller = ScrollController()..disposedBy(scope);
-    Observer(() {
+    controllerObserver = Observer(() {
       if (mounted) {
         setState(() {});
       }
-    }, [widget.controller]).disposedBy(scope);
+    }, widget.controller)..disposedBy(scope);
     loadMore();
     controller.addListener(() {
       loadMore();
     });
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    controllerObserver.swapListener(widget.controller);
   }
 
   Future<void> loadMore() async {
@@ -660,20 +668,27 @@ class DynamicListSeperated<T> extends StatefulWidget {
 class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
     with StateDisposeScopeMixin {
   late final ScrollController controller;
+  late final Observer controllerObserver;
 
   @override
   void initState() {
     controller = ScrollController()..disposedBy(scope);
-    Observer(() {
+    controllerObserver=Observer(() {
       if (mounted) {
         setState(() {});
       }
-    }, [widget.controller]).disposedBy(scope);
+    }, widget.controller)..disposedBy(scope);
     loadMore();
     controller.addListener(() {
       loadMore();
     });
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    controllerObserver.swapListener(widget.controller);
   }
 
   Future<void> loadMore() async {

@@ -2,6 +2,7 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 
@@ -61,7 +62,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           : double.tryParse(epdata.progress ?? '0') ?? 0,
     )..disposedBy(scope);
     controller.addListener(onScroll);
-    widget.supplier.addListener(() {
+    Observer(() {
       if (!controller.hasClients) {
         return;
       }
@@ -73,7 +74,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           ? 0
           : double.tryParse(epdata.progress ?? '0') ?? 0;
       Future.microtask(() => controller.jumpTo(pos));
-    });
+    },widget.supplier).disposedBy(scope);
     super.initState();
   }
 

@@ -30,7 +30,9 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     with StateDisposeScopeMixin {
   late final Player player;
   late final VideoController controller;
+  late final Observer sourceObserver;
   Subtitles? subtitle;
+
   List<Subtitles> get subtitles {
     if (widget.source.source == null) return [];
     final source = widget.source.source!;
@@ -49,7 +51,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       ),
     );
     controller = VideoController(player);
-    Observer(() async {
+    sourceObserver = Observer(() async {
       if (widget.source.source == null) {
         player.stop();
         return;
@@ -74,7 +76,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         ),
       );
       await player.setSubtitleTrack(SubtitleTrack.no());
-    }, [widget.source]);
+    }, widget.source);
     locate<PlayerService>().setSession(
       PlaySession(
         widget.source,
@@ -93,10 +95,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     );
     Observer(() {
       player.setVolume(settings.audioBookSettings.volume.value);
-    }, [settings.audioBookSettings.volume]).disposedBy(scope);
+    }, settings.audioBookSettings.volume).disposedBy(scope);
     Observer(() {
       player.setRate(settings.audioBookSettings.speed.value);
-    }, [settings.audioBookSettings.speed]).disposedBy(scope);
+    }, settings.audioBookSettings.speed).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
     player.stream.completed.listen((event) {
@@ -120,6 +122,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         widget.source.preload(widget.source.episode.next);
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    sourceObserver.swapListener(widget.source);
   }
 
   @override

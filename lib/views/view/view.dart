@@ -37,9 +37,9 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
           lastsource = source;
         });
       });
-      Observer(() => Future.microtask(() => setState(() {})), [
+      Observer(() => Future.microtask(() => setState(() {})),
         source!,
-      ]).disposedBy(scope);
+      ).disposedBy(scope);
     }
   }
 

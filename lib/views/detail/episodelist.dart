@@ -84,7 +84,9 @@ class _EpisodeListSliverState extends State<EpisodeListSliver> {
         final list = elist.toList();
 
         return SliverList.builder(
-          key: PageStorageKey<String>('${entry.boundExtensionId}->${entry.id}'),
+          key: PageStorageKey<String>(
+            '${entry.boundExtensionId}->${entry.id.uid}',
+          ),
           itemCount: list.length,
           itemBuilder: (BuildContext context, int eindex) {
             final index = list[eindex].$1;
@@ -159,17 +161,17 @@ class EpisodeTile extends StatelessWidget {
             children: [
               DionTextScroll(
                 episodepath.episode.name,
-                style: context.titleMedium
-                    ?.copyWith(
-                      color: epdata.finished
-                          ? context.theme.disabledColor
-                          : null,
-                    )
-                    .copyWith(
-                      color: (episodepath.entry.extension?.isenabled ?? false)
-                          ? null
-                          : context.theme.disabledColor,
-                    ),
+                style: context.titleMedium,
+                // ?.copyWith(
+                //   color: epdata.finished
+                //       ? context.theme.disabledColor
+                //       : null,
+                // )
+                // .copyWith(
+                //   color: (episodepath.entry.extension?.isenabled ?? false)
+                //       ? null
+                //       : context.theme.disabledColor,
+                // )
               ),
               if (episodepath.episode.timestamp != null)
                 Text(
