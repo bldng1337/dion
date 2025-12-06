@@ -73,9 +73,7 @@ class EpisodeActivity extends Activity {
 Future<void> finishEpisode(EpisodePath ep) async {
   try {
     final db = locate<Database>();
-    print('finishEpisode $ep');
     final activity = await db.getLastActivity();
-    print('activity $activity');
     if (activity != null &&
         activity is EpisodeActivity &&
         activity.extensionid == ep.extensionid &&
@@ -83,8 +81,9 @@ Future<void> finishEpisode(EpisodePath ep) async {
         activity.time
             .add(activity.duration)
             .add(const Duration(minutes: 30))
-            .isAfter(DateTime.now())) {
-      print('activity is still valid');
+            .isAfter(DateTime.now()) &&
+        (activity.fromepisode - 1 <= ep.episodenumber ||
+            activity.toepisode + 1 >= ep.episodenumber)) {
       await db.addActivity(
         activity.copyWith(
           toepisode: max(ep.episodenumber, activity.toepisode),
@@ -94,7 +93,6 @@ Future<void> finishEpisode(EpisodePath ep) async {
       );
       return;
     }
-    print('activity is invalid');
     await db.addActivity(
       EpisodeActivity(
         id: const Uuid().v4(),
