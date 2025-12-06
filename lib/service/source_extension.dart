@@ -365,6 +365,13 @@ class SourceExtension with ChangeNotifier {
     return _extensions.where((e) => e.data.id == id).firstOrNull;
   }
 
+  Future<void> install(String location) async {
+    final newext = await adapter.install(location: location);
+    final db = await locateAsync<Database>();
+    _extensions.add(await Extension.fromProxy(newext, db));
+    notifyListeners();
+  }
+
   Future<void> reload() async {
     loading = true;
     for (final e in _extensions) {

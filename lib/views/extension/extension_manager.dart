@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -101,15 +104,10 @@ class _ExtensionManagerState extends State<ExtensionManager> {
               final List<XFile> files = await openFiles(
                 acceptedTypeGroups: <XTypeGroup>[typeGroup],
               );
-              final dir = await locateAsync<DirectoryProvider>();
-              for (final file in files) {
-                //I have no idea but android decides on some devices to rename dion.js to dion.es
-                final filename = file.name.replaceAll('.dion.es', '.dion.js');
-                await file.saveTo(
-                  '${dir.extensionpath.absolute.path}/$filename',
-                );
+              for (final xfile in files) {
+                final file = File(xfile.path);
+                await sourceExt.install(file.fileURL);
               }
-              await sourceExt.reload();
             } catch (e, stack) {
               logger.e(e, stackTrace: stack);
               error = e;
