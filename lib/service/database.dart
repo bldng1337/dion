@@ -185,7 +185,7 @@ class Database extends ChangeNotifier {
   }
 
   Future<Activity?> getLastActivity() async {
-    return adapter
+    return await adapter
         .queryDataClasses<Activity>(
           query:
               'SELECT * FROM type::table(\$activity) ORDER BY time DESC LIMIT 1',
