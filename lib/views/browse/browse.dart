@@ -191,9 +191,13 @@ class SettingsPopup extends StatefulWidget {
   State<SettingsPopup> createState() => _SettingsPopupState();
 }
 
-class _SettingsPopupState extends State<SettingsPopup> {
+class _SettingsPopupState extends State<SettingsPopup>
+    with StateDisposeScopeMixin {
   @override
   void initState() {
+    scope.addDispose(() async {
+      await Future.forEach(widget.browse.extensions, (e) => e.save());
+    });
     super.initState();
   }
 

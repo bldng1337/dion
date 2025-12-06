@@ -39,8 +39,9 @@ class _SettingsPopupState extends State<SettingsPopup>
     super.initState();
     final db = locate<Database>();
     extsettings = widget.entry.extsettings;
-    scope.addDispose(() {
-      widget.entry.save();
+    scope.addDispose(() async {
+      await widget.entry.save();
+      await widget.entry.extension?.save();
     });
     db.getCategories().then((categories) {
       if (categories.isEmpty) return;
@@ -52,12 +53,6 @@ class _SettingsPopupState extends State<SettingsPopup>
       if (!mounted) return;
       setState(() {});
     });
-  }
-
-  @override
-  void dispose() {
-    widget.entry.save();
-    super.dispose();
   }
 
   @override

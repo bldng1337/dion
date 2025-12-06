@@ -224,6 +224,11 @@ class Extension extends ChangeNotifier {
       enable();
     }
   }
+
+  Future<void> save() async {
+    await _proxy.saveSettings();
+    await _proxy.savePermissions();
+  }
 }
 
 class SourceExtension with ChangeNotifier {
@@ -234,44 +239,58 @@ class SourceExtension with ChangeNotifier {
   Future<SourceExtension> init() async {
     final dir = await locateAsync<DirectoryProvider>();
     await rust.RustLib.init();
+    final managerpath = dir.extensionpath.sub('dion_extensions');
+    await managerpath.create(recursive: true);
     final managerclient = await rust.ManagerClient.init(
-      getClient: (data) => rust.ExtensionClient.init(
-        loadData: (key) async {
-          try {
-            final file = dir.extensionpath
-                .sub(data.id)
-                .sub('data')
-                .getFile(key);
-            if (!await file.exists()) {
+      getClient: (data) async {
+        final extensionPath = managerpath.sub('data').sub(data.id);
+        await extensionPath.create(recursive: true);
+        return rust.ExtensionClient.init(
+          loadData: (key) async {
+            try {
+              final file = extensionPath.sub('store').getFile(key);
+              if (!await file.exists()) {
+                return '';
+              }
+              return await file.readAsString();
+            } catch (e) {
+              logger.e(
+                'Failed to read data $key for extension $data',
+                error: e,
+              );
               return '';
             }
-            return await file.readAsString();
-          } catch (e) {
-            logger.e('Failed to read data $key for extension $data', error: e);
-            return '';
-          }
-        },
-        storeData: (String key, String value) async {
-          try {
-            await dir.extensionpath
-                .sub(data.id)
-                .sub('data')
-                .getFile(key)
-                .writeAsString(value);
-          } catch (e) {
-            logger.e('Failed to store data $key for extension $data', error: e);
-          }
-        },
-        doAction: (rust.Action action) {},
-        requestPermission: (rust.Permission permission, String? message) {
-          logger.i('Requesting permission $permission for extension $data');
-          //TODO: Implement this
-          return false;
-        },
-        getPath: () =>
-            dir.extensionpath.sub(data.id).sub('native').absolute.path,
-      ),
-      getPath: () => dir.extensionpath.absolute.path,
+          },
+          storeData: (String key, String value) async {
+            try {
+              final file = extensionPath.sub('store').getFile(key);
+              await file.parent.create(recursive: true);
+              await file.writeAsString(value);
+            } catch (e) {
+              logger.e(
+                'Failed to store data $key for extension $data',
+                error: e,
+              );
+            }
+          },
+          doAction: (rust.Action action) {},
+          requestPermission: (rust.Permission permission, String? message) {
+            logger.i('Requesting permission $permission for extension $data');
+            //TODO: Implement this
+            return false;
+          },
+          getPath: () async {
+            final nativePath = extensionPath.sub('native');
+            await nativePath.create(recursive: true);
+            return nativePath.absolute.path;
+          },
+        );
+      },
+      getPath: () async {
+        final nativePath = managerpath.sub('native');
+        await nativePath.create(recursive: true);
+        return nativePath.absolute.path;
+      },
     );
     adapter = await rust.ProxyAdapter.initDion(client: managerclient);
     await reload();

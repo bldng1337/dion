@@ -10,6 +10,7 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 
 class ExtensionView extends StatefulWidget {
@@ -19,9 +20,18 @@ class ExtensionView extends StatefulWidget {
   _ExtensionViewState createState() => _ExtensionViewState();
 }
 
-class _ExtensionViewState extends State<ExtensionView> {
+class _ExtensionViewState extends State<ExtensionView>
+    with StateDisposeScopeMixin {
   Extension? extension;
   Object? error;
+
+  @override
+  void initState() {
+    scope.addDispose(() async {
+      await extension?.save();
+    });
+    super.initState();
+  }
 
   @override
   void didChangeDependencies() {
@@ -71,7 +81,7 @@ class _ExtensionViewState extends State<ExtensionView> {
                       Text(extension!.name, style: context.titleLarge),
                       DionBadge(
                         child: Text(
-                          extension!.data.version ?? '',
+                          extension!.data.version,
                           style: context.bodyMedium,
                         ),
                       ).paddingAll(5),
