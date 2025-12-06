@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/versioning.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/metis.dart';
@@ -83,8 +84,16 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   Future<EntrySaved> toSaved() async {
-    final saved = EntrySaved.fromEntryDetailed(this);
-    await saved.save();
+    final saved = EntrySaved(
+      entry: entry,
+      categories: [],
+      episodedata: [],
+      boundExtensionId: boundExtensionId,
+      episode: 0,
+      savedSettings: EntrySavedSettings.defaultSettings(),
+      extensionSettings: extensionSettings,
+    );
+    await locate<Database>().addEntry(saved);
     return saved;
   }
 

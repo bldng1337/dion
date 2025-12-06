@@ -131,18 +131,6 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     required this.extensionSettings,
   }) : _episodedata = episodedata;
 
-  factory EntrySaved.fromEntryDetailed(EntryDetailedImpl entry) {
-    return EntrySaved(
-      entry: entry.entry,
-      categories: [],
-      episodedata: [],
-      boundExtensionId: entry.boundExtensionId,
-      episode: 0,
-      savedSettings: EntrySavedSettings.defaultSettings(),
-      extensionSettings: entry.extensionSettings,
-    );
-  }
-
   List<EpisodeData> get episodedata => _episodedata;
   int get latestEpisode => min(
     episodedata.lastIndexWhere((e) => e.finished == true) + 1,

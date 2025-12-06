@@ -9,6 +9,7 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/utils/change.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart' hide Category;
@@ -22,7 +23,15 @@ const categoryTable = DBTable('category');
 const activityTable = DBTable('activity');
 const extensionTable = DBTable('extension');
 
-class Database extends ChangeNotifier {
+enum DBEvent {
+  entryUpdated,
+  entryAddedOrRemoved,
+  categoryUpdated,
+  activityUpdated,
+  extensionMetaDataUpdated,
+}
+
+class Database extends KeyedChangeNotifier<DBEvent> {
   late final AdapterSurrealDB db;
 
   DBDataClassAdapter get adapter => db.getAdapter();
@@ -107,19 +116,19 @@ class Database extends ChangeNotifier {
 
   Future<void> updateCategory(Category category) async {
     await adapter.save(category);
-    notifyListeners();
+    notifyListeners([DBEvent.categoryUpdated]);
   }
 
   Future<void> updateCategories(List<Category> categories) async {
     for (final category in categories) {
       await adapter.save(category);
     }
-    notifyListeners();
+    notifyListeners([DBEvent.categoryUpdated]);
   }
 
   Future<void> removeCategory(Category category) async {
     await adapter.delete(category);
-    notifyListeners();
+    notifyListeners([DBEvent.categoryUpdated]);
   }
 
   Future<List<Category>> getCategoriesbyId(Iterable<DBRecord> ids) async {
@@ -209,7 +218,7 @@ class Database extends ChangeNotifier {
 
   Future<void> addActivity(Activity activity) async {
     await adapter.save(activity);
-    notifyListeners();
+    notifyListeners([DBEvent.activityUpdated]);
   }
 
   Stream<Activity> getActivities(int page, int limit) {
@@ -243,7 +252,7 @@ WHERE
 
   Future<void> removeEntry(EntrySaved entry) async {
     await adapter.delete(entry);
-    notifyListeners();
+    notifyListeners([DBEvent.entryAddedOrRemoved]);
     final download = locate<DownloadService>();
     try {
       await download.deleteEntry(entry);
@@ -257,9 +266,14 @@ WHERE
     }
   }
 
+  Future<void> addEntry(EntrySaved entry) async {
+    await adapter.save(entry);
+    notifyListeners([DBEvent.entryAddedOrRemoved]);
+  }
+
   Future<void> updateEntry(EntrySaved entry) async {
     await adapter.save(entry);
-    notifyListeners();
+    notifyListeners([DBEvent.entryUpdated]);
   }
 
   Future<void> clear() async {
@@ -289,6 +303,6 @@ WHERE
 
   Future<void> setExtensionMetaData(ExtensionMetaData data) async {
     await adapter.save(data);
-    notifyListeners();
+    notifyListeners([DBEvent.extensionMetaDataUpdated]);
   }
 }
