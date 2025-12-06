@@ -12,24 +12,27 @@ import 'package:uuid/uuid.dart';
 class Category with DBConstClass {
   final DBRecord id;
   final String name;
+  final int index;
 
-  const Category(this.name, this.id);
+  const Category(this.name, this.id, this.index);
 
-  factory Category.construct(String name) =>
-      Category(name, DBRecord('category', const Uuid().v4()));
+  factory Category.construct(String name, int index) =>
+      Category(name, DBRecord('category', const Uuid().v4()), index);
 
-  Category copyWith({String? name, DBRecord? id}) {
-    return Category(name ?? this.name, id ?? this.id);
+  Category copyWith({String? name, DBRecord? id, int? index}) {
+    return Category(name ?? this.name, id ?? this.id, index ?? this.index);
   }
 
   Category.fromJson(Map<String, dynamic> json)
     : name = json['name'] as String,
-      id = json['id'] as DBRecord;
+      id = json['id'] as DBRecord,
+      index = json['index'] as int? ?? 0;
 
   Map<String, dynamic> toJson() => {
     'version': categorySerializeVersion.current,
     'name': name,
     'id': id,
+    'index': index,
   };
 
   @override

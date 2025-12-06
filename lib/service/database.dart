@@ -96,11 +96,24 @@ class Database extends ChangeNotifier {
   // Category
 
   Future<List<Category>> getCategories() async {
-    return await adapter.selectDataClasses<Category>(categoryTable).toList();
+    return await adapter
+        .queryDataClasses<Category>(
+          query: 'SELECT * FROM type::table(\$category) ORDER BY index ASC',
+          vars: {'category': categoryTable.tb},
+        )
+        .toList();
+    // return await adapter.selectDataClasses<Category>(categoryTable).toList();
   }
 
   Future<void> updateCategory(Category category) async {
     await adapter.save(category);
+    notifyListeners();
+  }
+
+  Future<void> updateCategories(List<Category> categories) async {
+    for (final category in categories) {
+      await adapter.save(category);
+    }
     notifyListeners();
   }
 

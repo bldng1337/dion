@@ -87,7 +87,7 @@ entrydata.EntrySaved getEntrySaved() => entrydata.EntrySaved(
   extensionSettings: {},
   episodedata: [entrydata.EpisodeData.empty()],
   episode: 0,
-  categories: [const Category('test', DBRecord('category', 'test'))],
+  categories: [const Category('test', DBRecord('category', 'test'), 0)],
 );
 
 void main() {
@@ -126,7 +126,7 @@ void main() {
           () => mockdb.getCategoriesbyId([const DBRecord('category', 'test')]),
         ).thenAnswer(
           (_) => Future.value([
-            const Category('test', DBRecord('category', 'test')),
+            const Category('test', DBRecord('category', 'test'), 0),
           ]),
         );
 
@@ -202,7 +202,7 @@ void main() {
           () => mockdb.getCategoriesbyId([const DBRecord('category', 'test')]),
         ).thenAnswer(
           (_) => Future.value([
-            const Category('test', DBRecord('category', 'test')),
+            const Category('test', DBRecord('category', 'test'), 0),
           ]),
         );
         final mockext = MockExtension();
@@ -222,7 +222,7 @@ void main() {
           () => mockdb.getCategoriesbyId([const DBRecord('category', 'test')]),
         ).thenAnswer(
           (_) => Future.value([
-            const Category('test', DBRecord('category', 'test')),
+            const Category('test', DBRecord('category', 'test'), 0),
           ]),
         );
         when(() => mockdb.updateEntry(any())).thenAnswer((args) async {

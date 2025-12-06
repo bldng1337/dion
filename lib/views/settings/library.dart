@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
@@ -5,17 +7,28 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
+import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/material.dart'
-    show Icons, showAdaptiveDialog, showDialog;
+    show
+        Divider,
+        Icons,
+        ListTile,
+        ReorderableListView,
+        showAdaptiveDialog,
+        showDialog;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class LibrarySettings extends StatelessWidget {
   const LibrarySettings({super.key});
@@ -131,7 +144,7 @@ void showEditCategoriesDialog(BuildContext context, EntrySaved entry) {
   );
 }
 
-void showAddCategoryDialog(BuildContext context) {
+void showAddCategoryDialog(BuildContext context, int index) {
   final db = locate<Database>();
   showAdaptiveDialog(
     context: context,
@@ -150,7 +163,9 @@ void showAddCategoryDialog(BuildContext context) {
                   Navigator.pop(context);
                   return;
                 }
-                await db.updateCategory(Category.construct(categoryname));
+                await db.updateCategory(
+                  Category.construct(categoryname, index),
+                );
                 if (!context.mounted) {
                   return;
                 }
@@ -165,47 +180,90 @@ void showAddCategoryDialog(BuildContext context) {
   );
 }
 
-class CategorySettings extends StatelessWidget {
+class CategorySettings extends StatefulWidget {
   const CategorySettings({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<CategorySettings> createState() => _CategorySettingsState();
+}
+
+class _CategorySettingsState extends State<CategorySettings>
+    with StateDisposeScopeMixin {
+  List<Category>? categories;
+
+  @override
+  void initState() {
+    super.initState();
     final db = locate<Database>();
-    return ListenableBuilder(
-      listenable: db,
-      builder: (context, child) => LoadingBuilder(
-        future: db.getCategories(),
-        builder: (context, categories) => SettingTitle(
-          title: 'Categories',
+    Observer(() async {
+      if (mounted) {
+        final categories = await db.getCategories();
+        categories.sort((a, b) => a.index.compareTo(b.index));
+        setState(() {
+          this.categories = categories;
+        });
+      }
+    }, db).disposedBy(scope);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = this.categories;
+    if (categories == null) {
+      return const DionProgressBar();
+    }
+    return SettingTitle(
+      title: 'Categories',
+      children: [
+        ReorderableListView(
+          shrinkWrap: true,
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              final cat = categories.removeAt(oldIndex);
+              categories.insert(min(newIndex, categories.length - 1), cat);
+              int i = 0;
+              this.categories = categories
+                  .map((e) => e.copyWith(index: i++))
+                  .toList();
+            });
+            locate<Database>().updateCategories(this.categories!);
+          },
           children: [
             for (final category in categories)
-              Row(
-                children: [
-                  DionTextbutton(
-                    onPressed: () async {
-                      showUpdateDialog(context, category);
-                    },
-                    child: Text(category.name),
-                  ),
-                  const Spacer(),
-                  DionTextbutton(
-                    onPressed: () async {
-                      await db.removeCategory(category);
-                    },
-                    child: const Icon(Icons.delete),
-                  ),
-                ],
-              ).paddingAll(2.5),
-            30.0.heightBox,
-            DionTextbutton(
-              child: const Text('Add Category'),
-              onPressed: () {
-                showAddCategoryDialog(context);
-              },
-            ),
+              ListTile(
+                key: ValueKey(category),
+                title: Text(category.name),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(category.index.toString()),
+                    8.0.widthBox,
+                    DionIconbutton(
+                      onPressed: () {
+                        showUpdateDialog(context, category);
+                      },
+                      icon: const Icon(Icons.edit),
+                    ),
+                    DionIconbutton(
+                      onPressed: () async {
+                        await locate<Database>().removeCategory(category);
+                      },
+                      icon: const Icon(Icons.delete),
+                    ),
+                    14.0.widthBox,
+                  ],
+                ),
+              ),
           ],
         ),
-      ),
+        const Divider(),
+        DionTextbutton(
+          child: const Text('Add Category'),
+          onPressed: () {
+            showAddCategoryDialog(context, categories.length);
+          },
+        ),
+      ],
     );
   }
 }

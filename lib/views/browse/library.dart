@@ -32,10 +32,12 @@ class PseudoCategory implements Category {
   final String name;
   final DataSource<EntrySaved> entriesource;
 
+  int get index => 9999999999999;
+
   const PseudoCategory(this.name, this.entriesource);
 
   @override
-  Category copyWith({String? name, DBRecord? id}) {
+  Category copyWith({String? name, DBRecord? id, int? index}) {
     throw UnimplementedError();
   }
 
@@ -126,7 +128,9 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
           : DionTabBar(
               scrollable: true,
               tabs: [
-                for (final cat in controllers.keys)
+                for (final cat
+                    in controllers.keys.toList()
+                      ..sort((a, b) => a.index.compareTo(b.index)))
                   DionTab(
                     tab: Text(cat.name).paddingAll(6),
                     child: DynamicGrid<EntrySaved>(
@@ -140,7 +144,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
               trailing: DionIconbutton(
                 icon: const Icon(Icons.add),
                 onPressed: () {
-                  showAddCategoryDialog(context);
+                  showAddCategoryDialog(context, controllers.keys.length);
                 },
               ),
             ),
