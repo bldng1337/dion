@@ -271,15 +271,14 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         if (widget.errorWidget != null) {
           return widget.errorWidget!;
         }
-        logger.e(
-          'Error loading image ${widget.imageUrl}',
-          error: error,
-          stackTrace: stackTrace,
-        );
-        return ErrorDisplay(
-          e: error,
-          s: stackTrace,
-          message: 'Failed to load image ${widget.imageUrl}',
+        return SizedBox(
+          child:ErrorDisplay(
+            e: error,
+            s: stackTrace,
+            message: 'Failed to load image ${widget.imageUrl}',
+          ),
+          width: width,
+          height: height,
         );
       },
       frameBuilder: (context, image, frame, wasSynchronouslyLoaded) {
