@@ -108,31 +108,39 @@ class _MaterialTabBarState extends State<MaterialTabBar>
               ),
             ),
           ),
-          child: widget.trailing != null
-              ? Row(
-                  children: [
-                    TabBar(
-                      tabAlignment: TabAlignment.start,
-                      isScrollable: widget.scrollable,
-                      tabs: [...widget.tabs.map((e) => e.tab.paddingAll(5))],
-                      controller: controller,
-                      dividerColor: Colors.transparent,
-                    ),
-                    widget.trailing!,
-                  ],
-                )
-              : TabBar(
-                  isScrollable: widget.scrollable,
-                  tabs: [...widget.tabs.map((e) => e.tab.paddingAll(5))],
-                  controller: controller,
-                  dividerColor: Colors.transparent,
-                ),
+          child: _buildTabBar(),
         ),
         TabBarView(
           controller: controller,
           children: widget.tabs.map((e) => e.child).toList(),
         ).expanded(),
       ],
+    );
+  }
+
+  Widget _buildTabBar() {
+    if (widget.trailing == null) {
+      return TabBar(
+        isScrollable: widget.scrollable,
+        tabs: [...widget.tabs.map((e) => e.tab.paddingAll(5))],
+        controller: controller,
+        dividerColor: Colors.transparent,
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          TabBar(
+            tabAlignment: TabAlignment.start,
+            isScrollable: widget.scrollable,
+            tabs: [...widget.tabs.map((e) => e.tab.paddingAll(5))],
+            controller: controller,
+            dividerColor: Colors.transparent,
+          ),
+          widget.trailing!,
+        ],
+      ),
     );
   }
 }
