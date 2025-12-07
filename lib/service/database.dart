@@ -141,7 +141,7 @@ class Database extends KeyedChangeNotifier<DBEvent> {
 
   Future<int> getNumEntries() async {
     return await _countSQL(
-      query: 'SELECT count() FROM type::table(\$entry)',
+      query: 'SELECT count() FROM type::table(\$entry) GROUP ALL;',
       vars: {'entry': entryTable.tb},
     );
   }
@@ -150,13 +150,13 @@ class Database extends KeyedChangeNotifier<DBEvent> {
     if (category == null) {
       return await _countSQL(
         query:
-            'SELECT count() FROM type::table(\$entry) WHERE count(categories) = 0',
+            'SELECT count() FROM type::table(\$entry) WHERE count(categories) = 0 GROUP ALL;',
         vars: {'entry': entryTable.tb},
       );
     }
     return await _countSQL(
       query:
-          'SELECT count() FROM type::table(\$entry) WHERE categories CONTAINS \$category',
+          'SELECT count() FROM type::table(\$entry) WHERE categories CONTAINS \$category GROUP ALL;',
       vars: {'category': category.id, 'entry': entryTable.tb},
     );
   }
