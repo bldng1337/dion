@@ -223,8 +223,8 @@ class EntryInfo extends StatelessWidget {
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: null,
-                        icon: Icon(Icons.library_add),
-                        label: Text('Add to Library'),
+                        icon: const Icon(Icons.library_add),
+                        label: const Text('Add to Library'),
                       ),
                     ),
                     shimmer: false,

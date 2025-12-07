@@ -10,12 +10,13 @@ import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/settings/library.dart';
+import 'package:dionysos/widgets/badge.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/tabbar.dart';
-import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:metis/metis.dart';
@@ -64,90 +65,187 @@ class PseudoCategory implements Category {
 }
 
 class _LibraryState extends State<Library> with StateDisposeScopeMixin {
-  Map<Category, DataSourceController<EntrySaved>> controllers = {};
-
-  void setCategory(Category cat) {
-    controllers[cat] = DataSourceController<EntrySaved>([cat.getEntries()]);
-  }
+  List<Category>? categories;
+  Map<Category, int> categoryCounts = {};
+  int? totalCount;
+  int? noneCount;
 
   @override
   void initState() {
-    Observer(() {
-      if (mounted) {
-        for (final controller in controllers.values) {
-          controller.reset();
-          controller.requestMore();
+    Observer(
+      () async {
+        if (mounted) {
+          final categories = await locate<Database>().getCategories();
+          setState(() {
+            this.categories = categories;
+          });
+          for (final cat in categories) {
+            final count = await locate<Database>().getNumEntriesInCategory(cat);
+            setState(() {
+              categoryCounts[cat] = count;
+            });
+          }
+          final total = await locate<Database>().getNumEntries();
+          setState(() {
+            totalCount = total;
+          });
+          final none = await locate<Database>().getNumEntriesInCategory(null);
+          setState(() {
+            noneCount = none;
+          });
         }
-        setState(() {});
-      }
-    }, locate<Database>()).disposedBy(scope);
+      },
+      locate<Database>().getListenable(DBEvent.categoryUpdated),
+    ).disposedBy(scope);
 
-    if (settings.library.showAllTab.value) {
-      setCategory(
-        PseudoCategory(
-          'All',
-          SingleStreamSource((i) => locate<Database>().getEntries(i, 25)),
-        ),
-      );
-    }
-
-    if (settings.library.showNoneTab.value) {
-      Future.microtask(() async {
-        final db = locate<Database>();
-        if (await db.getNumEntriesInCategory(null) == 0) return;
-        if (!mounted) return;
-        setCategory(
-          PseudoCategory(
-            'No Category',
-            SingleStreamSource(
-              (i) => locate<Database>().getEntriesInCategory(null, i, 25),
-            ),
-          ),
-        );
-        setState(() {});
-      });
-    }
-    locate<Database>().getCategories().then((cats) async {
-      final db = locate<Database>();
-      for (final cat in cats) {
-        if (await db.getNumEntriesInCategory(cat) == 0) continue;
-        if (!mounted) return;
-        setCategory(cat);
-      }
-      if (mounted) setState(() {});
-    });
+    if (settings.library.showAllTab.value) {}
+    if (settings.library.showNoneTab.value) {}
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    final categories = this.categories;
+    if (categories == null) {
+      return NavScaff(
+        destination: homedestinations,
+        child: const Center(child: DionProgressBar()),
+      );
+    }
     return NavScaff(
       destination: homedestinations,
-      child: controllers.isEmpty
-          ? const Center(child: DionProgressBar())
-          : DionTabBar(
-              scrollable: true,
-              tabs: [
-                for (final cat
-                    in controllers.keys.toList()
-                      ..sort((a, b) => a.index.compareTo(b.index)))
-                  DionTab(
-                    tab: Text(cat.name).paddingAll(6),
-                    child: DynamicGrid<EntrySaved>(
-                      showDataSources: false,
-                      itemBuilder: (BuildContext context, item) =>
-                          EntryDisplay(entry: item, showSaved: false),
-                      controller: controllers[cat]!,
-                    ),
-                  ),
-              ],
-              trailing: DionIconbutton(
-                icon: const Icon(Icons.add),
-                onPressed: () {
-                  showAddCategoryDialog(context, controllers.keys.length);
-                },
+      child: DionTabBar(
+        scrollable: true,
+        tabs: [
+          for (final cat in categories)
+            DionTab(
+              child: CategoryDisplay(category: cat, key: ValueKey(cat)),
+              tab: Row(
+                children: [
+                  Text(cat.name),
+                  if (categoryCounts[cat] != null && categoryCounts[cat]! > 0)
+                    DionBadge(
+                      noPadding: true,
+                      color: context.theme.primaryColor,
+                      child: Text(
+                        '${categoryCounts[cat]}',
+                        style: context.labelSmall?.copyWith(
+                          color: Colors.white,
+                        ),
+                      ).paddingHorizontal(4),
+                    ).paddingOnly(bottom: 6),
+                ],
               ),
             ),
+          if (settings.library.showAllTab.value)
+            DionTab(
+              tab: Row(
+                children: [
+                  const Text('All'),
+                  if (totalCount != null && totalCount! > 0)
+                    DionBadge(
+                      noPadding: true,
+                      color: context.theme.primaryColor,
+                      child: Text(
+                        '$totalCount',
+                        style: context.labelSmall?.copyWith(
+                          color: Colors.white,
+                        ),
+                      ).paddingHorizontal(4),
+                    ).paddingOnly(bottom: 6),
+                ],
+              ),
+              child: CategoryDisplay(
+                key: const Key('All'),
+                category: PseudoCategory(
+                  'All',
+                  SingleStreamSource(
+                    (i) => locate<Database>().getEntries(i, 25),
+                  ),
+                ),
+              ),
+            ),
+          if (settings.library.showNoneTab.value)
+            DionTab(
+              tab: Row(
+                children: [
+                  const Text('No Category'),
+                  if (noneCount != null && noneCount! > 0)
+                    DionBadge(
+                      noPadding: true,
+                      color: context.theme.primaryColor,
+                      child: Text(
+                        '$noneCount',
+                        style: context.labelSmall?.copyWith(
+                          color: Colors.white,
+                        ),
+                      ).paddingHorizontal(4),
+                    ).paddingOnly(bottom: 6),
+                ],
+              ),
+              child: CategoryDisplay(
+                key: const Key('No Category'),
+                category: PseudoCategory(
+                  'No Category',
+                  SingleStreamSource(
+                    (i) => locate<Database>().getEntriesInCategory(null, i, 25),
+                  ),
+                ),
+              ),
+            ),
+        ],
+        trailing: DionIconbutton(
+          icon: const Icon(Icons.add),
+          onPressed: () {
+            showAddCategoryDialog(context, categories.length);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class CategoryDisplay extends StatefulWidget {
+  final Category category;
+
+  const CategoryDisplay({super.key, required this.category});
+
+  @override
+  _CategoryDisplayState createState() => _CategoryDisplayState();
+}
+
+class _CategoryDisplayState extends State<CategoryDisplay>
+    with StateDisposeScopeMixin, AutomaticKeepAliveClientMixin {
+  late final DataSourceController<EntrySaved> controller;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    controller = DataSourceController<EntrySaved>([
+      widget.category.getEntries(),
+    ]);
+    Observer(
+      () {
+        if (mounted) {
+          controller.reset();
+          controller.requestMore();
+        }
+      },
+      locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
+      callOnInit: false,
+    ).disposedBy(scope);
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DynamicGrid<EntrySaved>(
+      showDataSources: false,
+      itemBuilder: (BuildContext context, item) =>
+          EntryDisplay(entry: item, showSaved: false),
+      controller: controller,
     );
   }
 }

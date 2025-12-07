@@ -203,7 +203,7 @@ class _CategorySettingsState extends State<CategorySettings>
           this.categories = categories;
         });
       }
-    }, db).disposedBy(scope);
+    }, db.getListenable(DBEvent.categoryUpdated)).disposedBy(scope);
   }
 
   @override
