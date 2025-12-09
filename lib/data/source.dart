@@ -48,45 +48,10 @@ class EpisodePath {
 
   Future<void> goNext(SourceSupplier supplier) async {
     if (!hasnext) return;
-    data.finished = true;
-    supplier.episode = next;
-    final entry = this.entry;
-    if (entry is EntrySaved) {
-      final download = locate<DownloadService>();
-      download.download(
-        Iterable.generate(
-          min(
-                entry.savedSettings.downloadNextEpisodes.value + episodenumber,
-                episodes.length - 1,
-              ) -
-              episodenumber,
-          (index) => EpisodePath(entry, episodenumber + 1 + index),
-        ),
-      );
-      if (entry.savedSettings.deleteOnFinish.value) {
-        download.deleteEpisode(this);
-      }
-    }
-    finishEpisode(this);
-    save();
+    supplier.setEpisodeByIndex(episodenumber + 1);
   }
 
   void go(BuildContext context) {
-    final entry = this.entry;
-    if (entry is EntrySaved) {
-      final download = locate<DownloadService>();
-      download.download(
-        Iterable.generate(
-          min(
-                entry.savedSettings.downloadNextEpisodes.value + episodenumber,
-                episodes.length - 1,
-              ) -
-              episodenumber,
-          (index) => EpisodePath(entry, episodenumber + 1 + index),
-        ),
-      );
-    }
-    finishEpisode(this);
     GoRouter.of(context).push('/view', extra: [this]);
   }
 
@@ -118,95 +83,56 @@ class EpisodePath {
 }
 
 class SourceSupplier with ChangeNotifier implements Disposable {
-  SourcePath? _source;
-  late StreamController<SourcePath> streamcontroller;
-  late EpisodePath _episode;
+  late final DionMapCache<EpisodePath, SourcePath> cache;
+  EpisodePath _episode;
+  CancelToken tok = CancelToken();
 
-  Object? _error;
-  StackTrace? _stack;
-
-  Completer<void>? _loading;
-  CancelToken? tok;
-
-  late DionMapCache<EpisodePath, SourcePath> cache;
-
-  SourceSupplier(EpisodePath episode) {
-    streamcontroller = StreamController<SourcePath>();
+  SourceSupplier(this._episode) {
     cache = DionMapCache.fromsize(maximumSize: 5, loader: _loadSource);
-    _episode = episode;
-    _getSource();
   }
 
-  EpisodePath get episode => _episode;
-  SourcePath? get source => _source;
-  Stream<SourcePath> get sourcestream => streamcontroller.stream;
-
-  bool get haserror => _error != null;
-  Object? get error => _error;
-  StackTrace? get stacktrace => _stack;
-
-  bool get loading => !(_loading?.isCompleted ?? true);
-
-  set episode(EpisodePath? value) {
-    if (value == null) return;
-    if (value == _episode) return;
-    _episode = value;
-    _source = null;
-    switch (cache.getState(_episode)) {
-      case CacheState.loaded:
-        apply(cache.getValue(_episode)!);
-      case CacheState.loading:
-      case CacheState.absent:
-        _getSource();
+  Future<SourcePath> getIndex(int index) async {
+    final entry = _episode.entry;
+    if (index < 0 || index >= entry.episodes.length) {
+      throw RangeError.index(index, entry.episodes, 'index');
     }
-    notifyListeners();
+    final eppath = EpisodePath(entry, index);
+    return await cache.get(eppath).getOrThrow;
   }
 
-  void preload(EpisodePath ep) {
-    if (ep == _episode) return;
-    cache.preload(ep);
-  }
-
-  void invalidate(EpisodePath ep) {
-    cache.invalidate(ep);
-    if (ep == _episode) {
-      _source = null;
-      _getSource();
+  Future<void> setEpisodeByIndex(int index) async {
+    final entry = episode.entry;
+    if (index < 0 || index >= entry.episodes.length) {
+      throw RangeError.index(index, entry.episodes, 'index');
     }
-  }
-
-  void invalidateCurrent() {
-    invalidate(_episode);
-  }
-
-  Future<void> _getSource() async {
-    if (loading) {
-      await _loading!.future;
+    episode.data.finished = true;
+    if (entry is EntrySaved) {
+      final download = locate<DownloadService>();
+      download.download(
+        Iterable.generate(
+          min(
+                entry.savedSettings.downloadNextEpisodes.value +
+                    _episode.episodenumber,
+                episode.entry.episodes.length - 1,
+              ) -
+              episode.episodenumber,
+          (index) => EpisodePath(entry, episode.episodenumber + 1 + index),
+        ),
+      );
+      if (entry.savedSettings.deleteOnFinish.value) {
+        download.deleteEpisode(episode);
+      }
     }
-    _loading = Completer<void>();
-    notifyListeners();
-    final res = await cache.get(_episode);
-    apply(res);
-    _loading!.complete();
-    notifyListeners();
-  }
-
-  void apply(Result<SourcePath> res) {
-    if (res.isSuccess) {
-      _source = res.getOrThrow;
-      streamcontroller.add(_source!);
-    } else {
-      _error = res.exceptionOrNull;
-      _stack = res.stacktraceOrNull;
-    }
+    finishEpisode(episode);
+    episode.save();
+    episode = EpisodePath(entry, index);
   }
 
   Future<SourcePath> _loadSource(EpisodePath eppath) async {
-    if (tok?.isDisposed ?? true) {
-      tok = CancelToken();
-    }
     final download = locate<DownloadService>();
-    final dowloadStatus = await download.getCurrentStatus(eppath);
+    final dowloadStatus = await download.getCurrentStatus(
+      eppath,
+    ); //Do we really want to wait for the download to finish? In case it is large the user could still stream it while downloading but that would stress the server more
     if (dowloadStatus.task?.task != null) {
       await dowloadStatus.task?.task;
     }
@@ -221,21 +147,32 @@ class SourceSupplier with ChangeNotifier implements Disposable {
         );
       }
     }
-    return eppath.loadSource(tok);
+    if (tok.isDisposed) {
+      tok = CancelToken();
+    }
+    return eppath.loadSource(null);
   }
+
+  set episode(EpisodePath path) {
+    if (_episode == path) return;
+    _episode = path;
+    cache.preload(
+      path,
+    ); // We preload here as we dont care about the return but just want to load the data if it is not loaded
+    notifyListeners();
+  }
+
+  EpisodePath get episode => _episode;
+  SourcePath? get source => cache.getValue(_episode)?.getOrNull;
+  Result<SourcePath>? get sourceResult => cache.getValue(_episode);
+  Future<Result<SourcePath>> get sourceFuture => cache.get(_episode);
 
   @override
   Future<void> dispose() async {
-    if (tok?.isDisposed ?? true) {
-      tok = null;
+    if (!tok.isDisposed) {
+      await tok.cancel();
+      tok.dispose();
     }
-    await tok?.cancel();
-    tok?.dispose();
-    tok = null;
-    if (!(_loading?.isCompleted ?? true)) {
-      _loading?.complete();
-    }
-    _loading = null;
     super.dispose();
   }
 

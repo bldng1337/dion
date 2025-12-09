@@ -106,22 +106,26 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     if (psettings.music.value) {
       initPlayer();
     }
-    Observer(() {
-      final int min = itemPositionsListener.itemPositions.value
-          .where((ItemPosition position) => position.itemTrailingEdge > 0)
-          .reduce(
-            (ItemPosition min, ItemPosition position) =>
-                position.itemTrailingEdge < min.itemTrailingEdge
-                ? position
-                : min,
-          )
-          .index;
-      widget.source.episode.data.progress = min.toString();
-      if (min >= widget.sourcedata.links.length / 2) {
-        widget.supplier.preload(widget.source.episode.next);
-      }
-      play();
-    }, itemPositionsListener.itemPositions).disposedBy(scope);
+    Observer(
+      () {
+        final int min = itemPositionsListener.itemPositions.value
+            .where((ItemPosition position) => position.itemTrailingEdge > 0)
+            .reduce(
+              (ItemPosition min, ItemPosition position) =>
+                  position.itemTrailingEdge < min.itemTrailingEdge
+                  ? position
+                  : min,
+            )
+            .index;
+        widget.source.episode.data.progress = min.toString();
+        if (min >= widget.sourcedata.links.length / 2) {
+          widget.supplier.cache.preload(widget.source.episode.next);
+        }
+        play();
+      },
+      itemPositionsListener.itemPositions,
+      callOnInit: false,
+    ).disposedBy(scope);
 
     supplierObserver = Observer(() {
       if (!controller.isAttached) return;

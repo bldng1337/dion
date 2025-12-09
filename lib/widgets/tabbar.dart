@@ -98,6 +98,7 @@ class _MaterialTabBarState extends State<MaterialTabBar>
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           decoration: BoxDecoration(
@@ -130,6 +131,7 @@ class _MaterialTabBarState extends State<MaterialTabBar>
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           TabBar(
             tabAlignment: TabAlignment.start,

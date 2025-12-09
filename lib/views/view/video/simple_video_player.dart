@@ -119,7 +119,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           '$playlistindex:${event.inMilliseconds}';
       if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
           playlistindex / player.state.playlist.medias.length > 0.5) {
-        widget.source.preload(widget.source.episode.next);
+        widget.source.cache.preload(widget.source.episode.next);
       }
     });
   }

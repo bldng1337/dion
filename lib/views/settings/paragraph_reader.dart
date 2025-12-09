@@ -1,4 +1,5 @@
 import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
@@ -54,6 +55,7 @@ class ParagraphReaderSettings extends StatelessWidget {
                 max: 1.0,
                 setting: settings.readerSettings.paragraphreader.text.weight,
               ),
+
               SettingSlider(
                 title: 'Line Spacing',
                 description: 'The space between lines',
@@ -79,21 +81,56 @@ class ParagraphReaderSettings extends StatelessWidget {
                 setting:
                     settings.readerSettings.paragraphreader.text.selectable,
               ),
-              // TODO: Implement bionic reading
-              // SettingToggle(
-              //   title: 'Bionic Reading',
-              //   description: 'Should the first part of each word be highlighted',
-              //   setting:
-              //       settings.readerSettings.paragraphreader.text.bionicreading,
-              // ),
-              // SettingSlider(
-              //   title: 'Bionic Weight',
-              //   description: 'The thickness of the highlighted text',
-              //   min: 0.1,
-              //   max: 1.0,
-              //   setting:
-              //       settings.readerSettings.paragraphreader.text.bionicweight,
-              // ),
+              SettingToggle(
+                title: 'Bionic Reading',
+                description:
+                    'Should the first part of each word be highlighted',
+                setting: settings.readerSettings.paragraphreader.text.bionic,
+              ),
+              SettingTitle(
+                title: 'Bionic Settings',
+                children: [
+                  SettingSlider(
+                    title: 'Bionic Weight',
+                    description: 'The thickness of the highlighted text',
+                    min: 0.1,
+                    max: 1.0,
+                    setting: settings
+                        .readerSettings
+                        .paragraphreader
+                        .text
+                        .bionicSettings
+                        .bionicWheight,
+                  ),
+                  SettingSlider(
+                    title: 'Bionic Size',
+                    description: 'The size of the highlighted text',
+                    min: 10,
+                    max: 40,
+                    setting: settings
+                        .readerSettings
+                        .paragraphreader
+                        .text
+                        .bionicSettings
+                        .bionicSize,
+                  ),
+                  SettingSlider(
+                    title: 'Bionic Letters',
+                    description:
+                        'How many letters of each word are highlighted',
+                    min: 1,
+                    max: 5,
+                    setting: settings
+                        .readerSettings
+                        .paragraphreader
+                        .text
+                        .bionicSettings
+                        .letters,
+                  ),
+                ],
+              ).conditional(
+                settings.readerSettings.paragraphreader.text.bionic,
+              ),
             ],
           ),
         ],

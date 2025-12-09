@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
@@ -9,13 +10,16 @@ import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
+import 'package:inline_result/inline_result.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -31,6 +35,9 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
   late final Player player;
   late final Observer sourceObserver;
+  bool isLoading = false;
+  Object? exception;
+
   Future<void> initPlayer() async {
     player = Player(
       configuration: const PlayerConfiguration(
@@ -38,11 +45,18 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         title: 'dion',
       ),
     );
-    sourceObserver= Observer(() async {
-      if (widget.source.source == null) {
+    sourceObserver = Observer(() async {
+      setState(() {
+        isLoading = true;
+      });
+      final res = await widget.source.cache.get(widget.source.episode);
+      if (res.isFailure) {
+        setState(() {
+          exception = res.exceptionOrNull;
+        });
         return;
       }
-      final source = widget.source.source!;
+      final source = res.getOrThrow;
       if (source.source is! Source_Mp3) {
         return;
       }
@@ -65,7 +79,11 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             ),
         ], index: chapterindex),
       );
-    }, widget.source);
+      setState(() {
+        isLoading = false;
+      });
+    }, widget.source)..disposedBy(scope);
+
     locate<PlayerService>().setSession(
       PlaySession(
         widget.source,
@@ -90,15 +108,19 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       if (!event) {
         return;
       }
+      if (player.state.playlist.index <
+          player.state.playlist.medias.length - 1) {
+        return;
+      }
       widget.source.episode.goNext(widget.source);
     });
     player.stream.position.listen((event) {
       final playlistindex = player.state.playlist.index;
       widget.source.episode.data.progress =
           '$playlistindex:${event.inMilliseconds}';
-      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 ||
+      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
           playlistindex / player.state.playlist.medias.length > 0.5) {
-        widget.source.preload(widget.source.episode.next);
+        widget.source.cache.preload(widget.source.episode.next);
       }
     });
   }
@@ -117,9 +139,9 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   @override
   void dispose() {
+    super.dispose();
     widget.source.episode.save();
     player.dispose();
-    super.dispose();
   }
 
   String getTitle() {
@@ -184,6 +206,18 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const NavScaff(
+        title: Text('Loading...'),
+        child: Center(child: DionProgressBar()),
+      );
+    }
+    if (exception != null) {
+      return NavScaff(
+        title: Text('Error loading ${widget.source.episode.name}'),
+        child: ErrorDisplay(e: exception),
+      );
+    }
     final epdata = widget.source.episode.data;
     return NavScaff(
       actions: [
@@ -310,6 +344,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                           player.next();
                         },
                       ),
+                      Text(player.state.playlist.medias.length.toString()),
                     ],
                   ),
                 ],

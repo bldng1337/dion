@@ -366,9 +366,13 @@ class SourceExtension with ChangeNotifier {
   }
 
   Future<void> install(String location) async {
-    final newext = await adapter.install(location: location);
+    final newproxy = await adapter.install(location: location);
     final db = await locateAsync<Database>();
-    _extensions.add(await Extension.fromProxy(newext, db));
+    final newext = await Extension.fromProxy(newproxy, db);
+    if (_extensions.any((e) => e.data.id == newext.data.id)) {
+      _extensions.removeWhere((e) => e.data.id == newext.data.id);
+    }
+    _extensions.add(newext);
     notifyListeners();
   }
 

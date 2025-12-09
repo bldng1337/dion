@@ -131,7 +131,7 @@ class StringListMetaData extends PreferenceMetaData<List<String>> {
   String stringify(List<String> value) => json.encode(value);
 }
 
-enum ReaderMode { paginated }
+enum ReaderMode { paginated, infinite }
 
 enum UpdateChannel { stable, beta }
 
@@ -231,6 +231,30 @@ final settings = (
           0.4,
           const PreferenceDoubleMetaData('paragraphreader.text.weight'),
         )..addCollection(preferenceCollection),
+        bionic: Setting(
+          false,
+          const PreferenceBoolMetaData('paragraphreader.text.bionic'),
+        )..addCollection(preferenceCollection),
+        bionicSettings: (
+          bionicWheight: Setting(
+            0.5,
+            const PreferenceDoubleMetaData(
+              'paragraphreader.text.bionic_settings.bionic_weight',
+            ),
+          )..addCollection(preferenceCollection),
+          bionicSize: Setting(
+            24,
+            const PreferenceIntMetaData(
+              'paragraphreader.text.bionic_settings.bionic_size',
+            ),
+          )..addCollection(preferenceCollection),
+          letters: Setting(
+            1,
+            const PreferenceIntMetaData(
+              'paragraphreader.text.bionic_settings.letters',
+            ),
+          )..addCollection(preferenceCollection),
+        ),
         linespacing: Setting(
           1.5,
           const PreferenceDoubleMetaData('paragraphreader.text.linespacing'),
