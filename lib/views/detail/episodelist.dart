@@ -161,17 +161,17 @@ class EpisodeTile extends StatelessWidget {
             children: [
               DionTextScroll(
                 episodepath.episode.name,
-                style: context.titleMedium,
-                // ?.copyWith(
-                //   color: epdata.finished
-                //       ? context.theme.disabledColor
-                //       : null,
-                // )
-                // .copyWith(
-                //   color: (episodepath.entry.extension?.isenabled ?? false)
-                //       ? null
-                //       : context.theme.disabledColor,
-                // )
+                style: context.titleMedium
+                    ?.copyWith(
+                      color: epdata.finished
+                          ? context.theme.disabledColor
+                          : null,
+                    )
+                    .copyWith(
+                      color: (episodepath.entry.extension?.isenabled ?? false)
+                          ? null
+                          : context.theme.disabledColor,
+                    ),
               ),
               if (episodepath.episode.timestamp != null)
                 Text(
