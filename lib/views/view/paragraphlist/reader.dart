@@ -3,6 +3,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
 import 'package:dionysos/views/view/wrapper.dart';
+import 'package:dionysos/widgets/image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'dart:math';
@@ -145,6 +146,118 @@ class ReaderRenderParagraph extends StatelessWidget {
           message: 'CustomUI not yet implemented',
         ); //TODO: Implement CustomUI
     }
+  }
+}
+
+class EpisodeTitle extends StatelessWidget {
+  final EpisodePath episode;
+  const EpisodeTitle({super.key, required this.episode});
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        psettings.title,
+        psettings.titleSettings.size,
+        psettings.titleSettings.thumbBanner,
+      ]),
+      builder: (context, child) {
+        if (!psettings.title.value) {
+          return const SizedBox.shrink();
+        }
+        final cover = episode.cover ?? episode.entry.cover;
+        final baseStyle = context.headlineMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: psettings.titleSettings.size.value.toDouble(),
+          letterSpacing: 0.2,
+          height: 1.1,
+        );
+        final title = Container(
+          padding: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+          alignment: Alignment.center,
+          child: Text(
+            episode.name,
+            style: baseStyle,
+            textAlign: TextAlign.center,
+            softWrap: true,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+
+        if (cover != null && psettings.titleSettings.thumbBanner.value) {
+          final titleOnImageStyle =
+              baseStyle?.copyWith(
+                color: Colors.white,
+                shadows: [
+                  const Shadow(
+                    offset: Offset(0, 1),
+                    blurRadius: 4,
+                    color: Colors.black54,
+                  ),
+                ],
+              ) ??
+              const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    offset: Offset(0, 1),
+                    blurRadius: 4,
+                    color: Colors.black54,
+                  ),
+                ],
+              );
+
+          final titleOnImage = Container(
+            padding: const EdgeInsets.only(
+              bottom: 60,
+              left: 16,
+              right: 16,
+              top: 30,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              episode.name,
+              style: titleOnImageStyle,
+              textAlign: TextAlign.center,
+              softWrap: true,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: DionImage(
+                  imageUrl: cover.url,
+                  httpHeaders: cover.header,
+                  boxFit: BoxFit.cover,
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Color.fromRGBO(0, 0, 0, 0.45),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              titleOnImage,
+              (context.height / 3).heightBox,
+            ],
+          ).paddingOnly(bottom: 20);
+        }
+        return title;
+      },
+    );
   }
 }
 

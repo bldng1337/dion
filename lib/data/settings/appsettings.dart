@@ -214,6 +214,16 @@ final settings = (
         false,
         const PreferenceBoolMetaData('paragraphreader.title'),
       )..addCollection(preferenceCollection),
+      titleSettings: (
+        size: Setting(
+          24,
+          const PreferenceIntMetaData('paragraphreader.title_settings.size'),
+        )..addCollection(preferenceCollection),
+        thumbBanner: Setting(
+          true,
+          const PreferenceBoolMetaData('paragraphreader.title_settings.banner'),
+        )..addCollection(preferenceCollection),
+      ),
       text: (
         adaptivewidth: Setting(
           true,

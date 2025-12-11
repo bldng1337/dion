@@ -126,21 +126,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                   child: const Text('Previous'),
                   onPressed: () =>
                       widget.source.episode.goPrev(widget.supplier),
-                ).paddingSymmetric(vertical: 32),
+                ).paddingSymmetric(vertical: 16),
               ),
             SliverToBoxAdapter(
-              child: ListenableBuilder(
-                listenable: psettings.title,
-                builder: (context, child) => psettings.title.value
-                    ? ReaderWrapScreen(
-                        Text(
-                          widget.source.name,
-                          style: context.headlineMedium,
-                          textAlign: TextAlign.center,
-                        ).paddingSymmetric(vertical: 16),
-                      )
-                    : nil,
-              ),
+              child: EpisodeTitle(episode: widget.source.episode),
             ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(vertical: 32),
@@ -156,7 +145,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                   child: const Text('Next'),
                   onPressed: () =>
                       widget.source.episode.goNext(widget.supplier),
-                ).paddingSymmetric(vertical: 32),
+                ).paddingSymmetric(vertical: 16),
               ),
           ],
         ),

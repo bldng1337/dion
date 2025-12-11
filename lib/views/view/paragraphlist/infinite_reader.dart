@@ -89,51 +89,46 @@ class _InfiniteParagraphListReaderState
           onPressed: () => context.push('/settings/paragraphreader'),
         ),
       ],
-      child: ReaderWrapScreen(
-        ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: HugeListView(
-            firstShown: (value) {
-              if (value == widget.supplier.episode.episodenumber) return;
-              print("asds");
-              widget.supplier.setEpisodeByIndex(value);
-            },
-            totalCount: widget.supplier.episode.entry.episodes.length,
-            startIndex: widget.supplier.episode.episodenumber,
-            pageFuture: (int pageIndex) async {
-              return await widget.supplier.getIndex(pageIndex);
-            },
-            itemBuilder: (BuildContext context, int index, dynamic test) {
-              final sourcepath = test as SourcePath;
-              final source = sourcepath.source as Source_Paragraphlist;
-              return ListenableBuilder(
-                listenable: settings.readerSettings.paragraphreader.title,
-                builder: (context, child) {
-                  if (!settings.readerSettings.paragraphreader.title.value) {
-                    return child!;
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.supplier.episode.name,
-                        style: context.headlineMedium,
-                        textAlign: TextAlign.center,
-                      ).paddingSymmetric(vertical: 16),
-                      child!,
-                    ],
-                  );
-                },
-                child: Column(
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: HugeListView(
+          firstShown: (value) {
+            if (value == widget.supplier.episode.episodenumber) return;
+            widget.supplier.setEpisodeByIndex(value);
+          },
+          totalCount: widget.supplier.episode.entry.episodes.length,
+          startIndex: widget.supplier.episode.episodenumber,
+          pageFuture: (int pageIndex) async {
+            return await widget.supplier.getIndex(pageIndex);
+          },
+          itemBuilder: (BuildContext context, int index, dynamic test) {
+            final sourcepath = test as SourcePath;
+            final source = sourcepath.source as Source_Paragraphlist;
+            return ListenableBuilder(
+              listenable: settings.readerSettings.paragraphreader.title,
+              builder: (context, child) {
+                if (!settings.readerSettings.paragraphreader.title.value) {
+                  return child!;
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    EpisodeTitle(episode: sourcepath.episode),
+                    child!,
+                  ],
+                );
+              },
+              child: ReaderWrapScreen(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: source.paragraphs
                       .map((e) => ReaderRenderParagraph(e))
                       .toList(),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

@@ -26,6 +26,28 @@ class ParagraphReaderSettings extends StatelessWidget {
             setting: settings.readerSettings.paragraphreader.title,
           ),
           SettingTitle(
+            title: 'Title Settings',
+            children: [
+              SettingSlider(
+                title: 'Title Size',
+                description: 'The size of the chapter title',
+                min: 10,
+                max: 60,
+                setting:
+                    settings.readerSettings.paragraphreader.titleSettings.size,
+              ),
+              SettingToggle(
+                title: 'Thumbnail Banner',
+                description: 'Show thumbnail banner behind the title',
+                setting: settings
+                    .readerSettings
+                    .paragraphreader
+                    .titleSettings
+                    .thumbBanner,
+              ),
+            ],
+          ).conditional(settings.readerSettings.paragraphreader.title),
+          SettingTitle(
             title: 'Text Settings',
             children: [
               SettingToggle(
