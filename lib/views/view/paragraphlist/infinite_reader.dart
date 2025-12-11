@@ -123,7 +123,12 @@ class _InfiniteParagraphListReaderState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: source.paragraphs
-                      .map((e) => ReaderRenderParagraph(e))
+                      .map(
+                        (e) => ReaderRenderParagraph(
+                          e,
+                          widget.supplier.episode.entry.extension!,
+                        ),
+                      )
                       .toList(),
                 ),
               ),

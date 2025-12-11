@@ -297,6 +297,89 @@ class AsyncSource<T> extends DataSource<T> {
   int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
 }
 
+class Page<T> {
+  final List<T> items;
+  final bool isLastPage;
+  Page(this.items, this.isLastPage);
+  Page.last(this.items) : isLastPage = true;
+  Page.more(this.items) : isLastPage = false;
+  Page.empty() : items = [], isLastPage = true;
+}
+
+class PageAsyncSource<T> extends DataSource<T> {
+  final Future<Page<T>?> Function(int index) loadmore;
+  @override
+  bool isfinished = false;
+  int index = 0;
+  @override
+  bool requesting = false;
+  PageAsyncSource(this.loadmore);
+
+  @override
+  Future<void> requestMore() async {
+    if (requesting) return;
+    if (isfinished) return;
+    if (streamController == null) return;
+    requesting = true;
+    try {
+      final e = await loadmore(index++);
+      if (e == null) {
+        isfinished = true;
+        requesting = false;
+        return;
+      }
+      if (e.isLastPage) {
+        isfinished = true;
+      }
+      if (e.items.isEmpty) {
+        isfinished = true;
+        requesting = false;
+        return;
+      }
+      streamController?.add(e.items.map((e) => Result.success(e)).toList());
+    } catch (e, stack) {
+      try {
+        streamController?.add(<Result<T>>[
+          Result.failure(e as Exception, stack),
+        ]);
+      } catch (e1) {
+        logger.e(
+          'Error putting error $e1 into stream',
+          error: e1,
+          stackTrace: stack,
+        );
+      } finally {
+        isfinished = true;
+      }
+    }
+    requesting = false;
+  }
+
+  @override
+  void reset() {
+    index = 0;
+    isfinished = false;
+    requesting = false;
+  }
+
+  @override
+  String toString() {
+    return 'DataSource{loadmore: $loadmore, index: $index, isfinished: $isfinished, requesting: $requesting}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AsyncSource<T> &&
+        other.loadmore == loadmore &&
+        other.index == index &&
+        other.isfinished == isfinished &&
+        other.requesting == requesting;
+  }
+
+  @override
+  int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
+}
+
 class DataSourceController<T> extends ChangeNotifier {
   final List<DataSource<T>> sources;
   final List<Result<T>> items = List.empty(growable: true);
@@ -533,7 +616,6 @@ class _DynamicListState<T> extends State<DynamicList<T>>
   late final Observer controllerObserver;
   late final ScrollController controller;
 
-
   @override
   void initState() {
     controller = ScrollController()..disposedBy(scope);
@@ -673,7 +755,7 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
   @override
   void initState() {
     controller = ScrollController()..disposedBy(scope);
-    controllerObserver=Observer(() {
+    controllerObserver = Observer(() {
       if (mounted) {
         setState(() {});
       }

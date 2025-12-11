@@ -247,11 +247,12 @@ class EntryInfo extends StatelessWidget {
         isEntryDetailed(
           context: context,
           entry: entry,
-          isdetailed: (entry) => entry.ui.isEmpty || entry.extension == null
+          isdetailed: (entry) =>
+              (entry.ui == null || entry.ui.isEmpty || entry.extension == null)
               ? nil
               : DionBadge(
-                  child: CustomUIWidget(
-                    ui: entry.ui,
+                  child: CustomUIWidget.fromUI(
+                    ui: entry.ui!,
                     extension: entry.extension!,
                   ),
                 ).paddingAll(5),

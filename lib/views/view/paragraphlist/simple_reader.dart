@@ -134,8 +134,12 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
             SliverPadding(
               padding: const EdgeInsets.symmetric(vertical: 32),
               sliver: SliverList.builder(
-                itemBuilder: (context, index) =>
-                    ReaderWrapScreen(ReaderRenderParagraph(paragraphs[index])),
+                itemBuilder: (context, index) => ReaderWrapScreen(
+                  ReaderRenderParagraph(
+                    paragraphs[index],
+                    widget.supplier.episode.entry.extension!,
+                  ),
+                ),
                 itemCount: paragraphs.length,
               ),
             ),

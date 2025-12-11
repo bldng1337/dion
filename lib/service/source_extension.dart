@@ -126,6 +126,13 @@ class Extension extends ChangeNotifier {
     super.dispose();
   }
 
+  Future<rust.EventResult?> event({
+    required rust.EventData event,
+    rust.CancelToken? token,
+  }) async {
+    return await _proxy.event(event: event, token:token);
+  }
+
   Future<List<Entry>> browse(int page, {rust.CancelToken? token}) async {
     final db = locate<Database>();
     final res = await _proxy.browse(page: page, token: token);

@@ -1,5 +1,6 @@
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
 import 'package:dionysos/views/view/wrapper.dart';
@@ -73,7 +74,8 @@ class ReaderWrapScreen extends StatelessWidget {
 
 class ReaderRenderParagraph extends StatelessWidget {
   final Paragraph text;
-  const ReaderRenderParagraph(this.text, {super.key});
+  final Extension extension;
+  const ReaderRenderParagraph(this.text, this.extension, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -140,10 +142,10 @@ class ReaderRenderParagraph extends StatelessWidget {
             ),
           ),
         );
-      case Paragraph_CustomUI():
-        return ErrorDisplay(
-          e: Exception('CustomUI not implemented'),
-          message: 'CustomUI not yet implemented',
+      case final Paragraph_CustomUI customUi:
+        return CustomUIWidget.fromUI(
+          ui: customUi.ui,
+          extension: extension,
         ); //TODO: Implement CustomUI
     }
   }
