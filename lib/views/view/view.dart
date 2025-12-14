@@ -22,6 +22,7 @@ class ViewSource extends StatefulWidget {
 class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   SourceSupplier? supplier;
   SourcePath? lastsource;
+  Object? error;
 
   @override
   void didChangeDependencies() {
@@ -36,6 +37,10 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
           setState(() {
             lastsource = source.getOrThrow;
           });
+        } else {
+          setState(() {
+            error = source.exceptionOrNull;
+          });
         }
       }, supplier!).disposedBy(scope);
     }
@@ -48,10 +53,16 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
 
   @override
   Widget build(BuildContext context) {
+    if (error != null) {
+      return NavScaff(
+        title: const Text('Error'),
+        child: Center(child: Text('Error loading source: $error')),
+      );
+    }
     if (lastsource == null) {
       return const NavScaff(
         title: Text('Loading...'),
-        child: DionProgressBar(),
+        child: Center(child: DionProgressBar()),
       );
     }
     return switch (lastsource!.source) {
