@@ -180,6 +180,8 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   }
 
   @override
+  Link? get poster => entry.poster;
+  @override
   EntryId get id => entry.id;
   @override
   String get url => entry.url;

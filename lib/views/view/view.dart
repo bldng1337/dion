@@ -70,8 +70,8 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       final Source_Epub _ => throw UnimplementedError('Epub not supported yet'),
       final Source_Pdf _ => throw UnimplementedError('Pdf not supported yet'),
       final Source_Imagelist _ => ImageListReader(supplier: supplier!),
-      final Source_M3u8 _ => VideoPlayer(supplier: supplier!),
-      final Source_Mp3 _ => AudioListener(supplier: supplier!),
+      final Source_Video _ => VideoPlayer(supplier: supplier!),
+      final Source_Audio _ => AudioListener(supplier: supplier!),
     };
   }
 }

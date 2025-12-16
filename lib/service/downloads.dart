@@ -127,34 +127,35 @@ class DownloadTask extends Task {
           }
           index['audio'] = audiodata;
         }
-      case final Source_M3u8 data:
+      case final Source_Video data:
         status = 'Downloading m3u8';
+        //TODO: Better way to do this
+        final source = data.sources[0];
         final file = await InternetFile.downloadm3u8(
-          data.link.url,
-          InternetFile.fromURI(data.link.url, dir, filename: 'playlist'),
-          headers: data.link.header,
+          source.url.url,
+          InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
+          headers: source.url.header,
           onReceiveProgress: (current) => progress = current,
           rhttpToken: rhttpToken,
         );
         index['type'] = 'm3u8';
+        index['lang'] = source.lang;
+        index['name'] = source.name;
         index['playlist'] = file.filename;
-      case final Source_Mp3 data:
+      case final Source_Audio data:
         status = 'Downloading MP3';
-        final audiodata = [];
-        for (final (index, audio) in data.chapters.indexed) {
-          final file = await InternetFile.streamToFile(
-            audio.url.url,
-            InternetFile.fromURI(audio.url.url, dir, filename: 'audio$index'),
-            headers: audio.url.header,
-            onReceiveProgress: (current) =>
-                progress = (index + current) / data.chapters.length,
-            rhttpToken: rhttpToken,
-          );
-          progress = null;
-          audiodata.add({'title': audio.title, 'name': file.filename});
-        }
+        final source = data.sources[0];
+        final file = await InternetFile.downloadm3u8(
+          source.url.url,
+          InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
+          headers: source.url.header,
+          onReceiveProgress: (current) => progress = current,
+          rhttpToken: rhttpToken,
+        );
         index['type'] = 'mp3';
-        index['audio'] = audiodata;
+        index['lang'] = source.lang;
+        index['name'] = source.name;
+        index['playlist'] = file.filename;
     }
     await dir.getFile('index.json').writeAsString(jsonEncode(index));
   }
@@ -324,24 +325,32 @@ class DownloadService {
                 .toList(),
           );
         case 'mp3':
-          final audio = index['audio'] as List<dynamic>;
-          return Source.mp3(
-            chapters: audio
-                .map(
-                  (e) => Mp3Chapter(
-                    title: e['title'] as String,
-                    url: Link(url: path.getFile(e['name'] as String).fileURL),
-                  ),
-                )
-                .toList(),
+          final playlist = path.getFile(index['playlist'] as String);
+          if (!await playlist.exists()) {
+            return null;
+          }
+          return Source.audio(
+            sources: [
+              StreamSource(
+                url: Link(url: playlist.fileURL),
+                lang: index['lang'] as String,
+                name: index['name'] as String,
+              ),
+            ],
           );
         case 'm3u8':
           final playlist = path.getFile(index['playlist'] as String);
           if (!await playlist.exists()) {
             return null;
           }
-          return Source.m3U8(
-            link: Link(url: playlist.fileURL),
+          return Source.video(
+            sources: [
+              StreamSource(
+                url: Link(url: playlist.fileURL),
+                lang: index['lang'] as String,
+                name: index['name'] as String,
+              ),
+            ],
             sub: [],
           );
         default:

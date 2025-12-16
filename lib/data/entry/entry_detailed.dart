@@ -18,6 +18,7 @@ abstract class EntryDetailed extends Entry {
   String get language;
   List<Episode> get episodes;
   List<String>? get genres;
+  Link? get poster;
 
   FutureOr<EntrySaved> toSaved();
   FutureOr<EntryDetailed> refresh({CancelToken? token});
@@ -38,6 +39,8 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   EntryId get id => entry.id;
+  @override
+  Link? get poster => entry.poster;
   @override
   String get url => entry.url;
   @override

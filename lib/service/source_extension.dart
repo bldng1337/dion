@@ -16,10 +16,11 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 export 'package:rdion_runtime/rdion_runtime.dart'
-    hide Entry, EntryDetailed, RustLib, Setting;
+    hide Entry, EntryDetailed, RustLib, Setting, Row;
+
+typedef CustomUIRow = rust.Row;
 
 class Extension extends ChangeNotifier {
-  Extension(this.data, this._proxy, this.isenabled, this.settings, this._meta);
   final rust.ExtensionData data;
   final rust.ProxyExtension _proxy;
   final Map<
@@ -30,10 +31,14 @@ class Extension extends ChangeNotifier {
   ExtensionMetaData _meta;
   bool isenabled;
   bool loading = false;
+  Extension(this.data, this._proxy, this.isenabled, this.settings, this._meta);
+
+  @override
+  int get hashCode => _proxy.hashCode;
+
+  String get id => data.id;
 
   ExtensionMetaData get meta => _meta;
-
-  Version get version => Version.parse(data.version);
 
   set meta(ExtensionMetaData value) {
     _meta = value;
@@ -42,10 +47,150 @@ class Extension extends ChangeNotifier {
         .then((_) => notifyListeners());
   }
 
-  String get id => data.id;
-
   String get name {
     return data.name.replaceAll('-', ' ').capitalize;
+  }
+
+  Version get version => Version.parse(data.version);
+
+  @override
+  bool operator ==(Object other) {
+    return other is Extension && other._proxy == _proxy;
+  }
+
+  Future<List<Entry>> browse(int page, {rust.CancelToken? token}) async {
+    final db = locate<Database>();
+    final res = await _proxy.browse(page: page, token: token);
+    //TODO: Take advantage of the additional data that EntryList Provides
+    return Future.wait(
+      res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
+        final saved = await db.isSaved(entry);
+        if (saved != null) {
+          return saved;
+        }
+        return entry;
+      }).toList(),
+    );
+  }
+
+  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
+    if (e.boundExtensionId != id) {
+      throw Exception(
+        'Extension mismatch: expected $id, got ${e.boundExtensionId}',
+      );
+    }
+    final res = switch (e) {
+      final EntrySaved saved => await _proxy.detail(
+        entryid: saved.id,
+        token: token,
+        settings: saved.extensionSettings,
+      ),
+      final EntryDetailed detail => await _proxy.detail(
+        entryid: detail.id,
+        token: token,
+        settings: detail.extensionSettings,
+      ),
+      final Entry entry => await _proxy.detail(
+        entryid: entry.id,
+        token: token,
+        settings: {},
+      ),
+    };
+    if (e is EntrySaved) {
+      e.entry = res.entry;
+      e.extensionSettings =
+          res.settings; //TODO: Think about possible race conditions here
+      return e;
+    }
+    return EntryDetailedImpl(res.entry, id, res.settings);
+  }
+
+  Future<void> disable() async {
+    if (!isenabled || loading) return;
+    if (meta.enabled) {
+      meta = meta.copyWith(enabled: false);
+    }
+    loading = true;
+    notifyListeners();
+    await _proxy.setEnabled(enabled: false);
+    isenabled = false;
+    loading = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _proxy.dispose();
+    super.dispose();
+  }
+
+  Future<void> enable() async {
+    if (isenabled || loading) return;
+    if (!meta.enabled) {
+      meta = meta.copyWith(enabled: true);
+    }
+    loading = true;
+    notifyListeners();
+    await _proxy.setEnabled(enabled: true);
+    isenabled = true;
+    loading = false;
+    notifyListeners();
+  }
+
+  Future<rust.EventResult?> event({
+    required rust.EventData event,
+    rust.CancelToken? token,
+  }) async {
+    return await _proxy.event(event: event, token: token);
+  }
+
+  Future<bool> handleUrl(String url, {rust.CancelToken? token}) async {
+    return await _proxy.handleUrl(url: url, token: token);
+  }
+
+  Future<void> save() async {
+    await _proxy.saveSettings();
+    await _proxy.savePermissions();
+  }
+
+  Future<List<Entry>> search(
+    int page,
+    String filter, {
+    rust.CancelToken? token,
+  }) async {
+    final res = await _proxy.search(page: page, filter: filter, token: token);
+    final db = locate<Database>();
+    return await Future.wait(
+      res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
+        final saved = await db.isSaved(entry);
+        if (saved != null) {
+          return saved;
+        }
+        return entry;
+      }).toList(),
+    );
+  }
+
+  Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
+    final entry = ep.entry;
+    final res = await _proxy.source(
+      epid: ep.episode.id,
+      token: token,
+      settings: entry.extensionSettings,
+    );
+    if (entry is EntrySaved) {
+      entry.extensionSettings =
+          res.settings; //TODO: Think about possible race conditions here
+    }
+    return SourcePath(ep, res.source);
+  }
+
+  Future<void> toggle() async {
+    if (isenabled) {
+      disable();
+    } else {
+      enable();
+    }
   }
 
   static Future<Extension> fromProxy(
@@ -93,148 +238,15 @@ class Extension extends ChangeNotifier {
       extmeta,
     );
   }
+}
 
-  Future<void> enable() async {
-    if (isenabled || loading) return;
-    if (!meta.enabled) {
-      meta = meta.copyWith(enabled: true);
-    }
-    loading = true;
-    notifyListeners();
-    await _proxy.setEnabled(enabled: true);
-    isenabled = true;
-    loading = false;
-    notifyListeners();
-  }
-
-  Future<void> disable() async {
-    if (!isenabled || loading) return;
-    if (meta.enabled) {
-      meta = meta.copyWith(enabled: false);
-    }
-    loading = true;
-    notifyListeners();
-    await _proxy.setEnabled(enabled: false);
-    isenabled = false;
-    loading = false;
-    notifyListeners();
-  }
+class ExtensionNotFoundException implements Exception {
+  final String id;
+  const ExtensionNotFoundException(this.id);
 
   @override
-  void dispose() {
-    _proxy.dispose();
-    super.dispose();
-  }
-
-  Future<rust.EventResult?> event({
-    required rust.EventData event,
-    rust.CancelToken? token,
-  }) async {
-    return await _proxy.event(event: event, token:token);
-  }
-
-  Future<List<Entry>> browse(int page, {rust.CancelToken? token}) async {
-    final db = locate<Database>();
-    final res = await _proxy.browse(page: page, token: token);
-    //TODO: Take advantage of the additional data that EntryList Provides
-    return Future.wait(
-      res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
-        final saved = await db.isSaved(entry);
-        if (saved != null) {
-          return saved;
-        }
-        return entry;
-      }).toList(),
-    );
-  }
-
-  Future<List<Entry>> search(
-    int page,
-    String filter, {
-    rust.CancelToken? token,
-  }) async {
-    final res = await _proxy.search(page: page, filter: filter, token: token);
-    final db = locate<Database>();
-    return await Future.wait(
-      res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
-        final saved = await db.isSaved(entry);
-        if (saved != null) {
-          return saved;
-        }
-        return entry;
-      }).toList(),
-    );
-  }
-
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
-    if (e.boundExtensionId != id) {
-      throw Exception(
-        'Extension mismatch: expected $id, got ${e.boundExtensionId}',
-      );
-    }
-    final res = switch (e) {
-      final EntrySaved saved => await _proxy.detail(
-        entryid: saved.id,
-        token: token,
-        settings: saved.extensionSettings,
-      ),
-      final EntryDetailed detail => await _proxy.detail(
-        entryid: detail.id,
-        token: token,
-        settings: detail.extensionSettings,
-      ),
-      final Entry entry => await _proxy.detail(
-        entryid: entry.id,
-        token: token,
-        settings: {},
-      ),
-    };
-    if (e is EntrySaved) {
-      e.entry = res.entry;
-      e.extensionSettings =
-          res.settings; //TODO: Think about possible race conditions here
-      return e;
-    }
-    return EntryDetailedImpl(res.entry, id, res.settings);
-  }
-
-  Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
-    final entry = ep.entry;
-    final res = await _proxy.source(
-      epid: ep.episode.id,
-      token: token,
-      settings: entry.extensionSettings,
-    );
-    if (entry is EntrySaved) {
-      entry.extensionSettings =
-          res.settings; //TODO: Think about possible race conditions here
-    }
-    return SourcePath(ep, res.source);
-  }
-
-  Future<bool> handleUrl(String url, {rust.CancelToken? token}) async {
-    return await _proxy.handleUrl(url: url, token: token);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is Extension && other._proxy == _proxy;
-  }
-
-  @override
-  int get hashCode => _proxy.hashCode;
-
-  Future<void> toggle() async {
-    if (isenabled) {
-      disable();
-    } else {
-      enable();
-    }
-  }
-
-  Future<void> save() async {
-    await _proxy.saveSettings();
-    await _proxy.savePermissions();
+  String toString() {
+    return 'Extension $id not found';
   }
 }
 
@@ -242,6 +254,48 @@ class SourceExtension with ChangeNotifier {
   final _extensions = <Extension>[];
   late final rust.ProxyAdapter adapter;
   bool loading = false;
+
+  Stream<List<Entry>> browse(
+    int page, {
+    bool Function(Extension e)? extfilter,
+    rust.CancelToken? token,
+  }) {
+    return Stream.fromFutures(
+      getExtensions(extfilter: extfilter)
+          .where((e) => e.isenabled)
+          .map((e) async => (await e.browse(page)).toList()),
+    );
+  }
+
+  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
+    final ext = e.extension;
+    if (ext == null) {
+      throw Exception('Extension not found for id ${e.boundExtensionId}');
+    }
+    return await ext.detail(e, token: token);
+  }
+
+  Extension getExtension(String id) {
+    final ext = tryGetExtension(id);
+    if (ext == null) {
+      throw ExtensionNotFoundException(id);
+    }
+    return ext;
+  }
+
+  List<Extension> getExtensions({bool Function(Extension e)? extfilter}) {
+    return _extensions.where((e) => extfilter == null || extfilter(e)).toList();
+  }
+
+  Future<bool> handleUrl(String url, {rust.CancelToken? token}) async {
+    for (final e in _extensions) {
+      final result = await e.handleUrl(url, token: token);
+      if (result) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   Future<SourceExtension> init() async {
     final dir = await locateAsync<DirectoryProvider>();
@@ -304,74 +358,6 @@ class SourceExtension with ChangeNotifier {
     return this;
   }
 
-  static Future<void> ensureInitialized() async {
-    register<SourceExtension>(await SourceExtension().init());
-  }
-
-  Stream<List<Entry>> browse(
-    int page, {
-    bool Function(Extension e)? extfilter,
-    rust.CancelToken? token,
-  }) {
-    return Stream.fromFutures(
-      getExtensions(extfilter: extfilter)
-          .where((e) => e.isenabled)
-          .map((e) async => (await e.browse(page)).toList()),
-    );
-  }
-
-  Stream<List<Entry>> search(
-    int page,
-    String filter, {
-    bool Function(Extension e)? extfilter,
-    rust.CancelToken? token,
-  }) {
-    return Stream.fromFutures(
-      getExtensions(extfilter: extfilter)
-          .where((e) => e.isenabled)
-          .map((e) async => (await e.search(page, filter)).toList()),
-    );
-  }
-
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
-    final ext = e.extension;
-    if (ext == null) {
-      throw Exception('Extension not found for id ${e.boundExtensionId}');
-    }
-    return await ext.detail(e, token: token);
-  }
-
-  Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
-    final entry = ep.entry;
-    final ext = entry.extension;
-    if (ext == null) {
-      throw Exception('Extension not found for id ${entry.boundExtensionId}');
-    }
-    return await ext.source(ep, token: token);
-  }
-
-  Future<bool> handleUrl(String url, {rust.CancelToken? token}) async {
-    for (final e in _extensions) {
-      final result = await e.handleUrl(url, token: token);
-      if (result) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  Extension getExtension(String id) {
-    final ext = tryGetExtension(id);
-    if (ext == null) {
-      throw ExtensionNotFoundException(id);
-    }
-    return ext;
-  }
-
-  Extension? tryGetExtension(String id) {
-    return _extensions.where((e) => e.data.id == id).firstOrNull;
-  }
-
   Future<void> install(String location) async {
     final newproxy = await adapter.install(location: location);
     final db = await locateAsync<Database>();
@@ -399,17 +385,33 @@ class SourceExtension with ChangeNotifier {
     notifyListeners();
   }
 
-  List<Extension> getExtensions({bool Function(Extension e)? extfilter}) {
-    return _extensions.where((e) => extfilter == null || extfilter(e)).toList();
+  Stream<List<Entry>> search(
+    int page,
+    String filter, {
+    bool Function(Extension e)? extfilter,
+    rust.CancelToken? token,
+  }) {
+    return Stream.fromFutures(
+      getExtensions(extfilter: extfilter)
+          .where((e) => e.isenabled)
+          .map((e) async => (await e.search(page, filter)).toList()),
+    );
   }
-}
 
-class ExtensionNotFoundException implements Exception {
-  final String id;
-  const ExtensionNotFoundException(this.id);
+  Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
+    final entry = ep.entry;
+    final ext = entry.extension;
+    if (ext == null) {
+      throw Exception('Extension not found for id ${entry.boundExtensionId}');
+    }
+    return await ext.source(ep, token: token);
+  }
 
-  @override
-  String toString() {
-    return 'Extension $id not found';
+  Extension? tryGetExtension(String id) {
+    return _extensions.where((e) => e.data.id == id).firstOrNull;
+  }
+
+  static Future<void> ensureInitialized() async {
+    register<SourceExtension>(await SourceExtension().init());
   }
 }
