@@ -10,6 +10,7 @@ import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
@@ -35,8 +36,17 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
   late final Player player;
   late final Observer sourceObserver;
-  bool isLoading = false;
+  Source_Audio? currentAudio;
+  ValueNotifier<int> streamIndex = ValueNotifier(0);
   Object? exception;
+  bool loading = false;
+
+  int getStreamIndex() {
+    if ((currentAudio?.sources.length ?? 0) <= streamIndex.value) {
+      return 0;
+    }
+    return streamIndex.value;
+  }
 
   Future<void> initPlayer() async {
     player = Player(
@@ -46,43 +56,79 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       ),
     );
     sourceObserver = Observer(() async {
-      setState(() {
-        isLoading = true;
-      });
+      if (mounted) {
+        setState(() {
+          loading = true;
+        });
+      }
       final res = await widget.source.cache.get(widget.source.episode);
       if (res.isFailure) {
-        setState(() {
-          exception = res.exceptionOrNull;
-        });
+        if (mounted) {
+          setState(() {
+            exception = res.exceptionOrNull;
+          });
+        }
         return;
       }
       final source = res.getOrThrow;
-      if (source.source is! Source_Mp3) {
+      if (source.source is! Source_Audio) {
+        if (mounted) {
+          setState(() {
+            exception = Exception(
+              'Unexpected Type Expected Source_Audio got ${source.source.runtimeType}',
+            );
+          });
+        }
         return;
       }
-      final sourcedata = source.source as Source_Mp3;
-      final prog = source.episode.data.progress?.split(':');
-      Duration startduration = Duration.zero;
-      int chapterindex = 0;
-      if (prog != null) {
-        chapterindex = int.tryParse(prog[0]) ?? 0;
-        startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
+      if (mounted) {
+        setState(() {
+          currentAudio = source.source as Source_Audio;
+        });
       }
-      await player.open(
-        Playlist([
-          for (final (index, chapter) in sourcedata.chapters.indexed)
-            Media(
-              chapter.url.url,
-              httpHeaders: chapter.url.header,
-              extras: {'title': chapter.title},
-              start: index == chapterindex ? startduration : Duration.zero,
-            ),
-        ], index: chapterindex),
+      final startduration = Duration(
+        milliseconds: int.tryParse(source.episode.data.progress ?? '0') ?? 0,
       );
-      setState(() {
-        isLoading = false;
-      });
+      final stream = currentAudio!.sources[getStreamIndex()];
+      await player.open(
+        Media(
+          stream.url.url,
+          httpHeaders: stream.url.header,
+          start: startduration,
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }, widget.source)..disposedBy(scope);
+
+    Observer(
+      () async {
+        if (mounted) {
+          setState(() {
+            loading = true;
+          });
+        }
+        final startduration = player.state.position;
+        final stream = currentAudio!.sources[getStreamIndex()];
+        await player.open(
+          Media(
+            stream.url.url,
+            httpHeaders: stream.url.header,
+            start: startduration,
+          ),
+        );
+        if (mounted) {
+          setState(() {
+            loading = false;
+          });
+        }
+      },
+      streamIndex,
+      callOnInit: false,
+    );
 
     locate<PlayerService>().setSession(
       PlaySession(
@@ -115,11 +161,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       widget.source.episode.goNext(widget.source);
     });
     player.stream.position.listen((event) {
-      final playlistindex = player.state.playlist.index;
-      widget.source.episode.data.progress =
-          '$playlistindex:${event.inMilliseconds}';
-      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
-          playlistindex / player.state.playlist.medias.length > 0.5) {
+      widget.source.episode.data.progress = '${event.inMilliseconds}';
+      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
         widget.source.cache.preload(widget.source.episode.next);
       }
     });
@@ -206,7 +249,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    if (currentAudio == null) {
       return const NavScaff(
         title: Text('Loading...'),
         child: Center(child: DionProgressBar()),
@@ -260,96 +303,111 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                 ).paddingOnly(bottom: 10),
               ),
             ),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  StreamBuilder(
-                    stream: combineStreams([
-                      player.stream.duration,
-                      player.stream.position,
-                      player.stream.buffer,
-                    ]),
-                    builder: (context, snapshot) {
-                      return ProgressBar(
-                        progress: player.state.position,
-                        total: player.state.duration,
-                        buffered: player.state.buffer,
-                        onSeek: (value) => player.seek(value),
-                      );
-                    },
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      DionIconbutton(
-                        icon: const Icon(Icons.skip_previous),
-                        onPressed: () {
-                          if (player.state.playlist.index == 0) {
-                            if (mounted) {
-                              widget.source.episode.goPrev(widget.source);
+            if (loading)
+              50.0.heightBox
+            else
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StreamBuilder(
+                      stream: combineStreams([
+                        player.stream.duration,
+                        player.stream.position,
+                        player.stream.buffer,
+                      ]),
+                      builder: (context, snapshot) {
+                        return ProgressBar(
+                          progress: player.state.position,
+                          total: player.state.duration,
+                          buffered: player.state.buffer,
+                          onSeek: (value) => player.seek(value),
+                        );
+                      },
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DionIconbutton(
+                          icon: const Icon(Icons.skip_previous),
+                          onPressed: () {
+                            if (player.state.playlist.index == 0) {
+                              if (mounted) {
+                                widget.source.episode.goPrev(widget.source);
+                              }
                             }
-                          }
-                          player.previous();
-                        },
-                      ),
-                      DionIconbutton(
-                        icon: const Icon(Icons.navigate_before),
-                        onPressed: () {
-                          player.seek(
-                            Duration(
-                              milliseconds:
-                                  player.state.position.inMilliseconds - 5000,
-                            ),
-                          );
-                        },
-                      ),
-                      StreamBuilder(
-                        stream: player.stream.playing,
-                        builder: (context, snapshot) {
-                          var icon = Icons.play_arrow;
-                          if (snapshot.hasData && snapshot.data!) {
-                            icon = Icons.pause;
-                          } else {
-                            icon = Icons.play_arrow;
-                          }
-                          return DionIconbutton(
-                            icon: Icon(icon),
-                            onPressed: () async {
-                              player.playOrPause();
+                            player.previous();
+                          },
+                        ),
+                        DionIconbutton(
+                          icon: const Icon(Icons.navigate_before),
+                          onPressed: () {
+                            player.seek(
+                              Duration(
+                                milliseconds:
+                                    player.state.position.inMilliseconds - 5000,
+                              ),
+                            );
+                          },
+                        ),
+                        StreamBuilder(
+                          stream: player.stream.playing,
+                          initialData: player.state.playing,
+                          builder: (context, snapshot) {
+                            final data = snapshot.data ?? player.state.playing;
+                            final icon = data ? Icons.pause : Icons.play_arrow;
+                            return DionIconbutton(
+                              icon: Icon(icon),
+                              onPressed: () async {
+                                await player.playOrPause();
+                              },
+                            );
+                          },
+                        ),
+                        DionIconbutton(
+                          icon: const Icon(Icons.navigate_next),
+                          onPressed: () {
+                            player.seek(
+                              Duration(
+                                milliseconds:
+                                    player.state.position.inMilliseconds + 5000,
+                              ),
+                            );
+                          },
+                        ),
+                        DionIconbutton(
+                          icon: const Icon(Icons.skip_next),
+                          onPressed: () {
+                            if (player.state.playlist.index ==
+                                player.state.playlist.medias.length - 1) {
+                              if (mounted) {
+                                widget.source.episode.goNext(widget.source);
+                              }
+                            }
+                            player.next();
+                          },
+                        ),
+                        if (currentAudio!.sources.length > 1)
+                          DionDropdown(
+                            items: currentAudio!.sources.indexed
+                                .map(
+                                  (item) => DionDropdownItem(
+                                    value: item.$1,
+                                    label: '${item.$2.name} (${item.$2.lang})',
+                                  ),
+                                )
+                                .toList(),
+                            value: getStreamIndex(),
+                            onChanged: (val) {
+                              if (val == null) return;
+                              streamIndex.value = val;
                             },
-                          );
-                        },
-                      ),
-                      DionIconbutton(
-                        icon: const Icon(Icons.navigate_next),
-                        onPressed: () {
-                          player.seek(
-                            Duration(
-                              milliseconds:
-                                  player.state.position.inMilliseconds + 5000,
-                            ),
-                          );
-                        },
-                      ),
-                      DionIconbutton(
-                        icon: const Icon(Icons.skip_next),
-                        onPressed: () {
-                          if (player.state.playlist.index ==
-                              player.state.playlist.medias.length - 1) {
-                            if (mounted) {
-                              widget.source.episode.goNext(widget.source);
-                            }
-                          }
-                          player.next();
-                        },
-                      ),
-                      Text(player.state.playlist.medias.length.toString()),
-                    ],
-                  ),
-                ],
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),

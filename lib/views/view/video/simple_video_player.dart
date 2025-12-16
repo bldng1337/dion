@@ -9,11 +9,15 @@ import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+import 'package:go_router/go_router.dart';
+import 'package:inline_result/inline_result.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,16 +35,21 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   late final Player player;
   late final VideoController controller;
   late final Observer sourceObserver;
-  Subtitles? subtitle;
+  ValueNotifier<int> subtitleIndex = ValueNotifier(0);
+  Source_Video? currentVideo;
+  ValueNotifier<int> streamIndex = ValueNotifier(0);
+  Object? exception;
 
   List<Subtitles> get subtitles {
-    if (widget.source.source == null) return [];
-    final source = widget.source.source!;
-    if (source.source is! Source_M3u8) {
-      return [];
+    if (currentVideo == null) return [];
+    return currentVideo!.sub;
+  }
+
+  int getStreamIndex() {
+    if ((currentVideo?.sources.length ?? 0) <= streamIndex.value) {
+      return 0;
     }
-    final sourcedata = source.source as Source_M3u8;
-    return sourcedata.sub;
+    return streamIndex.value;
   }
 
   Future<void> initPlayer() async {
@@ -52,31 +61,68 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     );
     controller = VideoController(player);
     sourceObserver = Observer(() async {
-      if (widget.source.source == null) {
-        player.stop();
+      final res = await widget.source.cache.get(widget.source.episode);
+      if (res.isFailure) {
+        setState(() {
+          exception = res.exceptionOrNull;
+        });
         return;
       }
-      final source = widget.source.source!;
-      if (source.source is! Source_M3u8) {
+      final source = res.getOrThrow;
+      if (source.source is! Source_Video) {
         return;
       }
-      final sourcedata = source.source as Source_M3u8;
+      setState(() {
+        currentVideo = source.source as Source_Video;
+      });
       final prog = source.episode.data.progress?.split(':');
       Duration startduration = Duration.zero;
-      // int chapterindex = 0;
       if (prog != null && !source.episode.data.finished) {
-        // chapterindex = int.tryParse(prog[0]) ?? 0;
         startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
       }
+      final stream = currentVideo!.sources[getStreamIndex()];
       await player.open(
         Media(
-          sourcedata.link.url,
-          httpHeaders: sourcedata.link.header,
+          stream.url.url,
+          httpHeaders: stream.url.header,
           start: startduration,
         ),
       );
-      await player.setSubtitleTrack(SubtitleTrack.no());
-    }, widget.source);
+      await Future.delayed(const Duration(milliseconds: 500));
+      final sub = subtitles[subtitleIndex.value];
+      await player.setSubtitleTrack(
+        SubtitleTrack.uri(sub.url.url, title: sub.title),
+      );
+    }, widget.source)..disposedBy(scope);
+    Observer(
+      () async {
+        final startduration = player.state.position;
+        final stream = currentVideo!.sources[getStreamIndex()];
+        await player.open(
+          Media(
+            stream.url.url,
+            httpHeaders: stream.url.header,
+            start: startduration,
+          ),
+        );
+      },
+      streamIndex,
+      callOnInit: false,
+    );
+    Observer(
+      () async {
+        if (subtitleIndex.value == -1) {
+          await player.setSubtitleTrack(SubtitleTrack.no());
+          return;
+        }
+        final sub = subtitles[subtitleIndex.value];
+        await player.setSubtitleTrack(
+          SubtitleTrack.uri(sub.url.url, title: sub.title),
+        );
+      },
+      subtitleIndex,
+      callOnInit: false,
+    );
     locate<PlayerService>().setSession(
       PlaySession(
         widget.source,
@@ -163,24 +209,50 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
 
   @override
   Widget build(BuildContext context) {
+    if (currentVideo == null) {
+      return const NavScaff(
+        title: Text('Loading...'),
+        child: Center(child: DionProgressBar()),
+      );
+    }
+    if (exception != null) {
+      return NavScaff(
+        title: Text('Error loading ${widget.source.episode.name}'),
+        child: ErrorDisplay(e: exception),
+      );
+    }
     final epdata = widget.source.episode.data;
     return NavScaff(
       actions: [
-        if (subtitles.isNotEmpty)
+        if (currentVideo!.sources.length > 1)
           DionDropdown(
-            value: subtitle,
-            items: subtitles
-                .map((e) => DionDropdownItem(value: e, label: e.title))
+            value: getStreamIndex(),
+            items: currentVideo!.sources.indexed
+                .map(
+                  (item) => DionDropdownItem(
+                    value: item.$1,
+                    label: '${item.$2.name} (${item.$2.lang})',
+                  ),
+                )
                 .toList(),
             onChanged: (value) {
-              subtitle = value;
-              if (value == null) {
-                player.setSubtitleTrack(SubtitleTrack.no());
-                return;
-              }
-              player.setSubtitleTrack(
-                SubtitleTrack.uri(value.url.url, title: value.title),
-              ); //TODO: Think about headers
+              if (value == null) return;
+              streamIndex.value = value;
+            },
+          ),
+        if (subtitles.isNotEmpty)
+          DionDropdown(
+            value: subtitleIndex.value,
+            items: [
+              const DionDropdownItem(value: -1, label: 'No subtitles'),
+              ...subtitles.indexed.map(
+                (item) =>
+                    DionDropdownItem(value: item.$1, label: item.$2.title),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              subtitleIndex.value = value;
             },
           ),
         DionIconbutton(
@@ -198,7 +270,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           onPressed: () =>
               launchUrl(Uri.parse(widget.source.episode.episode.url)),
         ),
-        DionIconbutton(icon: const Icon(Icons.settings), onPressed: () {}),
+        DionIconbutton(
+          icon: const Icon(Icons.settings),
+          onPressed: () => GoRouter.of(context).push('/settings/videoplayer'),
+        ),
       ],
       title: StreamBuilder(
         stream: player.stream.playlist,
@@ -246,7 +321,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                       color: Colors.white,
                     ),
                     onPressed: () async {
-                      player.playOrPause();
+                      await player.playOrPause();
                     },
                   ),
                 ).paddingAll(25.0),
@@ -270,7 +345,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 DionIconbutton(
                   onPressed: () {
                     exitFullscreen(context);
-                    context.pop();
+                    GoRouter.of(context).pop();
                   },
                   icon: const Icon(Icons.arrow_back),
                 ),
@@ -294,23 +369,40 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
                 ),
                 DionIconbutton(
                   icon: const Icon(Icons.settings),
-                  onPressed: () => {},
+                  onPressed: () =>
+                      GoRouter.of(context).push('/settings/videoplayer'),
                 ),
-                if (subtitles.isNotEmpty)
+                if (currentVideo!.sources.length > 1)
                   DionDropdown(
-                    value: subtitle,
-                    items: subtitles
-                        .map((e) => DionDropdownItem(value: e, label: e.title))
+                    value: getStreamIndex(),
+                    items: currentVideo!.sources.indexed
+                        .map(
+                          (item) => DionDropdownItem(
+                            value: item.$1,
+                            label: '${item.$2.name} (${item.$2.lang})',
+                          ),
+                        )
                         .toList(),
                     onChanged: (value) {
-                      subtitle = value;
-                      if (value == null) {
-                        player.setSubtitleTrack(SubtitleTrack.no());
-                        return;
-                      }
-                      player.setSubtitleTrack(
-                        SubtitleTrack.uri(value.url.url, title: value.title),
-                      ); //TODO: Think about headers
+                      if (value == null) return;
+                      streamIndex.value = value;
+                    },
+                  ),
+                if (subtitles.isNotEmpty)
+                  DionDropdown<int>(
+                    value: subtitleIndex.value,
+                    items: [
+                      const DionDropdownItem(value: -1, label: 'No subtitles'),
+                      ...subtitles.indexed.map(
+                        (item) => DionDropdownItem(
+                          value: item.$1,
+                          label: item.$2.title,
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      subtitleIndex.value = value;
                     },
                   ),
               ],
