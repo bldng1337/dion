@@ -15,17 +15,24 @@ import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/material.dart' show Icons, Theme, VisualDensity;
 import 'package:flutter/widgets.dart';
+import 'package:dionysos/widgets/badge.dart';
+import 'package:dionysos/widgets/buttons/clickable.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 
 class EpisodeListSliver extends StatefulWidget {
   final EntryDetailed entry;
   final List<int> selected;
   final Function(int) onSelect;
+  final Function(int)? onEnter;
+  final Function(int)? onExit;
 
   const EpisodeListSliver({
     super.key,
     required this.entry,
     required this.selected,
     required this.onSelect,
+    this.onExit,
+    this.onEnter,
   });
 
   @override
@@ -33,8 +40,6 @@ class EpisodeListSliver extends StatefulWidget {
 }
 
 class _EpisodeListSliverState extends State<EpisodeListSliver> {
-  int? hovering;
-
   @override
   Widget build(BuildContext context) {
     final eplist = widget.entry.episodes;
@@ -83,7 +88,7 @@ class _EpisodeListSliverState extends State<EpisodeListSliver> {
         elist = reverse ? elist.toList().reversed : elist;
         final list = elist.toList();
 
-        return SliverList.builder(
+        return SuperSliverList.builder(
           key: PageStorageKey<String>(
             '${entry.boundExtensionId}->${entry.id.uid}',
           ),
@@ -92,14 +97,10 @@ class _EpisodeListSliverState extends State<EpisodeListSliver> {
             final index = list[eindex].$1;
             return MouseRegion(
               onEnter: (e) {
-                setState(() {
-                  hovering = index;
-                });
+                widget.onEnter?.call(index);
               },
               onExit: (e) {
-                setState(() {
-                  hovering = null;
-                });
+                widget.onExit?.call(index);
               },
               child: EpisodeTile(
                 disabled: (entry.extension?.isenabled ?? false) == false,
@@ -131,110 +132,127 @@ class EpisodeTile extends StatelessWidget {
     required this.selection,
   });
 
+  Widget buildDownload(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: StreamBuilder(
+        stream: locate<DownloadService>().getStatus(episodepath),
+        builder: (context, snapshot) {
+          return switch (snapshot.data?.status) {
+            Status.nodownload => DionIconbutton(
+              icon: const Icon(Icons.download),
+              onPressed: () async {
+                await locate<DownloadService>().download([episodepath]);
+              },
+            ),
+            Status.downloading => ListenableBuilder(
+              listenable: snapshot.data!.task!,
+              builder: (context, child) =>
+                  switch (snapshot.data?.task?.taskstatus) {
+                    TaskStatus.idle => const Icon(Icons.pending_actions),
+                    TaskStatus.running || null => DionProgressBar(
+                      value: snapshot.data?.task?.progress,
+                    ),
+                    TaskStatus.error => DionIconbutton(
+                      icon: const Icon(Icons.error),
+                      onPressed: () {
+                        snapshot.data!.task!.clearError();
+                        final mngr = locate<TaskManager>();
+                        mngr.update();
+                      },
+                    ),
+                  },
+            ),
+            null => const DionProgressBar(),
+            Status.downloaded => DionIconbutton(
+              icon: const Icon(Icons.check),
+              onPressed: () async {
+                await locate<DownloadService>().deleteEpisode(episodepath);
+              },
+            ),
+          };
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final epdata = episodepath.data;
-    return DionListTile(
-      disabled: disabled,
-      selected: isSelected,
-      visualDensity: VisualDensity.comfortable, //TODO: Fix sometime
+    return Clickable(
       onLongTap: onSelect,
       onTap: selection ? onSelect : () => episodepath.go(context),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (episodepath.episode.cover != null)
-            DionImage(
-              imageUrl: episodepath.episode.cover!.url,
-              httpHeaders: episodepath.episode.cover!.header,
-              width: 90,
-              height: 60,
-              boxFit: BoxFit.contain,
-            ),
-          if (epdata.bookmark)
-            Icon(Icons.bookmark, color: context.theme.colorScheme.primary)
-          else
-            (Theme.of(context).iconTheme.size ?? 24.0).widthBox,
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DionTextScroll(
-                episodepath.episode.name,
-                style: context.titleMedium
-                    ?.copyWith(
-                      color: epdata.finished
-                          ? context.theme.disabledColor
-                          : null,
-                    )
-                    .copyWith(
-                      color: (episodepath.entry.extension?.isenabled ?? false)
-                          ? null
-                          : context.theme.disabledColor,
+      child: DionBadge(
+        noPadding: true,
+        noMargin: true,
+        color: disabled
+            ? context.theme.disabledColor.withValues(alpha: 0.1)
+            : isSelected
+            ? context.theme.colorScheme.primary.withValues(alpha: 0.1)
+            : null,
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (episodepath.episode.cover != null)
+                  DionImage.fromLink(
+                    link: episodepath.episode.cover,
+                    height: context.width < 600 ? null : 120.0,
+                    width: context.width < 600 ? 140 : null,
+                  )
+                else
+                  28.0.widthBox,
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      maxLines: 2,
+                      episodepath.episode.name,
+                      style:
+                          (context.width < 600
+                                  ? context.titleSmall
+                                  : context.titleMedium)
+                              ?.copyWith(
+                                color: epdata.finished
+                                    ? context.theme.disabledColor
+                                    : null,
+                              )
+                              .copyWith(
+                                color:
+                                    (episodepath.entry.extension?.isenabled ??
+                                        false)
+                                    ? null
+                                    : context.theme.disabledColor,
+                              ),
                     ),
-              ),
-              if (episodepath.episode.timestamp != null)
-                Text(
-                  DateTime.tryParse(
-                        episodepath.episode.timestamp!,
-                      )?.formatrelative() ??
-                      '',
-                  style: context.labelSmall?.copyWith(
-                    color: context.theme.disabledColor,
-                  ),
-                ),
-            ],
-          ).expanded(),
-        ],
+                    if (episodepath.episode.timestamp != null)
+                      Text(
+                        DateTime.tryParse(
+                              episodepath.episode.timestamp!,
+                            )?.formatrelative() ??
+                            '',
+                        style: context.labelSmall?.copyWith(
+                          color: context.theme.disabledColor,
+                        ),
+                      ),
+                  ],
+                ).paddingAll(5).expanded(),
+                if (episodepath.entry is EntrySaved)
+                  Center(child: buildDownload(context)).paddingAll(5),
+              ],
+            ),
+            if (epdata.bookmark)
+              Icon(
+                Icons.bookmark,
+                color: context.theme.colorScheme.primary,
+              ).paddingAll(5),
+          ],
+        ),
       ),
-      trailing: episodepath.entry is! EntrySaved
-          ? null
-          : SizedBox(
-              width: 40,
-              height: 40,
-              child: StreamBuilder(
-                stream: locate<DownloadService>().getStatus(episodepath),
-                builder: (context, snapshot) {
-                  return switch (snapshot.data?.status) {
-                    Status.nodownload => DionIconbutton(
-                      icon: const Icon(Icons.download),
-                      onPressed: () async {
-                        await locate<DownloadService>().download([episodepath]);
-                      },
-                    ),
-                    Status.downloading => ListenableBuilder(
-                      listenable: snapshot.data!.task!,
-                      builder: (context, child) =>
-                          switch (snapshot.data?.task?.taskstatus) {
-                            TaskStatus.idle => const Icon(
-                              Icons.pending_actions,
-                            ),
-                            TaskStatus.running || null => DionProgressBar(
-                              value: snapshot.data?.task?.progress,
-                            ),
-                            TaskStatus.error => DionIconbutton(
-                              icon: const Icon(Icons.error),
-                              onPressed: () {
-                                snapshot.data!.task!.clearError();
-                                final mngr = locate<TaskManager>();
-                                mngr.update();
-                              },
-                            ),
-                          },
-                    ),
-                    null => const DionProgressBar(),
-                    Status.downloaded => DionIconbutton(
-                      icon: const Icon(Icons.check),
-                      onPressed: () async {
-                        await locate<DownloadService>().deleteEpisode(
-                          episodepath,
-                        );
-                      },
-                    ),
-                  };
-                },
-              ),
-            ),
-    );
+    ).paddingAll(3);
   }
 }
