@@ -45,6 +45,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Object? error;
   StackTrace? errstack;
   List<int> selected = [];
+  int? hovered;
 
   late final ScrollController _scrollController;
 
@@ -56,6 +57,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         if (entry is! EntrySaved) return;
         for (final int i in selected) {
           final data = entry.getEpisodeData(i);
+          data.bookmark = true;
+        }
+        if (hovered != null) {
+          final data = entry.getEpisodeData(hovered!);
           data.bookmark = true;
         }
         selected.clear();
@@ -72,6 +77,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           final data = entry.getEpisodeData(i);
           data.bookmark = false;
         }
+        if (hovered != null) {
+          final data = entry.getEpisodeData(hovered!);
+          data.bookmark = false;
+        }
         selected.clear();
         setState(() {});
         await entry.save();
@@ -84,6 +93,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         if (entry is! EntrySaved) return;
         for (final int i in selected) {
           final data = entry.getEpisodeData(i);
+          data.finished = true;
+        }
+        if (hovered != null) {
+          final data = entry.getEpisodeData(hovered!);
           data.finished = true;
         }
         selected.clear();
@@ -101,6 +114,11 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           data.finished = false;
           data.progress = null;
         }
+        if (hovered != null) {
+          final data = entry.getEpisodeData(hovered!);
+          data.finished = false;
+          data.progress = null;
+        }
         selected.clear();
         setState(() {});
         await entry.save();
@@ -110,9 +128,13 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       label: 'Download',
       onTap: () async {
         final download = locate<DownloadService>();
-        await download.download(
-          selected.map((index) => EpisodePath(entry! as EntryDetailed, index)),
-        );
+        await download.download([
+          ...selected.map(
+            (index) => EpisodePath(entry! as EntryDetailed, index),
+          ),
+          if (hovered != null && !selected.contains(hovered))
+            EpisodePath(entry! as EntryDetailed, hovered!),
+        ]);
         selected.clear();
         setState(() {});
       },
@@ -121,27 +143,40 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       label: 'Delete Download',
       onTap: () async {
         final download = locate<DownloadService>();
-        await download.deleteEpisodes(
-          selected.map((index) => EpisodePath(entry! as EntryDetailed, index)),
-        );
+        await download.deleteEpisodes([
+          ...selected.map(
+            (index) => EpisodePath(entry! as EntryDetailed, index),
+          ),
+          if (hovered != null && !selected.contains(hovered))
+            EpisodePath(entry! as EntryDetailed, hovered!),
+        ]);
         selected.clear();
         setState(() {});
       },
     ),
-    if (selected.length == 1) ...[
+    if (selected.length == 1 || (selected.isEmpty && hovered != null))
       ContextMenuItem(
         label: 'Open in Browser',
         onTap: () async {
+          print(hovered);
+          if (selected.isEmpty) {
+            if (hovered == null) return;
+            await launchUrl(
+              Uri.parse((entry! as EntryDetailed).episodes[hovered!].url),
+            );
+            return;
+          }
           await launchUrl(
             Uri.parse((entry! as EntryDetailed).episodes[selected.first].url),
           );
         },
       ),
-    ],
     ContextMenuItem(
       label: 'Select to this episode',
       onTap: () async {
-        final index = selected.reduce((a, b) => max(a, b)) + 1;
+        final index =
+            max(selected.fold(-1, (a, b) => max(a, b)), hovered ?? -1) + 1;
+        if (index < 0) return;
         selected.clear();
         selected.addAll(Iterable.generate(index, (index) => index));
         setState(() {});
@@ -388,11 +423,13 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                     ),
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.pin,
-                      background: DionImage(
-                        imageUrl: entry?.cover?.url,
+                      background: DionImage.fromLink(
+                        link: (entry is EntryDetailed)
+                            ? (entry! as EntryDetailed).poster ?? entry?.cover
+                            : entry?.cover,
                         filterQuality: FilterQuality.high,
                         boxFit: BoxFit.cover,
-                        httpHeaders: entry?.cover?.header,
+                        alignment: const Alignment(0.5, -0.6),
                         errorWidget: Container(
                           color: context.theme.colorScheme.surface,
                         ),
@@ -406,6 +443,12 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                   EpisodeListSliver(
                     entry: entry! as EntryDetailed,
                     selected: selected,
+                    onEnter: (index) {
+                      if (hovered == index) return;
+                      setState(() {
+                        hovered = index;
+                      });
+                    },
                     onSelect: (index) {
                       if (selected.contains(index)) {
                         selected.remove(index);
