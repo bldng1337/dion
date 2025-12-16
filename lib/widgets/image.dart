@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dionysos/service/source_extension.dart';
 
 @immutable
 class DionNetworkImage extends ImageProvider<DionNetworkImage> {
@@ -140,6 +141,38 @@ class DionImage extends StatefulWidget {
   }) : assert(
          (hasPopup ^ (onTap != null)) || (hasPopup == false && onTap == null),
        );
+
+  factory DionImage.fromLink({
+    Key? key,
+    Link? link,
+    double? width,
+    double? height,
+    FilterQuality? filterQuality,
+    BoxFit? boxFit,
+    bool shouldAnimate = true,
+    bool hasPopup = false,
+    Function()? onTap,
+    BorderRadiusGeometry? borderRadius,
+    Widget? errorWidget,
+    Color? color,
+    Alignment? alignment,
+    Widget Function(BuildContext context)? loadingBuilder,
+  }) => DionImage(
+    imageUrl: link?.url,
+    httpHeaders: link?.header,
+    width: width,
+    height: height,
+    filterQuality: filterQuality,
+    boxFit: boxFit,
+    shouldAnimate: shouldAnimate,
+    hasPopup: hasPopup,
+    onTap: onTap,
+    borderRadius: borderRadius,
+    errorWidget: errorWidget,
+    color: color,
+    alignment: alignment,
+    loadingBuilder: loadingBuilder,
+  );
 
   @override
   _DionImageState createState() => _DionImageState();
@@ -272,7 +305,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
           return widget.errorWidget!;
         }
         return SizedBox(
-          child:ErrorDisplay(
+          child: ErrorDisplay(
             e: error,
             s: stackTrace,
             message: 'Failed to load image ${widget.imageUrl}',
