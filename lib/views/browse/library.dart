@@ -76,20 +76,32 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
       () async {
         if (mounted) {
           final categories = await locate<Database>().getCategories();
+          if (!mounted) {
+            return;
+          }
           setState(() {
             this.categories = categories;
           });
           for (final cat in categories) {
             final count = await locate<Database>().getNumEntriesInCategory(cat);
+            if (!mounted) {
+              return;
+            }
             setState(() {
               categoryCounts[cat] = count;
             });
           }
           final total = await locate<Database>().getNumEntries();
+          if (!mounted) {
+            return;
+          }
           setState(() {
             totalCount = total;
           });
           final none = await locate<Database>().getNumEntriesInCategory(null);
+          if (!mounted) {
+            return;
+          }
           setState(() {
             noneCount = none;
           });
