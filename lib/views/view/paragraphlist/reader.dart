@@ -143,10 +143,24 @@ class ReaderRenderParagraph extends StatelessWidget {
           ),
         );
       case final Paragraph_CustomUI customUi:
-        return CustomUIWidget.fromUI(
-          ui: customUi.ui,
-          extension: extension,
-        ); //TODO: Implement CustomUI
+        return CustomUIWidget.fromUI(ui: customUi.ui, extension: extension);
+      case final Paragraph_Table table:
+        return Table(
+          border: TableBorder.all(color: Colors.grey.shade300),
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            for (final row in table.columns)
+              TableRow(
+                children: [
+                  for (final cell in row.cells)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ReaderRenderParagraph(cell, extension),
+                    ),
+                ],
+              ),
+          ],
+        );
     }
   }
 }
