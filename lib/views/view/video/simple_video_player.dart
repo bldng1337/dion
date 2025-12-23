@@ -89,10 +89,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         ),
       );
       await Future.delayed(const Duration(milliseconds: 500));
-      final sub = subtitles[subtitleIndex.value];
-      await player.setSubtitleTrack(
-        SubtitleTrack.uri(sub.url.url, title: sub.title),
-      );
+      if(subtitles.isNotEmpty){
+        final sub = subtitles[subtitleIndex.value];
+        await player.setSubtitleTrack(
+          SubtitleTrack.uri(sub.url.url, title: sub.title),
+        );
+      }
     }, widget.source)..disposedBy(scope);
     Observer(
       () async {

@@ -2,6 +2,7 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
+import 'package:dionysos/widgets/settings/setting_font.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
@@ -50,6 +51,10 @@ class ParagraphReaderSettings extends StatelessWidget {
           SettingTitle(
             title: 'Text Settings',
             children: [
+              SettingFont(
+                title: 'Font',
+                setting: settings.readerSettings.paragraphreader.font,
+              ),
               SettingToggle(
                 title: 'Adaptive Width',
                 description: 'Auto sets the line width to 0 in portrait mode',

@@ -1,5 +1,7 @@
+import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
@@ -104,43 +106,133 @@ class ReaderRenderParagraph extends StatelessWidget {
               psettings.text.bionicSettings.bionicWheight,
               psettings.text.bionicSettings.bionicSize,
               psettings.text.bionicSettings.letters,
+              psettings.font,
             ]),
-            builder: (context, child) => BionicText(
-              content: text.content,
-              basicStyle: context.bodyLarge?.copyWith(
-                height: psettings.text.linespacing.value,
-                fontSize: psettings.text.size.value.toDouble(),
-                fontWeight: FontWeight.lerp(
-                  FontWeight.w100,
-                  FontWeight.w900,
-                  psettings.text.weight.value,
+            builder: (context, child) {
+              return LoadingBuilder(
+                future: psettings.font.value.toTextStyle(),
+                builder: (context, style) => BionicText(
+                  content: text.content,
+                  basicStyle: (context.bodyLarge ?? style)
+                      .merge(style)
+                      .copyWith(
+                        height: psettings.text.linespacing.value,
+                        fontSize: psettings.text.size.value.toDouble(),
+                        fontWeight: FontWeight.lerp(
+                          FontWeight.w100,
+                          FontWeight.w900,
+                          psettings.text.weight.value,
+                        ),
+                      ),
+                  letters: psettings.text.bionicSettings.letters.value,
+                  markStyle: (context.bodyLarge ?? style)
+                      .merge(style)
+                      .copyWith(
+                        height: psettings.text.linespacing.value,
+                        fontSize: psettings.text.bionicSettings.bionicSize.value
+                            .toDouble(),
+                        fontWeight: FontWeight.lerp(
+                          FontWeight.w100,
+                          FontWeight.w900,
+                          psettings.text.bionicSettings.bionicWheight.value,
+                        ),
+                      ),
                 ),
-              ),
-              letters: psettings.text.bionicSettings.letters.value,
-              markStyle: context.bodyLarge?.copyWith(
-                height: psettings.text.linespacing.value,
-                fontSize: psettings.text.bionicSettings.bionicSize.value
-                    .toDouble(),
-                fontWeight: FontWeight.lerp(
-                  FontWeight.w100,
-                  FontWeight.w900,
-                  psettings.text.bionicSettings.bionicWheight.value,
+                error: (context, _, _) => BionicText(
+                  content: text.content,
+                  basicStyle: context.bodyLarge?.copyWith(
+                    height: psettings.text.linespacing.value,
+                    fontSize: psettings.text.size.value.toDouble(),
+                    fontWeight: FontWeight.lerp(
+                      FontWeight.w100,
+                      FontWeight.w900,
+                      psettings.text.weight.value,
+                    ),
+                  ),
+                  letters: psettings.text.bionicSettings.letters.value,
+                  markStyle: context.bodyLarge?.copyWith(
+                    height: psettings.text.linespacing.value,
+                    fontSize: psettings.text.bionicSettings.bionicSize.value
+                        .toDouble(),
+                    fontWeight: FontWeight.lerp(
+                      FontWeight.w100,
+                      FontWeight.w900,
+                      psettings.text.bionicSettings.bionicWheight.value,
+                    ),
+                  ),
                 ),
-              ),
-            ),
+                loading: (context) => BionicText(
+                  content: text.content,
+                  basicStyle: context.bodyLarge?.copyWith(
+                    height: psettings.text.linespacing.value,
+                    fontSize: psettings.text.size.value.toDouble(),
+                    fontWeight: FontWeight.lerp(
+                      FontWeight.w100,
+                      FontWeight.w900,
+                      psettings.text.weight.value,
+                    ),
+                  ),
+                  letters: psettings.text.bionicSettings.letters.value,
+                  markStyle: context.bodyLarge?.copyWith(
+                    height: psettings.text.linespacing.value,
+                    fontSize: psettings.text.bionicSettings.bionicSize.value
+                        .toDouble(),
+                    fontWeight: FontWeight.lerp(
+                      FontWeight.w100,
+                      FontWeight.w900,
+                      psettings.text.bionicSettings.bionicWheight.value,
+                    ),
+                  ),
+                ),
+              );
+            },
           );
         }
-        return Text(
-          text.content,
-          style: context.bodyLarge?.copyWith(
-            height: psettings.text.linespacing.value,
-            fontSize: psettings.text.size.value.toDouble(),
-            fontWeight: FontWeight.lerp(
-              FontWeight.w100,
-              FontWeight.w900,
-              psettings.text.weight.value,
-            ),
-          ),
+        return ListenableBuilder(
+          listenable: psettings.font,
+          builder: (context, child) {
+            return LoadingBuilder(
+              future: psettings.font.value.toTextStyle(),
+              builder: (context, style) => Text(
+                text.content,
+                style: (context.bodyLarge ?? style)
+                    .merge(style)
+                    .copyWith(
+                      height: psettings.text.linespacing.value,
+                      fontSize: psettings.text.size.value.toDouble(),
+                      fontWeight: FontWeight.lerp(
+                        FontWeight.w100,
+                        FontWeight.w900,
+                        psettings.text.weight.value,
+                      ),
+                    ),
+              ),
+              loading: (context) => Text(
+                text.content,
+                style: context.bodyLarge?.copyWith(
+                  height: psettings.text.linespacing.value,
+                  fontSize: psettings.text.size.value.toDouble(),
+                  fontWeight: FontWeight.lerp(
+                    FontWeight.w100,
+                    FontWeight.w900,
+                    psettings.text.weight.value,
+                  ),
+                ),
+              ),
+              error: (context, _, _) => Text(
+                text.content,
+                style: context.bodyLarge?.copyWith(
+                  height: psettings.text.linespacing.value,
+                  fontSize: psettings.text.size.value.toDouble(),
+                  fontWeight: FontWeight.lerp(
+                    FontWeight.w100,
+                    FontWeight.w900,
+                    psettings.text.weight.value,
+                  ),
+                ),
+              ),
+            );
+          },
         );
       case final Paragraph_CustomUI customUi:
         return CustomUIWidget.fromUI(ui: customUi.ui, extension: extension);

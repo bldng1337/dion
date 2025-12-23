@@ -8,6 +8,16 @@ class DionDropdownItem<T> {
   Widget get labelWidget => Text(label);
 }
 
+class DionDropdownItemWidget<T> extends DionDropdownItem<T> {
+  @override
+  final Widget labelWidget;
+  const DionDropdownItemWidget({
+    required super.value,
+    required super.label,
+    required this.labelWidget,
+  });
+}
+
 class DionDropdown<T> extends StatelessWidget {
   final List<DionDropdownItem<T>> items;
   final T? value;

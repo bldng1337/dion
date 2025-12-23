@@ -6,6 +6,7 @@ import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:pub_semver/pub_semver.dart';
+import 'package:dionysos/data/font.dart';
 
 final preferenceCollection = SettingCollection<dynamic, PreferenceMetaData>();
 
@@ -76,6 +77,20 @@ class PreferenceDoubleMetaData extends PreferenceMetaData<double> {
 
   @override
   String stringify(double value) => value.toString();
+}
+
+class PreferenceFontMetaData extends PreferenceMetaData<Font> {
+  const PreferenceFontMetaData(super.id);
+
+  @override
+  Font? parse(String value) {
+    final map = json.decode(value) as Map<String, dynamic>;
+    if (map.isEmpty) return null;
+    return Font.fromJson(map);
+  }
+
+  @override
+  String stringify(Font value) => json.encode(value.toJson());
 }
 
 class PreferenceEnumMetaData<T extends Enum> extends PreferenceMetaData<T>
@@ -209,6 +224,10 @@ final settings = (
       mode: Setting(
         ReaderMode.paginated,
         const PreferenceEnumMetaData('paragraphreader.mode', ReaderMode.values),
+      )..addCollection(preferenceCollection),
+      font: Setting(
+        const Font(name: 'Roboto', type: FontType.google),
+        const PreferenceFontMetaData('paragraphreader.font'),
       )..addCollection(preferenceCollection),
       title: Setting(
         false,
