@@ -11,6 +11,7 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:pub_semver/pub_semver.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
@@ -358,17 +359,6 @@ class SourceExtension with ChangeNotifier {
     return this;
   }
 
-  Future<void> install(String location) async {
-    final newproxy = await adapter.install(location: location);
-    final db = await locateAsync<Database>();
-    final newext = await Extension.fromProxy(newproxy, db);
-    if (_extensions.any((e) => e.data.id == newext.data.id)) {
-      _extensions.removeWhere((e) => e.data.id == newext.data.id);
-    }
-    _extensions.add(newext);
-    notifyListeners();
-  }
-
   Future<void> reload() async {
     loading = true;
     for (final e in _extensions) {
@@ -413,5 +403,39 @@ class SourceExtension with ChangeNotifier {
 
   static Future<void> ensureInitialized() async {
     register<SourceExtension>(await SourceExtension().init());
+  }
+
+  DataSource<rust.RemoteExtension> getRepoDataSource(rust.ExtensionRepo repo) {
+    return PageAsyncSource((page) async {
+      final res = await adapter.browseRepo(repo: repo, page: page);
+      if (res.length != null && res.length! >= page) {
+        return Page.last(res.content);
+      }
+      if (res.hasnext != null && !res.hasnext!) {
+        return Page.last(res.content);
+      }
+      return Page.more(res.content);
+    });
+  }
+
+  Future<rust.ExtensionRepo> getRepo(String url) async {
+    return await adapter.getRepo(url: url);
+  }
+
+  Future<void> install(String location) async {
+    print("Installing $location");
+    final ext = await adapter.install(location: location);
+    final db = await locateAsync<Database>();
+    final newext = await Extension.fromProxy(ext, db);
+    _extensions.removeWhere((e) => e.data.id == newext.data.id);
+    _extensions.add(newext);
+    print("Installed");
+    notifyListeners();
+  }
+
+  Future<void> uninstall(Extension ext) async {
+    await adapter.uninstall(ext: ext._proxy);
+    _extensions.remove(ext);
+    notifyListeners();
   }
 }
