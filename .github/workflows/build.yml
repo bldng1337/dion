@@ -65,9 +65,11 @@ jobs:
         run: flutter pub get
       - name: Build Launcher Icons
         run: flutter pub run flutter_launcher_icons
+      - name: update-packages
+        run: sudo apt-get update
       - name: Install mpv
         if: (matrix.os == 'ubuntu-latest')
-        run: sudo apt install libmpv-dev mpv
+        run: sudo apt install libmpv-dev mpv --fix-missing
 
       - name: Create output directory
         run: mkdir -p ./output
@@ -97,11 +99,11 @@ jobs:
       - name: Sign APK
         if: matrix.os == 'ubuntu-latest'
         run: |
-         echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
-         echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
-         echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-         $ANDROID_HOME/build-tools/30.0.3/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
-         $ANDROID_HOME/build-tools/30.0.3/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
+          echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
+          echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
+          $ANDROID_HOME/build-tools/30.0.3/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          $ANDROID_HOME/build-tools/30.0.3/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
       - name: Move APK
         if: matrix.os == 'ubuntu-latest'
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
