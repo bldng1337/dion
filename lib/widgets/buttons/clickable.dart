@@ -19,6 +19,7 @@ class _ClickableState extends State<Clickable> {
       onEnter: (e) => setState(() => _hover = true),
       onExit: (e) => setState(() => _hover = false),
       child: InkWell(
+        borderRadius: BorderRadius.circular(3),
         onTap: widget.onTap,
         onLongPress: widget.onLongTap,
         child: Stack(

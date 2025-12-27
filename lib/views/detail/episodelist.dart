@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
@@ -7,16 +9,15 @@ import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
+import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/container/badge.dart';
+import 'package:dionysos/widgets/container/container.dart';
 
 import 'package:dionysos/widgets/image.dart';
-import 'package:dionysos/widgets/listtile.dart';
 import 'package:dionysos/widgets/progress.dart';
-import 'package:dionysos/widgets/text_scroll.dart';
-import 'package:flutter/material.dart' show Icons, Theme, VisualDensity;
+import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
 import 'package:flutter/widgets.dart';
-import 'package:dionysos/widgets/badge.dart';
-import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 class EpisodeListSliver extends StatefulWidget {
@@ -62,15 +63,12 @@ class _EpisodeListSliverState extends State<EpisodeListSliver> {
       ]),
       builder: (context, child) {
         final entry = widget.entry;
-        // ignore: avoid_bool_literals_in_conditional_expressions
         final reverse = entry is EntrySaved
             ? entry.savedSettings.reverse.value
             : false;
-        // ignore: avoid_bool_literals_in_conditional_expressions
         final hideFinishedEpisodes = entry is EntrySaved
             ? entry.savedSettings.hideFinishedEpisodes.value
             : false;
-        // ignore: avoid_bool_literals_in_conditional_expressions
         final onlyShowBookmarked = entry is EntrySaved
             ? entry.savedSettings.onlyShowBookmarked.value
             : false;
@@ -134,42 +132,81 @@ class EpisodeTile extends StatelessWidget {
 
   Widget buildDownload(BuildContext context) {
     return SizedBox(
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       child: StreamBuilder(
         stream: locate<DownloadService>().getStatus(episodepath),
         builder: (context, snapshot) {
           return switch (snapshot.data?.status) {
-            Status.nodownload => DionIconbutton(
-              icon: const Icon(Icons.download),
-              onPressed: () async {
-                await locate<DownloadService>().download([episodepath]);
-              },
+            Status.nodownload => DionContainer(
+              child: DionIconbutton(
+                icon: const Icon(Icons.download_outlined, size: 18),
+                onPressed: () async {
+                  await locate<DownloadService>().download([episodepath]);
+                },
+              ),
             ),
             Status.downloading => ListenableBuilder(
               listenable: snapshot.data!.task!,
               builder: (context, child) =>
                   switch (snapshot.data?.task?.taskstatus) {
-                    TaskStatus.idle => const Icon(Icons.pending_actions),
-                    TaskStatus.running || null => DionProgressBar(
-                      value: snapshot.data?.task?.progress,
+                    TaskStatus.idle => Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.pending_outlined,
+                        size: 18,
+                        color: context.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
+                      ),
                     ),
-                    TaskStatus.error => DionIconbutton(
-                      icon: const Icon(Icons.error),
-                      onPressed: () {
-                        snapshot.data!.task!.clearError();
-                        final mngr = locate<TaskManager>();
-                        mngr.update();
-                      },
+                    TaskStatus.running || null => Container(
+                      padding: const EdgeInsets.all(6),
+                      child: DionProgressBar(
+                        value: snapshot.data?.task?.progress,
+                      ),
+                    ),
+                    TaskStatus.error => Container(
+                      decoration: BoxDecoration(
+                        color: context.theme.colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: DionIconbutton(
+                        icon: Icon(
+                          Icons.error_outline,
+                          size: 18,
+                          color: context.theme.colorScheme.error,
+                        ),
+                        onPressed: () {
+                          snapshot.data!.task!.clearError();
+                          final mngr = locate<TaskManager>();
+                          mngr.update();
+                        },
+                      ),
                     ),
                   },
             ),
-            null => const DionProgressBar(),
-            Status.downloaded => DionIconbutton(
-              icon: const Icon(Icons.check),
-              onPressed: () async {
-                await locate<DownloadService>().deleteEpisode(episodepath);
-              },
+            null => Container(
+              padding: const EdgeInsets.all(6),
+              child: const DionProgressBar(),
+            ),
+            Status.downloaded => Container(
+              decoration: BoxDecoration(
+                color: context.theme.colorScheme.primary.withValues(
+                  alpha: 0.15,
+                ),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: DionIconbutton(
+                icon: Icon(
+                  Icons.check,
+                  size: 18,
+                  color: context.theme.colorScheme.primary,
+                ),
+                onPressed: () async {
+                  await locate<DownloadService>().deleteEpisode(episodepath);
+                },
+              ),
             ),
           };
         },
@@ -180,79 +217,117 @@ class EpisodeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final epdata = episodepath.data;
-    return Clickable(
-      onLongTap: onSelect,
-      onTap: selection ? onSelect : () => episodepath.go(context),
-      child: DionBadge(
-        noPadding: true,
-        noMargin: true,
-        color: disabled
-            ? context.theme.disabledColor.withValues(alpha: 0.1)
-            : isSelected
-            ? context.theme.colorScheme.primary.withValues(alpha: 0.1)
-            : null,
-        child: Stack(
-          fit: StackFit.passthrough,
-          children: [
-            Row(
+    final isWide = context.width >= 600;
+    final height = isWide ? 110.0 : 80.0;
+    return Stack(
+      children: [
+        Clickable(
+          onLongTap: disabled ? null : onSelect,
+          onTap: selection
+              ? onSelect
+              : disabled
+              ? null
+              : () => episodepath.go(context),
+          child: DionContainer(
+            height: height,
+            color: isSelected
+                ? context.theme.colorScheme.primary.lighten(70)
+                : null,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (episodepath.episode.cover != null)
-                  DionImage.fromLink(
-                    link: episodepath.episode.cover,
-                    height: context.width < 600 ? null : 120.0,
-                    width: context.width < 600 ? 140 : null,
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(3),
+                      bottomLeft: Radius.circular(3),
+                    ),
+                    child: DionImage.fromLink(
+                      link: episodepath.episode.cover,
+                      height: height,
+                      boxFit: BoxFit.cover,
+                    ),
                   )
                 else
-                  28.0.widthBox,
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      maxLines: 2,
-                      episodepath.episode.name,
-                      style:
-                          (context.width < 600
-                                  ? context.titleSmall
-                                  : context.titleMedium)
-                              ?.copyWith(
-                                color: epdata.finished
-                                    ? context.theme.disabledColor
-                                    : null,
-                              )
-                              .copyWith(
-                                color:
-                                    (episodepath.entry.extension?.isenabled ??
-                                        false)
-                                    ? null
-                                    : context.theme.disabledColor,
-                              ),
-                    ),
-                    if (episodepath.episode.timestamp != null)
+                  const SizedBox(width: 16),
+
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        DateTime.tryParse(
-                              episodepath.episode.timestamp!,
-                            )?.formatrelative() ??
-                            '',
-                        style: context.labelSmall?.copyWith(
-                          color: context.theme.disabledColor,
-                        ),
+                        episodepath.episode.name,
+                        maxLines: isWide ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            (isWide ? context.titleMedium : context.titleSmall)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.3,
+                                  letterSpacing: -0.2,
+                                  color: epdata.finished
+                                      ? context.theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.4)
+                                      : disabled
+                                      ? context.theme.disabledColor
+                                      : null,
+                                ),
                       ),
-                  ],
-                ).paddingAll(5).expanded(),
-                if (episodepath.entry is EntrySaved)
-                  Center(child: buildDownload(context)).paddingAll(5),
+
+                      if (episodepath.episode.timestamp != null)
+                        Text(
+                          DateTime.tryParse(
+                                episodepath.episode.timestamp!,
+                              )?.formatrelative() ??
+                              '',
+                          style: context.labelSmall?.copyWith(
+                            letterSpacing: 0.3,
+                            fontSize: 11,
+                            color: context.theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                      const Spacer(),
+                      if (epdata.finished || epdata.bookmark)
+                        Row(
+                          children: [
+                            // if (epdata.finished)
+                            //   DionBadge(
+                            //     child: Text(
+                            //       'WATCHED',
+                            //       style: context.labelSmall?.copyWith(
+                            //         fontSize: 9,
+                            //         letterSpacing: 0.5,
+                            //         fontWeight: FontWeight.w600,
+                            //         color: context.theme.colorScheme.onPrimary,
+                            //       ),
+                            //     ),
+                            //   ).paddingOnly(right: 2),
+                            if (epdata.bookmark)
+                              DionBadge(
+                                child: Text(
+                                  'BOOKMARKED',
+                                  style: context.labelSmall?.copyWith(
+                                    fontSize: 9,
+                                    letterSpacing: 0.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: context.theme.colorScheme.onPrimary,
+                                  ),
+                                ),
+                              ).paddingOnly(right: 2),
+                          ],
+                        ).paddingOnly(top: 6),
+                    ],
+                  ).paddingAll(6),
+                ),
               ],
             ),
-            if (epdata.bookmark)
-              Icon(
-                Icons.bookmark,
-                color: context.theme.colorScheme.primary,
-              ).paddingAll(5),
-          ],
+          ),
         ),
-      ),
-    ).paddingAll(3);
+        Positioned(right: 6, top: 6, child: buildDownload(context)),
+      ],
+    ).paddingSymmetric(vertical: 3, horizontal: 6);
   }
 }

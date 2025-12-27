@@ -1,8 +1,9 @@
+import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/immutable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
-import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 
@@ -49,32 +50,41 @@ class _SettingStringListState extends State<SettingStringList> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (widget.setting.value.isEmpty) const Text('No Entries'),
+            if (widget.setting.value.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Text('No Entries', style: context.bodyMedium),
+              ),
             ...widget.setting.value.indexed.map(
-              (e) => DionListTile(
-                title: Text(e.$2),
-                trailing: DionIconbutton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () => _removeIndex(e.$1),
+              (e) => SettingTileWrapper(
+                child: DionListTile(
+                  title: Text(e.$2, style: context.bodyMedium),
+                  trailing: DionIconbutton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _removeIndex(e.$1),
+                  ),
+                  onTap: () => _removeIndex(e.$1),
                 ),
-                onTap: () => _removeIndex(e.$1),
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
-                  child: DionTextbox(
-                    controller: _controller,
-                    onSubmitted: (_) => _addEntryFromController(),
-                    maxLines: 1,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DionTextbox(
+                      controller: _controller,
+                      onSubmitted: (_) => _addEntryFromController(),
+                      maxLines: 1,
+                    ),
                   ),
-                ),
-                DionIconbutton(
-                  icon: const Icon(Icons.add),
-                  onPressed: _addEntryFromController,
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  DionIconbutton(
+                    icon: const Icon(Icons.add),
+                    onPressed: _addEntryFromController,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

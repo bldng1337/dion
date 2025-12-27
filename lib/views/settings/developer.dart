@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:flutter/widgets.dart';
@@ -76,6 +76,13 @@ class DeveloperSettings extends StatelessWidget {
             subtitle: const Text('Logs'),
             onTap: () {
               context.push('/dev/logs');
+            },
+          ),
+          DionListTile(
+            title: const Text('Widget Playground'),
+            subtitle: const Text('Showcase and test widgets'),
+            onTap: () {
+              context.push('/dev/widgets');
             },
           ),
         ],

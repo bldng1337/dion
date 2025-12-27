@@ -4,7 +4,7 @@ import 'package:dionysos/service/source_extension.dart' hide DropdownItem;
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
-import 'package:dionysos/widgets/card.dart';
+import 'package:dionysos/widgets/container/card.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';

@@ -10,6 +10,9 @@ class DionAlertDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return material.AlertDialog(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(3)),
+      ),
       title: title,
       content: content,
       actions: actions,
@@ -25,7 +28,7 @@ class DionDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return material.Dialog(
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(4)),
+        borderRadius: BorderRadius.all(Radius.circular(3)),
       ),
       child: child,
     );

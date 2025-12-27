@@ -10,8 +10,10 @@ class SettingTileWrapper extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: context.theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.theme.dividerColor.withOpacity(0.1)),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: context.theme.dividerColor.withValues(alpha: 0.1),
+        ),
       ),
       child: child,
     ).paddingSymmetric(horizontal: 10, vertical: 5);

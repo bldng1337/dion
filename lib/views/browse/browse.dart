@@ -9,7 +9,7 @@ import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/card.dart';
+import 'package:dionysos/widgets/container/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';

@@ -145,7 +145,7 @@ class _DionMultiDropdownState<T extends Object>
       style: item.selected
           ? ButtonStyle(
               backgroundColor: WidgetStateProperty.all(
-                context.theme.primaryColor.lighten(5),
+                context.theme.primaryColor.lighten(30),
               ),
             )
           : null,

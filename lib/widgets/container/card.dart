@@ -6,8 +6,9 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/theme.dart';
-import 'package:dionysos/widgets/badge.dart';
+import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
+import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart' hide Badge;
@@ -69,9 +70,21 @@ class Card extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    ...(leadingBadges ?? []).map((e) => DionBadge(child: e)),
+                    ...(leadingBadges ?? []).map(
+                      (e) => DionContainer(
+                        type: ContainerType.filled,
+                        color: context.theme.colorScheme.surfaceContainer,
+                        child: e.paddingAll(3),
+                      ).paddingAll(3),
+                    ),
                     const Spacer(),
-                    ...(trailingBadges ?? []).map((e) => DionBadge(child: e)),
+                    ...(trailingBadges ?? []).map(
+                      (e) => DionContainer(
+                        type: ContainerType.filled,
+                        color: context.theme.colorScheme.surfaceContainer,
+                        child: e.paddingAll(3),
+                      ).paddingAll(3),
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -88,14 +101,11 @@ class Card extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       clipBehavior: Clip.antiAliasWithSaveLayer,
-      borderRadius: switch (context.diontheme.mode) {
-        DionThemeMode.material => BorderRadius.circular(5),
-        DionThemeMode.cupertino => BorderRadius.circular(5),
-      },
+      borderRadius: BorderRadius.circular(3),
       child: onTap != null
           ? Clickable(onTap: onTap, child: buildCard(context))
           : buildCard(context),
-    ).paddingAll(5);
+    ).paddingAll(4);
   }
 }
 

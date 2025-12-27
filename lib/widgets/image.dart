@@ -6,7 +6,7 @@ import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
-import 'package:dionysos/widgets/badge.dart';
+import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';

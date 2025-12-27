@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
-import 'package:dionysos/widgets/listtile.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ class SettingDirectory extends StatelessWidget {
           child: DionListTile(
             leading: icon != null ? Icon(icon) : null,
             subtitle: currentPath != null ? Text(currentPath) : null,
-            trailing: IconButton(
+            trailing: DionIconbutton(
               onPressed: () async {
                 final value = await getDirectoryPath();
                 if (value == null) return;

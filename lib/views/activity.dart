@@ -9,12 +9,13 @@ import 'package:dionysos/service/source_extension.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
-import 'package:dionysos/widgets/badge.dart';
+import 'package:dionysos/widgets/container/badge.dart';
+import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart' show BorderRadius, Icons;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moment_dart/moment_dart.dart';
@@ -32,40 +33,41 @@ class DateHeader implements IRenderable {
   @override
   Widget render(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 8),
       child: Row(
         children: [
           Text(
             date.toDateString(),
             style: context.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
               color: context.theme.colorScheme.onSurface,
             ),
           ),
           const Spacer(),
           if (duration > Duration.zero)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              child: DionContainer(
                 color: context.theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.timelapse,
-                    size: 14,
-                    color: context.theme.colorScheme.onSurfaceVariant,
-                  ).paddingOnly(right: 4),
-                  Text(
-                    duration.formatrelative(),
-                    style: context.labelSmall?.copyWith(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.timelapse,
+                      size: 13,
                       color: context.theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
+                    ).paddingOnly(right: 4),
+                    Text(
+                      duration.formatrelative(),
+                      style: context.labelSmall?.copyWith(
+                        color: context.theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.2,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ).paddingAll(6),
               ),
             ),
         ],
@@ -106,34 +108,34 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
   @override
   Widget render(BuildContext context) {
     if (extension == null) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: DionContainer(
           color: context.theme.colorScheme.errorContainer.withValues(
-            alpha: 0.1,
+            alpha: 0.08,
           ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: context.theme.colorScheme.error.withValues(alpha: 0.2),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: context.theme.colorScheme.error,
-              size: 24,
-            ).paddingOnly(right: 12),
-            Expanded(
-              child: Text(
-                'Unknown extension — content details unavailable',
-                style: context.bodyMedium?.copyWith(
-                  color: context.theme.colorScheme.error,
+          borderColor: context.theme.colorScheme.error.withValues(alpha: 0.15),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: context.theme.colorScheme.error.withOpacity(0.85),
+                  size: 22,
+                ).paddingOnly(right: 12),
+                Expanded(
+                  child: Text(
+                    'Unknown extension — content details unavailable',
+                    style: context.bodyMedium?.copyWith(
+                      color: context.theme.colorScheme.error.withOpacity(0.9),
+                      fontSize: 13.5,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       );
     }
@@ -147,62 +149,64 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
       _ => 'Consumed',
     };
 
-    return Clickable(
-      onTap: () {
-        context.push('/detail', extra: [entry]);
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: context.theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(5),
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: Clickable(
+        onTap: () {
+          context.push('/detail', extra: [entry]);
+        },
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(5),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cover Image
-              if (entry.cover != null) _ActivityCover(entry: entry),
+          borderRadius: BorderRadius.circular(3),
+          child: DionContainer(
+            color: context.theme.colorScheme.surfaceContainer,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Cover Image
+                if (entry.cover != null) _ActivityCover(entry: entry),
 
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title
-                      Text(
-                        entry.title.trim(),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          height: 1.1,
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Text(
+                          entry.title.trim(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.2,
+                            letterSpacing: -0.3,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      _ActivityMetadata(
-                        activity: activity,
-                        extensionName: extension!.name,
-                      ),
-                      const SizedBox(height: 8),
+                        const SizedBox(height: 6),
+                        _ActivityMetadata(
+                          activity: activity,
+                          extensionName: extension!.name,
+                        ),
+                        const SizedBox(height: 10),
 
-                      // Action & Episode Info
-                      Text(
-                        (activity.fromepisode == activity.toepisode)
-                            ? '$action episode ${activity.fromepisode}'
-                            : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
-                        style: context.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w400,
+                        // Action & Episode Info
+                        Text(
+                          (activity.fromepisode == activity.toepisode)
+                              ? '$action episode ${activity.fromepisode}'
+                              : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
+                          style: context.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: context.theme.colorScheme.onSurface
+                                .withOpacity(0.85),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -218,8 +222,8 @@ class _ActivityCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 100,
-      height: 140,
+      width: 95,
+      height: 135,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -230,9 +234,16 @@ class _ActivityCover extends StatelessWidget {
           ),
           // Media Type Badge
           Positioned(
-            top: 4,
-            left: 4,
-            child: DionBadge(child: Icon(entry.mediaType.icon, size: 12)),
+            top: 5,
+            left: 5,
+            child: DionContainer(
+              color: context.theme.colorScheme.surfaceContainer,
+              child: Icon(
+                entry.mediaType.icon,
+                size: 11,
+                color: context.theme.colorScheme.onSurface,
+              ).paddingAll(4),
+            ),
           ),
         ],
       ),
@@ -286,13 +297,15 @@ class _ActivityMetadata extends StatelessWidget {
       children: [
         Icon(
           icon,
-          size: 14,
-          color: context.theme.disabledColor,
-        ).paddingOnly(right: width < 500 ? 2 : 4),
+          size: 13,
+          color: context.theme.colorScheme.onSurface.withOpacity(0.45),
+        ).paddingOnly(right: width < 500 ? 2.5 : 4),
         Text(
           text,
           style: context.labelSmall?.copyWith(
-            color: context.theme.disabledColor,
+            color: context.theme.colorScheme.onSurface.withOpacity(0.5),
+            fontSize: 11.5,
+            letterSpacing: 0.1,
           ),
         ),
       ],

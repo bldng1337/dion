@@ -16,11 +16,9 @@ import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/views/detail/entryinfo.dart';
 import 'package:dionysos/views/detail/episodelist.dart';
 import 'package:dionysos/views/detail/settings.dart';
-import 'package:dionysos/widgets/buttons/textbutton.dart';
-import 'package:dionysos/widgets/context_menu.dart';
-import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
@@ -158,7 +156,6 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       ContextMenuItem(
         label: 'Open in Browser',
         onTap: () async {
-          print(hovered);
           if (selected.isEmpty) {
             if (hovered == null) return;
             await launchUrl(
@@ -322,7 +319,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           onPressed: () {
             showSettingPopup(context, entry! as EntrySaved);
           },
-          icon: const Icon(Icons.settings),
+          icon: const Icon(Icons.settings, size: 20),
         ),
       if (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
         DionIconbutton(
@@ -344,7 +341,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               }
             }
           },
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh, size: 20),
         ),
       if (entry is EntryDetailed)
         DionIconbutton(
@@ -358,7 +355,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               }
             }
           },
-          icon: const Icon(Icons.open_in_browser),
+          icon: const Icon(Icons.open_in_browser, size: 20),
         ),
     ];
     return NavScaff(
@@ -375,7 +372,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                   ),
                 ).go(context);
               },
-              child: const Icon(Icons.play_arrow),
+              child: const Icon(Icons.play_arrow, size: 26),
             )
           : null,
       child: ContextMenu(
@@ -386,58 +383,21 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: RawScrollbar(
             controller: _scrollController,
-            radius: const Radius.circular(6),
-            thickness: 6,
-            padding: const EdgeInsets.only(top: kToolbarHeight),
+            radius: const Radius.circular(3),
+            thickness: 5,
+            padding: EdgeInsets.zero,
             child: CustomScrollView(
               controller: _scrollController,
               slivers: [
                 if (entry?.cover?.url != null)
-                  SliverAppBar(
-                    expandedHeight: 300,
-                    pinned: true,
-                    backgroundColor: context.theme.appBarTheme.backgroundColor,
-                    surfaceTintColor: Colors.transparent,
-                    actions: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: context.theme.appBarTheme.backgroundColor,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(children: actions),
-                      ).paddingOnly(right: 5),
-                    ],
-                    leading: Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: context.theme.appBarTheme.backgroundColor,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: DionIconbutton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ),
-                    ),
-                    flexibleSpace: FlexibleSpaceBar(
-                      collapseMode: CollapseMode.pin,
-                      background: DionImage.fromLink(
-                        link: (entry is EntryDetailed)
-                            ? (entry! as EntryDetailed).poster ?? entry?.cover
-                            : entry?.cover,
-                        filterQuality: FilterQuality.high,
-                        boxFit: BoxFit.cover,
-                        alignment: const Alignment(0.5, -0.6),
-                        errorWidget: Container(
-                          color: context.theme.colorScheme.surface,
-                        ),
-                      ),
-                    ),
-                  )
+                  _buildHeader(context, actions)
                 else
-                  SliverAppBar(pinned: true, actions: actions),
+                  SliverAppBar(
+                    pinned: true,
+                    surfaceTintColor: Colors.transparent,
+                    actions: [_buildActionsContainer(context, actions)],
+                    leading: _buildLeadingButton(context),
+                  ),
                 SliverToBoxAdapter(child: EntryInfo(entry: entry!)),
                 if (entry is EntryDetailed)
                   EpisodeListSliver(
@@ -466,24 +426,79 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       ),
     );
   }
-}
 
-Widget isEntryDetailed({
-  required BuildContext context,
-  required Entry entry,
-  required Widget Function(EntryDetailed e) isdetailed,
-  Widget Function()? isnt,
-  bool shimmer = true,
-}) {
-  isnt ??= () => Container(color: Colors.white);
-  if (entry is EntryDetailed) {
-    return isdetailed(entry);
+  Widget _buildActionsContainer(BuildContext context, List<Widget> actions) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: context.theme.appBarTheme.backgroundColor,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Row(children: actions),
+    ).paddingOnly(right: 8);
   }
-  if (!shimmer) {
-    return isnt();
+
+  Widget _buildLeadingButton(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: context.theme.appBarTheme.backgroundColor,
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: DionIconbutton(
+          icon: const Icon(Icons.arrow_back, size: 20),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
   }
-  return BoundsWidget(child: isnt()).applyShimmer(
-    highlightColor: context.scaffoldBackgroundColor.lighten(20),
-    baseColor: context.theme.scaffoldBackgroundColor,
-  );
+
+  Widget _buildHeader(BuildContext context, List<Widget> actions) {
+    return SliverAppBar(
+      expandedHeight: 500,
+      pinned: true,
+      surfaceTintColor: Colors.transparent,
+      actions: [_buildActionsContainer(context, actions)],
+      leading: _buildLeadingButton(context),
+      flexibleSpace: FlexibleSpaceBar(
+        collapseMode: CollapseMode.pin,
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            DionImage.fromLink(
+              link: (entry is EntryDetailed)
+                  ? (entry! as EntryDetailed).poster ?? entry?.cover
+                  : entry?.cover,
+              filterQuality: FilterQuality.high,
+              boxFit: BoxFit.cover,
+              alignment: Alignment.center,
+              errorWidget: Container(color: context.theme.colorScheme.surface),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.3, 0.7, 1.0],
+                    colors: [
+                      Colors.transparent,
+                      Colors.transparent,
+                      context.theme.scaffoldBackgroundColor.withValues(
+                        alpha: 0.3,
+                      ),
+                      context.theme.scaffoldBackgroundColor,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

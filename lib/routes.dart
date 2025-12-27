@@ -13,6 +13,7 @@ import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/developer.dart';
 import 'package:dionysos/views/settings/developer/log.dart';
 import 'package:dionysos/views/settings/extension.dart';
+import 'package:dionysos/views/settings/widget_playground.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
@@ -105,6 +106,11 @@ GoRouter getRoutes() => GoRouter(
           path: '/logs',
           pageBuilder: (context, state) =>
               getTransition(context, state, const LogView()),
+        ),
+        GoRoute(
+          path: '/widgets',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const WidgetPlayground()),
         ),
       ],
     ),

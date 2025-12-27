@@ -4,7 +4,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
-import 'package:dionysos/widgets/badge.dart';
+import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/material.dart';
@@ -539,7 +539,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                             Text(e.name).paddingAll(2),
                           ],
                         ),
-                      ),
+                      ).paddingHorizontal(4),
                     ),
                   ],
                 ),
@@ -688,7 +688,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
                         Text(e.name).paddingAll(2),
                       ],
                     ),
-                  ),
+                  ).paddingHorizontal(4),
                 ),
               ],
             ),
@@ -824,7 +824,7 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
                         Text(e.name).paddingAll(2),
                       ],
                     ),
-                  ),
+                  ).paddingHorizontal(4),
                 ),
               ],
             ),
