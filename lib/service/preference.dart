@@ -17,7 +17,7 @@ class PreferenceService {
   String? getString(String key) => _preferences.getString(_prefix + key);
 
   Future<void> setString(String key, String value) =>
-      _preferences.setString(key, value);
+      _preferences.setString(_prefix + key, value);
 
   Future<void> remove(String key) => _preferences.remove(_prefix + key);
 
