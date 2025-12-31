@@ -462,7 +462,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   Widget _buildHeader(BuildContext context, List<Widget> actions) {
     return SliverAppBar(
-      expandedHeight: 420,
+      expandedHeight: context.width > 600 ? 420 : 210,
       pinned: true,
       surfaceTintColor: Colors.transparent,
       actions: [_buildActionsContainer(context, actions)],

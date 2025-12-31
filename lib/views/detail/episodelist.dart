@@ -288,34 +288,17 @@ class EpisodeTile extends StatelessWidget {
                             color: context.theme.colorScheme.onSurface
                                 .withValues(alpha: 0.5),
                           ),
+                          maxLines: 1,
                         ),
                       const Spacer(),
                       if (epdata.finished || epdata.bookmark)
                         Row(
                           children: [
-                            // if (epdata.finished)
-                            //   DionBadge(
-                            //     child: Text(
-                            //       'WATCHED',
-                            //       style: context.labelSmall?.copyWith(
-                            //         fontSize: 9,
-                            //         letterSpacing: 0.5,
-                            //         fontWeight: FontWeight.w600,
-                            //         color: context.theme.colorScheme.onPrimary,
-                            //       ),
-                            //     ),
-                            //   ).paddingOnly(right: 2),
                             if (epdata.bookmark)
-                              DionBadge(
-                                child: Text(
-                                  'BOOKMARKED',
-                                  style: context.labelSmall?.copyWith(
-                                    fontSize: 9,
-                                    letterSpacing: 0.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: context.theme.colorScheme.onPrimary,
-                                  ),
-                                ),
+                              Icon(
+                                Icons.bookmark,
+                                size: 14,
+                                color: context.theme.colorScheme.primary,
                               ).paddingOnly(right: 2),
                           ],
                         ).paddingOnly(top: 6),
@@ -323,7 +306,7 @@ class EpisodeTile extends StatelessWidget {
                   ).paddingAll(6),
                 ),
               ],
-            ),
+            ).paddingOnly(right: 40),
           ),
         ),
         Positioned(right: 6, top: 6, child: buildDownload(context)),
