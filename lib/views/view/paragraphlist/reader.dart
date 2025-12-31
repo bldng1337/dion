@@ -29,8 +29,11 @@ class ParagraphListReader extends StatelessWidget {
       listenable: psettings.mode,
       builder: (context, child) => switch (psettings.mode.value) {
         ReaderMode.paginated => SourceWrapper(
-          builder: (context, source) =>
-              SimpleParagraphlistReader(source: source, supplier: supplier),
+          builder: (context, source) => SimpleParagraphlistReader(
+            key: ValueKey(source.episode),
+            source: source,
+            supplier: supplier,
+          ),
           source: supplier,
         ),
         ReaderMode.infinite => InfiniteParagraphListReader(supplier: supplier),

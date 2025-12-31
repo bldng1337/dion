@@ -9,13 +9,13 @@ import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/material.dart' show Colors, Icons, SliverAppBar;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -37,23 +37,16 @@ class SimpleImageListReader extends StatefulWidget {
 
 class _SimpleImageListReaderState extends State<SimpleImageListReader>
     with StateDisposeScopeMixin {
-  late final ItemScrollController controller;
-  late final ScrollOffsetController offsetcontroller;
-  late final ItemPositionsListener itemPositionsListener;
+  late final ScrollController scrollController;
+  late final ListController listController;
   late final Observer supplierObserver;
   Player? player;
   bool _ctrlIsPressed = false;
+  int _currentIndex = 0;
 
   void play() {
     if (player == null) return;
-    final int max = itemPositionsListener.itemPositions.value
-        .where((ItemPosition position) => position.itemTrailingEdge > 0)
-        .fold(
-          const ItemPosition(index: 0, itemTrailingEdge: 0, itemLeadingEdge: 0),
-          (ItemPosition max, ItemPosition position) =>
-              position.itemTrailingEdge > max.itemTrailingEdge ? position : max,
-        )
-        .index;
+    final max = _currentIndex;
     if (player!.state.playlist.medias.isNotEmpty &&
         player!.state.playlist.medias[0].extras!['from']! as int < max &&
         player!.state.playlist.medias[0].extras!['to']! as int > max) {
@@ -86,11 +79,64 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     play();
   }
 
+  void onScroll() {
+    final epdata = widget.source.episode.data;
+
+    if (scrollController.hasClients &&
+        scrollController.offset > 0 &&
+        scrollController.position.atEdge) {
+      if (epdata.finished) return;
+      epdata.finished = true;
+      widget.source.episode.save();
+      return;
+    }
+
+    if (listController.isAttached) {
+      final position = listController.unobstructedVisibleRange?.$1;
+      if ((listController.visibleRange?.$2 ?? 0) >=
+          widget.sourcedata.links.length / 2) {
+        widget.supplier.cache.preload(widget.source.episode.next);
+      }
+
+      if (position != null && position != _currentIndex) {
+        _currentIndex = position;
+        if (position != 0) {
+          epdata.progress = position.toString();
+        }
+        play();
+      }
+    }
+  }
+
+  void jumpToProgress() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!listController.isAttached || !scrollController.hasClients) {
+        return;
+      }
+      final epdata = widget.source.episode.data;
+      final int pos = epdata.finished
+          ? 0
+          : int.tryParse(epdata.progress ?? '0') ?? 0;
+      _currentIndex = pos;
+      listController.jumpToItem(
+        index: pos,
+        alignment: 0.0,
+        scrollController: scrollController,
+      );
+    });
+  }
+
   @override
   void initState() {
-    controller = ItemScrollController();
-    offsetcontroller = ScrollOffsetController();
-    itemPositionsListener = ItemPositionsListener.create();
+    final epdata = widget.source.episode.data;
+    _currentIndex = int.tryParse(epdata.progress ?? '0') ?? 0;
+
+    scrollController = ScrollController(
+      onAttach: (position) => jumpToProgress(),
+    )..disposedBy(scope);
+    listController = ListController()..disposedBy(scope);
+    listController.addListener(onScroll);
+
     WakelockPlus.toggle(enable: true);
     Observer(() {
       if (psettings.music.value) {
@@ -106,37 +152,17 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     if (psettings.music.value) {
       initPlayer();
     }
-    Observer(
-      () {
-        final int min = itemPositionsListener.itemPositions.value
-            .where((ItemPosition position) => position.itemTrailingEdge > 0)
-            .reduce(
-              (ItemPosition min, ItemPosition position) =>
-                  position.itemTrailingEdge < min.itemTrailingEdge
-                  ? position
-                  : min,
-            )
-            .index;
-        widget.source.episode.data.progress = min.toString();
-        if (min >= widget.sourcedata.links.length / 2) {
-          widget.supplier.cache.preload(widget.source.episode.next);
-        }
-        play();
-      },
-      itemPositionsListener.itemPositions,
-      callOnInit: false,
-    ).disposedBy(scope);
 
-    supplierObserver = Observer(() {
-      if (!controller.isAttached) return;
-      controller.jumpTo(index: 0);
-    }, widget.supplier)..disposedBy(scope);
+    supplierObserver = Observer(jumpToProgress, widget.supplier)
+      ..disposedBy(scope);
+
     KeyObserver((event) {
       if (_ctrlIsPressed == HardwareKeyboard.instance.isControlPressed) return;
       setState(() {
         _ctrlIsPressed = HardwareKeyboard.instance.isControlPressed;
       });
     }).disposedBy(scope);
+
     super.initState();
   }
 
@@ -175,42 +201,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     final epdata = widget.source.episode.data;
     final images = widget.sourcedata.links;
     return NavScaff(
-      title: DionTextScroll(widget.source.name),
-      actions: [
-        if (player != null)
-          DionIconbutton(
-            icon: Icon(player!.state.playing ? Icons.pause : Icons.play_arrow),
-            onPressed: () async {
-              if (player!.state.playing) {
-                player!.pause();
-              } else {
-                player!.play();
-              }
-              if (mounted) {
-                setState(() {});
-              }
-            },
-          ),
-        DionIconbutton(
-          icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
-          onPressed: () async {
-            epdata.bookmark = !epdata.bookmark;
-            await widget.source.episode.save();
-            if (mounted) {
-              setState(() {});
-            }
-          },
-        ),
-        DionIconbutton(
-          icon: const Icon(Icons.open_in_browser),
-          onPressed: () =>
-              launchUrl(Uri.parse(widget.source.episode.episode.url)),
-        ),
-        DionIconbutton(
-          icon: const Icon(Icons.settings),
-          onPressed: () => context.push('/settings/imagelistreader'),
-        ),
-      ],
+      showNavbar: false,
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: InteractiveViewer(
@@ -218,42 +209,81 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           maxScale: 10,
           panAxis: PanAxis.horizontal,
           scaleEnabled: _ctrlIsPressed,
-          child: wrapScreen(
-            context,
-            ScrollablePositionedList.builder(
-              physics: _ctrlIsPressed
-                  ? const NeverScrollableScrollPhysics()
-                  : const ClampingScrollPhysics(),
-              scrollOffsetController: offsetcontroller,
-              itemScrollController: controller,
-              itemPositionsListener: itemPositionsListener,
-              initialScrollIndex: int.tryParse(epdata.progress ?? '0') ?? 0,
-              minCacheExtent: 12,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  if (widget.source.episode.hasprev) {
-                    return DionTextbutton(
-                      child: const Text('Previous'),
-                      onPressed: () =>
-                          widget.source.episode.goPrev(widget.supplier),
-                    );
-                  }
-                  return nil;
-                }
-                if (index - 1 == images.length) {
-                  if (widget.source.episode.hasnext) {
-                    return DionTextbutton(
-                      child: const Text('Next'),
-                      onPressed: () =>
-                          widget.source.episode.goNext(widget.supplier),
-                    );
-                  }
-                  return nil;
-                }
-                return makeImage(context, images[index - 1]);
-              },
-              itemCount: images.length + 2,
-            ),
+          child: CustomScrollView(
+            controller: scrollController,
+            physics: _ctrlIsPressed
+                ? const NeverScrollableScrollPhysics()
+                : const ClampingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                title: DionTextScroll(widget.source.name),
+                actions: [
+                  if (player != null)
+                    DionIconbutton(
+                      icon: Icon(
+                        player!.state.playing ? Icons.pause : Icons.play_arrow,
+                      ),
+                      onPressed: () async {
+                        if (player!.state.playing) {
+                          player!.pause();
+                        } else {
+                          player!.play();
+                        }
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      },
+                    ),
+                  DionIconbutton(
+                    icon: Icon(
+                      epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
+                    ),
+                    onPressed: () async {
+                      epdata.bookmark = !epdata.bookmark;
+                      await widget.source.episode.save();
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  DionIconbutton(
+                    icon: const Icon(Icons.open_in_browser),
+                    onPressed: () =>
+                        launchUrl(Uri.parse(widget.source.episode.episode.url)),
+                  ),
+                  DionIconbutton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => context.push('/settings/imagelistreader'),
+                  ),
+                ],
+              ),
+              if (widget.source.episode.hasprev)
+                SliverToBoxAdapter(
+                  child: DionTextbutton(
+                    child: const Text('Previous'),
+                    onPressed: () =>
+                        widget.source.episode.goPrev(widget.supplier),
+                  ).paddingSymmetric(vertical: 16),
+                ),
+              SliverPadding(
+                padding: EdgeInsets.zero,
+                sliver: SuperSliverList.builder(
+                  listController: listController,
+                  itemBuilder: (context, index) =>
+                      wrapScreen(context, makeImage(context, images[index])),
+                  itemCount: images.length,
+                ),
+              ),
+              if (widget.source.episode.hasnext)
+                SliverToBoxAdapter(
+                  child: DionTextbutton(
+                    child: const Text('Next'),
+                    onPressed: () =>
+                        widget.source.episode.goNext(widget.supplier),
+                  ).paddingSymmetric(vertical: 16),
+                ),
+            ],
           ),
         ),
       ),
@@ -261,23 +291,13 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   }
 
   Widget makeImage(BuildContext context, Link image) {
-    // return Container(
-    //   width: context.width,
-    //   height: context.height,
-    //   color: Colors.red,
-    //   // child: DionImage(
-    //   //   imageUrl: image,
-    //   //   boxFit: BoxFit.fitWidth,
-    //   //   httpHeaders: widget.sourcedata.header,
-    //   // ),
-    // );
     return DionImage(
       imageUrl: image.url,
       boxFit: BoxFit.fitWidth,
       httpHeaders: image.header,
       shouldAnimate: false,
       loadingBuilder: (context) => Container(
-        height: context.height * 2,
+        height: context.height * 1.2,
         color: Colors.red,
       ).applyShimmer(),
     );
