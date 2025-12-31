@@ -11,13 +11,11 @@ import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
-import 'package:dionysos/widgets/container/container.dart';
 
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
-import 'package:flutter/material.dart'
-    show Colors, FontWeight, Icons, TextButton;
+import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -33,46 +31,47 @@ class EntryInfo extends StatelessWidget {
       children: [
         if (entry is EntryDetailed &&
             ((entry as EntryDetailed).extension == null))
-          _buildWarningBox(context, message: 'Warning: Extension is not found'),
+          _buildWarningBox(context, message: 'Extension not found'),
         if (entry is EntryDetailed &&
             !((entry as EntryDetailed).extension?.isenabled ?? true))
           _buildWarningBox(
             context,
-            message: 'Warning: Extension Disabled',
+            message: 'Extension disabled',
             buttonText: 'Enable',
             onTap: () async {
               await (entry as EntryDetailed).extension?.enable();
             },
           ),
-        _buildEditorialHeader(context),
-        _buildMetadataSection(context),
+        _buildHeaderSection(context),
+        _buildGenresSection(context),
+        _buildLibraryButton(context),
         _buildDescriptionSection(context),
         _buildCustomUISection(context),
       ].whereType<Widget>().toList(),
-    ).paddingSymmetric(horizontal: 16, vertical: 16);
+    ).paddingSymmetric(horizontal: 20, vertical: 24);
   }
 
-  Widget _buildEditorialHeader(BuildContext context) {
+  Widget _buildHeaderSection(BuildContext context) {
     final isWide = context.width > 700;
-    final coverSize = isWide ? 140.0 : 100.0;
+    final coverSize = isWide ? 130.0 : 100.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cover Image
+        // Cover Image Card
         if (entry.cover != null)
           Container(
             width: coverSize,
-            height: coverSize * 1.5,
+            height: coverSize * 1.45,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(3),
               boxShadow: [
                 BoxShadow(
                   color: context.theme.colorScheme.onSurface.withValues(
-                    alpha: 0.15,
+                    alpha: 0.12,
                   ),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -85,235 +84,234 @@ class EntryInfo extends StatelessWidget {
               errorWidget: Container(
                 color: context.theme.colorScheme.surfaceContainerHighest,
                 child: Icon(
-                  Icons.broken_image,
-                  size: 32,
+                  Icons.image_outlined,
+                  size: 28,
                   color: context.theme.colorScheme.onSurface.withValues(
-                    alpha: 0.3,
+                    alpha: 0.25,
                   ),
                 ),
               ),
             ),
-          ).paddingOnly(right: 20),
+          ).paddingOnly(right: 16),
 
-        // Title and Metadata
+        // Title, Author, Meta, and Stats
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title
               Text(
                 entry.title,
                 style: TextStyle(
-                  fontSize: isWide ? 38 : 28,
-                  height: 1.15,
-                  fontWeight: FontWeight.w300,
+                  fontSize: isWide ? 26 : 20,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: -0.5,
                   color: context.theme.colorScheme.onSurface,
                 ),
-              ).paddingOnly(bottom: 8),
+              ),
 
+              const SizedBox(height: 6),
+
+              // Author
               if (entry.author != null && entry.author!.isNotEmpty)
                 Text(
-                  'by ${entry.author!.map((e) => e.trim().replaceAll('\n', '')).reduce((a, b) => '$a • $b')}',
-                  style: context.titleMedium?.copyWith(
+                  entry.author!
+                      .map((e) => e.trim().replaceAll('\n', ''))
+                      .reduce((a, b) => '$a, $b'),
+                  style: context.bodySmall?.copyWith(
                     fontWeight: FontWeight.w400,
-                    letterSpacing: 0.2,
+                    letterSpacing: 0.1,
                     color: context.theme.colorScheme.onSurface.withValues(
-                      alpha: 0.6,
+                      alpha: 0.55,
                     ),
                   ),
-                ).paddingOnly(bottom: 14),
+                ).paddingOnly(bottom: 10),
 
               // Extension and Status row
               Row(
                 children: [
+                  // Extension info
                   if (entry.extension != null) ...[
-                    DionImage(
-                      hasPopup: true,
-                      imageUrl: entry.extension!.data.icon,
-                      width: 16,
-                      height: 16,
-                      errorWidget: const Icon(Icons.image, size: 16),
-                    ).paddingOnly(right: 6),
-                    Text(
-                      entry.extension!.data.name,
-                      style: context.labelMedium?.copyWith(
-                        letterSpacing: 0.2,
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DionImage(
+                            hasPopup: false,
+                            imageUrl: entry.extension!.data.icon,
+                            width: 12,
+                            height: 12,
+                            errorWidget: Icon(
+                              Icons.extension,
+                              size: 12,
+                              color: context.theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            entry.extension!.data.name,
+                            style: context.labelSmall?.copyWith(
+                              letterSpacing: 0.2,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 10,
+                              color: context.theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Container(
-                      width: 3,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: context.theme.colorScheme.onSurface.withValues(
-                          alpha: 0.3,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                    ).paddingSymmetric(horizontal: 10),
+                    const SizedBox(width: 8),
                   ],
+
+                  // Status
                   isEntryDetailed(
                     context: context,
                     entry: entry,
                     isdetailed: (entry) => Text(
                       entry.status.asString().toUpperCase(),
-                      style: context.labelMedium?.copyWith(
-                        letterSpacing: 0.8,
+                      style: context.labelSmall?.copyWith(
+                        letterSpacing: 1.0,
                         fontWeight: FontWeight.w600,
-                        fontSize: 10,
+                        fontSize: 9,
+                        color: context.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.45,
+                        ),
                       ),
                     ),
                     isnt: () => Text(
-                      'RELEASING',
-                      style: context.labelMedium?.copyWith(
-                        letterSpacing: 0.8,
+                      'UNKNOWN',
+                      style: context.labelSmall?.copyWith(
+                        letterSpacing: 1.0,
                         fontWeight: FontWeight.w600,
-                        fontSize: 10,
+                        fontSize: 9,
+                        color: context.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.45,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
+
+              const SizedBox(height: 10),
+
+              // Rating and Views inline
+              if (entry.rating != null || entry.views != null)
+                Row(
+                  children: [
+                    if (entry.rating != null) ...[
+                      Stardisplay(
+                        width: 14,
+                        height: 14,
+                        fill: entry.rating ?? 0,
+                        color: const Color(0xFFE5A500),
+                        bgcolor: context.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.15,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        (entry.rating! * 5).toStringAsFixed(1),
+                        style: context.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      if (entry.views != null) ...[
+                        Container(
+                          width: 1,
+                          height: 12,
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          color: context.theme.colorScheme.onSurface.withValues(
+                            alpha: 0.12,
+                          ),
+                        ),
+                      ],
+                    ],
+                    if (entry.views != null) ...[
+                      Icon(
+                        Icons.visibility_outlined,
+                        size: 13,
+                        color: context.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        NumberFormat.compact().format(entry.views),
+                        style: context.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: context.theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
             ],
           ),
         ),
       ],
-    ).paddingOnly(bottom: 24);
+    ).paddingOnly(bottom: 20);
   }
 
-  Widget _buildMetadataSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Genres
-        isEntryDetailed(
-          context: context,
-          entry: entry,
-          isdetailed: (entry) => Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                entry.genres
-                    ?.map((e) => _buildGenreChip(context, e))
-                    .toList() ??
-                [],
-          ).paddingOnly(bottom: 18),
-          isnt: () => Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: getWords(
-              4,
-            ).map((e) => _buildGenreChip(context, e)).toList(),
-          ).paddingOnly(bottom: 18),
-        ),
-
-        // Stats Card
-        if (entry.rating != null || entry.views != null)
-          _buildStatsCard(context).paddingOnly(bottom: 24),
-
-        // Library Button
-        _buildLibraryButton(context).paddingOnly(bottom: 8),
-      ],
+  Widget _buildGenresSection(BuildContext context) {
+    return isEntryDetailed(
+      context: context,
+      entry: entry,
+      isdetailed: (entry) {
+        if (entry.genres == null || entry.genres!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: entry.genres!
+              .map((e) => _buildGenreChip(context, e))
+              .toList(),
+        ).paddingOnly(bottom: 20);
+      },
+      isnt: () => Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: getWords(4).map((e) => _buildGenreChip(context, e)).toList(),
+      ).paddingOnly(bottom: 20),
     );
   }
 
   Widget _buildGenreChip(BuildContext context, String genre) {
+    final chipColor = getColor(
+      genre.toUpperCase(),
+      saturation: 35,
+      brightness: 55,
+    );
     return Container(
       decoration: BoxDecoration(
-        color: getColor(genre.toUpperCase(), saturation: 45, brightness: 60),
+        color: chipColor.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(3),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Text(
         genre.toUpperCase(),
         style: context.labelSmall?.copyWith(
-          color: context.theme.colorScheme.onPrimary,
-          letterSpacing: 0.5,
+          color: Colors.white.withValues(alpha: 0.95),
+          letterSpacing: 0.6,
           fontWeight: FontWeight.w600,
           fontSize: 10,
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatsCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(
-          color: context.theme.colorScheme.onSurface.withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (entry.rating != null) ...[
-            Stardisplay(
-              width: 22,
-              height: 22,
-              fill: entry.rating ?? 1,
-              color: const Color(0xFFFFB800),
-            ).paddingOnly(right: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  (entry.rating! * 5).toStringAsFixed(1),
-                  style: context.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w300,
-                    height: 1,
-                  ),
-                ),
-                Text(
-                  'RATING',
-                  style: context.labelSmall?.copyWith(
-                    letterSpacing: 0.8,
-                    fontSize: 8.5,
-                    color: context.theme.colorScheme.onSurface.withValues(
-                      alpha: 0.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (entry.views != null)
-              Container(
-                width: 1,
-                height: 32,
-                color: context.theme.colorScheme.onSurface.withValues(
-                  alpha: 0.1,
-                ),
-              ).paddingSymmetric(horizontal: 18),
-          ],
-          if (entry.views != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  NumberFormat.compact().format(entry.views),
-                  style: context.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w300,
-                    height: 1,
-                  ),
-                ),
-                Text(
-                  'VIEWS',
-                  style: context.labelSmall?.copyWith(
-                    letterSpacing: 0.8,
-                    fontSize: 8.5,
-                    color: context.theme.colorScheme.onSurface.withValues(
-                      alpha: 0.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-        ],
       ),
     );
   }
@@ -325,6 +323,7 @@ class EntryInfo extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: DionTextbutton(
+        type: isInLibrary ? ButtonType.elevated : ButtonType.filled,
         onPressed: isEnabled
             ? () async {
                 if (entry is EntrySaved) {
@@ -348,74 +347,97 @@ class EntryInfo extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isInLibrary
-                  ? Icons.check_circle_outline
-                  : Icons.add_circle_outline,
-              size: 20,
-            ).paddingOnly(right: 8),
+              isInLibrary ? Icons.check_circle : Icons.add_circle_outline,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
             Text(
               isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY',
-              style: context.labelLarge?.copyWith(
+              style: context.labelMedium?.copyWith(
                 letterSpacing: 0.8,
                 fontWeight: FontWeight.w600,
-                color: context.theme.colorScheme.onPrimary,
               ),
             ),
           ],
         ),
       ),
-    );
+    ).paddingOnly(bottom: 28);
   }
 
   Widget _buildDescriptionSection(BuildContext context) {
-    return isEntryDetailed(
-      context: context,
-      entry: entry,
-      isdetailed: (entry) => Foldabletext(
-        maxLines: 6,
-        entry.description.trim(),
-        style: context.bodyMedium?.copyWith(
-          height: 1.65,
-          letterSpacing: 0.15,
-          fontWeight: FontWeight.w400,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section divider
+        Container(
+          height: 1,
+          color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
+        ).paddingOnly(bottom: 20),
+
+        isEntryDetailed(
+          context: context,
+          entry: entry,
+          isdetailed: (entry) {
+            if (entry.description.trim().isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Foldabletext(
+              maxLines: 5,
+              entry.description.trim(),
+              style: context.bodyMedium?.copyWith(
+                height: 1.7,
+                letterSpacing: 0.15,
+                fontWeight: FontWeight.w400,
+                color: context.theme.colorScheme.onSurface.withValues(
+                  alpha: 0.8,
+                ),
+              ),
+            );
+          },
+          isnt: () => Text(
+            getText(70),
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
+            style: context.bodyMedium?.copyWith(
+              height: 1.7,
+              letterSpacing: 0.15,
+              fontWeight: FontWeight.w400,
+              color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
+          ),
         ),
-      ).paddingOnly(bottom: 16),
-      isnt: () => Text(
-        getText(70),
-        maxLines: 6,
-        style: context.bodyMedium?.copyWith(
-          height: 1.65,
-          letterSpacing: 0.15,
-          fontWeight: FontWeight.w400,
-        ),
-      ).paddingOnly(bottom: 16),
-    );
+      ],
+    ).paddingOnly(bottom: 24);
   }
 
   Widget _buildCustomUISection(BuildContext context) {
     return isEntryDetailed(
       context: context,
       entry: entry,
-      isdetailed: (entry) =>
-          (entry.ui == null || entry.ui.isEmpty || entry.extension == null)
-          ? const SizedBox.shrink()
-          : Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(
-                  color: context.theme.colorScheme.onSurface.withValues(
-                    alpha: 0.06,
-                  ),
-                  width: 0.5,
-                ),
+      isdetailed: (entry) {
+        if (entry.ui == null || entry.ui.isEmpty || entry.extension == null) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(
+              color: context.theme.colorScheme.onSurface.withValues(
+                alpha: 0.05,
               ),
-              child: CustomUIWidget.fromUI(
-                ui: entry.ui!,
-                extension: entry.extension!,
-              ),
-            ).paddingOnly(bottom: 16),
+              width: 0.5,
+            ),
+          ),
+          child: CustomUIWidget.fromUI(
+            ui: entry.ui!,
+            extension: entry.extension!,
+          ),
+        ).paddingOnly(bottom: 20);
+      },
       shimmer: false,
     );
   }
@@ -426,36 +448,47 @@ class EntryInfo extends StatelessWidget {
     String? buttonText,
     FutureOr<void> Function()? onTap,
   }) {
-    return DionContainer(
-      color: context.theme.colorScheme.errorContainer,
-      // padding: const EdgeInsets.all(12),
-      // decoration: BoxDecoration(
-      //   color: context.theme.colorScheme.errorContainer,
-      //   borderRadius: BorderRadius.circular(3),
-      // ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(
+          color: context.theme.colorScheme.error.withValues(alpha: 0.2),
+          width: 0.5,
+        ),
+      ),
       child: Row(
         children: [
           Icon(
-            Icons.error_outline,
-            size: 20,
+            Icons.warning_amber_rounded,
+            size: 18,
             color: context.theme.colorScheme.error,
-          ).paddingOnly(right: 8),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: context.bodyLarge?.copyWith(
+              style: context.bodySmall?.copyWith(
                 color: context.theme.colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
           if (buttonText != null)
             DionTextbutton(
+              type: ButtonType.ghost,
               color: context.theme.colorScheme.error,
               onPressed: onTap,
-              child: Text(buttonText),
+              child: Text(
+                buttonText,
+                style: context.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
         ],
-      ).paddingAll(8),
+      ),
     ).paddingOnly(bottom: 16);
   }
 }

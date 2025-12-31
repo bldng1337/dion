@@ -5,7 +5,7 @@ import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/downloads.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';

@@ -11,7 +11,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'dart:math';
 import 'package:dionysos/widgets/selection.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/material.dart';

@@ -1,6 +1,6 @@
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/widgets/large_list.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';

@@ -7,7 +7,7 @@ import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -319,7 +319,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           onPressed: () {
             showSettingPopup(context, entry! as EntrySaved);
           },
-          icon: const Icon(Icons.settings, size: 20),
+          icon: const Icon(Icons.settings_outlined, size: 18),
         ),
       if (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
         DionIconbutton(
@@ -341,7 +341,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               }
             }
           },
-          icon: const Icon(Icons.refresh, size: 20),
+          icon: const Icon(Icons.refresh, size: 18),
         ),
       if (entry is EntryDetailed)
         DionIconbutton(
@@ -355,7 +355,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               }
             }
           },
-          icon: const Icon(Icons.open_in_browser, size: 20),
+          icon: const Icon(Icons.open_in_browser, size: 18),
         ),
     ];
     return NavScaff(
@@ -363,7 +363,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       floatingActionButton:
           (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
           ? ActionButton(
-              onPressed: () {
+              onPressed: () async {
                 EpisodePath(
                   entry! as EntryDetailed,
                   min(
@@ -389,7 +389,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
             child: CustomScrollView(
               controller: _scrollController,
               slivers: [
-                if (entry?.cover?.url != null)
+                if (entry?.cover?.url != null ||
+                    (entry is EntryDetailed &&
+                        (entry! as EntryDetailed).poster?.url != null))
                   _buildHeader(context, actions)
                 else
                   SliverAppBar(
@@ -429,7 +431,8 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   Widget _buildActionsContainer(BuildContext context, List<Widget> actions) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         color: context.theme.appBarTheme.backgroundColor,
         borderRadius: BorderRadius.circular(3),
@@ -441,13 +444,14 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Widget _buildLeadingButton(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.all(4),
+        margin: const EdgeInsets.only(left: 12),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: context.theme.appBarTheme.backgroundColor,
           borderRadius: BorderRadius.circular(3),
         ),
         child: DionIconbutton(
-          icon: const Icon(Icons.arrow_back, size: 20),
+          icon: const Icon(Icons.arrow_back, size: 18),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -458,7 +462,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   Widget _buildHeader(BuildContext context, List<Widget> actions) {
     return SliverAppBar(
-      expandedHeight: 500,
+      expandedHeight: 420,
       pinned: true,
       surfaceTintColor: Colors.transparent,
       actions: [_buildActionsContainer(context, actions)],
@@ -474,7 +478,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                   : entry?.cover,
               filterQuality: FilterQuality.high,
               boxFit: BoxFit.cover,
-              alignment: Alignment.center,
+              alignment: const Alignment(0, -0.3),
               errorWidget: Container(color: context.theme.colorScheme.surface),
             ),
             Positioned.fill(
@@ -483,12 +487,15 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.3, 0.7, 1.0],
+                    stops: const [0.0, 0.6, 0.85, 0.95, 1.0],
                     colors: [
                       Colors.transparent,
                       Colors.transparent,
                       context.theme.scaffoldBackgroundColor.withValues(
-                        alpha: 0.3,
+                        alpha: 0.2,
+                      ),
+                      context.theme.scaffoldBackgroundColor.withValues(
+                        alpha: 0.8,
                       ),
                       context.theme.scaffoldBackgroundColor,
                     ],

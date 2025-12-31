@@ -1,6 +1,6 @@
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/settings.dart' as appsettings;
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 extension SettingExtension on rust.Setting {

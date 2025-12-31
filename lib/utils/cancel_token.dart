@@ -1,4 +1,4 @@
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:rhttp/rhttp.dart' as rhttp;
 

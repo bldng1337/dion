@@ -9,7 +9,7 @@ import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/metis.dart';
@@ -108,6 +108,15 @@ class EntrySavedSettings {
   }
 }
 
+class EntryExtension {
+  final String extensionId;
+  Map<String, rust.Setting> extensionSettings;
+  EntryExtension({required this.extensionId, required this.extensionSettings});
+
+  Extension? get extension =>
+      locate<ExtensionService>().tryGetExtension(extensionId);
+}
+
 class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   @override
   String boundExtensionId;
@@ -121,6 +130,9 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   List<EpisodeData> _episodedata;
   int episode;
 
+  List<EntryExtension> entryExtensions;
+  List<EntryExtension> sourceExtensions;
+
   EntrySaved({
     required this.entry,
     required this.categories,
@@ -129,6 +141,8 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     required this.episode,
     required this.savedSettings,
     required this.extensionSettings,
+    this.entryExtensions = const [],
+    this.sourceExtensions = const [],
   }) : _episodedata = episodedata;
 
   List<EpisodeData> get episodedata => _episodedata;
@@ -215,7 +229,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   List<String>? get genres => entry.genres;
   @override
   Extension? get extension =>
-      locate<SourceExtension>().tryGetExtension(boundExtensionId);
+      locate<ExtensionService>().tryGetExtension(boundExtensionId);
 
   @override
   FutureOr<EntryDetailed> toDetailed({rust.CancelToken? token}) {
@@ -229,7 +243,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
 
   @override
   FutureOr<EntryDetailed> refresh({CancelToken? token}) async {
-    await locate<SourceExtension>().detail(this, token: token);
+    await locate<ExtensionService>().detail(this, token: token);
     await save();
     return this;
   }

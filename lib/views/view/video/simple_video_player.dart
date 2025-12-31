@@ -4,7 +4,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/player.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -89,7 +89,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         ),
       );
       await Future.delayed(const Duration(milliseconds: 500));
-      if(subtitles.isNotEmpty){
+      if (subtitles.isNotEmpty) {
         final sub = subtitles[subtitleIndex.value];
         await player.setSubtitleTrack(
           SubtitleTrack.uri(sub.url.url, title: sub.title),

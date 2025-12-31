@@ -8,7 +8,7 @@ import 'package:dionysos/data/entry/entry_detailed.dart' as entrydata;
 import 'package:dionysos/data/entry/entry_saved.dart' as entrydata;
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/views/settings/storage.dart';
 import 'package:flutter_test/flutter_test.dart';

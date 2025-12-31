@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/directoryprovider.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/internetfile.dart';

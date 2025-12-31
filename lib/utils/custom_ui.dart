@@ -1,4 +1,4 @@
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 
 extension CustomUIExt on CustomUI? {
   bool get isEmpty {

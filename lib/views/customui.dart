@@ -1,6 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
-import 'package:dionysos/service/source_extension.dart' hide DropdownItem;
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';

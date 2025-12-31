@@ -1,5 +1,5 @@
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/audio/audio.dart';
 import 'package:dionysos/views/view/imagelist/image.dart';

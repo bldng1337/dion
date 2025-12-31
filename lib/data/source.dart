@@ -5,7 +5,7 @@ import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/downloads.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/cache.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -61,7 +61,7 @@ class EpisodePath {
   String get extensionid => entry.boundExtensionId;
 
   Future<SourcePath> loadSource(CancelToken? tok) async {
-    final srcExt = locate<SourceExtension>();
+    final srcExt = locate<ExtensionService>();
     final res = await srcExt.source(this, token: tok);
     return res;
   }

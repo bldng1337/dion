@@ -26,7 +26,6 @@ void initApp({required RouterConfig<Object> route}) {
       child: switch (theme.mode) {
         DionThemeMode.material => MaterialApp.router(
           theme: getTheme(theme.brightness),
-          // darkTheme: getTheme(Brightness.dark),
           routerConfig: route,
         ),
         DionThemeMode.cupertino => CupertinoApp.router(

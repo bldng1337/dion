@@ -1,4 +1,4 @@
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:flutter/material.dart';
 
 extension MediaTypeExtension on MediaType {

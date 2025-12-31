@@ -5,7 +5,7 @@ import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/preference.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/update.dart';
@@ -61,7 +61,7 @@ class LoadingView extends StatelessWidget {
         (
           'SourceExtension',
           () async {
-            await SourceExtension.ensureInitialized();
+            await ExtensionService.ensureInitialized();
           },
         ),
         (

@@ -2,7 +2,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/preference.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:rhttp/rhttp.dart';
@@ -37,11 +37,11 @@ class MockDownloadService extends Mock implements DownloadService {}
 
 Future<MockSourceExtension> mockSourceExtension() async {
   final sourceExtension = MockSourceExtension();
-  register<SourceExtension>(sourceExtension);
+  register<ExtensionService>(sourceExtension);
   return sourceExtension;
 }
 
-class MockSourceExtension extends Mock implements SourceExtension {}
+class MockSourceExtension extends Mock implements ExtensionService {}
 
 Future<MockPreferenceService> mockPreferenceService() async {
   final preferenceService = MockPreferenceService();

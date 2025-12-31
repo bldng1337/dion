@@ -4,7 +4,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
@@ -73,11 +73,11 @@ class EntryDetailedImpl implements EntryDetailed {
   List<String>? get genres => entry.genres;
   @override
   Extension? get extension =>
-      locate<SourceExtension>().tryGetExtension(boundExtensionId);
+      locate<ExtensionService>().tryGetExtension(boundExtensionId);
 
   @override
   Future<EntryDetailed> refresh({CancelToken? token}) {
-    return locate<SourceExtension>().detail(this, token: token);
+    return locate<ExtensionService>().detail(this, token: token);
   }
 
   @override

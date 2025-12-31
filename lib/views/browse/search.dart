@@ -1,7 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
@@ -45,19 +45,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
     token = CancelToken()..disposedBy(scope);
     datacontroller?.dispose();
     datacontroller = DataSourceController<Entry>(
-      extensions
-          .map(
-            (e) => AsyncSource<Entry>((i) async {
-              if (token?.isDisposed ?? true) return [];
-              final res = await e.search(
-                i,
-                query,
-                // token: token,
-              );
-              return res;
-            })..name = e.data.name,
-          )
-          .toList(),
+      extensions.map((e) => e.search(query, token: token)).toList(),
     );
     datacontroller!.requestMore();
     // setState(() {});
@@ -66,9 +54,15 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
-    extensions = locate<SourceExtension>().getExtensions(
-      extfilter: (e) => e.isenabled,
-    );
+    extensions = locate<ExtensionService>()
+        .getExtensions(
+          extfilter: (e) =>
+              e.isenabled &&
+              (e.getExtensionTypeOrNull<ExtensionType_EntryProvider>() !=
+                      null ||
+                  e.data.extensionType.isEmpty),
+        )
+        .toList(growable: false);
     super.initState();
   }
 

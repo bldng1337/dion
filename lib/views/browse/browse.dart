@@ -3,7 +3,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
@@ -41,7 +41,7 @@ class _BrowseState extends State<Browse>
   late final TextEditingController controller;
   late DataSourceController<Entry> datacontroller;
   late List<Extension> extension;
-  late final CancelToken? token;
+  CancelToken? token;
 
   @override
   List<Extension> get extensions => extension;
@@ -51,11 +51,7 @@ class _BrowseState extends State<Browse>
     setState(() {
       extension = value;
       datacontroller = DataSourceController<Entry>(
-        extension
-            .map(
-              (e) => AsyncSource<Entry>((i) => e.browse(i))..name = e.data.name,
-            )
-            .toList(),
+        extension.map((e) => e.browse(token: token)).toList(),
       );
       datacontroller.requestMore();
     });
@@ -64,15 +60,17 @@ class _BrowseState extends State<Browse>
   @override
   void initState() {
     controller = TextEditingController()..disposedBy(scope);
-    extensions = locate<SourceExtension>().getExtensions(
-      extfilter: (e) => e.isenabled,
-    );
+    extensions = locate<ExtensionService>()
+        .getExtensions(
+          extfilter: (e) =>
+              e.isenabled &&
+              (e.getExtensionTypeOrNull<ExtensionType_EntryProvider>() !=
+                      null ||
+                  e.data.extensionType.isEmpty),
+        )
+        .toList(growable: false);
     datacontroller = DataSourceController<Entry>(
-      extensions
-          .map(
-            (e) => AsyncSource<Entry>((i) => e.browse(i))..name = e.data.name,
-          )
-          .toList(),
+      extensions.map((e) => e.browse(token: token)).toList(),
     )..disposedBy(scope);
     token = CancelToken()..disposedBy(scope);
     super.initState();

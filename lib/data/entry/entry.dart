@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/versioning.dart';
-import 'package:dionysos/service/source_extension.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
@@ -85,7 +85,7 @@ class EntryImpl implements Entry {
   int? get length => _entry.length;
   @override
   Extension? get extension =>
-      locate<SourceExtension>().tryGetExtension(boundExtensionId);
+      locate<ExtensionService>().tryGetExtension(boundExtensionId);
 
   @override
   int get hashCode => _entry.hashCode;
@@ -100,7 +100,7 @@ class EntryImpl implements Entry {
 
   @override
   Future<EntryDetailed> toDetailed({CancelToken? token}) async {
-    return await locate<SourceExtension>().detail(this, token: token);
+    return await locate<ExtensionService>().detail(this, token: token);
   }
 
   @override

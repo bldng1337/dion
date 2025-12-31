@@ -10,7 +10,6 @@ import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/settings/library.dart';
-import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
@@ -136,16 +135,28 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
               tab: Row(
                 children: [
                   Text(cat.name),
-                  if (categoryCounts[cat] != null && categoryCounts[cat]! > 0)
-                    DionContainer(
-                      color: context.theme.primaryColor,
-                      child: Text(
-                        '${categoryCounts[cat]}',
-                        style: context.labelSmall?.copyWith(
-                          color: Colors.white,
-                        ),
-                      ).paddingHorizontal(3),
-                    ).paddingAll(3),
+                  SizedBox(
+                    width: 17,
+                    height: 17,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child:
+                          (categoryCounts[cat] != null &&
+                              categoryCounts[cat]! > 0)
+                          ? DionContainer(
+                              key: ValueKey('badge_${cat.name}'),
+                              color: context.theme.primaryColor,
+                              child: Text(
+                                '${categoryCounts[cat]}',
+                                textAlign: TextAlign.center,
+                                style: context.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ).paddingHorizontal(3),
+                            )
+                          : SizedBox.shrink(key: ValueKey('empty_${cat.name}')),
+                    ),
+                  ).paddingAll(3),
                 ],
               ),
             ),
@@ -154,16 +165,26 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
               tab: Row(
                 children: [
                   const Text('All'),
-                  if (totalCount != null && totalCount! > 0)
-                    DionContainer(
-                      color: context.theme.primaryColor,
-                      child: Text(
-                        '$totalCount',
-                        style: context.labelSmall?.copyWith(
-                          color: Colors.white,
-                        ),
-                      ).paddingHorizontal(3),
-                    ).paddingAll(3),
+                  SizedBox(
+                    width: 17,
+                    height: 17,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: (totalCount != null && totalCount! > 0)
+                          ? DionContainer(
+                              key: const ValueKey('badge_all'),
+                              color: context.theme.primaryColor,
+                              child: Text(
+                                '$totalCount',
+                                textAlign: TextAlign.center,
+                                style: context.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ).paddingHorizontal(3),
+                            )
+                          : const SizedBox.shrink(key: ValueKey('empty_all')),
+                    ),
+                  ),
                 ],
               ),
               child: CategoryDisplay(
@@ -181,16 +202,28 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
               tab: Row(
                 children: [
                   const Text('No Category'),
-                  if (noneCount != null && noneCount! > 0)
-                    DionContainer(
-                      color: context.theme.primaryColor,
-                      child: Text(
-                        '$noneCount',
-                        style: context.labelSmall?.copyWith(
-                          color: Colors.white,
-                        ),
-                      ).paddingHorizontal(3),
-                    ).paddingAll(3),
+                  SizedBox(
+                    width: 17,
+                    height: 17,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: (noneCount != null && noneCount! > 0)
+                          ? DionContainer(
+                              key: const ValueKey('badge_no_category'),
+                              color: context.theme.primaryColor,
+                              child: Text(
+                                '$noneCount',
+                                textAlign: TextAlign.center,
+                                style: context.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ).paddingHorizontal(3),
+                            )
+                          : const SizedBox.shrink(
+                              key: ValueKey('empty_no_category'),
+                            ),
+                    ),
+                  ).paddingAll(3),
                 ],
               ),
               child: CategoryDisplay(

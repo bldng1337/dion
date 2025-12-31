@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:awesome_extensions/awesome_extensions_dart.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse/browse.dart';
@@ -177,6 +178,7 @@ Page getTransition(
 }) => switch (transition) {
   Transition.fade => CustomTransitionPage(
     key: state.pageKey,
+    transitionDuration: 250.milliseconds,
     child: child,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return FadeTransition(

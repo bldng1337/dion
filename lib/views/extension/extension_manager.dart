@@ -3,15 +3,15 @@ import 'dart:io';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/source_extension.dart' as src;
+import 'package:dionysos/service/extension.dart' as src;
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
-import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/tabbar.dart';
@@ -19,13 +19,13 @@ import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart'
     show
-        Colors,
-        Icons,
         AlertDialog,
-        TextField,
-        TextButton,
+        Colors,
         DropdownButton,
         DropdownMenuItem,
+        Icons,
+        TextButton,
+        TextField,
         showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +57,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
     setState(() {
       checkingUpdates = true;
     });
-    final sourceExt = locate<src.SourceExtension>();
+    final sourceExt = locate<src.ExtensionService>();
     final repos = settings.extension.repositories.value;
     final installed = sourceExt.getExtensions();
     final installedIds = installed.map((e) => e.id).toSet();
@@ -69,11 +69,8 @@ class _ExtensionManagerState extends State<ExtensionManager> {
         int page = 1;
         bool hasNext = true;
         while (hasNext) {
-          final res = await sourceExt.adapter.browseRepo(
-            repo: repo,
-            page: page,
-          );
-          for (final remote in res.content) {
+          final res = await repo.browse(page: page);
+          for (final remote in res) {
             if (installedIds.contains(remote.id)) {
               final inst = installed.firstWhere((e) => e.id == remote.id);
               if (Version.parse(remote.version) > inst.version) {
@@ -81,8 +78,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
               }
             }
           }
-          hasNext = res.hasnext ?? false;
-          if (res.length != null && res.length! <= page) hasNext = false;
+          if (res.isEmpty) hasNext = false;
           page++;
           if (page > 5) break; // Limit to 5 pages per repo for update check
         }
@@ -129,7 +125,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
         child: const Center(child: DionProgressBar()),
       );
     }
-    final sourceExt = locate<src.SourceExtension>();
+    final sourceExt = locate<src.ExtensionService>();
 
     return NavScaff(
       title: const DionTextScroll('Manage Extensions'),
@@ -251,14 +247,14 @@ class ExtensionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sourceExt = locate<src.SourceExtension>();
+    final sourceExt = locate<src.ExtensionService>();
     return ListenableBuilder(
       listenable: sourceExt,
       builder: (context, child) {
         if (sourceExt.loading) {
           return const Center(child: DionProgressBar());
         }
-        final exts = sourceExt.getExtensions();
+        final exts = sourceExt.getExtensions().toList(growable: false);
         if (exts.isEmpty) {
           return const Center(child: Text('No extensions installed'));
         }
@@ -379,13 +375,13 @@ class _ExtensionRepoBrowserState extends State<ExtensionRepoBrowser> {
 
   void _updateController() async {
     if (selectedRepo == null) return;
-    final sourceExt = locate<src.SourceExtension>();
+    final sourceExt = locate<src.ExtensionService>();
     try {
       final repo = await sourceExt.getRepo(selectedRepo!);
-      final dataSource = sourceExt.getRepoDataSource(repo);
+      final dataSource = sourceExt.getRepoDataSources(repo);
       if (mounted) {
         setState(() {
-          controller = DataSourceController([dataSource]);
+          controller = DataSourceController(dataSource);
         });
       }
     } catch (e) {
@@ -509,7 +505,7 @@ class RemoteExtensionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sourceExt = locate<src.SourceExtension>();
+    final sourceExt = locate<src.ExtensionService>();
     return ListenableBuilder(
       listenable: sourceExt,
       builder: (context, _) {
