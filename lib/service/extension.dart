@@ -6,19 +6,24 @@ import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/main.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
+import 'package:flutter/material.dart' show showDialog;
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:pub_semver/pub_semver.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
-
+import 'package:url_launcher/url_launcher.dart';
 export 'package:rdion_runtime/rdion_runtime.dart'
     hide Entry, EntryDetailed, RustLib, Setting, Row;
+import 'package:go_router/go_router.dart';
+import 'package:dionysos/views/action_dialog.dart';
 
 typedef CustomUIRow = rust.Row;
 
@@ -74,23 +79,15 @@ class Extension extends ChangeNotifier {
   }
 
   T getExtensionType<T extends rust.ExtensionType>() {
-    final extType = data.extensionType
-        .where((type) => type.runtimeType == T)
-        .firstOrNull;
+    final extType = getExtensionTypeOrNull<T>();
     if (extType == null) {
       throw Exception('Extension type $T not found for extension $id');
     }
-    return extType as T;
+    return extType;
   }
 
   T? getExtensionTypeOrNull<T extends rust.ExtensionType>() {
-    final extType = data.extensionType
-        .where((type) => type.runtimeType == T)
-        .firstOrNull;
-    if (extType == null) {
-      return null;
-    }
-    return extType as T;
+    return data.extensionType.whereType<T>().firstOrNull;
   }
 
   DataSource<Entry> browse({rust.CancelToken? token}) {
@@ -114,6 +111,41 @@ class Extension extends ChangeNotifier {
       }
       return Page.more(entries);
     })..name = name;
+  }
+
+  Future<void> runAction(rust.Action action, {rust.CancelToken? token}) async {
+    switch (action) {
+      case final rust.Action_OpenBrowser browse:
+        logger.i('Opening browser for url ${action.url} for extension $data');
+        await launchUrl(Uri.parse(browse.url));
+      case final rust.Action_Popup popup:
+        await showDialog(
+          context: navigatorKey.currentContext!,
+          builder: (context) => ActionDialog(popup: popup, extension: this),
+        );
+      case final rust.Action_Nav nav:
+        GoRouter.of(navigatorKey.currentContext!).go(
+          '/custom',
+          extra: [
+            CustomUIViewData(
+              title: nav.title,
+              ui: nav.content,
+              extension: this,
+            ),
+          ],
+        );
+      case final rust.Action_TriggerEvent triggerEvent:
+        await event(
+          event: rust.EventData.action(
+            event: triggerEvent.event,
+            data: triggerEvent.data,
+          ),
+        );
+      case final rust.Action_NavEntry navEntry:
+        GoRouter.of(
+          navigatorKey.currentContext!,
+        ).push('/detail', extra: [navEntry.entry]);
+    }
   }
 
   Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
@@ -476,7 +508,9 @@ class ExtensionService with ChangeNotifier {
               );
             }
           },
-          doAction: (rust.Action action) {},
+          doAction: (rust.Action action) async {
+            await getExtension(data.id).runAction(action);
+          },
           requestPermission:
               (rust.Permission permission, String? message) async {
                 logger.i(

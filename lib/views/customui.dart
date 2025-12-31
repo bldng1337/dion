@@ -148,46 +148,55 @@ class CustomUIWidget extends StatelessWidget {
         onPressed: () async {
           final action = button.onClick;
           if (action == null) return;
-          if (action is UIAction_SwapContent) {
-            try {
-              if (action.placeholder != null) {
+          switch (action) {
+            case final UIAction_SwapContent swapContent:
+              try {
+                if (action.placeholder != null) {
+                  element.context.updateSlotContent(
+                    element.path,
+                    action.targetid,
+                    action.placeholder!,
+                  );
+                }
+                final res = await element.extension.event(
+                  event: EventData.swapContent(
+                    data: action.data,
+                    event: action.event,
+                    targetid: action.targetid,
+                  ),
+                );
+                if (res == null) {
+                  return;
+                }
+                if (res is! EventResult_SwapContent) {
+                  throw Exception(
+                    'Invalid event result type: ${res.runtimeType}',
+                  );
+                }
                 element.context.updateSlotContent(
                   element.path,
                   action.targetid,
-                  action.placeholder!,
+                  res.customui,
+                );
+              } catch (e, stack) {
+                logger.e(
+                  'Failed to swap content at ${element.path}',
+                  error: e,
+                  stackTrace: stack,
+                );
+                //TODO: slot should be able to report errors
+              }
+            case final UIAction_Action action:
+              try {
+                await element.extension.runAction(action.action);
+              } catch (e, stack) {
+                logger.e(
+                  'Failed to perform action at ${element.path}',
+                  error: e,
+                  stackTrace: stack,
                 );
               }
-              final res = await element.extension.event(
-                event: EventData.swapContent(
-                  data: action.data,
-                  event: action.event,
-                  targetid: action.targetid,
-                ),
-              );
-              if (res == null) {
-                return;
-              }
-              if (res is! EventResult_SwapContent) {
-                throw Exception(
-                  'Invalid event result type: ${res.runtimeType}',
-                );
-              }
-              element.context.updateSlotContent(
-                element.path,
-                action.targetid,
-                res.customui,
-              );
-            } catch (e, stack) {
-              logger.e(
-                'Failed to swap content at ${element.path}',
-                error: e,
-                stackTrace: stack,
-              );
-              //TODO: slot should be able to report errors
-            }
-            return;
           }
-          //TODO: handle other actions
         },
       ),
       final CustomUI_InlineSetting inlineSetting => DionRuntimeSettingView(

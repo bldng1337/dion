@@ -135,3 +135,24 @@ class EntrySettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
     super.onChange(t);
   }
 }
+
+class EntryExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
+  final EntryExtension _entryExtension;
+  EntryExtensionSettingMetaData(
+    this._entryExtension,
+    super.id,
+    super.label,
+    super.visible,
+    super.ui,
+  );
+
+  @override
+  void onChange(T t) {
+    final setting = _entryExtension.extensionSettings[id];
+    if (setting == null) return;
+    _entryExtension.extensionSettings[id] = setting.copyWith(
+      value: setting.value.updateWith(t),
+    );
+    super.onChange(t);
+  }
+}

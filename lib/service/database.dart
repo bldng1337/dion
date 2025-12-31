@@ -271,7 +271,6 @@ WHERE
   }
 
   Future<void> updateEntry(EntrySaved entry) async {
-    print("updateEntry ${entry.id}");
     await adapter.save(entry);
     notifyListeners([DBEvent.entryUpdated]);
   }

@@ -510,9 +510,6 @@ class RemoteExtensionTile extends StatelessWidget {
       listenable: sourceExt,
       builder: (context, _) {
         final installed = sourceExt.tryGetExtension(extension.id);
-        print(installed?.name);
-        print(extension.version);
-        print(installed?.version);
         final canUpdate =
             installed != null &&
             Version.parse(extension.version) > installed.version;

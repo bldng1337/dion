@@ -6,6 +6,7 @@ import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/browse/library.dart';
 import 'package:dionysos/views/browse/search.dart';
+import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/detail/detail.dart';
 import 'package:dionysos/views/extension/extension_manager.dart';
 import 'package:dionysos/views/extension/extension_view.dart';
@@ -81,6 +82,15 @@ GoRouter getRoutes() => GoRouter(
         context,
         state,
         const ViewSource(),
+        transition: Transition.fade,
+      ),
+    ),
+    GoRoute(
+      path: 'custom',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const CustomUiView(),
         transition: Transition.fade,
       ),
     ),
