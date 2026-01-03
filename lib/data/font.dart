@@ -24,6 +24,15 @@ class Font {
     return {'name': name, 'type': type.toString().split('.').last};
   }
 
+  TextStyle get syncTextStyle {
+    switch (type) {
+      case FontType.system:
+        return TextStyle(fontFamily: name);
+      case FontType.google:
+        return GoogleFonts.getFont(name);
+    }
+  }
+
   Future<TextStyle> toTextStyle() async {
     switch (type) {
       case FontType.system:
