@@ -111,7 +111,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     return NavScaff(
       showNavbar: false,
       child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        behavior: ScrollConfiguration.of(context).copyWith(),
         child: CustomScrollView(
           controller: controller,
           slivers: [
@@ -151,10 +151,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
             if (widget.source.episode.hasprev)
               SliverToBoxAdapter(
                 child: DionTextbutton(
-                  child: const Text('Previous'),
+                  child: const Text('Previous').paddingSymmetric(vertical: 16),
                   onPressed: () =>
                       widget.source.episode.goPrev(widget.supplier),
-                ).paddingSymmetric(vertical: 16),
+                ),
               ),
             SliverToBoxAdapter(
               child: EpisodeTitle(episode: widget.source.episode),
@@ -175,10 +175,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
             if (widget.source.episode.hasnext)
               SliverToBoxAdapter(
                 child: DionTextbutton(
-                  child: const Text('Next'),
+                  child: const Text('Next').paddingSymmetric(vertical: 16),
                   onPressed: () =>
                       widget.source.episode.goNext(widget.supplier),
-                ).paddingSymmetric(vertical: 16),
+                ),
               ),
           ],
         ),
