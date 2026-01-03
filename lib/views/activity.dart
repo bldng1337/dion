@@ -352,6 +352,7 @@ class _ActivityViewState extends State<ActivityView> {
   Widget build(BuildContext context) {
     return NavScaff(
       destination: homedestinations,
+      title: const Text('Activity'),
       child: DynamicList(
         showDataSources: false,
         controller: controller,

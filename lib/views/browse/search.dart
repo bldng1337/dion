@@ -69,6 +69,7 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
   @override
   Widget build(BuildContext context) {
     return NavScaff(
+      title: const Text('Search'),
       destination: homedestinations,
       child: Column(
         children: [

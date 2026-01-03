@@ -126,6 +126,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     }
     return NavScaff(
       destination: homedestinations,
+      title: const Text('Library'),
       child: DionTabBar(
         scrollable: true,
         tabs: [

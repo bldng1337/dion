@@ -79,6 +79,7 @@ class _BrowseState extends State<Browse>
   @override
   Widget build(BuildContext context) {
     return NavScaff(
+      title: const Text('Browse'),
       destination: homedestinations,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
