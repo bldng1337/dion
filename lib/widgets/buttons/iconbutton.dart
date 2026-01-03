@@ -16,24 +16,13 @@ class DionIconbutton extends StatelessWidget {
   ButtonStyle _getButtonStyle(BuildContext context) {
     return ButtonStyle(
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      shape: WidgetStateProperty.all(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(3),
-          // side: BorderSide(
-          //   color: onPressed == null
-          //       ? context.theme.disabledColor
-          //       : context.theme.colorScheme.primary,
-          //   width: 0.3,
-          // ),
-        ),
-      ),
-      backgroundColor: WidgetStateProperty.all(Colors.transparent),
       overlayColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.pressed)) {
-          return context.theme.colorScheme.primary.withValues(alpha: 0.1);
+          return context.theme.colorScheme.primary.withValues(alpha: 0.07);
         }
         return Colors.transparent;
       }),
+      animationDuration: const Duration(milliseconds: 10),
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (onPressed == null) {
           return context.theme.disabledColor;
