@@ -50,10 +50,6 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
 
   void play() {
     if (player == null) return;
-    if (player!.state.playlist.medias.isNotEmpty)
-      print(
-        "Current $_currentIndex, min: ${player!.state.playlist.medias[0].extras!['from'] as int?}, max: ${player!.state.playlist.medias[0].extras!['to'] as int?}",
-      );
     if (player!.state.playlist.medias.isNotEmpty &&
         player!.state.playlist.medias[0].extras!['from']! as int <
             _currentIndex &&
@@ -134,6 +130,9 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           if (loadingMap.containsKey(i + position)) {
             continue;
           }
+          if (position + i >= widget.sourcedata.links.length) {
+            break;
+          }
           loadingMap[position + i] = DionImage.preload(
             widget.sourcedata.links[position + i].url,
             headers: widget.sourcedata.links[position + i].header,
@@ -146,6 +145,9 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   void jumpToProgress() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!listController.isAttached || !scrollController.hasClients) {
+        return;
+      }
+      if (scrollController.offset > 0) {
         return;
       }
       final epdata = widget.source.episode.data;
@@ -239,13 +241,13 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     return NavScaff(
       showNavbar: false,
       child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        behavior: ScrollConfiguration.of(context).copyWith(),
         child: InteractiveViewer(
           minScale: 0.1,
           maxScale: 10,
           panAxis: PanAxis.horizontal,
           scaleEnabled: _ctrlIsPressed,
-
+          trackpadScrollCausesScale: _ctrlIsPressed,
           child: CustomScrollView(
             controller: scrollController,
             physics: _ctrlIsPressed
@@ -329,27 +331,28 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
               if (widget.source.episode.hasprev)
                 SliverToBoxAdapter(
                   child: DionTextbutton(
-                    child: const Text('Previous'),
+                    child: const Text(
+                      'Previous',
+                    ).paddingSymmetric(vertical: 16),
                     onPressed: () =>
                         widget.source.episode.goPrev(widget.supplier),
-                  ).paddingSymmetric(vertical: 16),
+                  ),
                 ),
-              SliverPadding(
-                padding: EdgeInsets.zero,
-                sliver: SuperSliverList.builder(
-                  listController: listController,
-                  itemBuilder: (context, index) =>
-                      wrapScreen(context, makeImage(context, images[index])),
-                  itemCount: images.length,
-                ),
+              SuperSliverList.builder(
+                layoutKeptAliveChildren: true,
+                delayPopulatingCacheArea: false,
+                listController: listController,
+                itemBuilder: (context, index) =>
+                    wrapScreen(context, makeImage(context, images[index])),
+                itemCount: images.length,
               ),
               if (widget.source.episode.hasnext)
                 SliverToBoxAdapter(
                   child: DionTextbutton(
-                    child: const Text('Next'),
+                    child: const Text('Next').paddingSymmetric(vertical: 16),
                     onPressed: () =>
                         widget.source.episode.goNext(widget.supplier),
-                  ).paddingSymmetric(vertical: 16),
+                  ),
                 ),
             ],
           ),
