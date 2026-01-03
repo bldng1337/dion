@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/main.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -179,6 +180,8 @@ class DionImage extends StatefulWidget {
 }
 
 class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
+  Key? _imageKey;
+
   Widget noImage(BuildContext context) {
     return FittedBox(
       fit: widget.boxFit ?? BoxFit.contain,
@@ -289,6 +292,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
       return SizedBox(width: width, height: height, child: noImage(context));
     }
     return Image(
+      key: _imageKey,
       image: DionNetworkImage(
         widget.imageUrl!,
         width: width,
@@ -305,13 +309,34 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
           return widget.errorWidget!;
         }
         return SizedBox(
+          width: width,
+          height: height,
           child: ErrorDisplay(
             e: error,
             s: stackTrace,
             message: 'Failed to load image ${widget.imageUrl}',
+            actions: [
+              ErrorAction(
+                label: 'Try Again',
+                onTap: () async {
+                  PaintingBinding.instance.imageCache.evict(
+                    DionNetworkImage(
+                      widget.imageUrl!,
+                      width: width,
+                      height: height,
+                      httpHeaders: widget.httpHeaders,
+                    ),
+                  );
+                  await locate<CacheService>().imgcache.removeFile(
+                    widget.imageUrl!,
+                  );
+                  setState(() {
+                    _imageKey = UniqueKey();
+                  });
+                },
+              ),
+            ],
           ),
-          width: width,
-          height: height,
         );
       },
       frameBuilder: (context, image, frame, wasSynchronouslyLoaded) {
