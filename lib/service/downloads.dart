@@ -98,7 +98,6 @@ class DownloadTask extends Task {
                 progress = (index + current) / data.links.length,
             rhttpToken: rhttpToken,
           );
-          progress = null;
           imagedata.add(file.filename);
         }
         index['images'] = imagedata;
