@@ -1,8 +1,10 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:dionysos/widgets/text.dart';
 import 'package:flutter/widgets.dart';
@@ -48,9 +50,20 @@ class _SettingFontState extends State<SettingFont> {
   @override
   Widget build(BuildContext context) {
     if (fonts.isEmpty) return SizedBox.shrink();
-    // return Text('SettingFont is deprecated, use SettingDropdown with Font items instead.');
     if (!fonts.contains(widget.setting.value)) {
-      widget.setting.value = fonts[0];
+      return SettingTileWrapper(
+        child: DionListTile(
+          leading: widget.icon != null ? Icon(widget.icon) : null,
+          trailing: const SizedBox(
+            width: 200,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [DionProgressBar(size: 16), Text(' Loading fonts...')],
+            ),
+          ),
+          title: Text(widget.title, style: context.titleMedium),
+        ),
+      );
     }
     final tile = ListenableBuilder(
       listenable: widget.setting,
