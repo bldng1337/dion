@@ -233,7 +233,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
 
   @override
   FutureOr<EntryDetailed> toDetailed({rust.CancelToken? token}) {
-    return this;
+    return EntryDetailed.fromSaved(this);
   }
 
   @override

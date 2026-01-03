@@ -22,6 +22,14 @@ abstract class EntryDetailed extends Entry {
 
   FutureOr<EntrySaved> toSaved();
   FutureOr<EntryDetailed> refresh({CancelToken? token});
+
+  static EntryDetailed fromSaved(EntrySaved saved) {
+    return EntryDetailedImpl(
+      saved.entry,
+      saved.boundExtensionId,
+      saved.extensionSettings,
+    );
+  }
 }
 
 class EntryDetailedImpl implements EntryDetailed {
