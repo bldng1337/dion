@@ -396,10 +396,13 @@ class DownloadService {
     if (!await path.exists()) {
       return;
     }
-    await path
+    final downloadpath = path
         .sub(pathEncode(entry.boundExtensionId))
-        .sub(pathEncode(entry.id.uid))
-        .delete(recursive: true);
+        .sub(pathEncode(entry.id.uid));
+    if (!await downloadpath.exists()) {
+      return;
+    }
+    await downloadpath.delete(recursive: true);
   }
 }
 
