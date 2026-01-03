@@ -2,10 +2,13 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/foundation.dart';
@@ -43,19 +46,30 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   Player? player;
   bool _ctrlIsPressed = false;
   int _currentIndex = 0;
+  Map<int, Future<void>> loadingMap = {};
 
   void play() {
     if (player == null) return;
-    final max = _currentIndex;
+    if (player!.state.playlist.medias.isNotEmpty)
+      print(
+        "Current $_currentIndex, min: ${player!.state.playlist.medias[0].extras!['from'] as int?}, max: ${player!.state.playlist.medias[0].extras!['to'] as int?}",
+      );
     if (player!.state.playlist.medias.isNotEmpty &&
-        player!.state.playlist.medias[0].extras!['from']! as int < max &&
-        player!.state.playlist.medias[0].extras!['to']! as int > max) {
+        player!.state.playlist.medias[0].extras!['from']! as int <
+            _currentIndex &&
+        player!.state.playlist.medias[0].extras!['to']! as int >
+            _currentIndex) {
       return;
     }
     final audio = widget.sourcedata.audio!
-        .where((e) => max >= e.from && max <= e.to)
+        .where((e) => _currentIndex >= e.from && _currentIndex <= e.to)
         .firstOrNull;
     if (audio == null) return;
+    if (player!.state.playlist.medias.isNotEmpty &&
+        player!.state.playlist.medias[0].extras!['link']! as Link ==
+            audio.link) {
+      return;
+    }
     player!.open(
       Media(
         audio.link.url,
@@ -73,6 +87,18 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
         title: 'dion',
         logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
       ),
+    );
+    locate<PlayerService>().setSession(
+      PlaySession(
+        widget.supplier,
+        player!,
+        gonext: () {
+          widget.source.episode.goNext(widget.supplier);
+        },
+        goprev: () {
+          widget.source.episode.goPrev(widget.supplier);
+        },
+      )..disposedBy(scope),
     );
     player!.setPlaylistMode(PlaylistMode.loop);
     player!.setVolume(psettings.volume.value);
@@ -104,6 +130,15 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           epdata.progress = position.toString();
         }
         play();
+        for (int i = 0; i < 5; i++) {
+          if (loadingMap.containsKey(i + position)) {
+            continue;
+          }
+          loadingMap[position + i] = DionImage.preload(
+            widget.sourcedata.links[position + i].url,
+            headers: widget.sourcedata.links[position + i].header,
+          );
+        }
       }
     }
   }
@@ -140,18 +175,19 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     WakelockPlus.toggle(enable: true);
     Observer(() {
       if (psettings.music.value) {
-        initPlayer();
+        setState(() {
+          initPlayer();
+        });
       } else {
-        player?.dispose();
-        player = null;
+        setState(() {
+          player?.dispose();
+          player = null;
+        });
       }
     }, psettings.music).disposedBy(scope);
     Observer(() {
       player?.setVolume(psettings.volume.value);
     }, psettings.volume).disposedBy(scope);
-    if (psettings.music.value) {
-      initPlayer();
-    }
 
     supplierObserver = Observer(jumpToProgress, widget.supplier)
       ..disposedBy(scope);
@@ -209,6 +245,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           maxScale: 10,
           panAxis: PanAxis.horizontal,
           scaleEnabled: _ctrlIsPressed,
+
           child: CustomScrollView(
             controller: scrollController,
             physics: _ctrlIsPressed
@@ -220,20 +257,51 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                 title: DionTextScroll(widget.source.name),
                 actions: [
                   if (player != null)
-                    DionIconbutton(
-                      icon: Icon(
-                        player!.state.playing ? Icons.pause : Icons.play_arrow,
+                    StreamBuilder(
+                      stream: player!.stream.playing,
+                      builder: (context, snapshot) => Stack(
+                        alignment: Alignment.center,
+                        fit: StackFit.passthrough,
+                        children: [
+                          DionIconbutton(
+                            icon: Icon(
+                              (snapshot.data ?? false)
+                                  ? Icons.pause
+                                  : Icons.play_arrow,
+                            ),
+                            onPressed: () async {
+                              if (player!.state.playing) {
+                                await player!.pause();
+                              } else {
+                                await player!.play();
+                              }
+                            },
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            child: StreamBuilder(
+                              stream: player!.stream.position,
+                              builder: (context, snapshot) {
+                                final position = snapshot.data ?? Duration.zero;
+                                final total = player!.state.duration;
+                                if (total == Duration.zero) {
+                                  return const SizedBox.shrink();
+                                }
+                                return SizedBox(
+                                  width: 24,
+                                  height: 2,
+                                  child: DionProgressBar(
+                                    type: DionProgressType.linear,
+                                    value: position.inMilliseconds.toDouble(),
+                                    max: total.inMilliseconds.toDouble(),
+                                    color: Colors.white,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                      onPressed: () async {
-                        if (player!.state.playing) {
-                          player!.pause();
-                        } else {
-                          player!.play();
-                        }
-                        if (mounted) {
-                          setState(() {});
-                        }
-                      },
                     ),
                   DionIconbutton(
                     icon: Icon(
