@@ -21,13 +21,13 @@ class DionProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (type) {
-      DionProgressType.linear => material.CircularProgressIndicator(
+      DionProgressType.linear => material.LinearProgressIndicator(
         value: value != null ? value! / max : null,
         color: color,
-        strokeWidth: 2,
-        constraints: size != null
-            ? BoxConstraints.expand(height: size, width: size)
-            : null,
+        // strokeWidth: 2,
+        // constraints: size != null
+        //     ? BoxConstraints.expand(height: size, width: size)
+        //     : null,
       ),
       DionProgressType.circular => material.CircularProgressIndicator(
         value: value != null ? value! / max : null,
