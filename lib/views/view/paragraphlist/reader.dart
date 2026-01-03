@@ -7,6 +7,8 @@ import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
 import 'package:dionysos/views/view/wrapper.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/progress.dart';
+import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'dart:math';
@@ -26,18 +28,28 @@ class ParagraphListReader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: psettings.mode,
-      builder: (context, child) => switch (psettings.mode.value) {
-        ReaderMode.paginated => SourceWrapper(
-          builder: (context, source) => SimpleParagraphlistReader(
-            key: ValueKey(source.episode),
-            source: source,
-            supplier: supplier,
-          ),
-          source: supplier,
+      listenable: psettings.font,
+      builder: (context, child) => LoadingBuilder(
+        future: psettings.font.value.toTextStyle(),
+        loading: (context) =>
+            const NavScaff(child: Center(child: DionProgressBar())),
+        builder: (context, value) => ListenableBuilder(
+          listenable: psettings.mode,
+          builder: (context, child) => switch (psettings.mode.value) {
+            ReaderMode.paginated => SourceWrapper(
+              builder: (context, source) => SimpleParagraphlistReader(
+                key: ValueKey(source.episode),
+                source: source,
+                supplier: supplier,
+              ),
+              source: supplier,
+            ),
+            ReaderMode.infinite => InfiniteParagraphListReader(
+              supplier: supplier,
+            ),
+          },
         ),
-        ReaderMode.infinite => InfiniteParagraphListReader(supplier: supplier),
-      },
+      ),
     );
   }
 }
@@ -194,47 +206,61 @@ class ReaderRenderParagraph extends StatelessWidget {
         return ListenableBuilder(
           listenable: psettings.font,
           builder: (context, child) {
-            return LoadingBuilder(
-              future: psettings.font.value.toTextStyle(),
-              builder: (context, style) => Text(
-                text.content,
-                style: (context.bodyLarge ?? style)
-                    .merge(style)
-                    .copyWith(
-                      height: psettings.text.linespacing.value,
-                      fontSize: psettings.text.size.value.toDouble(),
-                      fontWeight: FontWeight.lerp(
-                        FontWeight.w100,
-                        FontWeight.w900,
-                        psettings.text.weight.value,
-                      ),
+            return Text(
+              text.content,
+              style: (context.bodyLarge ?? const TextStyle())
+                  .copyWith(
+                    height: psettings.text.linespacing.value,
+                    fontSize: psettings.text.size.value.toDouble(),
+                    fontWeight: FontWeight.lerp(
+                      FontWeight.w100,
+                      FontWeight.w900,
+                      psettings.text.weight.value,
                     ),
-              ),
-              loading: (context) => Text(
-                text.content,
-                style: context.bodyLarge?.copyWith(
-                  height: psettings.text.linespacing.value,
-                  fontSize: psettings.text.size.value.toDouble(),
-                  fontWeight: FontWeight.lerp(
-                    FontWeight.w100,
-                    FontWeight.w900,
-                    psettings.text.weight.value,
-                  ),
-                ),
-              ),
-              error: (context, _, _) => Text(
-                text.content,
-                style: context.bodyLarge?.copyWith(
-                  height: psettings.text.linespacing.value,
-                  fontSize: psettings.text.size.value.toDouble(),
-                  fontWeight: FontWeight.lerp(
-                    FontWeight.w100,
-                    FontWeight.w900,
-                    psettings.text.weight.value,
-                  ),
-                ),
-              ),
+                  )
+                  .merge(psettings.font.value.syncTextStyle),
             );
+            // return LoadingBuilder(
+            //   future: psettings.font.value.toTextStyle(),
+            //   builder: (context, style) => Text(
+            //     text.content,
+            //     style: (context.bodyLarge ?? style)
+            //         .merge(style)
+            //         .copyWith(
+            //           height: psettings.text.linespacing.value,
+            //           fontSize: psettings.text.size.value.toDouble(),
+            //           fontWeight: FontWeight.lerp(
+            //             FontWeight.w100,
+            //             FontWeight.w900,
+            //             psettings.text.weight.value,
+            //           ),
+            //         ),
+            //   ),
+            //   loading: (context) => Text(
+            //     text.content,
+            //     style: context.bodyLarge?.copyWith(
+            //       height: psettings.text.linespacing.value,
+            //       fontSize: psettings.text.size.value.toDouble(),
+            //       fontWeight: FontWeight.lerp(
+            //         FontWeight.w100,
+            //         FontWeight.w900,
+            //         psettings.text.weight.value,
+            //       ),
+            //     ),
+            //   ),
+            //   error: (context, _, _) => Text(
+            //     text.content,
+            //     style: context.bodyLarge?.copyWith(
+            //       height: psettings.text.linespacing.value,
+            //       fontSize: psettings.text.size.value.toDouble(),
+            //       fontWeight: FontWeight.lerp(
+            //         FontWeight.w100,
+            //         FontWeight.w900,
+            //         psettings.text.weight.value,
+            //       ),
+            //     ),
+            //   ),
+            // );
           },
         );
       case final Paragraph_CustomUI customUi:
