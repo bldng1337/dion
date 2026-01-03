@@ -38,9 +38,9 @@ class EpisodePath {
   String get name => episode.name;
   Link? get cover => episode.cover ?? entry.cover;
 
-  void goPrev(SourceSupplier supplier) {
+  Future<void> goPrev(SourceSupplier supplier) async {
     if (!hasprev) return;
-    supplier.episode = prev;
+    await supplier.setEpisodeByIndex(episodenumber - 1);
   }
 
   Future<void> save() =>
@@ -48,7 +48,7 @@ class EpisodePath {
 
   Future<void> goNext(SourceSupplier supplier) async {
     if (!hasnext) return;
-    supplier.setEpisodeByIndex(episodenumber + 1);
+    await supplier.setEpisodeByIndex(episodenumber + 1);
   }
 
   void go(BuildContext context) {
