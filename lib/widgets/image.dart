@@ -123,6 +123,17 @@ class DionImage extends StatefulWidget {
   final Color? color;
   final Alignment? alignment;
   final Widget Function(BuildContext context)? loadingBuilder;
+
+  static Future<void> preload(
+    String url, {
+    Map<String, String>? headers,
+  }) async {
+    await precacheImage(
+      DionNetworkImage(url, httpHeaders: headers),
+      navigatorKey.currentContext!,
+    );
+  }
+
   const DionImage({
     super.key,
     required this.imageUrl,
