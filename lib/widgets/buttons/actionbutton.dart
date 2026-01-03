@@ -19,10 +19,10 @@ class ActionButton extends StatelessWidget {
         loading: FloatingActionButton(
           backgroundColor: onPressed == null
               ? context.theme.disabledColor.lighten(70)
-              : context.theme.colorScheme.primary,
+              : context.theme.appBarTheme.backgroundColor,
           foregroundColor: onPressed == null
               ? context.theme.disabledColor
-              : context.theme.colorScheme.onPrimary,
+              : context.theme.appBarTheme.foregroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(3),
             side: BorderSide(
@@ -45,15 +45,12 @@ class ActionButton extends StatelessWidget {
           ),
         ),
         builder: (context, _, setFuture) => FloatingActionButton(
-          elevation: 0,
-          focusElevation: 0,
-          hoverElevation: 0,
           backgroundColor: onPressed == null
-              ? context.theme.disabledColor.lighten(50)
-              : context.theme.colorScheme.primary,
-          // foregroundColor: onPressed == null
-          //     ? context.theme.disabledColor
-          //     : context.theme.colorScheme.onPrimary,
+              ? context.theme.disabledColor.lighten(70)
+              : context.theme.appBarTheme.backgroundColor,
+          foregroundColor: onPressed == null
+              ? context.theme.disabledColor
+              : context.theme.appBarTheme.foregroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(3),
             side: BorderSide(
