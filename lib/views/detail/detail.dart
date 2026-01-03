@@ -44,8 +44,8 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   StackTrace? errstack;
   List<int> selected = [];
   int? hovered;
-
-  late final ScrollController _scrollController;
+  late final ScrollController _scrollController = ScrollController()
+    ..disposedBy(scope);
 
   List<ContextMenuItem> get contextItems => [
     ContextMenuItem(
@@ -232,6 +232,9 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   ];
 
   Future<void> loadEntry() async {
+    if (entry is EntrySaved) {
+      return;
+    }
     try {
       final saved = await locate<Database>().isSaved(entry!);
       if (saved != null) {
@@ -239,6 +242,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         if (mounted) {
           setState(() {});
         }
+        return;
       }
     } catch (e, stack) {
       logger.e('Error checking if entry is saved', error: e, stackTrace: stack);
@@ -246,6 +250,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       if (mounted) {
         setState(() {});
       }
+      return;
+    }
+    if (entry is EntryDetailed) {
+      return;
     }
     try {
       entry = await entry!.toDetailed(token: tok);
@@ -266,14 +274,11 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     super.didChangeDependencies();
     final newentry =
         (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
-    setState(() {});
-    if (newentry is EntryDetailed || newentry is EntrySaved) {
-      entry = newentry;
+    if (entry.runtimeType == newentry.runtimeType && newentry.id == entry?.id) {
       return;
     }
-    if (entry is EntryDetailed && newentry.id == entry?.id) return;
-    if (entry is EntrySaved && newentry.id == entry?.id) return;
     if (!mounted) return;
+    setState(() {});
     entry = newentry;
     if (tok.isDisposed) {
       tok = CancelToken()..disposedBy(scope);
@@ -285,7 +290,6 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   void initState() {
     super.initState();
     tok = CancelToken()..disposedBy(scope);
-    _scrollController = ScrollController()..disposedBy(scope);
   }
 
   @override
@@ -379,51 +383,42 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         selectionActive: selected.isNotEmpty,
         active: entry is EntrySaved,
         contextItems: contextItems,
-        child: ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: RawScrollbar(
-            controller: _scrollController,
-            radius: const Radius.circular(3),
-            thickness: 5,
-            padding: EdgeInsets.zero,
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                if (entry?.cover?.url != null ||
-                    (entry is EntryDetailed &&
-                        (entry! as EntryDetailed).poster?.url != null))
-                  _buildHeader(context, actions)
-                else
-                  SliverAppBar(
-                    pinned: true,
-                    surfaceTintColor: Colors.transparent,
-                    actions: [_buildActionsContainer(context, actions)],
-                    leading: _buildLeadingButton(context),
-                  ),
-                SliverToBoxAdapter(child: EntryInfo(entry: entry!)),
-                if (entry is EntryDetailed)
-                  EpisodeListSliver(
-                    entry: entry! as EntryDetailed,
-                    selected: selected,
-                    onEnter: (index) {
-                      if (hovered == index) return;
-                      setState(() {
-                        hovered = index;
-                      });
-                    },
-                    onSelect: (index) {
-                      if (selected.contains(index)) {
-                        selected.remove(index);
-                      } else {
-                        selected.add(index);
-                      }
-                      setState(() {});
-                    },
-                  ),
-                const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-              ],
-            ),
-          ),
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            if (entry?.cover?.url != null ||
+                (entry is EntryDetailed &&
+                    (entry! as EntryDetailed).poster?.url != null))
+              _buildHeader(context, actions)
+            else
+              SliverAppBar(
+                pinned: true,
+                surfaceTintColor: Colors.transparent,
+                actions: [_buildActionsContainer(context, actions)],
+                leading: _buildLeadingButton(context),
+              ),
+            SliverToBoxAdapter(child: EntryInfo(entry: entry!)),
+            if (entry is EntryDetailed)
+              EpisodeListSliver(
+                entry: entry! as EntryDetailed,
+                selected: selected,
+                onEnter: (index) {
+                  if (hovered == index) return;
+                  setState(() {
+                    hovered = index;
+                  });
+                },
+                onSelect: (index) {
+                  if (selected.contains(index)) {
+                    selected.remove(index);
+                  } else {
+                    selected.add(index);
+                  }
+                  setState(() {});
+                },
+              ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+          ],
         ),
       ),
     );
@@ -487,13 +482,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.6, 0.85, 0.95, 1.0],
+                    stops: const [0.0, 0.85, 0.98, 1.0],
                     colors: [
                       Colors.transparent,
                       Colors.transparent,
-                      context.theme.scaffoldBackgroundColor.withValues(
-                        alpha: 0.2,
-                      ),
                       context.theme.scaffoldBackgroundColor.withValues(
                         alpha: 0.8,
                       ),

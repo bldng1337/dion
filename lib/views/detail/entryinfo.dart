@@ -4,8 +4,10 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/custom_ui.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/views/customui.dart';
@@ -15,7 +17,7 @@ import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
-import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
+import 'package:flutter/material.dart' show Colors, Divider, FontWeight, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -47,59 +49,59 @@ class EntryInfo extends StatelessWidget {
         _buildLibraryButton(context),
         _buildDescriptionSection(context),
         _buildCustomUISection(context),
+        if (entry is EntryDetailed)
+          Text(
+            '${(entry as EntryDetailed).episodes.length} ${entry.mediaType.getEpisodeNames((entry as EntryDetailed).episodes.length)}',
+            style: context.labelMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              letterSpacing: 1.0,
+              color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
+          ),
       ].whereType<Widget>().toList(),
-    ).paddingSymmetric(horizontal: 20, vertical: 24);
+    ).paddingSymmetric(horizontal: 20, vertical: 12);
   }
 
   Widget _buildHeaderSection(BuildContext context) {
     final isWide = context.width > 700;
-    final coverSize = isWide ? 130.0 : 100.0;
+    final coverSize = isWide ? 180.0 : 100.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cover Image Card
         if (entry.cover != null)
-          Container(
-            width: coverSize,
-            height: coverSize * 1.45,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(3),
-              boxShadow: [
-                BoxShadow(
-                  color: context.theme.colorScheme.onSurface.withValues(
-                    alpha: 0.12,
-                  ),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: coverSize,
+              maxHeight: coverSize,
             ),
-            clipBehavior: Clip.antiAlias,
-            child: DionImage(
-              hasPopup: true,
-              imageUrl: entry.cover!.url,
-              httpHeaders: entry.cover!.header,
-              boxFit: BoxFit.cover,
-              errorWidget: Container(
-                color: context.theme.colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  Icons.image_outlined,
-                  size: 28,
-                  color: context.theme.colorScheme.onSurface.withValues(
-                    alpha: 0.25,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(3),
+                boxShadow: [
+                  BoxShadow(
+                    color: context.theme.colorScheme.onSurface.withValues(
+                      alpha: 0.17,
+                    ),
+                    blurRadius: 12,
+                    offset: const Offset(4, 4),
                   ),
-                ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: DionImage(
+                hasPopup: true,
+                imageUrl: entry.cover!.url,
+                httpHeaders: entry.cover!.header,
+                boxFit: BoxFit.cover,
               ),
             ),
           ).paddingOnly(right: 16),
 
-        // Title, Author, Meta, and Stats
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
               Text(
                 entry.title,
                 style: TextStyle(
@@ -109,11 +111,8 @@ class EntryInfo extends StatelessWidget {
                   letterSpacing: -0.5,
                   color: context.theme.colorScheme.onSurface,
                 ),
-              ),
+              ).paddingOnly(bottom: 6),
 
-              const SizedBox(height: 6),
-
-              // Author
               if (entry.author != null && entry.author!.isNotEmpty)
                 Text(
                   entry.author!
@@ -128,10 +127,8 @@ class EntryInfo extends StatelessWidget {
                   ),
                 ).paddingOnly(bottom: 10),
 
-              // Extension and Status row
               Row(
                 children: [
-                  // Extension info
                   if (entry.extension != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -147,7 +144,6 @@ class EntryInfo extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           DionImage(
-                            hasPopup: false,
                             imageUrl: entry.extension!.data.icon,
                             width: 12,
                             height: 12,
@@ -157,8 +153,7 @@ class EntryInfo extends StatelessWidget {
                               color: context.theme.colorScheme.onSurface
                                   .withValues(alpha: 0.5),
                             ),
-                          ),
-                          const SizedBox(width: 5),
+                          ).paddingOnly(right: 5),
                           Text(
                             entry.extension!.data.name,
                             style: context.labelSmall?.copyWith(
@@ -171,8 +166,7 @@ class EntryInfo extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                    ).paddingOnly(right: 8),
                   ],
 
                   // Status
@@ -203,11 +197,8 @@ class EntryInfo extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
+              ).paddingOnly(bottom: 10),
 
-              const SizedBox(height: 10),
-
-              // Rating and Views inline
               if (entry.rating != null || entry.views != null)
                 Row(
                   children: [
@@ -220,15 +211,14 @@ class EntryInfo extends StatelessWidget {
                         bgcolor: context.theme.colorScheme.onSurface.withValues(
                           alpha: 0.15,
                         ),
-                      ),
-                      const SizedBox(width: 6),
+                      ).paddingOnly(right: 6),
                       Text(
                         (entry.rating! * 5).toStringAsFixed(1),
                         style: context.labelMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.2,
                         ),
-                      ),
+                      ).paddingOnly(right: 4),
                       if (entry.views != null) ...[
                         Container(
                           width: 1,
@@ -237,7 +227,7 @@ class EntryInfo extends StatelessWidget {
                           color: context.theme.colorScheme.onSurface.withValues(
                             alpha: 0.12,
                           ),
-                        ),
+                        ).paddingOnly(right: 4),
                       ],
                     ],
                     if (entry.views != null) ...[
@@ -247,8 +237,7 @@ class EntryInfo extends StatelessWidget {
                         color: context.theme.colorScheme.onSurface.withValues(
                           alpha: 0.4,
                         ),
-                      ),
-                      const SizedBox(width: 4),
+                      ).paddingOnly(right: 4),
                       Text(
                         NumberFormat.compact().format(entry.views),
                         style: context.labelSmall?.copyWith(
@@ -319,7 +308,6 @@ class EntryInfo extends StatelessWidget {
   Widget _buildLibraryButton(BuildContext context) {
     final isInLibrary = entry is EntrySaved;
     final isEnabled = entry is EntryDetailed;
-
     return SizedBox(
       width: double.infinity,
       child: DionTextbutton(
@@ -331,14 +319,12 @@ class EntryInfo extends StatelessWidget {
                       .toDetailed();
                   await (entry as EntrySaved).delete();
                   if (context.mounted) {
-                    GoRouter.of(
-                      context,
-                    ).replace('/detail', extra: [entryDetailed]);
+                    context.replace('/detail', extra: [entryDetailed]);
                   }
                 } else if (entry is EntryDetailed) {
                   final saved = await (entry as EntryDetailed).toSaved();
                   if (context.mounted) {
-                    GoRouter.of(context).replace('/detail', extra: [saved]);
+                    context.replace('/detail', extra: [saved]);
                   }
                 }
               }
@@ -349,8 +335,7 @@ class EntryInfo extends StatelessWidget {
             Icon(
               isInLibrary ? Icons.check_circle : Icons.add_circle_outline,
               size: 18,
-            ),
-            const SizedBox(width: 8),
+            ).paddingOnly(right: 8),
             Text(
               isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY',
               style: context.labelMedium?.copyWith(
@@ -368,12 +353,6 @@ class EntryInfo extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section divider
-        Container(
-          height: 1,
-          color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        ).paddingOnly(bottom: 20),
-
         isEntryDetailed(
           context: context,
           entry: entry,
@@ -411,34 +390,35 @@ class EntryInfo extends StatelessWidget {
   }
 
   Widget _buildCustomUISection(BuildContext context) {
-    return isEntryDetailed(
-      context: context,
-      entry: entry,
-      isdetailed: (entry) {
-        if (entry.ui == null || entry.ui.isEmpty || entry.extension == null) {
-          return const SizedBox.shrink();
-        }
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.3,
-            ),
-            borderRadius: BorderRadius.circular(3),
-            border: Border.all(
-              color: context.theme.colorScheme.onSurface.withValues(
-                alpha: 0.05,
+    return Center(
+      child: isEntryDetailed(
+        context: context,
+        entry: entry,
+        isdetailed: (entry) {
+          if (entry.ui == null || entry.ui.isEmpty || entry.extension == null) {
+            return const SizedBox.shrink();
+          }
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: context.theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(3),
+              border: Border.all(
+                color: context.theme.colorScheme.onSurface.withValues(
+                  alpha: 0.05,
+                ),
+                width: 0.5,
               ),
-              width: 0.5,
             ),
-          ),
-          child: CustomUIWidget.fromUI(
-            ui: entry.ui!,
-            extension: entry.extension!,
-          ),
-        ).paddingOnly(bottom: 20);
-      },
-      shimmer: false,
+            child: CustomUIWidget.fromUI(
+              ui: entry.ui!,
+              extension: entry.extension!,
+            ),
+          ).paddingOnly(bottom: 20);
+        },
+        shimmer: false,
+      ),
     );
   }
 
