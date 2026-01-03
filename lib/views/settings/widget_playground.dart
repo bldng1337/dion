@@ -123,14 +123,46 @@ class WidgetPlayground extends StatelessWidget {
                 onChanged: (value) {},
               ).paddingOnly(bottom: 16),
               const Text('Dropdown').paddingOnly(bottom: 8),
-              DionDropdown<String>(
-                items: const [
-                  DionDropdownItem(value: 'opt1', label: 'Option 1'),
-                  DionDropdownItem(value: 'opt2', label: 'Option 2'),
-                  DionDropdownItem(value: 'opt3', label: 'Option 3'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  DionDropdown<String>(
+                    items: const [
+                      DionDropdownItem(value: 'opt1', label: 'Option 1'),
+                      DionDropdownItem(value: 'opt2', label: 'Option 2'),
+                      DionDropdownItem(value: 'opt3', label: 'Option 3'),
+                    ],
+                    value: 'opt1',
+                    onChanged: (value) {},
+                  ),
+                  DionDropdown<String>(
+                    items: const [
+                      DionDropdownItemWidget(
+                        value: 'opt1',
+                        labelWidget: Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.amber),
+                            SizedBox(width: 8),
+                            Text('Starred Option'),
+                          ],
+                        ),
+                        label: 'Starred Option',
+                        selectedItemWidget: Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('This is a very long selected option'),
+                          ],
+                        ),
+                      ),
+                      DionDropdownItem(value: 'opt2', label: 'Option 2'),
+                      DionDropdownItem(value: 'opt3', label: 'Option 3'),
+                    ],
+                    value: 'opt1',
+                    onChanged: (value) {},
+                  ),
                 ],
-                value: 'opt1',
-                onChanged: (value) {},
               ).paddingOnly(bottom: 16),
               const Text('Slider').paddingOnly(bottom: 8),
               DionSlider<int>(
