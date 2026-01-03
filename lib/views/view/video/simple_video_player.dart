@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:country_flags/country_flags.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/player.dart';
@@ -88,7 +89,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           start: startduration,
         ),
       );
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 100));
       if (subtitles.isNotEmpty) {
         final sub = subtitles[subtitleIndex.value];
         await player.setSubtitleTrack(
@@ -191,22 +192,228 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     super.dispose();
   }
 
-  String getTitle() {
-    if (player.state.playlist.medias.isEmpty ||
-        player.state.playlist.medias.length <= player.state.playlist.index) {
-      return widget.source.episode.name;
-    }
-    final title =
-        player
-                .state
-                .playlist
-                .medias[player.state.playlist.index]
-                .extras?['title']
-            as String?;
-    if (title == null || title == 'default') {
-      return widget.source.episode.name;
-    }
-    return title;
+  List<Widget> getActions(bool isFullscreen) => [
+    if (isFullscreen) ...[
+      DionIconbutton(
+        onPressed: () {
+          exitFullscreen(context);
+          GoRouter.of(context).pop();
+        },
+        icon: Icon(Icons.arrow_back, color: isFullscreen ? Colors.white : null),
+      ),
+      ListenableBuilder(
+        listenable: widget.source,
+        builder: (context, snapshot) {
+          return Text(
+            widget.source.episode.name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          );
+        },
+      ).paddingOnly(left: 10),
+      const Spacer(),
+    ],
+    StatefulBuilder(
+      builder: (context, setState) => DionIconbutton(
+        icon: Icon(
+          widget.source.episode.data.bookmark
+              ? Icons.bookmark
+              : Icons.bookmark_border,
+          color: isFullscreen ? Colors.white : null,
+        ),
+        onPressed: () async {
+          widget.source.episode.data.bookmark =
+              !widget.source.episode.data.bookmark;
+          await widget.source.episode.save();
+          if (mounted) {
+            setState(() {});
+          }
+        },
+      ),
+    ),
+    DionIconbutton(
+      icon: Icon(
+        Icons.open_in_browser,
+        color: isFullscreen ? Colors.white : null,
+      ),
+      onPressed: () => launchUrl(Uri.parse(widget.source.episode.episode.url)),
+    ),
+    DionIconbutton(
+      icon: Icon(Icons.settings, color: isFullscreen ? Colors.white : null),
+      onPressed: () => GoRouter.of(context).push('/settings/videoplayer'),
+    ),
+    if (currentVideo!.sources.length > 1)
+      DionDropdown(
+        value: getStreamIndex(),
+        items: currentVideo!.sources.indexed
+            .map(
+              (item) => DionDropdownItemWidget(
+                value: item.$1,
+                label: '${item.$2.name} (${item.$2.lang})',
+                labelWidget: Row(
+                  children: [
+                    CountryFlag.fromLanguageCode(
+                      item.$2.lang,
+                      height: 16,
+                      width: 16,
+                    ),
+                    5.widthBox,
+                    Text(item.$2.name),
+                  ],
+                ),
+                selectedItemWidget: Row(
+                  children: [
+                    CountryFlag.fromLanguageCode(
+                      item.$2.lang,
+                      height: 16,
+                      width: 16,
+                    ),
+                    5.widthBox,
+                    Text(
+                      item.$2.name,
+                      style: TextStyle(
+                        color: isFullscreen ? Colors.white : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: (value) {
+          if (value == null) return;
+          streamIndex.value = value;
+        },
+      ).paddingOnly(right: 10, left: 2),
+    if (subtitles.isNotEmpty)
+      DionDropdown<int>(
+        value: subtitleIndex.value,
+        items: [
+          DionDropdownItemWidget(
+            value: -1,
+            label: 'No subtitles',
+            labelWidget: Row(
+              children: [
+                const Icon(Icons.close, size: 16),
+                5.widthBox,
+                const Text('No subtitles'),
+              ],
+            ),
+            selectedItemWidget: Row(
+              children: [
+                Icon(
+                  Icons.close,
+                  size: 16,
+                  color: isFullscreen ? Colors.white : null,
+                ),
+                5.widthBox,
+                Text(
+                  'No subtitles',
+                  style: TextStyle(color: isFullscreen ? Colors.white : null),
+                ),
+              ],
+            ),
+          ),
+          ...subtitles.indexed.map((item) {
+            final hasIcon = FlagCode.fromLanguageCode(item.$2.lang) != null;
+            return DionDropdownItemWidget(
+              value: item.$1,
+              label: item.$2.title,
+              labelWidget: Row(
+                children: [
+                  if (hasIcon)
+                    CountryFlag.fromLanguageCode(
+                      item.$2.lang,
+                      height: 16,
+                      width: 16,
+                    )
+                  else
+                    const Icon(Icons.subtitles, size: 16),
+                  5.widthBox,
+                  Text(item.$2.title),
+                ],
+              ),
+              selectedItemWidget: Row(
+                children: [
+                  if (hasIcon)
+                    CountryFlag.fromLanguageCode(
+                      item.$2.lang,
+                      height: 16,
+                      width: 16,
+                    )
+                  else
+                    const Icon(Icons.subtitles, size: 16),
+                  5.widthBox,
+                  Text(
+                    item.$2.title,
+                    style: TextStyle(color: isFullscreen ? Colors.white : null),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+        onChanged: (value) {
+          if (value == null) return;
+          subtitleIndex.value = value;
+        },
+      ),
+  ];
+
+  MaterialVideoControlsThemeData getPlayerTheme(bool isFullscreen) {
+    return MaterialVideoControlsThemeData(
+      topButtonBar: isFullscreen ? getActions(isFullscreen) : [],
+      bottomButtonBarMargin: const EdgeInsets.all(10),
+      seekBarMargin: const EdgeInsets.only(
+        left: 16.0,
+        right: 16.0,
+        bottom: 60.0,
+      ),
+      seekBarHeight: 3.5,
+      speedUpOnLongPress: true,
+      primaryButtonBar: [
+        if (widget.source.episode.hasprev)
+          DionIconbutton(
+            icon: const Icon(
+              Icons.skip_previous,
+              size: 35,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              widget.source.episode.goPrev(widget.source);
+            },
+          ).paddingAll(25.0)
+        else
+          85.widthBox,
+        StreamBuilder(
+          stream: player.stream.playing,
+          builder: (context, snapshot) => DionIconbutton(
+            icon: Icon(
+              snapshot.data ?? player.state.playing
+                  ? Icons.pause
+                  : Icons.play_arrow,
+              size: 35,
+              color: Colors.white,
+            ),
+            onPressed: () async {
+              await player.playOrPause();
+            },
+          ),
+        ).paddingAll(25.0),
+        if (widget.source.episode.hasnext)
+          DionIconbutton(
+            icon: const Icon(Icons.skip_next, size: 35, color: Colors.white),
+            onPressed: () {
+              widget.source.episode.goNext(widget.source);
+            },
+          ).paddingAll(25.0)
+        else
+          85.widthBox,
+      ],
+    );
   }
 
   @override
@@ -223,65 +430,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         child: ErrorDisplay(e: exception),
       );
     }
-    final epdata = widget.source.episode.data;
     return NavScaff(
-      actions: [
-        if (currentVideo!.sources.length > 1)
-          DionDropdown(
-            value: getStreamIndex(),
-            items: currentVideo!.sources.indexed
-                .map(
-                  (item) => DionDropdownItem(
-                    value: item.$1,
-                    label: '${item.$2.name} (${item.$2.lang})',
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              streamIndex.value = value;
-            },
-          ),
-        if (subtitles.isNotEmpty)
-          DionDropdown(
-            value: subtitleIndex.value,
-            items: [
-              const DionDropdownItem(value: -1, label: 'No subtitles'),
-              ...subtitles.indexed.map(
-                (item) =>
-                    DionDropdownItem(value: item.$1, label: item.$2.title),
-              ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              subtitleIndex.value = value;
-            },
-          ),
-        DionIconbutton(
-          icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
-          onPressed: () async {
-            epdata.bookmark = !epdata.bookmark;
-            await widget.source.episode.save();
-            if (mounted) {
-              setState(() {});
-            }
-          },
-        ),
-        DionIconbutton(
-          icon: const Icon(Icons.open_in_browser),
-          onPressed: () =>
-              launchUrl(Uri.parse(widget.source.episode.episode.url)),
-        ),
-        DionIconbutton(
-          icon: const Icon(Icons.settings),
-          onPressed: () => GoRouter.of(context).push('/settings/videoplayer'),
-        ),
-      ],
-      title: StreamBuilder(
-        stream: player.stream.playlist,
+      actions: getActions(false),
+      title: ListenableBuilder(
+        listenable: widget.source,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return Text(widget.source.episode.name);
-          return Text(getTitle());
+          return Text(widget.source.episode.name);
         },
       ),
       child: Center(
@@ -289,164 +443,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.width * 9.0 / 16.0,
           child: MaterialVideoControlsTheme(
-            normal: MaterialVideoControlsThemeData(
-              bottomButtonBarMargin: const EdgeInsets.all(10),
-              seekBarMargin: const EdgeInsets.only(
-                left: 16.0,
-                right: 16.0,
-                bottom: 60.0,
-              ),
-              seekBarHeight: 3.5,
-              speedUpOnLongPress: true,
-              primaryButtonBar: [
-                if (widget.source.episode.hasprev)
-                  DionIconbutton(
-                    icon: const Icon(
-                      Icons.skip_previous,
-                      size: 35,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      widget.source.episode.goPrev(widget.source);
-                    },
-                  ).paddingAll(25.0)
-                else
-                  85.widthBox,
-                StreamBuilder(
-                  stream: player.stream.playing,
-                  builder: (context, snapshot) => DionIconbutton(
-                    icon: Icon(
-                      snapshot.data ?? player.state.playing
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                      size: 35,
-                      color: Colors.white,
-                    ),
-                    onPressed: () async {
-                      await player.playOrPause();
-                    },
-                  ),
-                ).paddingAll(25.0),
-                if (widget.source.episode.hasnext)
-                  DionIconbutton(
-                    icon: const Icon(
-                      Icons.skip_next,
-                      size: 35,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      widget.source.episode.goNext(widget.source);
-                    },
-                  ).paddingAll(25.0)
-                else
-                  85.widthBox,
-              ],
-            ),
-            fullscreen: MaterialVideoControlsThemeData(
-              topButtonBar: [
-                DionIconbutton(
-                  onPressed: () {
-                    exitFullscreen(context);
-                    GoRouter.of(context).pop();
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                const Spacer(),
-                DionIconbutton(
-                  icon: Icon(
-                    epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
-                  ),
-                  onPressed: () async {
-                    epdata.bookmark = !epdata.bookmark;
-                    await widget.source.episode.save();
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  },
-                ),
-                DionIconbutton(
-                  icon: const Icon(Icons.open_in_browser),
-                  onPressed: () =>
-                      launchUrl(Uri.parse(widget.source.episode.episode.url)),
-                ),
-                DionIconbutton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () =>
-                      GoRouter.of(context).push('/settings/videoplayer'),
-                ),
-                if (currentVideo!.sources.length > 1)
-                  DionDropdown(
-                    value: getStreamIndex(),
-                    items: currentVideo!.sources.indexed
-                        .map(
-                          (item) => DionDropdownItem(
-                            value: item.$1,
-                            label: '${item.$2.name} (${item.$2.lang})',
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      streamIndex.value = value;
-                    },
-                  ),
-                if (subtitles.isNotEmpty)
-                  DionDropdown<int>(
-                    value: subtitleIndex.value,
-                    items: [
-                      const DionDropdownItem(value: -1, label: 'No subtitles'),
-                      ...subtitles.indexed.map(
-                        (item) => DionDropdownItem(
-                          value: item.$1,
-                          label: item.$2.title,
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      subtitleIndex.value = value;
-                    },
-                  ),
-              ],
-              bottomButtonBarMargin: const EdgeInsets.all(10),
-              seekBarMargin: const EdgeInsets.only(
-                left: 16.0,
-                right: 16.0,
-                bottom: 60.0,
-              ),
-              seekBarHeight: 3.5,
-              speedUpOnLongPress: true,
-              primaryButtonBar: [
-                if (widget.source.episode.hasprev)
-                  DionIconbutton(
-                    icon: const Icon(Icons.skip_previous, size: 35),
-                    onPressed: () {
-                      widget.source.episode.goPrev(widget.source);
-                    },
-                  ).paddingAll(25.0),
-                StreamBuilder(
-                  stream: player.stream.playing,
-                  builder: (context, snapshot) => DionIconbutton(
-                    icon: Icon(
-                      snapshot.data ?? player.state.playing
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                      size: 35,
-                    ),
-                    onPressed: () async {
-                      player.playOrPause();
-                    },
-                  ),
-                ).paddingAll(25.0),
-                if (widget.source.episode.hasnext)
-                  DionIconbutton(
-                    icon: const Icon(Icons.skip_next, size: 35),
-                    onPressed: () {
-                      widget.source.episode.goNext(widget.source);
-                    },
-                  ).paddingAll(25.0),
-              ],
-            ),
+            normal: getPlayerTheme(false),
+            fullscreen: getPlayerTheme(true),
             child: Video(
               controller: controller,
               controls: MaterialVideoControls,
