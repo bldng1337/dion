@@ -48,7 +48,6 @@ ThemeData getTheme(Brightness b) {
         onSurfaceVariant: textColor.withValues(alpha: 0.8),
       );
 
-  // Common shape with small corner radius (3px as per app guidelines)
   final RoundedRectangleBorder smallRadiusShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(3),
   );
@@ -56,23 +55,21 @@ ThemeData getTheme(Brightness b) {
   return ThemeData(
     colorScheme: colorScheme,
 
-    // AppBar theme
     appBarTheme: AppBarTheme(
       backgroundColor: primary,
-      foregroundColor: colorScheme.onPrimary,
+      foregroundColor: textColor,
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
       iconTheme: IconThemeData(color: colorScheme.onPrimary),
       actionsIconTheme: IconThemeData(color: colorScheme.onPrimary),
       titleTextStyle: TextStyle(
-        color: colorScheme.onPrimary,
+        color: textColor,
         fontSize: 20,
         fontWeight: FontWeight.w500,
       ),
     ),
 
-    // Floating Action Button theme
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: colorScheme.primary,
       foregroundColor: colorScheme.onPrimary,
@@ -86,7 +83,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // NavigationRail theme
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: colorScheme.surface,
       elevation: 0,
@@ -111,7 +107,6 @@ ThemeData getTheme(Brightness b) {
       useIndicator: true,
     ),
 
-    // NavigationBar theme (bottom navigation)
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: colorScheme.surface,
       elevation: 0,
@@ -144,7 +139,6 @@ ThemeData getTheme(Brightness b) {
       }),
     ),
 
-    // Card theme
     cardTheme: CardThemeData(
       elevation: 0,
       surfaceTintColor: Colors.transparent,
@@ -158,7 +152,6 @@ ThemeData getTheme(Brightness b) {
       color: colorScheme.surface,
     ),
 
-    // Dialog theme
     dialogTheme: DialogThemeData(
       elevation: 0,
       surfaceTintColor: Colors.transparent,
@@ -172,7 +165,6 @@ ThemeData getTheme(Brightness b) {
       backgroundColor: colorScheme.surface,
     ),
 
-    // PopupMenu theme
     popupMenuTheme: PopupMenuThemeData(
       elevation: 4,
       surfaceTintColor: Colors.transparent,
@@ -186,7 +178,6 @@ ThemeData getTheme(Brightness b) {
       color: colorScheme.surface,
     ),
 
-    // Dropdown menu theme
     dropdownMenuTheme: DropdownMenuThemeData(
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
@@ -225,7 +216,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // Menu theme
     menuTheme: MenuThemeData(
       style: MenuStyle(
         elevation: WidgetStateProperty.all(4),
@@ -243,7 +233,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // MenuButton theme
     menuButtonTheme: MenuButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
@@ -253,7 +242,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // TextButton theme
     textButtonTheme: TextButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
@@ -263,7 +251,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // ElevatedButton theme
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ButtonStyle(
         elevation: WidgetStateProperty.all(0),
@@ -282,7 +269,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // OutlinedButton theme
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
@@ -297,7 +283,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // FilledButton theme
     filledButtonTheme: FilledButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
@@ -307,7 +292,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // IconButton theme
     iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
@@ -317,7 +301,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // Input decoration theme
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(3),
@@ -348,7 +331,6 @@ ThemeData getTheme(Brightness b) {
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     ),
 
-    // Chip theme
     chipTheme: ChipThemeData(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(3),
@@ -364,20 +346,17 @@ ThemeData getTheme(Brightness b) {
       pressElevation: 0,
     ),
 
-    // ListTile theme
     listTileTheme: ListTileThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
       selectedTileColor: colorScheme.primary.withValues(alpha: 0.15),
       selectedColor: colorScheme.primary,
     ),
 
-    // Divider theme
     dividerTheme: DividerThemeData(
       color: colorScheme.onSurface.withValues(alpha: 0.1),
       thickness: 0.5,
     ),
 
-    // BottomSheet theme
     bottomSheetTheme: BottomSheetThemeData(
       elevation: 0,
       surfaceTintColor: Colors.transparent,
@@ -390,7 +369,6 @@ ThemeData getTheme(Brightness b) {
       backgroundColor: colorScheme.surface,
     ),
 
-    // SnackBar theme
     snackBarTheme: SnackBarThemeData(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -405,7 +383,6 @@ ThemeData getTheme(Brightness b) {
       contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
     ),
 
-    // Tooltip theme
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
         color: colorScheme.inverseSurface,
@@ -414,7 +391,6 @@ ThemeData getTheme(Brightness b) {
       textStyle: TextStyle(color: colorScheme.onInverseSurface, fontSize: 12),
     ),
 
-    // Slider theme
     sliderTheme: SliderThemeData(
       trackHeight: 4,
       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
@@ -425,7 +401,6 @@ ThemeData getTheme(Brightness b) {
       overlayColor: colorScheme.primary.withValues(alpha: 0.15),
     ),
 
-    // Switch theme
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
@@ -442,7 +417,6 @@ ThemeData getTheme(Brightness b) {
       trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
     ),
 
-    // Checkbox theme
     checkboxTheme: CheckboxThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
       side: BorderSide(
@@ -458,7 +432,6 @@ ThemeData getTheme(Brightness b) {
       checkColor: WidgetStateProperty.all(colorScheme.onPrimary),
     ),
 
-    // Radio theme
     radioTheme: RadioThemeData(
       fillColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
@@ -468,14 +441,12 @@ ThemeData getTheme(Brightness b) {
       }),
     ),
 
-    // ProgressIndicator theme
     progressIndicatorTheme: ProgressIndicatorThemeData(
       color: colorScheme.primary,
       linearTrackColor: colorScheme.onSurface.withValues(alpha: 0.1),
       circularTrackColor: colorScheme.onSurface.withValues(alpha: 0.1),
     ),
 
-    // TabBar theme
     tabBarTheme: TabBarThemeData(
       indicator: UnderlineTabIndicator(
         borderSide: BorderSide(color: colorScheme.primary, width: 2.5),
@@ -487,7 +458,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // Drawer theme
     drawerTheme: DrawerThemeData(
       elevation: 0,
       surfaceTintColor: Colors.transparent,
@@ -500,7 +470,6 @@ ThemeData getTheme(Brightness b) {
       backgroundColor: colorScheme.surface,
     ),
 
-    // ExpansionTile theme
     expansionTileTheme: ExpansionTileThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
       collapsedShape: RoundedRectangleBorder(
@@ -510,7 +479,6 @@ ThemeData getTheme(Brightness b) {
       collapsedIconColor: colorScheme.onSurface.withValues(alpha: 0.5),
     ),
 
-    // SearchBar theme
     searchBarTheme: SearchBarThemeData(
       elevation: WidgetStateProperty.all(0),
       surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
@@ -526,7 +494,6 @@ ThemeData getTheme(Brightness b) {
       backgroundColor: WidgetStateProperty.all(colorScheme.surface),
     ),
 
-    // SegmentedButton theme
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
@@ -553,7 +520,6 @@ ThemeData getTheme(Brightness b) {
       ),
     ),
 
-    // Badge theme
     badgeTheme: BadgeThemeData(
       backgroundColor: colorScheme.primary,
       textColor: colorScheme.onPrimary,
