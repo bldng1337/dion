@@ -18,10 +18,12 @@ class _ClickableState extends State<Clickable> {
     return MouseRegion(
       onEnter: (e) => setState(() => _hover = true),
       onExit: (e) => setState(() => _hover = false),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(3),
+      child: GestureDetector(
+        //InkWell TODO: Maybe revisit InkWell for some things
+        // borderRadius: BorderRadius.circular(3),
         onTap: widget.onTap,
         onLongPress: widget.onLongTap,
+        behavior: HitTestBehavior.translucent,
         child: Stack(
           children: [
             widget.child,
@@ -31,10 +33,12 @@ class _ClickableState extends State<Clickable> {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: Container(
-                  color: DionTheme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.03)
-                      : Colors.black.withValues(alpha: 0.03),
+                child: IgnorePointer(
+                  child: Container(
+                    color: DionTheme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.07)
+                        : Colors.black.withValues(alpha: 0.07),
+                  ),
                 ),
               ),
           ],
