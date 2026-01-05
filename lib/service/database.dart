@@ -245,6 +245,72 @@ WHERE
     return Duration(seconds: dbres as int);
   }
 
+  Future<Map<DateTime, Duration>> getDailyActivityDurations({
+    DateTime? startDate,
+    int days = 365,
+  }) async {
+    final start =
+        startDate ?? DateTime.now().subtract(Duration(days: days)).toUtc();
+    final end = DateTime.now().toUtc();
+
+    final [res] = await db.query(
+      '''
+SELECT time::format(time, '%Y-%m-%d') AS dayStr, math::sum(duration) AS totalDuration
+FROM activity
+WHERE
+  time >= \$start AND
+  time <= \$end AND
+  duration > 0
+GROUP BY dayStr
+ORDER BY dayStr ASC
+'''
+          .trim(),
+      vars: {'start': start, 'end': end},
+    );
+
+    logger.d('Activity chart query result: $res');
+
+    final Map<DateTime, Duration> result = {};
+
+    // Handle the result array
+    if (res is! List) {
+      logger.e('Expected result to be a list, got: ${res.runtimeType}');
+      return result;
+    }
+
+    for (final row in res) {
+      if (row is! Map) {
+        logger.e('Expected row to be a map, got: ${row.runtimeType}');
+        continue;
+      }
+
+      final dayStr = row['dayStr'] as String?;
+      final totalDuration = row['totalDuration'];
+
+      if (dayStr == null) {
+        logger.w('Skipping row with null dayStr');
+        continue;
+      }
+      final parts = dayStr.split('-');
+      final day = DateTime.utc(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      if (totalDuration is Duration) {
+        result[day] = totalDuration;
+        continue;
+      }
+      if (totalDuration is double) {
+        result[day] = Duration(seconds: (totalDuration as num).toInt());
+        continue;
+      }
+      result[day] = Duration.zero;
+    }
+
+    return result;
+  }
+
   Future<EntrySaved?> isSaved(Entry entry) async {
     return adapter.selectDataClass(constructEntryDBRecord(entry));
   }

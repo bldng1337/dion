@@ -6,14 +6,17 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
-import 'package:dionysos/widgets/container/badge.dart';
+import 'package:dionysos/widgets/activity_chart.dart';
+
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
@@ -322,6 +325,8 @@ class ActivityView extends StatefulWidget {
 
 class _ActivityViewState extends State<ActivityView> {
   late final DataSourceController<IRenderable> controller;
+  Map<DateTime, Duration> activityData = {};
+  bool isLoadingChart = true;
 
   Stream<IRenderable> getActionStream(int index) async* {
     final str = locate<Database>().getActivities(index, 10);
@@ -345,7 +350,28 @@ class _ActivityViewState extends State<ActivityView> {
     controller = DataSourceController([
       SingleStreamSource((i) => getActionStream(i)),
     ]);
+    _loadActivityChart();
     super.initState();
+  }
+
+  Future<void> _loadActivityChart() async {
+    try {
+      final db = locate<Database>();
+      final data = await db.getDailyActivityDurations(days: 364);
+      if (mounted) {
+        setState(() {
+          activityData = data;
+          isLoadingChart = false;
+        });
+      }
+    } catch (e, stack) {
+      logger.e('Failed to load activity chart', error: e, stackTrace: stack);
+      if (mounted) {
+        setState(() {
+          isLoadingChart = false;
+        });
+      }
+    }
   }
 
   @override
@@ -353,10 +379,23 @@ class _ActivityViewState extends State<ActivityView> {
     return NavScaff(
       destination: homedestinations,
       title: const Text('Activity'),
-      child: DynamicList(
-        showDataSources: false,
-        controller: controller,
-        itemBuilder: (context, item) => item.render(context),
+      child: Column(
+        children: [
+          if (!isLoadingChart)
+            ActivityChart(activityData: activityData, weeks: 27)
+          else
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: DionProgressBar(),
+            ),
+          Expanded(
+            child: DynamicList(
+              showDataSources: false,
+              controller: controller,
+              itemBuilder: (context, item) => item.render(context),
+            ),
+          ),
+        ],
       ),
     );
   }
