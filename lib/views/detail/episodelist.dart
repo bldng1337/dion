@@ -214,103 +214,115 @@ class EpisodeTile extends StatelessWidget {
     );
   }
 
+  double get height {
+    if (episodepath.episode.cover == null) {
+      return 60.0;
+    }
+    final isWide =
+        WidgetsBinding.instance.window.physicalSize.width /
+            WidgetsBinding.instance.window.devicePixelRatio >=
+        600;
+    return isWide ? 110.0 : 80.0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final epdata = episodepath.data;
     final isWide = context.width >= 600;
-    final height = isWide ? 110.0 : 80.0;
-    return Stack(
-      children: [
-        Clickable(
-          onLongTap: disabled ? null : onSelect,
-          onTap: selection
-              ? onSelect
-              : disabled
-              ? null
-              : () => episodepath.go(context),
-          child: DionContainer(
-            height: height,
-            color: isSelected
-                ? context.theme.colorScheme.primary.lighten(70)
-                : null,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (episodepath.episode.cover != null)
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(3),
-                      bottomLeft: Radius.circular(3),
-                    ),
-                    child: DionImage.fromLink(
-                      link: episodepath.episode.cover,
-                      height: height,
-                      boxFit: BoxFit.cover,
-                    ),
-                  )
-                else
-                  const SizedBox(width: 16),
-
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        episodepath.episode.name,
-                        maxLines: isWide ? 2 : 1,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            (isWide ? context.titleMedium : context.titleSmall)
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.3,
-                                  letterSpacing: -0.2,
-                                  color: epdata.finished
-                                      ? context.theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.4)
-                                      : disabled
-                                      ? context.theme.disabledColor
-                                      : null,
-                                ),
-                      ),
-
-                      if (episodepath.episode.timestamp != null)
-                        Text(
-                          DateTime.tryParse(
-                                episodepath.episode.timestamp!,
-                              )?.formatrelative() ??
-                              '',
-                          style: context.labelSmall?.copyWith(
-                            letterSpacing: 0.3,
-                            fontSize: 11,
-                            color: context.theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
-                          ),
-                          maxLines: 1,
-                        ),
-                      const Spacer(),
-                      if (epdata.finished || epdata.bookmark)
-                        Row(
-                          children: [
-                            if (epdata.bookmark)
-                              Icon(
-                                Icons.bookmark,
-                                size: 14,
-                                color: context.theme.colorScheme.primary,
-                              ).paddingOnly(right: 2),
-                          ],
-                        ).paddingOnly(top: 6),
-                    ],
-                  ).paddingAll(6),
+    final hasCover= episodepath.episode.cover != null;
+    return Clickable(
+      onLongTap: disabled ? null : onSelect,
+      onTap: selection
+          ? onSelect
+          : disabled
+          ? null
+          : () => episodepath.go(context),
+      child: DionContainer(
+        height: height,
+        color: isSelected
+            ? context.theme.colorScheme.primary.lighten(70)
+            : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (episodepath.episode.cover != null)
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(3),
+                  bottomLeft: Radius.circular(3),
                 ),
-              ],
-            ).paddingOnly(right: 40),
-          ),
+                child: DionImage.fromLink(
+                  link: episodepath.episode.cover,
+                  height: height,
+                  boxFit: BoxFit.cover,
+                ),
+              )
+            else
+              const SizedBox(width: 16),
+
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    episodepath.episode.name,
+                    maxLines: isWide ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        (isWide ? context.titleMedium : context.titleSmall)
+                            ?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              height: 1.3,
+                              letterSpacing: -0.2,
+                              color: epdata.finished
+                                  ? context.theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.4)
+                                  : disabled
+                                  ? context.theme.disabledColor
+                                  : null,
+                            ),
+                  ),
+
+                  if (episodepath.episode.timestamp != null)
+                    Text(
+                      DateTime.tryParse(
+                            episodepath.episode.timestamp!,
+                          )?.formatrelative() ??
+                          '',
+                      style: context.labelSmall?.copyWith(
+                        letterSpacing: 0.3,
+                        fontSize: 11,
+                        color: context.theme.colorScheme.onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                      maxLines: 1,
+                    ),
+
+                  if (epdata.finished || epdata.bookmark)
+                  ...[const Spacer(),
+                    Row(
+                      children: [
+                        if (epdata.bookmark)
+                          Icon(
+                            Icons.bookmark,
+                            size: 14,
+                            color: context.theme.colorScheme.primary,
+                          ).paddingOnly(right: 2),
+                      ],
+                    ).paddingOnly(top: 6)],
+                ],
+              ).paddingAll(6),
+            ),
+            if(hasCover)
+              buildDownload(context).paddingAll(6)
+            else
+              Center(child:buildDownload(context)).paddingOnly(right: 6),
+          ],
         ),
-        Positioned(right: 6, top: 6, child: buildDownload(context)),
-      ],
+      ),
     ).paddingSymmetric(vertical: 3, horizontal: 6);
   }
 }
