@@ -14,16 +14,15 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'dart:math';
 import 'package:dionysos/widgets/selection.dart';
 import 'package:dionysos/service/extension.dart';
-
+import 'package:dionysos/views/view/view.dart';
+import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/material.dart';
 
 final psettings = settings.readerSettings.paragraphreader;
 
 class ParagraphListReader extends StatelessWidget {
-  final SourceSupplier supplier;
-
-  const ParagraphListReader({super.key, required this.supplier});
+  const ParagraphListReader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,12 +39,12 @@ class ParagraphListReader extends StatelessWidget {
               builder: (context, source) => SimpleParagraphlistReader(
                 key: ValueKey(source.episode),
                 source: source,
-                supplier: supplier,
+                supplier: SourceSuplierData.of(context)!.supplier,
               ),
-              source: supplier,
+              source: SourceSuplierData.of(context)!.supplier,
             ),
             ReaderMode.infinite => InfiniteParagraphListReader(
-              supplier: supplier,
+              supplier: SourceSuplierData.of(context)!.supplier,
             ),
           },
         ),
@@ -362,7 +361,6 @@ class EpisodeTitle extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           );
-
           return Stack(
             alignment: Alignment.center,
             children: [
@@ -388,7 +386,46 @@ class EpisodeTitle extends StatelessWidget {
                 ),
               ),
               titleOnImage,
-              (context.height / 3).heightBox,
+              (psettings.titleSettings.size.value.toDouble() * 5).heightBox,
+              ListenableBuilder(
+                listenable: psettings.titleSettings.progressBar,
+                builder: (context, child) {
+                  final session= SessionData.of(context)!.session;
+                  final totalEpisodes = episode.entry.episodes.length;
+                  final fromFraction = session.fromepisode / totalEpisodes;
+                  final toFraction = session.toepisode / totalEpisodes;
+                  const barHeight = 6.0;
+                  return Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Stack(
+                      children: [
+                        Container(
+                          height: barHeight,
+                          color: Colors.black.withValues(alpha: 0.15),
+                        ),
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: toFraction.clamp(0.0, 1.0),
+                          child: Container(
+                            height: barHeight,
+                            color: context.theme.colorScheme.primary.lighten(25),
+                          ),
+                        ),
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: fromFraction.clamp(0.0, 1.0),
+                          child: Container(
+                            height: barHeight,
+                            color: context.theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ],
           ).paddingOnly(bottom: 20);
         }
