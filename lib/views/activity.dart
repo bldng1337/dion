@@ -6,6 +6,7 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
@@ -325,8 +326,6 @@ class ActivityView extends StatefulWidget {
 
 class _ActivityViewState extends State<ActivityView> {
   late final DataSourceController<IRenderable> controller;
-  Map<DateTime, Duration> activityData = {};
-  bool isLoadingChart = true;
 
   Stream<IRenderable> getActionStream(int index) async* {
     final str = locate<Database>().getActivities(index, 10);
@@ -350,28 +349,7 @@ class _ActivityViewState extends State<ActivityView> {
     controller = DataSourceController([
       SingleStreamSource((i) => getActionStream(i)),
     ]);
-    _loadActivityChart();
     super.initState();
-  }
-
-  Future<void> _loadActivityChart() async {
-    try {
-      final db = locate<Database>();
-      final data = await db.getDailyActivityDurations(days: 364);
-      if (mounted) {
-        setState(() {
-          activityData = data;
-          isLoadingChart = false;
-        });
-      }
-    } catch (e, stack) {
-      logger.e('Failed to load activity chart', error: e, stackTrace: stack);
-      if (mounted) {
-        setState(() {
-          isLoadingChart = false;
-        });
-      }
-    }
   }
 
   @override
@@ -381,13 +359,7 @@ class _ActivityViewState extends State<ActivityView> {
       title: const Text('Activity'),
       child: Column(
         children: [
-          if (!isLoadingChart)
-            ActivityChart(activityData: activityData, weeks: 27)
-          else
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: DionProgressBar(),
-            ),
+          ActivityData(),
           Expanded(
             child: DynamicList(
               showDataSources: false,
@@ -399,4 +371,18 @@ class _ActivityViewState extends State<ActivityView> {
       ),
     );
   }
+}
+
+class ActivityData extends StatelessWidget {
+  @override
+    Widget build(BuildContext context) {
+      final db = locate<Database>();
+      return LoadingBuilder(
+        future: db.getDailyActivityDurations(days: 364),
+        builder: (context, activityData) {
+          return ActivityChart(activityData: activityData, weeks: 20);
+        },
+        loading: (context) => const DionProgressBar().paddingVertical(24),
+      );
+    }
 }
