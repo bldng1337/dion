@@ -69,6 +69,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       final int pos = epdata.finished
           ? 0
           : int.tryParse(epdata.progress ?? '0') ?? 0;
+      if (pos==0) return;
       listController.jumpToItem(
         index: pos,
         alignment: 0.0,

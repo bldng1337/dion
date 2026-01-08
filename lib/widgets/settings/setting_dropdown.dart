@@ -23,7 +23,13 @@ class SettingDropdown<T> extends StatelessWidget {
     final items = setting.metadata.values
         .map((e) => DionDropdownItem<T>(label: e.name, value: e.value))
         .toList();
-
+    if(!items.any((item)=>item.value==setting.value)){
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          setting.value = setting.metadata.values.first.value;
+        } catch (_) {}
+      });
+    }
     final tile = ListenableBuilder(
       listenable: setting,
       builder: (context, child) => SettingTileWrapper(
