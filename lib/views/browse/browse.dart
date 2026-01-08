@@ -26,6 +26,7 @@ import 'package:url_launcher/url_launcher.dart';
 abstract class BrowseInterface {
   List<Extension> get extensions;
   set extensions(List<Extension> value);
+  Future<void> refresh();
 }
 
 class Browse extends StatefulWidget {
@@ -40,18 +41,14 @@ class _BrowseState extends State<Browse>
     implements BrowseInterface {
   late final TextEditingController controller;
   late DataSourceController<Entry> datacontroller;
-  late List<Extension> extension;
-  CancelToken? token;
+  @override
+  late List<Extension> extensions;
 
   @override
-  List<Extension> get extensions => extension;
-
-  @override
-  set extensions(List<Extension> value) {
+  Future<void> refresh() async {
     setState(() {
-      extension = value;
       datacontroller = DataSourceController<Entry>(
-        extension.map((e) => e.browse(token: token)).toList(),
+        extensions.map((e) => e.browse()).toList(),
       );
       datacontroller.requestMore();
     });
@@ -70,9 +67,8 @@ class _BrowseState extends State<Browse>
         )
         .toList(growable: false);
     datacontroller = DataSourceController<Entry>(
-      extensions.map((e) => e.browse(token: token)).toList(),
+      extensions.map((e) => e.browse()).toList(),
     )..disposedBy(scope);
-    token = CancelToken()..disposedBy(scope);
     super.initState();
   }
 
@@ -96,7 +92,9 @@ class _BrowseState extends State<Browse>
             actions: [
               DionIconbutton(
                 icon: const Icon(Icons.settings),
-                onPressed: () => showSettingPopup(context, this),
+                onPressed: () {
+                  showSettingPopup(context, this);
+                },
               ),
             ],
           ).paddingAll(5),
@@ -196,7 +194,9 @@ class _SettingsPopupState extends State<SettingsPopup>
   void initState() {
     scope.addDispose(() async {
       await Future.forEach(widget.browse.extensions, (e) => e.save());
+      await widget.browse.refresh();
     });
+
     super.initState();
   }
 

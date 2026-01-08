@@ -20,12 +20,13 @@ class Search extends StatefulWidget {
   _SearchState createState() => _SearchState();
 }
 
-class _SearchState extends State<Search> with StateDisposeScopeMixin {
+class _SearchState extends State<Search>
+    with StateDisposeScopeMixin
+    implements BrowseInterface {
   late final TextEditingController controller;
   DataSourceController<Entry>? datacontroller;
   late List<Extension> extensions;
   String? lastquery;
-  CancelToken? token;
 
   @override
   void didChangeDependencies() {
@@ -37,15 +38,16 @@ class _SearchState extends State<Search> with StateDisposeScopeMixin {
     super.didChangeDependencies();
   }
 
+  @override
+  Future<void> refresh() async {
+    if(lastquery==null) return;
+    await search(lastquery!);
+  }
+
   Future<void> search(String query) async {
-    if (!(token?.isDisposed ?? true)) {
-      token!.cancel();
-      token!.dispose();
-    }
-    token = CancelToken()..disposedBy(scope);
     datacontroller?.dispose();
     datacontroller = DataSourceController<Entry>(
-      extensions.map((e) => e.search(query, token: token)).toList(),
+      extensions.map((e) => e.search(query)).toList(),
     );
     datacontroller!.requestMore();
     // setState(() {});
