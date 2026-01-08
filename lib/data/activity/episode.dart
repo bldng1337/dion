@@ -37,7 +37,7 @@ class EpisodeActivity extends Activity {
     );
   }
 
-  Activity copyWith({
+  EpisodeActivity copyWith({
     int? fromepisode,
     int? toepisode,
     Entry? entry,
@@ -70,40 +70,40 @@ class EpisodeActivity extends Activity {
   }
 }
 
-Future<void> finishEpisode(EpisodePath ep) async {
-  try {
-    final db = locate<Database>();
-    final activity = await db.getLastActivity();
-    if (activity != null &&
-        activity is EpisodeActivity &&
-        activity.extensionid == ep.extensionid &&
-        activity.entry.id == ep.entry.id &&
-        activity.time
-            .add(activity.duration)
-            .add(const Duration(minutes: 30))
-            .isAfter(DateTime.now()) &&
-        (activity.fromepisode - 1 <= ep.episodenumber ||
-            activity.toepisode + 1 >= ep.episodenumber)) {
-      await db.addActivity(
-        activity.copyWith(
-          toepisode: max(ep.episodenumber, activity.toepisode),
-          fromepisode: min(ep.episodenumber, activity.fromepisode),
-          duration: DateTime.now().difference(activity.time),
-        ),
-      );
-      return;
-    }
-    await db.addActivity(
-      EpisodeActivity(
-        id: const Uuid().v4(),
-        fromepisode: ep.episodenumber,
-        toepisode: ep.episodenumber,
-        entry: ep.entry,
-        extensionid: ep.extensionid,
-        time: DateTime.now(),
-      ),
-    );
-  } catch (e, stack) {
-    logger.e(e, stackTrace: stack);
-  }
-}
+// Future<void> finishEpisode(EpisodePath ep) async {
+//   try {
+//     final db = locate<Database>();
+//     final activity = await db.getLastActivity();
+//     if (activity != null &&
+//         activity is EpisodeActivity &&
+//         activity.extensionid == ep.extensionid &&
+//         activity.entry.id == ep.entry.id &&
+//         activity.time
+//             .add(activity.duration)
+//             .add(const Duration(minutes: 30))
+//             .isAfter(DateTime.now()) &&
+//         (activity.fromepisode - 1 <= ep.episodenumber ||
+//             activity.toepisode + 1 >= ep.episodenumber)) {
+      // await db.addActivity(
+      //   activity.copyWith(
+      //     toepisode: max(ep.episodenumber, activity.toepisode),
+      //     fromepisode: min(ep.episodenumber, activity.fromepisode),
+      //     duration: DateTime.now().difference(activity.time),
+      //   ),
+      // );
+//       return;
+//     }
+//     await db.addActivity(
+//       EpisodeActivity(
+//         id: const Uuid().v4(),
+//         fromepisode: ep.episodenumber,
+//         toepisode: ep.episodenumber,
+//         entry: ep.entry,
+//         extensionid: ep.extensionid,
+//         time: DateTime.now(),
+//       ),
+//     );
+//   } catch (e, stack) {
+//     logger.e(e, stackTrace: stack);
+//   }
+// }

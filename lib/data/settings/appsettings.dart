@@ -242,6 +242,12 @@ final settings = (
           true,
           const PreferenceBoolMetaData('paragraphreader.title_settings.banner'),
         )..addCollection(preferenceCollection),
+        progressBar: Setting(
+          true,
+          const PreferenceBoolMetaData(
+            'paragraphreader.title_settings.progressbar',
+          ),
+        )..addCollection(preferenceCollection),
       ),
       text: (
         adaptivewidth: Setting(

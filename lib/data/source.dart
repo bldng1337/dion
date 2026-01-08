@@ -123,7 +123,6 @@ class SourceSupplier with ChangeNotifier implements Disposable {
         download.deleteEpisode(episode);
       }
     }
-    finishEpisode(episode);
     episode.save();
     episode = EpisodePath(entry, index);
   }

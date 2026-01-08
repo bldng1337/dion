@@ -268,8 +268,6 @@ ORDER BY dayStr ASC
       vars: {'start': start, 'end': end},
     );
 
-    logger.d('Activity chart query result: $res');
-
     final Map<DateTime, Duration> result = {};
 
     // Handle the result array
