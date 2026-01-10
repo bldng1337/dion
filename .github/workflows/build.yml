@@ -132,6 +132,22 @@ jobs:
       - name: Build iss script
         if: matrix.os == 'windows-latest'
         run: dart run inno_bundle:build --no-app --release --no-installer
+      - name: Add Registry entries for deep links
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $issPath = "./build/windows/x64/installer/Release/inno-script.iss"
+          $registrySection = @"
+
+          [Registry]
+          Root: HKCR; Subkey: "dion"; ValueType: string; ValueData: "URL:Dion Protocol"; Flags: uninsdeletekey
+          Root: HKCR; Subkey: "dion"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+          Root: HKCR; Subkey: "dion\DefaultIcon"; ValueType: string; ValueData: "{app}\dion.exe,0"
+          Root: HKCR; Subkey: "dion\shell\open\command"; ValueType: string; ValueData: """{app}\dion.exe"" ""%1"""
+          "@
+
+          Add-Content -Path $issPath -Value $registrySection
+
       - name: Build installer
         if: matrix.os == 'windows-latest'
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2

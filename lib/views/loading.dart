@@ -7,6 +7,7 @@ import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/task.dart';
+import 'package:dionysos/service/applinks.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/widgets/app_loader.dart';
@@ -92,6 +93,12 @@ class LoadingView extends StatelessWidget {
           'PlayerService',
           () async {
             await PlayerService.ensureInitialized();
+          },
+        ),
+        (
+          'AppLinksService',
+          () async {
+            await AppLinksService.ensureInitialized();
           },
         ),
         (

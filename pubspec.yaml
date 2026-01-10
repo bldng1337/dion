@@ -45,6 +45,8 @@ dependencies:
   # Platform
   shared_preferences: ^2.3.4
   url_launcher: ^6.3.1
+  app_links: ^7.0.0
+  win32_registry: ^1.1.0
   desktop_drop: ^0.5.0
   file_selector: ^1.0.3
   share_plus: ^10.1.1
