@@ -1,7 +1,7 @@
+import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:awesome_extensions/awesome_extensions.dart';
 
 class DionSearchbar extends StatelessWidget {
   final TextEditingController? controller;

@@ -2,7 +2,6 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart';
-import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
@@ -25,6 +24,7 @@ class _SearchState extends State<Search>
     implements BrowseInterface {
   late final TextEditingController controller;
   DataSourceController<Entry>? datacontroller;
+  @override
   late List<Extension> extensions;
   String? lastquery;
 

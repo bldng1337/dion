@@ -149,7 +149,7 @@ class CustomUIWidget extends StatelessWidget {
           final action = button.onClick;
           if (action == null) return;
           switch (action) {
-            case final UIAction_SwapContent swapContent:
+            case final UIAction_SwapContent _:
               try {
                 if (action.placeholder != null) {
                   element.context.updateSlotContent(

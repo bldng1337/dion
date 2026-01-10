@@ -19,7 +19,7 @@ class DionRuntimeSettingView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (setting.metadata.ui != null) {
       switch (setting.metadata.ui!) {
-        case final SettingsUI_CheckBox box:
+        case final SettingsUI_CheckBox _:
           return SettingToggle(
             setting: setting.cast(),
             title: setting.metadata.label,

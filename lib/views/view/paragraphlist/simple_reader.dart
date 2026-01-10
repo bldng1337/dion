@@ -2,18 +2,17 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/views/view/paragraphlist/reader.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
-
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:dionysos/views/view/paragraphlist/reader.dart';
-import 'package:super_sliver_list/super_sliver_list.dart';
 
 class SimpleParagraphlistReader extends StatefulWidget {
   final SourcePath source;

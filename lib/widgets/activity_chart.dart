@@ -90,7 +90,6 @@ class _ActivityChartState extends State<ActivityChart> {
 
   Widget _buildGrid(BuildContext context, DateTime chartStartDate) {
     return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: List.generate(widget.weeks, (weekIndex) {
@@ -313,7 +312,6 @@ class _ChartCellState extends State<_ChartCell> {
               border: _overlayEntry != null
                   ? Border.all(
                       color: context.theme.colorScheme.onSurface,
-                      width: 1,
                     )
                   : null,
             ),
@@ -375,7 +373,7 @@ class _TooltipCard extends StatelessWidget {
               )
             else
               Text(
-                "No activity",
+                'No activity',
                 style: context.textTheme.bodySmall?.copyWith(
                   color: context.theme.colorScheme.onSurfaceVariant,
                 ),

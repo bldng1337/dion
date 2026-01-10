@@ -24,10 +24,12 @@ mixin class KeyedChangeNotifier<T> implements Listenable {
     return _listeners[key]!;
   }
 
+  @override
   void addListener(VoidCallback listener) {
     _notifier.addListener(listener);
   }
 
+  @override
   void removeListener(VoidCallback listener) {
     _notifier.removeListener(listener);
   }

@@ -31,7 +31,7 @@ class DionTextbutton extends StatelessWidget {
               (onPressed == null
                   ? context.theme.disabledColor.lighten(70)
                   : states.contains(WidgetState.hovered)
-                  ? context.theme.colorScheme.primary.lighten(10)
+                  ? context.theme.colorScheme.primary.lighten()
                   : context.theme.colorScheme.primary),
         ButtonType.elevated =>
           onPressed == null

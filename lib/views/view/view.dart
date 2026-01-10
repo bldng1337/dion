@@ -105,7 +105,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       );
     }
     return switch (lastsource!.source) {
-      final Source_Paragraphlist _ => ParagraphListReader(),
+      final Source_Paragraphlist _ => const ParagraphListReader(),
       final Source_Epub _ => const NavScaff(
         title: Text('Not Supported'),
         child: ErrorDisplay(
@@ -118,9 +118,9 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
           message: 'Pdf sources are not supported yet.', e: null,
         ),
       ),
-      final Source_Imagelist _ => ImageListReader(),
-      final Source_Video _ => VideoPlayer(),
-      final Source_Audio _ => AudioListener(),
+      final Source_Imagelist _ => const ImageListReader(),
+      final Source_Video _ => const VideoPlayer(),
+      final Source_Audio _ => const AudioListener(),
     };
   }
 }

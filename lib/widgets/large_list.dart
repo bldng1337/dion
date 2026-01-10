@@ -1,12 +1,9 @@
 import 'dart:math';
+
 import 'package:awesome_extensions/awesome_extensions_flutter.dart';
-import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:flutter/material.dart';
-import 'package:inline_result/inline_result.dart';
-import 'package:super_sliver_list/super_sliver_list.dart';
-
 import 'package:flutter/scheduler.dart';
 import 'package:quiver/cache.dart';
 import 'package:quiver/collection.dart';
@@ -180,7 +177,7 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
                     );
               }
               if (pageListItem.item != null) {
-                return widget.itemBuilder(context, index, pageListItem.item!);
+                return widget.itemBuilder(context, index, pageListItem.item as T);
               }
               return ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 10),

@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:flutter/cupertino.dart';
 
 enum ContainerType { ghost, filled, outlined }
 

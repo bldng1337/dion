@@ -12,18 +12,19 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/action_dialog.dart';
 import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:flutter/material.dart' show showDialog;
 import 'package:flutter/widgets.dart' show ChangeNotifier;
+import 'package:go_router/go_router.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:url_launcher/url_launcher.dart';
+
 export 'package:rdion_runtime/rdion_runtime.dart'
-    hide Entry, EntryDetailed, RustLib, Setting, Row;
-import 'package:go_router/go_router.dart';
-import 'package:dionysos/views/action_dialog.dart';
+    hide Entry, EntryDetailed, Row, RustLib, Setting;
 
 typedef CustomUIRow = rust.Row;
 
@@ -469,7 +470,7 @@ class RemoteExtensionRepo {
 }
 
 class ExtensionService with ChangeNotifier {
-  Map<String, ExtensionAdapter> _adapters = {};
+  final Map<String, ExtensionAdapter> _adapters = {};
   bool loading = false;
 
   Future<rust.ManagerClient> getClient(String adapter) async {
@@ -544,11 +545,11 @@ class ExtensionService with ChangeNotifier {
         client: await getClient('dion_extensions'),
       ),
     );
-    _adapters.values.forEach((adapter) {
+    for (final adapter in _adapters.values) {
       adapter.addListener(() {
         notifyListeners();
       });
-    });
+    }
     await reload();
     return this;
   }

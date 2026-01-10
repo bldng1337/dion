@@ -33,7 +33,6 @@ class SquareSliderThumbShape extends SliderComponentShape {
   }) {
     final Canvas canvas = context.canvas;
     final Color? thumbColor = sliderTheme.thumbColor;
-    final enabledThumbRadius = thumbSize / 2;
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -84,10 +83,7 @@ class DionSlider<T extends num> extends StatelessWidget {
       DionThemeMode.material => SliderTheme(
         data: SliderTheme.of(context).copyWith(
           trackHeight: 2,
-          thumbShape: const SquareSliderThumbShape(
-            thumbSize: 12,
-            borderRadius: 3,
-          ),
+          thumbShape: const SquareSliderThumbShape(),
           overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
           trackShape: const RoundedRectSliderTrackShape(),
           activeTrackColor: theme.colorScheme.primary,

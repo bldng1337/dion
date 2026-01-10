@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry.dart' as entrydata;
-import 'package:dionysos/data/entry/entry_detailed.dart' as entrydata;
 import 'package:dionysos/data/entry/entry_saved.dart' as entrydata;
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';

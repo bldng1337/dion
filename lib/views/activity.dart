@@ -7,14 +7,12 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/async.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/activity_chart.dart';
-
-import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
+import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';

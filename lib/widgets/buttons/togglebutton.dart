@@ -68,8 +68,8 @@ class Togglebutton extends StatelessWidget {
           style: _getButtonStyle(context),
           tooltip: tooltip,
           icon: selected
-              ? selectedIcon ?? Icon(Icons.check_box, size: 20)
-              : icon ?? Icon(Icons.check_box_outline_blank, size: 20),
+              ? selectedIcon ?? const Icon(Icons.check_box, size: 20)
+              : icon ?? const Icon(Icons.check_box_outline_blank, size: 20),
         ),
       ),
       DionThemeMode.cupertino => CupertinoButton(
@@ -81,11 +81,10 @@ class Togglebutton extends StatelessWidget {
               color: selected
                   ? CupertinoColors.systemGrey
                   : CupertinoColors.systemGrey4,
-              width: 1,
             ),
             borderRadius: BorderRadius.circular(4),
             color: selected
-                ? CupertinoColors.systemGrey.withOpacity(0.1)
+                ? CupertinoColors.systemGrey.withValues(alpha: 0.1)
                 : CupertinoColors.systemGrey6,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

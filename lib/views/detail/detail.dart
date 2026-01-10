@@ -7,12 +7,11 @@ import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/service/downloads.dart';
-
 import 'package:dionysos/views/detail/entryinfo.dart';
 import 'package:dionysos/views/detail/episodelist.dart';
 import 'package:dionysos/views/detail/settings.dart';
@@ -23,9 +22,7 @@ import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';

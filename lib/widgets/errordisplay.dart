@@ -5,10 +5,10 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/container.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:inline_result/inline_result.dart';
-import 'package:dionysos/widgets/dialog.dart';
 
 class UnwrapResultBuilder<T> extends StatelessWidget {
   final Result<T> res;

@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
 import 'package:dionysos/utils/app_links_helper.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:flutter/foundation.dart';
 
 class AppLinksService {
   static const String customScheme = (kDebugMode || kProfileMode)

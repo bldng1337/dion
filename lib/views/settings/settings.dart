@@ -3,7 +3,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
-import 'package:flutter/material.dart' show BorderRadius, Colors, Icons;
+import 'package:flutter/material.dart' show  Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 

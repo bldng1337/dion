@@ -4,19 +4,18 @@ import 'dart:ui';
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/cache.dart';
-import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
-import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:dionysos/service/extension.dart';
 
 @immutable
 class DionNetworkImage extends ImageProvider<DionNetworkImage> {
@@ -155,7 +154,6 @@ class DionImage extends StatefulWidget {
        );
 
   factory DionImage.fromLink({
-    Key? key,
     Link? link,
     double? width,
     double? height,

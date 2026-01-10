@@ -1,12 +1,12 @@
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/async.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:inline_result/inline_result.dart';
-import 'package:dionysos/utils/observer.dart';
 
 class SourceWrapper extends StatefulWidget {
   final SourceSupplier source;

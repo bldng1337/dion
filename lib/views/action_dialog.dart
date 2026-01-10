@@ -1,9 +1,9 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:flutter/widgets.dart';
-import 'package:dionysos/service/extension.dart';
 
 class ActionDialog extends StatelessWidget {
   final Action_Popup popup;

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
@@ -22,8 +23,6 @@ import 'package:dionysos/widgets/selection.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/slider.dart';
 import 'package:dionysos/widgets/tabbar.dart';
-import 'package:dionysos/utils/placeholder.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class WidgetPlayground extends StatelessWidget {
@@ -44,7 +43,6 @@ class WidgetPlayground extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   DionTextbutton(
-                    type: ButtonType.filled,
                     onPressed: () {},
                     child: const Text('Filled'),
                   ),
@@ -58,13 +56,10 @@ class WidgetPlayground extends StatelessWidget {
                     onPressed: () {},
                     child: const Text('Elevated'),
                   ),
-                  DionTextbutton(
-                    type: ButtonType.filled,
-                    onPressed: null,
-                    child: const Text('Disabled'),
+                  const DionTextbutton(
+                    child: Text('Disabled'),
                   ),
                   DionTextbutton(
-                    type: ButtonType.filled,
                     onPressed: () => Future.delayed(const Duration(seconds: 2)),
                     child: const Text('Loading'),
                   ),
@@ -84,9 +79,8 @@ class WidgetPlayground extends StatelessWidget {
                     icon: const Icon(Icons.bookmark),
                     tooltip: 'Bookmark',
                   ),
-                  DionIconbutton(
-                    onPressed: null,
-                    icon: const Icon(Icons.delete),
+                  const DionIconbutton(
+                    icon: Icon(Icons.delete),
                   ),
                   DionIconbutton(
                     onPressed: () => Future.delayed(const Duration(seconds: 2)),
@@ -99,9 +93,8 @@ class WidgetPlayground extends StatelessWidget {
                 children: [
                   const Togglebutton(
                     selected: true,
-                    onPressed: null,
                   ).paddingOnly(right: 8),
-                  const Togglebutton(selected: false, onPressed: null),
+                  const Togglebutton(selected: false),
                 ],
               ).paddingOnly(bottom: 16),
               const Text('Action Button (FAB)').paddingOnly(bottom: 8),
@@ -190,32 +183,32 @@ class WidgetPlayground extends StatelessWidget {
             title: 'Containers & Layout',
             children: [
               const Text('Custom Containers').paddingOnly(bottom: 8),
-              Wrap(
+              const Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  const DionContainer(
+                  DionContainer(
                     type: ContainerType.filled,
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Text('Filled'),
                     ),
                   ),
-                  const DionContainer(
+                  DionContainer(
                     type: ContainerType.ghost,
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Text('Ghost'),
                     ),
                   ),
-                  const DionContainer(
+                  DionContainer(
                     type: ContainerType.outlined,
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Text('Outlined'),
                     ),
                   ),
-                  const DionContainer(
+                  DionContainer(
                     emphasized: true,
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
@@ -297,11 +290,10 @@ class WidgetPlayground extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const DionProgressBar(
-                    type: DionProgressType.circular,
+                    
                   ).paddingOnly(right: 16),
                   const DionProgressBar(
                     value: 0.5,
-                    type: DionProgressType.circular,
                   ).paddingOnly(right: 16),
                   const DionProgressBar(type: DionProgressType.linear),
                 ],
@@ -347,41 +339,41 @@ class WidgetPlayground extends StatelessWidget {
             title: 'Navigation',
             children: [
               const Text('Tab Bar').paddingOnly(bottom: 8),
-              SizedBox(
+              const SizedBox(
                 height: 200,
                 child: DionTabBar(
                   tabs: [
                     DionTab(
-                      tab: const Text('Tab 1'),
-                      child: const Center(child: Text('Content 1')),
+                      tab: Text('Tab 1'),
+                      child: Center(child: Text('Content 1')),
                     ),
                     DionTab(
-                      tab: const Text('Tab 2'),
-                      child: const Center(child: Text('Content 2')),
+                      tab: Text('Tab 2'),
+                      child: Center(child: Text('Content 2')),
                     ),
                     DionTab(
-                      tab: const Text('Tab 3'),
-                      child: const Center(child: Text('Content 3')),
+                      tab: Text('Tab 3'),
+                      child: Center(child: Text('Content 3')),
                     ),
                   ],
                 ),
               ).paddingOnly(bottom: 16),
-              SizedBox(
+              const SizedBox(
                 height: 200,
                 child: DionTabBar(
                   scrollable: true,
                   tabs: [
                     DionTab(
-                      tab: const Text('Tab 1'),
-                      child: const Center(child: Text('Content 1')),
+                      tab: Text('Tab 1'),
+                      child: Center(child: Text('Content 1')),
                     ),
                     DionTab(
-                      tab: const Text('Tab 2'),
-                      child: const Center(child: Text('Content 2')),
+                      tab: Text('Tab 2'),
+                      child: Center(child: Text('Content 2')),
                     ),
                     DionTab(
-                      tab: const Text('Tab 3'),
-                      child: const Center(child: Text('Content 3')),
+                      tab: Text('Tab 3'),
+                      child: Center(child: Text('Content 3')),
                     ),
                   ],
                 ),
@@ -406,23 +398,23 @@ class WidgetPlayground extends StatelessWidget {
               //     ],
               //   ),
               // ).paddingOnly(bottom: 16),
-              SizedBox(
+              const SizedBox(
                 height: 200,
                 child: DionTabBar(
-                  trailing: const Icon(Icons.abc),
+                  trailing: Icon(Icons.abc),
                   scrollable: true,
                   tabs: [
                     DionTab(
-                      tab: const Text('Tab 1'),
-                      child: const Center(child: Text('Content 1')),
+                      tab: Text('Tab 1'),
+                      child: Center(child: Text('Content 1')),
                     ),
                     DionTab(
-                      tab: const Text('Tab 2'),
-                      child: const Center(child: Text('Content 2')),
+                      tab: Text('Tab 2'),
+                      child: Center(child: Text('Content 2')),
                     ),
                     DionTab(
-                      tab: const Text('Tab 3'),
-                      child: const Center(child: Text('Content 3')),
+                      tab: Text('Tab 3'),
+                      child: Center(child: Text('Content 3')),
                     ),
                   ],
                 ),

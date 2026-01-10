@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:pub_semver/pub_semver.dart';
-import 'package:dionysos/data/font.dart';
 
 final preferenceCollection = SettingCollection<dynamic, PreferenceMetaData>();
 

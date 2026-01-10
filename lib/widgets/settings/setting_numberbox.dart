@@ -1,7 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
-import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

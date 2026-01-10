@@ -1,7 +1,6 @@
-import 'package:dionysos/data/source.dart';
 import 'package:dionysos/views/view/audio/simple_listener.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:dionysos/views/view/view.dart';
+import 'package:flutter/cupertino.dart';
 
 class AudioListener extends StatelessWidget {
 

@@ -1,8 +1,8 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';

@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:win32_registry/win32_registry.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:win32_registry/win32_registry.dart';
 
 class AppLinksHelper {
   static Future<void> registerScheme(String scheme) async {
@@ -11,16 +11,16 @@ class AppLinksHelper {
     }
 
     try {
-      String appPath = Platform.resolvedExecutable;
+      final String appPath = Platform.resolvedExecutable;
 
-      String protocolRegKey = 'Software\\Classes\\$scheme';
-      RegistryValue protocolRegValue = const RegistryValue(
+      final String protocolRegKey = 'Software\\Classes\\$scheme';
+      const RegistryValue protocolRegValue = RegistryValue(
         'URL Protocol',
         RegistryValueType.string,
         '',
       );
-      String protocolCmdRegKey = 'shell\\open\\command';
-      RegistryValue protocolCmdRegValue = RegistryValue(
+      const String protocolCmdRegKey = 'shell\\open\\command';
+      final RegistryValue protocolCmdRegValue = RegistryValue(
         '',
         RegistryValueType.string,
         '"$appPath" "%1"',
@@ -48,7 +48,7 @@ class AppLinksHelper {
     }
 
     try {
-      String protocolRegKey = 'Software\\Classes\\$scheme';
+      final String protocolRegKey = 'Software\\Classes\\$scheme';
       Registry.currentUser.deleteKey(protocolRegKey);
       logger.i('Successfully unregistered protocol: $scheme');
     } catch (e, stack) {
@@ -67,11 +67,8 @@ class AppLinksHelper {
     }
 
     try {
-      String protocolRegKey = 'Software\\Classes\\$scheme';
-      final key = Registry.openPath(
-        RegistryHive.currentUser,
-        path: protocolRegKey,
-      );
+      final String protocolRegKey = 'Software\\Classes\\$scheme';
+      Registry.openPath(RegistryHive.currentUser, path: protocolRegKey);
       return true;
     } catch (e) {
       return false;

@@ -1,6 +1,5 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:media_kit/media_kit.dart';

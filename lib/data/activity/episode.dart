@@ -1,12 +1,6 @@
-import 'dart:math';
 
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/entry/entry.dart';
-import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/database.dart';
-import 'package:dionysos/utils/log.dart';
-import 'package:dionysos/utils/service.dart';
-import 'package:uuid/uuid.dart';
 
 class EpisodeActivity extends Activity {
   final int fromepisode;

@@ -196,7 +196,7 @@ ThemeData getTheme(Brightness b) {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(3),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1),
+          borderSide: BorderSide(color: colorScheme.primary),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
@@ -318,15 +318,15 @@ ThemeData getTheme(Brightness b) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(3),
-        borderSide: BorderSide(color: colorScheme.primary, width: 1),
+        borderSide: BorderSide(color: colorScheme.primary),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(3),
-        borderSide: BorderSide(color: colorScheme.error, width: 1),
+        borderSide: BorderSide(color: colorScheme.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(3),
-        borderSide: BorderSide(color: colorScheme.error, width: 1),
+        borderSide: BorderSide(color: colorScheme.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     ),

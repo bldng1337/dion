@@ -33,6 +33,7 @@ class PseudoCategory implements Category {
   final String name;
   final DataSource<EntrySaved> entriesource;
 
+  @override
   int get index => 9999999999999;
 
   const PseudoCategory(this.name, this.entriesource);
@@ -285,6 +286,7 @@ class _CategoryDisplayState extends State<CategoryDisplay>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return DynamicGrid<EntrySaved>(
       showDataSources: false,
       itemBuilder: (BuildContext context, item) =>

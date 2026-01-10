@@ -373,7 +373,7 @@ class _ExtensionRepoBrowserState extends State<ExtensionRepoBrowser> {
     }
   }
 
-  void _updateController() async {
+  Future<void> _updateController() async {
     if (selectedRepo == null) return;
     final sourceExt = locate<src.ExtensionService>();
     try {

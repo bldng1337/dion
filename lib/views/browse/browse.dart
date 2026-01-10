@@ -4,7 +4,6 @@ import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart';
-import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/settings/library.dart';
@@ -233,7 +232,7 @@ class _SettingsPopupState extends State<SettingsPopup>
                 style: const TextStyle(fontSize: 16),
               ).paddingAll(10),
               const Spacer(),
-              for (final MediaType mediatype in e.data.mediaType ?? [])
+              for (final MediaType mediatype in e.data.mediaType)
                 Icon(mediatype.icon),
             ],
           ),

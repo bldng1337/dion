@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
@@ -11,12 +9,11 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/container/container.dart';
 
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
-import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
+import 'package:flutter/material.dart' show FontWeight, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
@@ -63,15 +60,13 @@ class _EpisodeListSliverState extends State<EpisodeListSliver> {
       ]),
       builder: (context, child) {
         final entry = widget.entry;
-        final reverse = entry is EntrySaved
-            ? entry.savedSettings.reverse.value
-            : false;
-        final hideFinishedEpisodes = entry is EntrySaved
-            ? entry.savedSettings.hideFinishedEpisodes.value
-            : false;
-        final onlyShowBookmarked = entry is EntrySaved
-            ? entry.savedSettings.onlyShowBookmarked.value
-            : false;
+        final reverse =
+            entry is EntrySaved && entry.savedSettings.reverse.value;
+        final hideFinishedEpisodes =
+            entry is EntrySaved &&
+            entry.savedSettings.hideFinishedEpisodes.value;
+        final onlyShowBookmarked =
+            entry is EntrySaved && entry.savedSettings.onlyShowBookmarked.value;
         Iterable<(int, Episode)> elist = entry.episodes.indexed;
         if (onlyShowBookmarked) {
           elist = elist.where(
@@ -229,7 +224,7 @@ class EpisodeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final epdata = episodepath.data;
     final isWide = context.width >= 600;
-    final hasCover= episodepath.episode.cover != null;
+    final hasCover = episodepath.episode.cover != null;
     return Clickable(
       onLongTap: disabled ? null : onSelect,
       onTap: selection
@@ -271,19 +266,19 @@ class EpisodeTile extends StatelessWidget {
                     episodepath.episode.name,
                     maxLines: isWide ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        (isWide ? context.titleMedium : context.titleSmall)
-                            ?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              height: 1.3,
-                              letterSpacing: -0.2,
-                              color: epdata.finished
-                                  ? context.theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.4)
-                                  : disabled
-                                  ? context.theme.disabledColor
-                                  : null,
-                            ),
+                    style: (isWide ? context.titleMedium : context.titleSmall)
+                        ?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                          letterSpacing: -0.2,
+                          color: epdata.finished
+                              ? context.theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.4,
+                                )
+                              : disabled
+                              ? context.theme.disabledColor
+                              : null,
+                        ),
                   ),
 
                   if (episodepath.episode.timestamp != null)
@@ -295,14 +290,15 @@ class EpisodeTile extends StatelessWidget {
                       style: context.labelSmall?.copyWith(
                         letterSpacing: 0.3,
                         fontSize: 11,
-                        color: context.theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
+                        color: context.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       maxLines: 1,
                     ),
 
-                  if (epdata.finished || epdata.bookmark)
-                  ...[const Spacer(),
+                  if (epdata.finished || epdata.bookmark) ...[
+                    const Spacer(),
                     Row(
                       children: [
                         if (epdata.bookmark)
@@ -312,14 +308,15 @@ class EpisodeTile extends StatelessWidget {
                             color: context.theme.colorScheme.primary,
                           ).paddingOnly(right: 2),
                       ],
-                    ).paddingOnly(top: 6)],
+                    ).paddingOnly(top: 6),
+                  ],
                 ],
               ).paddingAll(6),
             ),
-            if(hasCover)
+            if (hasCover)
               buildDownload(context).paddingAll(6)
             else
-              Center(child:buildDownload(context)).paddingOnly(right: 6),
+              Center(child: buildDownload(context)).paddingOnly(right: 6),
           ],
         ),
       ),

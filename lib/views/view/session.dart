@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:awesome_extensions/awesome_extensions_dart.dart';
 import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';

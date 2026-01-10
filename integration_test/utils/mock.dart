@@ -1,8 +1,8 @@
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/preference.dart';
-import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:rhttp/rhttp.dart';

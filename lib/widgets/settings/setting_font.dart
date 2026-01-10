@@ -1,9 +1,8 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/settings/settings.dart';
-import 'package:dionysos/widgets/buttons/textbutton.dart';
-import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:dionysos/widgets/text.dart';
@@ -49,7 +48,7 @@ class _SettingFontState extends State<SettingFont> {
 
   @override
   Widget build(BuildContext context) {
-    if (fonts.isEmpty) return SizedBox.shrink();
+    if (fonts.isEmpty) return const SizedBox.shrink();
     if (!fonts.contains(widget.setting.value)) {
       return SettingTileWrapper(
         child: DionListTile(

@@ -1,22 +1,20 @@
-import 'package:dionysos/data/font.dart';
+import 'dart:math';
+
+import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
+import 'package:dionysos/views/view/session.dart';
+import 'package:dionysos/views/view/view.dart';
 import 'package:dionysos/views/view/wrapper.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
-import 'dart:math';
 import 'package:dionysos/widgets/selection.dart';
-import 'package:dionysos/service/extension.dart';
-import 'package:dionysos/views/view/view.dart';
-import 'package:dionysos/views/view/session.dart';
-import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/material.dart';
 
 final psettings = settings.readerSettings.paragraphreader;
