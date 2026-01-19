@@ -111,6 +111,21 @@ class ReaderRenderParagraph extends StatelessWidget {
 
   Widget makeParagraph(BuildContext context, Paragraph text) {
     switch (text) {
+      case final Paragraph_Mixed mixed:
+        return RichText(
+          text: TextSpan(
+            children: mixed.content
+                .map(
+                  (e) => wrapMixedContent(
+                    context,
+                    e,
+                    extension,
+                    const TextStyle(),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        );
       case final Paragraph_Text text:
         if (psettings.text.bionic.value) {
           return ListenableBuilder(
@@ -123,76 +138,86 @@ class ReaderRenderParagraph extends StatelessWidget {
             builder: (context, child) {
               return LoadingBuilder(
                 future: psettings.font.value.toTextStyle(),
-                builder: (context, style) => BionicText(
-                  content: text.content,
-                  basicStyle: (context.bodyLarge ?? style)
-                      .merge(style)
-                      .copyWith(
-                        height: psettings.text.linespacing.value,
-                        fontSize: psettings.text.size.value.toDouble(),
-                        fontWeight: FontWeight.lerp(
-                          FontWeight.w100,
-                          FontWeight.w900,
-                          psettings.text.weight.value,
+                builder: (context, style) => RichText(
+                  text: getBionicText(
+                    content: text.content,
+                    basicStyle: (context.bodyLarge ?? style)
+                        .merge(style)
+                        .copyWith(
+                          height: psettings.text.linespacing.value,
+                          fontSize: psettings.text.size.value.toDouble(),
+                          fontWeight: FontWeight.lerp(
+                            FontWeight.w100,
+                            FontWeight.w900,
+                            psettings.text.weight.value,
+                          ),
                         ),
-                      ),
-                  letters: psettings.text.bionicSettings.letters.value,
-                  markStyle: (context.bodyLarge ?? style)
-                      .merge(style)
-                      .copyWith(
-                        height: psettings.text.linespacing.value,
-                        fontSize: psettings.text.bionicSettings.bionicSize.value
-                            .toDouble(),
-                        fontWeight: FontWeight.lerp(
-                          FontWeight.w100,
-                          FontWeight.w900,
-                          psettings.text.bionicSettings.bionicWheight.value,
+                    letters: psettings.text.bionicSettings.letters.value,
+                    markStyle: (context.bodyLarge ?? style)
+                        .merge(style)
+                        .copyWith(
+                          height: psettings.text.linespacing.value,
+                          fontSize: psettings
+                              .text
+                              .bionicSettings
+                              .bionicSize
+                              .value
+                              .toDouble(),
+                          fontWeight: FontWeight.lerp(
+                            FontWeight.w100,
+                            FontWeight.w900,
+                            psettings.text.bionicSettings.bionicWheight.value,
+                          ),
                         ),
-                      ),
-                ),
-                error: (context, _, _) => BionicText(
-                  content: text.content,
-                  basicStyle: context.bodyLarge?.copyWith(
-                    height: psettings.text.linespacing.value,
-                    fontSize: psettings.text.size.value.toDouble(),
-                    fontWeight: FontWeight.lerp(
-                      FontWeight.w100,
-                      FontWeight.w900,
-                      psettings.text.weight.value,
-                    ),
-                  ),
-                  letters: psettings.text.bionicSettings.letters.value,
-                  markStyle: context.bodyLarge?.copyWith(
-                    height: psettings.text.linespacing.value,
-                    fontSize: psettings.text.bionicSettings.bionicSize.value
-                        .toDouble(),
-                    fontWeight: FontWeight.lerp(
-                      FontWeight.w100,
-                      FontWeight.w900,
-                      psettings.text.bionicSettings.bionicWheight.value,
-                    ),
                   ),
                 ),
-                loading: (context) => BionicText(
-                  content: text.content,
-                  basicStyle: context.bodyLarge?.copyWith(
-                    height: psettings.text.linespacing.value,
-                    fontSize: psettings.text.size.value.toDouble(),
-                    fontWeight: FontWeight.lerp(
-                      FontWeight.w100,
-                      FontWeight.w900,
-                      psettings.text.weight.value,
+                error: (context, _, _) => RichText(
+                  text: getBionicText(
+                    content: text.content,
+                    basicStyle: context.bodyLarge?.copyWith(
+                      height: psettings.text.linespacing.value,
+                      fontSize: psettings.text.size.value.toDouble(),
+                      fontWeight: FontWeight.lerp(
+                        FontWeight.w100,
+                        FontWeight.w900,
+                        psettings.text.weight.value,
+                      ),
+                    ),
+                    letters: psettings.text.bionicSettings.letters.value,
+                    markStyle: context.bodyLarge?.copyWith(
+                      height: psettings.text.linespacing.value,
+                      fontSize: psettings.text.bionicSettings.bionicSize.value
+                          .toDouble(),
+                      fontWeight: FontWeight.lerp(
+                        FontWeight.w100,
+                        FontWeight.w900,
+                        psettings.text.bionicSettings.bionicWheight.value,
+                      ),
                     ),
                   ),
-                  letters: psettings.text.bionicSettings.letters.value,
-                  markStyle: context.bodyLarge?.copyWith(
-                    height: psettings.text.linespacing.value,
-                    fontSize: psettings.text.bionicSettings.bionicSize.value
-                        .toDouble(),
-                    fontWeight: FontWeight.lerp(
-                      FontWeight.w100,
-                      FontWeight.w900,
-                      psettings.text.bionicSettings.bionicWheight.value,
+                ),
+                loading: (context) => RichText(
+                  text: getBionicText(
+                    content: text.content,
+                    basicStyle: context.bodyLarge?.copyWith(
+                      height: psettings.text.linespacing.value,
+                      fontSize: psettings.text.size.value.toDouble(),
+                      fontWeight: FontWeight.lerp(
+                        FontWeight.w100,
+                        FontWeight.w900,
+                        psettings.text.weight.value,
+                      ),
+                    ),
+                    letters: psettings.text.bionicSettings.letters.value,
+                    markStyle: context.bodyLarge?.copyWith(
+                      height: psettings.text.linespacing.value,
+                      fontSize: psettings.text.bionicSettings.bionicSize.value
+                          .toDouble(),
+                      fontWeight: FontWeight.lerp(
+                        FontWeight.w100,
+                        FontWeight.w900,
+                        psettings.text.bionicSettings.bionicWheight.value,
+                      ),
                     ),
                   ),
                 ),
@@ -388,7 +413,7 @@ class EpisodeTitle extends StatelessWidget {
               ListenableBuilder(
                 listenable: psettings.titleSettings.progressBar,
                 builder: (context, child) {
-                  final session= SessionData.of(context)!.session;
+                  final session = SessionData.of(context)!.session;
                   final totalEpisodes = episode.entry.episodes.length;
                   final fromFraction = session.fromepisode / totalEpisodes;
                   final toFraction = session.toepisode / totalEpisodes;
@@ -408,7 +433,9 @@ class EpisodeTitle extends StatelessWidget {
                           widthFactor: toFraction.clamp(0.0, 1.0),
                           child: Container(
                             height: barHeight,
-                            color: context.theme.colorScheme.primary.lighten(25),
+                            color: context.theme.colorScheme.primary.lighten(
+                              25,
+                            ),
                           ),
                         ),
                         FractionallySizedBox(
@@ -433,42 +460,110 @@ class EpisodeTitle extends StatelessWidget {
   }
 }
 
-class BionicText extends StatelessWidget {
-  final String content;
-  final int letters;
-  final TextStyle? markStyle;
-  final TextStyle? basicStyle;
-
-  const BionicText({
-    super.key,
-    required this.content,
-    this.letters = 1,
-    this.markStyle = const TextStyle(fontWeight: FontWeight.bold),
-    this.basicStyle = const TextStyle(),
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final display = content.split(' ').map(renderSpan).toList(growable: false);
-    return RichText(text: TextSpan(children: display));
-  }
-
-  InlineSpan renderSpan(String content) {
-    if (!content.startsWith(RegExp('[A-Za-z0-9]'))) {
-      return TextSpan(text: '$content ', style: basicStyle);
-    }
-    if (content.length == 1) TextSpan(text: '$content ', style: markStyle);
-
-    final sub = min(letters, content.length);
-
-    return TextSpan(
-      children: [
-        TextSpan(text: content.substring(0, sub), style: markStyle),
-        TextSpan(
-          text: '${content.substring(sub, content.length)} ',
-          style: basicStyle,
+InlineSpan wrapMixedContent(
+  BuildContext context,
+  MixedContent content,
+  Extension extension,
+  TextStyle style,
+) {
+  switch (content) {
+    case final MixedContent_Text text:
+      if (psettings.text.bionic.value) {
+        return getBionicText(
+          content: text.content,
+          basicStyle: (context.bodyLarge ?? style)
+              .merge(style)
+              .copyWith(
+                height: psettings.text.linespacing.value,
+                fontSize: psettings.text.size.value.toDouble(),
+                fontWeight: FontWeight.lerp(
+                  FontWeight.w100,
+                  FontWeight.w900,
+                  psettings.text.weight.value,
+                ),
+              ),
+          letters: psettings.text.bionicSettings.letters.value,
+          markStyle: (context.bodyLarge ?? style)
+              .merge(style)
+              .copyWith(
+                height: psettings.text.linespacing.value,
+                fontSize: psettings.text.bionicSettings.bionicSize.value
+                    .toDouble(),
+                fontWeight: FontWeight.lerp(
+                  FontWeight.w100,
+                  FontWeight.w900,
+                  psettings.text.bionicSettings.bionicWheight.value,
+                ),
+              ),
+        );
+      }
+      return TextSpan(text: text.content);
+    case final MixedContent_CustomUI customUi:
+      return WidgetSpan(
+        child: CustomUIWidget.fromUI(ui: customUi.ui, extension: extension),
+      );
+    case final MixedContent_Table image:
+      return WidgetSpan(
+        child: Table(
+          border: TableBorder.all(color: Colors.grey.shade300),
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            for (final row in image.columns)
+              TableRow(
+                children: [
+                  for (final cell in row.cells)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ReaderRenderParagraph(cell, extension),
+                    ),
+                ],
+              ),
+          ],
         ),
-      ],
-    );
+      );
   }
+}
+
+InlineSpan getBionicText({
+  required String content,
+  required int letters,
+  TextStyle? markStyle,
+  TextStyle? basicStyle,
+}) {
+  final display = content
+      .split(' ')
+      .map(
+        (el) => renderSpan(
+          el,
+          letters: letters,
+          markStyle: markStyle,
+          basicStyle: basicStyle,
+        ),
+      )
+      .toList(growable: false);
+  return TextSpan(children: display);
+}
+
+InlineSpan renderSpan(
+  String content, {
+  required int letters,
+  TextStyle? markStyle,
+  TextStyle? basicStyle,
+}) {
+  if (!content.startsWith(RegExp('[A-Za-z0-9]'))) {
+    return TextSpan(text: '$content ', style: basicStyle);
+  }
+  if (content.length == 1) TextSpan(text: '$content ', style: markStyle);
+
+  final sub = min(letters, content.length);
+
+  return TextSpan(
+    children: [
+      TextSpan(text: content.substring(0, sub), style: markStyle),
+      TextSpan(
+        text: '${content.substring(sub, content.length)} ',
+        style: basicStyle,
+      ),
+    ],
+  );
 }

@@ -1,6 +1,7 @@
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/settings.dart' as appsettings;
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 extension SettingExtension on rust.Setting {
@@ -72,6 +73,9 @@ abstract class DionRuntimeSettingMetaData<T>
     extends appsettings.SettingMetaData<T>
     implements appsettings.EnumMetaData<T> {
   final String id;
+  String get extId;
+
+  Extension get extension => locate<ExtensionService>().getExtension(extId);
 
   // Setting MetaData
 
@@ -102,7 +106,10 @@ abstract class DionRuntimeSettingMetaData<T>
 
 class ExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
   final rust.ProxyExtension _extension;
+  @override
+  final String extId;
   final SettingKind kind;
+
   ExtensionSettingMetaData(
     this.kind,
     this._extension,
@@ -110,6 +117,7 @@ class ExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
     super.label,
     super.visible,
     super.ui,
+    this.extId,
   );
 
   @override
@@ -121,6 +129,10 @@ class ExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
 
 class EntrySettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
   final EntrySaved _entry;
+
+  @override
+  String get extId => _entry.boundExtensionId;
+
   EntrySettingMetaData(
     this._entry,
     super.id,
@@ -138,6 +150,10 @@ class EntrySettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
 
 class EntryExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
   final EntryExtension _entryExtension;
+
+  @override
+  String get extId => _entryExtension.extensionId;
+
   EntryExtensionSettingMetaData(
     this._entryExtension,
     super.id,

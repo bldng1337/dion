@@ -113,8 +113,26 @@ class EntryExtension {
   Map<String, rust.Setting> extensionSettings;
   EntryExtension({required this.extensionId, required this.extensionSettings});
 
+  factory EntryExtension.fromJson(Map<String, dynamic> json) {
+    return EntryExtension(
+      extensionId: json['extensionId'] as String,
+      extensionSettings: (json['settings'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(key, rust.JsonSetting.fromJson(value)),
+      ),
+    );
+  }
+
   Extension? get extension =>
       locate<ExtensionService>().tryGetExtension(extensionId);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'extensionId': extensionId,
+      'settings': extensionSettings.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
+    };
+  }
 }
 
 class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
@@ -132,6 +150,9 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
 
   List<EntryExtension> entryExtensions;
   List<EntryExtension> sourceExtensions;
+
+  @override
+  rust.EntryDetailed get toRust => entry;
 
   EntrySaved({
     required this.entry,
@@ -256,6 +277,20 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     await locate<Database>().removeEntry(this);
   }
 
+  Future<void> onEntryActivity(
+    int episodeNumber, {
+    rust.CancelToken? token,
+  }) async {
+    for (final ext in entryExtensions) {
+      await ext.extension?.onEntryActivity(
+        EntryActivity.episodeActivity(progress: episodeNumber),
+        this,
+        ext.extensionSettings,
+        token: token,
+      );
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'version': entrySerializeVersion.current,
@@ -264,6 +299,8 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
       'episodedata': episodedata,
       'episode': episode,
       'categories': categories.map((e) => e.id).toList(),
+      'entryExtensions': entryExtensions.map((e) => e.toJson()).toList(),
+      'sourceExtensions': sourceExtensions.map((e) => e.toJson()).toList(),
       'savedSettings': savedSettings.toJson(),
       'extensionSettings': extensionSettings.map((key, value) {
         return MapEntry(key, value.toJson());
@@ -351,6 +388,16 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
             ),
           ) ??
           {},
+      sourceExtensions:
+          (json['sourceExtensions'] as List<dynamic>?)
+              ?.map((e) => EntryExtension.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      entryExtensions:
+          (json['entryExtensions'] as List<dynamic>?)
+              ?.map((e) => EntryExtension.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
@@ -375,7 +422,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   }
 
   @override
-  DBRecord get dbId => constructEntryDBRecord(this);
+  DBRecord get dbId => constructEntryDBRecord(id, boundExtensionId);
 
   @override
   FutureOr<Map<String, dynamic>> toDBJson() {
@@ -383,10 +430,8 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   }
 }
 
-DBRecord constructEntryDBRecord(Entry entry) => DBRecord(
-  'entry',
-  base64.encode(utf8.encode('${entry.id.uid}_${entry.boundExtensionId}')),
-);
+DBRecord constructEntryDBRecord(EntryId id, String extensionId) =>
+    DBRecord('entry', base64.encode(utf8.encode('${id.uid}_$extensionId')));
 
 Iterable<DBRecord> fromDynamic(Iterable<dynamic> list) {
   return list.map(

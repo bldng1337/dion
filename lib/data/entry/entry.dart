@@ -104,7 +104,7 @@ class EntryImpl implements Entry {
   }
 
   @override
-  DBRecord get dbId => constructEntryDBRecord(this);
+  DBRecord get dbId => constructEntryDBRecord(id, boundExtensionId);
 
   @override
   Map<String, dynamic> toEntryJson() {

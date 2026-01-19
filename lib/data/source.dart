@@ -154,6 +154,10 @@ class SourceSupplier with ChangeNotifier implements Disposable {
   set episode(EpisodePath path) {
     if (_episode == path) return;
     _episode = path;
+    final entry = path.entry;
+    if (entry is EntrySaved) {
+      entry.onEntryActivity(path.episodenumber, token: tok);
+    }
     cache.preload(
       path,
     ); // We preload here as we dont care about the return but just want to load the data if it is not loaded

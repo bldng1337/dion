@@ -20,6 +20,8 @@ abstract class EntryDetailed extends Entry {
   List<String>? get genres;
   Link? get poster;
 
+  rust.EntryDetailed get toRust;
+
   FutureOr<EntrySaved> toSaved();
   FutureOr<EntryDetailed> refresh({CancelToken? token});
 
@@ -38,6 +40,9 @@ class EntryDetailedImpl implements EntryDetailed {
   final rust.EntryDetailed entry;
   @override
   final String boundExtensionId;
+
+  @override
+  rust.EntryDetailed get toRust => entry;
 
   const EntryDetailedImpl(
     this.entry,
@@ -118,7 +123,7 @@ class EntryDetailedImpl implements EntryDetailed {
   int get hashCode => Object.hashAll([entry, boundExtensionId]);
 
   @override
-  DBRecord get dbId => constructEntryDBRecord(this);
+  DBRecord get dbId => constructEntryDBRecord(id, boundExtensionId);
 
   @override
   Map<String, dynamic> toEntryJson() {

@@ -14,6 +14,7 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/action_dialog.dart';
 import 'package:dionysos/views/custom_view.dart';
+import 'package:dionysos/views/dialog/auth.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:flutter/material.dart' show showDialog;
@@ -22,9 +23,9 @@ import 'package:go_router/go_router.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:url_launcher/url_launcher.dart';
-
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 export 'package:rdion_runtime/rdion_runtime.dart'
-    hide Entry, EntryDetailed, Row, RustLib, Setting;
+    hide Entry, EntryDetailed, Row, RustLib, Setting, Account;
 
 typedef CustomUIRow = rust.Row;
 
@@ -41,6 +42,60 @@ extension on rust.Source {
   }
 }
 
+class Account extends ChangeNotifier {
+  final rust.ProxyExtension _proxy;
+  final String extensionid;
+  rust.Account data;
+  Account(this._proxy, this.extensionid, this.data);
+
+  String get domain => data.domain;
+  String? get userName => data.userName;
+  String? get cover => data.cover;
+  rust.AuthData get authData => data.auth;
+  rust.AuthCreds? get authCreds => data.creds;
+  bool get isLoggedIn => data.creds != null;
+
+  Extension get extension {
+    return locate<ExtensionService>().getExtension(extensionid);
+  }
+
+  Future<void> logout() async {
+    data = rust.Account(
+      auth: data.auth,
+      domain: data.domain,
+      cover: data.cover,
+      userName: data.userName,
+    );
+    await _proxy.invalidate(domain: data.domain);
+    notifyListeners();
+  }
+
+  Future<void> auth() async {
+    final result = await showDialog<rust.AuthCreds?>(
+      context: navigatorKey.currentContext!,
+      builder: (context) => AuthDialog(account: this),
+    );
+    if (result == null) {
+      throw Exception('Authentication cancelled');
+    }
+    data = rust.Account(
+      auth: data.auth,
+      domain: data.domain,
+      cover: data.cover,
+      creds: result,
+      userName: data.userName,
+    );
+
+    final res = await _proxy.validate(account: data);
+    if (res == null) {
+      throw Exception('Invalid credentials');
+    }
+    data = res;
+    extension.save();
+    notifyListeners();
+  }
+}
+
 class Extension extends ChangeNotifier {
   final rust.ExtensionData data;
   final rust.ProxyExtension _proxy;
@@ -49,10 +104,18 @@ class Extension extends ChangeNotifier {
     List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>>
   >
   settings;
+  final List<Account> accounts;
   ExtensionMetaData _meta;
   bool isenabled;
   bool loading = false;
-  Extension(this.data, this._proxy, this.isenabled, this.settings, this._meta);
+  Extension(
+    this.data,
+    this._proxy,
+    this.isenabled,
+    this.settings,
+    this._meta,
+    this.accounts,
+  );
 
   @override
   int get hashCode => _proxy.hashCode;
@@ -158,17 +221,17 @@ class Extension extends ChangeNotifier {
     final res = switch (e) {
       final EntrySaved saved => await _proxy.detail(
         entryid: saved.id,
-        token: token,
+        // token: token,
         settings: saved.extensionSettings,
       ),
       final EntryDetailed detail => await _proxy.detail(
         entryid: detail.id,
-        token: token,
+        // token: token,
         settings: detail.extensionSettings,
       ),
       final Entry entry => await _proxy.detail(
         entryid: entry.id,
-        token: token,
+        // token: token,
         settings: {},
       ),
     };
@@ -190,13 +253,13 @@ class Extension extends ChangeNotifier {
         final mapRes = await extension._proxy.mapEntry(
           entry: resEntry,
           settings: entryExtension.extensionSettings,
-          token: token,
+          // token: token,
         );
         resEntry = mapRes.entry;
         entryExtension.extensionSettings =
             mapRes.settings; //TODO: Think about possible race conditions here
       }
-      e.entry = res.entry;
+      e.entry = resEntry;
       e.extensionSettings =
           res.settings; //TODO: Think about possible race conditions here
       return e;
@@ -250,6 +313,7 @@ class Extension extends ChangeNotifier {
   Future<void> save() async {
     await _proxy.saveSettings();
     await _proxy.savePermissions();
+    await _proxy.saveAuthState();
   }
 
   Future<List<rust.Permission>> getPermissions() async {
@@ -281,6 +345,20 @@ class Extension extends ChangeNotifier {
       }
       return Page.more(entries);
     })..name = name;
+  }
+
+  Future<void> onEntryActivity(
+    rust.EntryActivity activity,
+    EntryDetailed entry,
+    Map<String, rust.Setting> settings, {
+    rust.CancelToken? token,
+  }) async {
+    await _proxy.onEntryActivity(
+      activity: activity,
+      entry: entry.toRust,
+      settings: settings,
+      token: token,
+    );
   }
 
   Future<SourcePath> source(EpisodePath ep, {rust.CancelToken? token}) async {
@@ -334,6 +412,8 @@ class Extension extends ChangeNotifier {
     rust.ProxyExtension proxy,
     Database db,
   ) async {
+    final extdata = await proxy.getExtensionData();
+    // Settings init
     final Map<
       rust.SettingKind,
       List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>>
@@ -357,6 +437,7 @@ class Extension extends ChangeNotifier {
                   set.label,
                   set.visible,
                   set.ui,
+                  extdata.id,
                 ),
               );
           return setting;
@@ -364,7 +445,13 @@ class Extension extends ChangeNotifier {
       );
       settingsmap[kind] = settings;
     }
-    final extdata = await proxy.getExtensionData();
+
+    final accountsData = await proxy.getAccounts();
+
+    final accounts = accountsData
+        .map((data) => Account(proxy, extdata.id, data))
+        .toList();
+
     final extmeta = await db.getExtensionMetaData(extdata);
     await proxy.setEnabled(enabled: extmeta.enabled);
     return Extension(
@@ -373,6 +460,7 @@ class Extension extends ChangeNotifier {
       await proxy.isEnabled(),
       settingsmap,
       extmeta,
+      accounts,
     );
   }
 }
@@ -469,6 +557,9 @@ class RemoteExtensionRepo {
   }
 }
 
+const storage =
+    FlutterSecureStorage(); //We just make it static as i dont want to init it multiple times or pass a ref around i dont think it really matters as we would mock ExtensionService and not this impl. If that changes the refactor should be trivial
+
 class ExtensionService with ChangeNotifier {
   final Map<String, ExtensionAdapter> _adapters = {};
   bool loading = false;
@@ -482,6 +573,53 @@ class ExtensionService with ChangeNotifier {
         final extensionPath = managerpath.sub('data').sub(data.id);
         await extensionPath.create(recursive: true);
         return rust.ExtensionClient.init(
+          setEntrySetting: (entryId, key, value) async {
+            final db = locate<Database>();
+            final entry = await db.getSavedById(entryId);
+            if (entry == null) {
+              return;
+            }
+            final entryExts = entry.entryExtensions
+                .where((ext) => ext.extensionId == data.id)
+                .firstOrNull
+                ?.extensionSettings;
+            if (entryExts != null && entryExts.containsKey(key)) {
+              entryExts[key] = entryExts[key]!.copyWith(value: value);
+              await entry.save();
+              return;
+            }
+            final sourceExts = entry.sourceExtensions
+                .where((ext) => ext.extensionId == data.id)
+                .firstOrNull
+                ?.extensionSettings;
+            if (sourceExts != null && sourceExts.containsKey(key)) {
+              sourceExts[key] = sourceExts[key]!.copyWith(value: value);
+              await entry.save();
+              return;
+            }
+          },
+          loadDataSecure: (key) async {
+            try {
+              final value = await storage.read(key: '${data.id}_$key');
+              return value ?? '';
+            } catch (e) {
+              logger.e(
+                'Failed to read secure data $key for extension $data',
+                error: e,
+              );
+              return '';
+            }
+          },
+          storeDataSecure: (String key, String value) async {
+            try {
+              await storage.write(key: '${data.id}_$key', value: value);
+            } catch (e) {
+              logger.e(
+                'Failed to store secure data $key for extension $data',
+                error: e,
+              );
+            }
+          },
           loadData: (key) async {
             try {
               final file = extensionPath.sub('store').getFile(key);

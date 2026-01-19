@@ -15,7 +15,11 @@ class ActionDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return DionAlertDialog(
       title: Text(popup.title, style: context.titleLarge),
-      content: CustomUIWidget.fromUI(ui: popup.content, extension: extension),
+      content: SizedBox(
+        width: context.width * 0.8,
+        height: context.height * 0.8,
+        child: CustomUIWidget.fromUI(ui: popup.content, extension: extension),
+      ),
       actions: [
         DionTextbutton(
           child: const Text('Close'),

@@ -309,8 +309,17 @@ ORDER BY dayStr ASC
     return result;
   }
 
+  Future<EntrySaved?> getSavedById(EntryId entry) async {
+    return await adapter
+        .queryDataClasses<EntrySaved>(
+          query: 'SELECT * FROM type::table(\$entry) WHERE entry.id.uid = \$id',
+          vars: {'entry': entryTable.tb, 'id': entry.uid},
+        )
+        .firstOrNull;
+  }
+
   Future<EntrySaved?> isSaved(Entry entry) async {
-    return adapter.selectDataClass(constructEntryDBRecord(entry));
+    return await adapter.selectDataClass(entry.dbId);
   }
 
   Future<void> removeEntry(EntrySaved entry) async {
