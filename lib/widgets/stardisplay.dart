@@ -18,10 +18,13 @@ class Stardisplay extends StatelessWidget {
     this.maxstars = 5,
     this.bgcolor = Colors.grey,
     this.color = Colors.white,
-  }) : assert(fill <= 1);
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (fill >= 1) {
+      return const SizedBox.shrink();
+    }
     return ShaderMask(
       blendMode: BlendMode.srcATop,
       shaderCallback: (Rect rect) {
