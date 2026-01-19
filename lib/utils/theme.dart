@@ -61,8 +61,8 @@ ThemeData getTheme(Brightness b) {
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
-      iconTheme: IconThemeData(color: colorScheme.onPrimary),
-      actionsIconTheme: IconThemeData(color: colorScheme.onPrimary),
+      iconTheme: IconThemeData(color: textColor),
+      actionsIconTheme: IconThemeData(color: textColor),
       titleTextStyle: TextStyle(
         color: textColor,
         fontSize: 20,
