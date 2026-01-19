@@ -86,7 +86,11 @@ class Card extends StatelessWidget {
                   ],
                 ),
                 const Spacer(),
-                bottom ?? nil,
+                if (bottom != null)
+                  DefaultTextStyle(
+                    style: const TextStyle(color: Colors.white),
+                    child: bottom!,
+                  ),
               ],
             ),
           ),
