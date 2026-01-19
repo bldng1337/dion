@@ -43,6 +43,7 @@ dependencies:
   super_sliver_list: ^0.4.1
 
   # Platform
+  flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.3.4
   url_launcher: ^6.3.1
   app_links: ^7.0.0
@@ -62,12 +63,12 @@ dependencies:
   metis:
     git:
       url: https://github.com/bldng1337/metis.git
-      ref: ec2ebeaf7cb744b2f47374938a5680f180aa5373
+      ref: 7065908c9ad00b439eedc77fffd6f3c1b771a60d
   rdion_runtime:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 51ab5587861250c2c1370caf04c63ea2560d3c56
+      ref: 1a0bb2eaa678f946d61a5be7a11079a360ee997e
 
   # pdfx: ^2.8.0
   # flutter_inappwebview: ^6.1.5

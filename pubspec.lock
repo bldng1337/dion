@@ -483,12 +483,60 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.1"
+  flutter_secure_storage:
+    dependency: "direct main"
+    description:
+      name: flutter_secure_storage
+      sha256: da922f2aab2d733db7e011a6bcc4a825b844892d4edd6df83ff156b09a9b2e40
+      url: "https://pub.dev"
+    source: hosted
+    version: "10.0.0"
+  flutter_secure_storage_darwin:
+    dependency: transitive
+    description:
+      name: flutter_secure_storage_darwin
+      sha256: "8878c25136a79def1668c75985e8e193d9d7d095453ec28730da0315dc69aee3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
+  flutter_secure_storage_linux:
+    dependency: transitive
+    description:
+      name: flutter_secure_storage_linux
+      sha256: "2b5c76dce569ab752d55a1cee6a2242bcc11fdba927078fb88c503f150767cda"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
+  flutter_secure_storage_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_secure_storage_platform_interface
+      sha256: "8ceea1223bee3c6ac1a22dabd8feefc550e4729b3675de4b5900f55afcb435d6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
+  flutter_secure_storage_web:
+    dependency: transitive
+    description:
+      name: flutter_secure_storage_web
+      sha256: "6a1137df62b84b54261dca582c1c09ea72f4f9a4b2fcee21b025964132d5d0c3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
+  flutter_secure_storage_windows:
+    dependency: transitive
+    description:
+      name: flutter_secure_storage_windows
+      sha256: "3b7c8e068875dfd46719ff57c90d8c459c87f2302ed6b00ff006b3c9fcad1613"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   flutter_surrealdb:
     dependency: transitive
     description:
       path: "."
-      ref: "8a5f84caf21fecda2837570d65fb953418531bfa"
-      resolved-ref: "8a5f84caf21fecda2837570d65fb953418531bfa"
+      ref: "1b7909aa42a326de24448bfbd83e50748ed47110"
+      resolved-ref: "1b7909aa42a326de24448bfbd83e50748ed47110"
       url: "https://github.com/bldng1337/flutter_surrealdb.git"
     source: git
     version: "0.0.1"
@@ -852,8 +900,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: ec2ebeaf7cb744b2f47374938a5680f180aa5373
-      resolved-ref: ec2ebeaf7cb744b2f47374938a5680f180aa5373
+      ref: "7065908c9ad00b439eedc77fffd6f3c1b771a60d"
+      resolved-ref: "7065908c9ad00b439eedc77fffd6f3c1b771a60d"
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"
@@ -1037,8 +1085,8 @@ packages:
     dependency: "direct main"
     description:
       path: "dart/rdion_runtime"
-      ref: "51ab5587861250c2c1370caf04c63ea2560d3c56"
-      resolved-ref: "51ab5587861250c2c1370caf04c63ea2560d3c56"
+      ref: "1a0bb2eaa678f946d61a5be7a11079a360ee997e"
+      resolved-ref: "1a0bb2eaa678f946d61a5be7a11079a360ee997e"
       url: "https://github.com/bldng1337/dion-runtime.git"
     source: git
     version: "0.0.1"
