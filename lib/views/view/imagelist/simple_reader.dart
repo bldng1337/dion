@@ -147,9 +147,6 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       if (!listController.isAttached || !scrollController.hasClients) {
         return;
       }
-      if (scrollController.offset > 0) {
-        return;
-      }
       final epdata = widget.source.episode.data;
       final int pos = epdata.finished
           ? 0
