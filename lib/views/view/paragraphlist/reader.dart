@@ -413,40 +413,47 @@ class EpisodeTitle extends StatelessWidget {
               ListenableBuilder(
                 listenable: psettings.titleSettings.progressBar,
                 builder: (context, child) {
-                  final session = SessionData.of(context)!.session;
+                  final manager = SessionData.of(context)!.manager;
                   final totalEpisodes = episode.entry.episodes.length;
-                  final fromFraction = session.fromepisode / totalEpisodes;
-                  final toFraction = session.toepisode / totalEpisodes;
                   const barHeight = 6.0;
                   return Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: Stack(
-                      children: [
-                        Container(
-                          height: barHeight,
-                          color: Colors.black.withValues(alpha: 0.15),
-                        ),
-                        FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: toFraction.clamp(0.0, 1.0),
-                          child: Container(
-                            height: barHeight,
-                            color: context.theme.colorScheme.primary.lighten(
-                              25,
+                    child: ListenableBuilder(
+                      listenable: manager.sessionNotifier,
+                      child: Container(
+                        height: barHeight,
+                        color: Colors.black.withValues(alpha: 0.15),
+                      ),
+                      builder: (context, child) {
+                        final session = manager.sessionNotifier.value;
+                        final fromFraction =
+                            session.fromepisode / totalEpisodes;
+                        final toFraction = session.toepisode / totalEpisodes;
+                        return Stack(
+                          children: [
+                            child!,
+                            FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: toFraction.clamp(0.0, 1.0),
+                              child: Container(
+                                height: barHeight,
+                                color: context.theme.colorScheme.primary
+                                    .lighten(25),
+                              ),
                             ),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: fromFraction.clamp(0.0, 1.0),
-                          child: Container(
-                            height: barHeight,
-                            color: context.theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
+                            FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: fromFraction.clamp(0.0, 1.0),
+                              child: Container(
+                                height: barHeight,
+                                color: context.theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   );
                 },

@@ -3,6 +3,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
+import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -37,6 +38,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
   void onScroll() {
     final epdata = widget.source.episode.data;
+    SessionData.of(context)?.manager.keepSessionAlive();
     if (controller.hasClients &&
         controller.offset > 0 &&
         controller.position.atEdge) {
@@ -68,7 +70,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       final int pos = epdata.finished
           ? 0
           : int.tryParse(epdata.progress ?? '0') ?? 0;
-      if (pos==0) return;
+      if (pos == 0) return;
       listController.jumpToItem(
         index: pos,
         alignment: 0.0,

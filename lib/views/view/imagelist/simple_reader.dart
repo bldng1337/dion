@@ -5,6 +5,7 @@ import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -103,7 +104,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
 
   void onScroll() {
     final epdata = widget.source.episode.data;
-
+    SessionData.of(context)?.manager.keepSessionAlive();
     if (scrollController.hasClients &&
         scrollController.offset > 0 &&
         scrollController.position.atEdge) {

@@ -8,6 +8,7 @@ import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -163,6 +164,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       if (!mounted) {
         return;
       }
+      SessionData.of(context)?.manager.keepSessionAlive();
       final playlistindex = player.state.playlist.index;
       widget.source.episode.data.progress =
           '$playlistindex:${event.inMilliseconds}';

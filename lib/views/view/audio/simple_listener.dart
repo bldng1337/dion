@@ -8,6 +8,7 @@ import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -160,6 +161,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       widget.source.episode.goNext(widget.source);
     });
     player.stream.position.listen((event) {
+      if (mounted == false) return;
+      SessionData.of(context)?.manager.keepSessionAlive();
       widget.source.episode.data.progress = '${event.inMilliseconds}';
       if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
         widget.source.cache.preload(widget.source.episode.next);
