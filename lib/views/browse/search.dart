@@ -4,10 +4,11 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
-import 'package:flutter/material.dart' show Colors;
+import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
@@ -40,7 +41,7 @@ class _SearchState extends State<Search>
 
   @override
   Future<void> refresh() async {
-    if(lastquery==null) return;
+    if (lastquery == null) return;
     await search(lastquery!);
   }
 
@@ -60,6 +61,7 @@ class _SearchState extends State<Search>
         .getExtensions(
           extfilter: (e) =>
               e.isenabled &&
+              e.searchEnabled &&
               (e.getExtensionTypeOrNull<ExtensionType_EntryProvider>() !=
                       null ||
                   e.data.extensionType.isEmpty),
@@ -90,6 +92,14 @@ class _SearchState extends State<Search>
               }
               context.go('/search/$s');
             },
+            actions: [
+              DionIconbutton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  showSettingPopup(context, this);
+                },
+              ),
+            ],
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) =>

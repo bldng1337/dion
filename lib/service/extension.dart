@@ -135,6 +135,14 @@ class Extension extends ChangeNotifier {
     return data.name.replaceAll('-', ' ').capitalize;
   }
 
+  bool get searchEnabled => _meta.searchEnabled;
+
+  set searchEnabled(bool value) {
+    if (_meta.searchEnabled != value) {
+      meta = _meta.copyWith(searchEnabled: value);
+    }
+  }
+
   Version get version => Version.parse(data.version);
 
   @override

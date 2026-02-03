@@ -7,22 +7,28 @@ import 'package:metis/metis.dart';
 class ExtensionMetaData with DBConstClass {
   final String id;
   final bool enabled;
-  const ExtensionMetaData(this.id, this.enabled);
+  final bool searchEnabled;
+  const ExtensionMetaData(this.id, this.enabled, {this.searchEnabled = true});
   const ExtensionMetaData.empty(String id) : this(id, false);
 
   @override
   String toString() {
-    return 'ExtensionMetaData{id: $id, enabled: $enabled}';
+    return 'ExtensionMetaData{id: $id, enabled: $enabled, searchEnabled: $searchEnabled}';
   }
 
-  ExtensionMetaData copyWith({String? id, bool? enabled}) {
-    return ExtensionMetaData(id ?? this.id, enabled ?? this.enabled);
+  ExtensionMetaData copyWith({String? id, bool? enabled, bool? searchEnabled}) {
+    return ExtensionMetaData(
+      id ?? this.id,
+      enabled ?? this.enabled,
+      searchEnabled: searchEnabled ?? this.searchEnabled,
+    );
   }
 
   factory ExtensionMetaData.fromJson(Map<String, dynamic> json) =>
       ExtensionMetaData(
         (json['id'] as DBRecord).id as String,
         json['enabled'] as bool,
+        searchEnabled: json['searchEnabled'] as bool? ?? true,
       );
 
   @override
@@ -34,6 +40,7 @@ class ExtensionMetaData with DBConstClass {
       'version': extensionSerializeVersion.current,
       'id': dbId,
       'enabled': enabled,
+      'searchEnabled': searchEnabled,
     };
   }
 }

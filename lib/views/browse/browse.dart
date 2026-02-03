@@ -60,6 +60,7 @@ class _BrowseState extends State<Browse>
         .getExtensions(
           extfilter: (e) =>
               e.isenabled &&
+              e.searchEnabled &&
               (e.getExtensionTypeOrNull<ExtensionType_EntryProvider>() !=
                       null ||
                   e.data.extensionType.isEmpty),
@@ -189,10 +190,27 @@ class SettingsPopup extends StatefulWidget {
 
 class _SettingsPopupState extends State<SettingsPopup>
     with StateDisposeScopeMixin {
+  late List<Extension> allExtensions;
+
   @override
   void initState() {
+    // Get all enabled entry provider extensions (not just those with searchEnabled)
+    allExtensions = locate<ExtensionService>()
+        .getExtensions(
+          extfilter: (e) =>
+              e.isenabled &&
+              (e.getExtensionTypeOrNull<ExtensionType_EntryProvider>() !=
+                      null ||
+                  e.data.extensionType.isEmpty),
+        )
+        .toList(growable: false);
+
     scope.addDispose(() async {
-      await Future.forEach(widget.browse.extensions, (e) => e.save());
+      await Future.forEach(allExtensions, (e) => e.save());
+      // Update the browse extensions list with the current searchEnabled state
+      widget.browse.extensions = allExtensions
+          .where((e) => e.searchEnabled)
+          .toList(growable: false);
       await widget.browse.refresh();
     });
 
@@ -207,16 +225,14 @@ class _SettingsPopupState extends State<SettingsPopup>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Search Settings'),
-          for (final e in widget.browse.extensions) showExtension(context, e),
+          for (final e in allExtensions) showExtension(context, e),
         ].notNullWidget(),
       ),
     );
   }
 
   Widget? showExtension(BuildContext context, Extension e) {
-    if (e.loading ||
-        !e.isenabled ||
-        (e.settings[SettingKind.search]?.isEmpty ?? true)) {
+    if (e.loading || !e.isenabled) {
       return null;
     }
     return Padding(
@@ -234,18 +250,32 @@ class _SettingsPopupState extends State<SettingsPopup>
               const Spacer(),
               for (final MediaType mediatype in e.data.mediaType)
                 Icon(mediatype.icon),
+              DionIconbutton(
+                icon: Icon(
+                  e.searchEnabled
+                      ? Icons.check_box
+                      : Icons.check_box_outline_blank,
+                ),
+                onPressed: () {
+                  setState(() {
+                    e.searchEnabled = !e.searchEnabled;
+                  });
+                },
+              ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(left: 30),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final setting in e.settings[SettingKind.search]!)
-                  DionRuntimeSettingView(setting: setting),
-              ],
+          if (e.searchEnabled &&
+              (e.settings[SettingKind.search]?.isNotEmpty ?? false))
+            Padding(
+              padding: const EdgeInsets.only(left: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final setting in e.settings[SettingKind.search]!)
+                    DionRuntimeSettingView(setting: setting),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
