@@ -1,10 +1,11 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
-import 'package:dionysos/widgets/container/listtile.dart';
-import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/slider.dart';
 import 'package:flutter/material.dart';
 
+/// A slider setting with a clean, scannable layout.
+///
+/// Shows the title and current value, with a slider below for adjustment.
 class SettingSlider<T extends num> extends StatelessWidget {
   final String title;
   final String? description;
@@ -13,6 +14,7 @@ class SettingSlider<T extends num> extends StatelessWidget {
   final T min;
   final T max;
   final T? step;
+
   const SettingSlider({
     super.key,
     required this.title,
@@ -41,42 +43,99 @@ class SettingSlider<T extends num> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tile = ListenableBuilder(
+    return ListenableBuilder(
       listenable: setting,
       builder: (context, child) {
         final current = setting.value;
         T local = current;
-        return SettingTileWrapper(
-          child: DionListTile(
-            leading: icon != null ? Icon(icon) : null,
-            subtitle: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0),
-                  child: Text(_formatValue(current), style: context.bodyMedium),
-                ),
-                Expanded(
-                  child: StatefulBuilder(
-                    builder: (context, setState) => DionSlider<T>(
-                      value: local,
-                      min: min,
-                      max: max,
-                      onChanged: (p0) => setState(() => local = p0),
-                      onChangeEnd: (p0) => setting.value = p0,
-                      step: step,
-                    ),
-                  ),
-                ),
-              ],
+
+        final tile = StatefulBuilder(
+          builder: (context, setState) => _SettingSliderTile(
+            title: title,
+            description: description,
+            icon: icon,
+            valueLabel: _formatValue(local),
+            slider: DionSlider<T>(
+              value: local,
+              min: min,
+              max: max,
+              onChanged: (p0) => setState(() => local = p0),
+              onChangeEnd: (p0) => setting.value = p0,
+              step: step,
             ),
-            title: Text(title, style: context.titleMedium),
           ),
         );
+
+        if (description != null) {
+          return Tooltip(message: description!, child: tile);
+        }
+        return tile;
       },
     );
-    if (description != null) {
-      return tile.withTooltip(description!);
-    }
-    return tile;
+  }
+}
+
+class _SettingSliderTile extends StatelessWidget {
+  final String title;
+  final String? description;
+  final IconData? icon;
+  final String valueLabel;
+  final Widget slider;
+
+  const _SettingSliderTile({
+    required this.title,
+    this.description,
+    this.icon,
+    required this.valueLabel,
+    required this.slider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.lg,
+        vertical: DionSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Title row with value
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 20, color: context.textSecondary),
+                const SizedBox(width: DionSpacing.md),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: DionTypography.titleSmall(context.textPrimary),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DionSpacing.sm,
+                  vertical: DionSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: DionColors.primary.withValues(alpha: 0.1),
+                  borderRadius: DionRadius.small,
+                ),
+                child: Text(
+                  valueLabel,
+                  style: DionTypography.labelMedium(DionColors.primary),
+                ),
+              ),
+            ],
+          ),
+
+          // Slider
+          const SizedBox(height: DionSpacing.sm),
+          SizedBox(height: 32, child: slider),
+        ],
+      ),
+    );
   }
 }

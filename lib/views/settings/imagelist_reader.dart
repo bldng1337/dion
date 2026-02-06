@@ -1,5 +1,6 @@
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
@@ -14,36 +15,48 @@ class ImageListReaderSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     return NavScaff(
       child: ListView(
+        padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
         children: [
-          SettingDropdown(
-            title: 'ReaderMode',
-            setting: settings.readerSettings.imagelistreader.mode,
-          ),
-          SettingToggle(
-            title: 'Adaptive Width',
-            description: 'Auto sets the width to full in portrait mode',
-            setting: settings.readerSettings.imagelistreader.adaptivewidth,
-          ),
-          SettingSlider(
-            title: 'Line Width',
-            description: 'The width of the image',
-            min: 10.0,
-            max: 100.0,
-            setting: settings.readerSettings.imagelistreader.width,
-          ),
           SettingTitle(
-            title: 'Music Settings',
+            title: 'Display',
+            subtitle: 'Image display settings',
+            children: [
+              SettingDropdown(
+                title: 'Reader Mode',
+                description: 'How images are displayed',
+                setting: settings.readerSettings.imagelistreader.mode,
+              ),
+              SettingToggle(
+                title: 'Adaptive Width',
+                description: 'Auto-adjust width in portrait mode',
+                setting: settings.readerSettings.imagelistreader.adaptivewidth,
+              ),
+              SettingSlider(
+                title: 'Image Width',
+                description: 'Maximum width of images (%)',
+                min: 10.0,
+                max: 100.0,
+                step: 5.0,
+                setting: settings.readerSettings.imagelistreader.width,
+              ),
+            ],
+          ),
+
+          SettingTitle(
+            title: 'Audio',
+            subtitle: 'Background music settings',
             children: [
               SettingToggle(
-                title: 'Music',
-                description: 'Should the music be played',
+                title: 'Background Music',
+                description: 'Play music while reading',
                 setting: settings.readerSettings.imagelistreader.music,
               ),
               SettingSlider(
                 title: 'Music Volume',
-                description: 'The volume of the music',
+                description: 'Volume level for background music',
                 min: 0.0,
                 max: 100.0,
+                step: 5.0,
                 setting: settings.readerSettings.imagelistreader.volume,
               ).conditional(settings.readerSettings.imagelistreader.music),
             ],

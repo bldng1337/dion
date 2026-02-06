@@ -1,15 +1,18 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/immutable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
-import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 
+/// A string list setting with the new clean design.
+///
+/// Allows adding and removing string entries.
 class SettingStringList extends StatefulWidget {
   final Setting<List<String>, dynamic> setting;
-  const SettingStringList({super.key, required this.setting});
+  final String? title;
+
+  const SettingStringList({super.key, required this.setting, this.title});
 
   @override
   State<SettingStringList> createState() => _SettingStringListState();
@@ -46,45 +49,91 @@ class _SettingStringListState extends State<SettingStringList> {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.setting,
-      builder: (context, child) => SettingTileWrapper(
+      builder: (context, child) => Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.md,
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (widget.setting.value.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Text('No Entries', style: context.bodyMedium),
+            // Title if provided
+            if (widget.title != null) ...[
+              Text(
+                widget.title!,
+                style: DionTypography.titleSmall(context.textPrimary),
               ),
+              const SizedBox(height: DionSpacing.md),
+            ],
+
+            // Empty state
+            if (widget.setting.value.isEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: DionSpacing.lg),
+                alignment: Alignment.center,
+                child: Text(
+                  'No entries',
+                  style: DionTypography.bodySmall(context.textTertiary),
+                ),
+              ),
+
+            // List of entries
             ...widget.setting.value.indexed.map(
-              (e) => SettingTileWrapper(
-                child: DionListTile(
-                  title: Text(e.$2, style: context.bodyMedium),
-                  trailing: DionIconbutton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _removeIndex(e.$1),
+              (e) => Container(
+                margin: const EdgeInsets.only(bottom: DionSpacing.xs),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DionSpacing.md,
+                  vertical: DionSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: context.surfaceMuted.withValues(alpha: 0.5),
+                  borderRadius: DionRadius.small,
+                  border: Border.all(
+                    color: context.borderColor.withValues(alpha: 0.3),
+                    width: 0.5,
                   ),
-                  onTap: () => _removeIndex(e.$1),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        e.$2,
+                        style: DionTypography.bodyMedium(context.textPrimary),
+                      ),
+                    ),
+                    const SizedBox(width: DionSpacing.sm),
+                    DionIconbutton(
+                      icon: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: context.textTertiary,
+                      ),
+                      onPressed: () => _removeIndex(e.$1),
+                    ),
+                  ],
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: DionTextbox(
-                      controller: _controller,
-                      onSubmitted: (_) => _addEntryFromController(),
-                      maxLines: 1,
-                    ),
+
+            // Add new entry row
+            const SizedBox(height: DionSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: DionTextbox(
+                    controller: _controller,
+                    onSubmitted: (_) => _addEntryFromController(),
+                    maxLines: 1,
+                    hintText: 'Add new entry...',
                   ),
-                  const SizedBox(width: 8),
-                  DionIconbutton(
-                    icon: const Icon(Icons.add),
-                    onPressed: _addEntryFromController,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: DionSpacing.sm),
+                DionIconbutton(
+                  icon: Icon(Icons.add, color: DionColors.primary),
+                  onPressed: _addEntryFromController,
+                ),
+              ],
             ),
           ],
         ),

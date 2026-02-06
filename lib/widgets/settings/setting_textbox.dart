@@ -1,15 +1,15 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
-import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
-import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 
+/// A text input setting with the new clean design.
 class SettingTextbox extends StatefulWidget {
   final String title;
   final String? description;
   final IconData? icon;
   final Setting<String, dynamic> setting;
+
   const SettingTextbox({
     super.key,
     required this.title,
@@ -69,21 +69,45 @@ class _SettingTextboxState extends State<SettingTextbox> {
 
   @override
   Widget build(BuildContext context) {
-    final tile = SettingTileWrapper(
-      child: DionListTile(
-        leading: widget.icon != null ? Icon(widget.icon) : null,
-        subtitle: DionTextbox(
-          controller: _controller,
-          onSubmitted: (_) => _applyControllerToSetting(),
-          onTapOutside: (_) => _applyControllerToSetting(),
-          maxLines: 1,
-        ),
-        title: Text(widget.title, style: context.titleMedium),
+    final tile = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.lg,
+        vertical: DionSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Title row
+          Row(
+            children: [
+              if (widget.icon != null) ...[
+                Icon(widget.icon, size: 20, color: context.textSecondary),
+                const SizedBox(width: DionSpacing.md),
+              ],
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: DionTypography.titleSmall(context.textPrimary),
+                ),
+              ),
+            ],
+          ),
+
+          // Text input
+          const SizedBox(height: DionSpacing.sm),
+          DionTextbox(
+            controller: _controller,
+            onSubmitted: (_) => _applyControllerToSetting(),
+            onTapOutside: (_) => _applyControllerToSetting(),
+            maxLines: 1,
+          ),
+        ],
       ),
     );
 
     if (widget.description != null) {
-      return tile.withTooltip(widget.description!);
+      return Tooltip(message: widget.description!, child: tile);
     }
     return tile;
   }

@@ -1,20 +1,20 @@
-import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/settings/settings.dart';
-import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/progress.dart';
-import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:dionysos/widgets/text.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:system_fonts/system_fonts.dart';
 
+/// A font picker setting with the new clean design.
 class SettingFont extends StatefulWidget {
   final String title;
   final String? description;
   final IconData? icon;
   final Setting<Font, dynamic> setting;
+
   const SettingFont({
     super.key,
     required this.setting,
@@ -49,27 +49,120 @@ class _SettingFontState extends State<SettingFont> {
   @override
   Widget build(BuildContext context) {
     if (fonts.isEmpty) return const SizedBox.shrink();
+
+    // Loading state
     if (!fonts.contains(widget.setting.value)) {
-      return SettingTileWrapper(
-        child: DionListTile(
-          leading: widget.icon != null ? Icon(widget.icon) : null,
-          trailing: const SizedBox(
-            width: 200,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [DionProgressBar(size: 16), Text(' Loading fonts...')],
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.md,
+        ),
+        child: Row(
+          children: [
+            if (widget.icon != null) ...[
+              Icon(widget.icon, size: 20, color: context.textSecondary),
+              const SizedBox(width: DionSpacing.md),
+            ],
+            Expanded(
+              child: Text(
+                widget.title,
+                style: DionTypography.titleSmall(context.textPrimary),
+              ),
             ),
-          ),
-          title: Text(widget.title, style: context.titleMedium),
+            const SizedBox(width: DionSpacing.md),
+            const DionProgressBar(size: 16),
+            const SizedBox(width: DionSpacing.sm),
+            Text(
+              'Loading fonts...',
+              style: DionTypography.bodySmall(context.textTertiary),
+            ),
+          ],
         ),
       );
     }
-    final tile = ListenableBuilder(
+
+    return ListenableBuilder(
       listenable: widget.setting,
-      builder: (context, child) => SettingTileWrapper(
-        child: DionListTile(
-          leading: widget.icon != null ? Icon(widget.icon) : null,
-          trailing: DionDropdown<Font>(
+      builder: (context, child) {
+        final tile = _SettingFontTile(
+          title: widget.title,
+          description: widget.description,
+          icon: widget.icon,
+          fonts: fonts,
+          value: widget.setting.value,
+          onChanged: (value) {
+            if (value == null) {
+              try {
+                widget.setting.value = widget.setting.intialValue;
+              } catch (_) {}
+            } else {
+              widget.setting.value = value;
+            }
+          },
+        );
+
+        if (widget.description != null) {
+          return Tooltip(message: widget.description!, child: tile);
+        }
+        return tile;
+      },
+    );
+  }
+}
+
+class _SettingFontTile extends StatelessWidget {
+  final String title;
+  final String? description;
+  final IconData? icon;
+  final List<Font> fonts;
+  final Font value;
+  final ValueChanged<Font?> onChanged;
+
+  const _SettingFontTile({
+    required this.title,
+    this.description,
+    this.icon,
+    required this.fonts,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.lg,
+        vertical: DionSpacing.md,
+      ),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 20, color: context.textSecondary),
+            const SizedBox(width: DionSpacing.md),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: DionTypography.titleSmall(context.textPrimary),
+                ),
+                if (description != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    description!,
+                    style: DionTypography.bodySmall(context.textTertiary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: DionSpacing.md),
+          DionDropdown<Font>(
             items: fonts
                 .map(
                   (font) => DionDropdownItemWidget<Font>(
@@ -79,29 +172,16 @@ class _SettingFontState extends State<SettingFont> {
                       text: font.name,
                       only: FontType.system,
                       font: font,
-                      style: context.bodyMedium,
+                      style: DionTypography.bodyMedium(context.textPrimary),
                     ),
                   ),
                 )
                 .toList(),
-            value: widget.setting.value,
-            onChanged: (value) {
-              if (value == null) {
-                try {
-                  widget.setting.value = widget.setting.intialValue;
-                } catch (_) {}
-              } else {
-                widget.setting.value = value;
-              }
-            },
+            value: value,
+            onChanged: onChanged,
           ),
-          title: Text(widget.title, style: context.titleMedium),
-        ),
+        ],
       ),
     );
-    if (widget.description != null) {
-      return tile.withTooltip(widget.description!);
-    }
-    return tile;
   }
 }

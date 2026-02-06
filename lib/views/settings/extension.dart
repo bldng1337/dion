@@ -1,4 +1,5 @@
 import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_stringlist.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
@@ -11,11 +12,16 @@ class ExtensionSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     return NavScaff(
       child: ListView(
+        padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
         children: [
           SettingTitle(
-            title: 'Setting Repositories',
+            title: 'Repositories',
+            subtitle: 'Extension sources for installation',
             children: [
-              SettingStringList(setting: settings.extension.repositories),
+              SettingStringList(
+                setting: settings.extension.repositories,
+                title: 'Repository URLs',
+              ),
             ],
           ),
         ],

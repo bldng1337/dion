@@ -23,6 +23,7 @@ class DionTextbox extends StatelessWidget {
   final bool? readOnly;
   final GestureTapCallback? onTap;
   final TapRegionCallback? onTapOutside;
+  final String? hintText;
 
   const DionTextbox({
     super.key,
@@ -47,6 +48,7 @@ class DionTextbox extends StatelessWidget {
     this.readOnly,
     this.onTap,
     this.onTapOutside,
+    this.hintText,
   });
 
   @override
@@ -74,6 +76,7 @@ class DionTextbox extends StatelessWidget {
       readOnly: readOnly ?? false,
       onTap: onTap,
       onTapOutside: onTapOutside,
+      decoration: hintText != null ? InputDecoration(hintText: hintText) : null,
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -35,16 +36,24 @@ class NavScaff extends StatelessWidget {
         floatingActionButton: floatingActionButton,
         appBar: showNavbar ? AppBar(title: title, actions: actions) : null,
         body: child,
-        bottomNavigationBar: NavigationBar(
-          height: 60,
-          backgroundColor: context.theme.scaffoldBackgroundColor,
-          selectedIndex: index >= 0 ? index : 0,
-          destinations: destination
-              .map(
-                (e) => NavigationDestination(icon: Icon(e.ico), label: e.name),
-              )
-              .toList(),
-          onDestinationSelected: (i) => context.go(destination[i].path),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: context.dividerColor, width: 0.5),
+            ),
+          ),
+          child: NavigationBar(
+            height: 60,
+            backgroundColor: context.theme.scaffoldBackgroundColor,
+            selectedIndex: index >= 0 ? index : 0,
+            destinations: destination
+                .map(
+                  (e) =>
+                      NavigationDestination(icon: Icon(e.ico), label: e.name),
+                )
+                .toList(),
+            onDestinationSelected: (i) => context.go(destination[i].path),
+          ),
         ),
       ),
       DionThemeMode.cupertino => CupertinoTabScaffold(
@@ -104,11 +113,8 @@ class NavScaff extends StatelessWidget {
                               decoration: BoxDecoration(
                                 border: Border(
                                   right: BorderSide(
-                                    color: context
-                                        .theme
-                                        .colorScheme
-                                        .surfaceContainer,
-                                    width: 1.5,
+                                    color: context.dionDivider,
+                                    width: 0.5,
                                   ),
                                 ),
                               ),
@@ -116,11 +122,15 @@ class NavScaff extends StatelessWidget {
                                 onDestinationSelected: (i) =>
                                     context.go(destination[i].path),
                                 labelType: NavigationRailLabelType.all,
+                                minWidth: 72,
                                 destinations: destination
                                     .map(
                                       (e) => NavigationRailDestination(
                                         icon: Icon(e.ico),
                                         label: Text(e.name),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: DionSpacing.xs,
+                                        ),
                                       ),
                                     )
                                     .toList(),
@@ -161,12 +171,9 @@ class NavScaff extends StatelessWidget {
             if (destination.length > 1)
               Container(
                 width: 130,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
-                    right: BorderSide(
-                      color: CupertinoColors.systemGrey4,
-                      width: 0.5,
-                    ),
+                    right: BorderSide(color: context.dividerColor, width: 0.5),
                   ),
                 ),
                 child: Column(

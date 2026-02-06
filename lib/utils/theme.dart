@@ -1,3 +1,4 @@
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:flutter/material.dart';
 
 enum DionThemeMode { material, cupertino }
@@ -36,27 +37,48 @@ class DionTheme {
 }
 
 ThemeData getTheme(Brightness b) {
-  const Color primary = Color(0xFF6BA368);
-  // Very dark gray for text, bordering on black
-  final Color textColor = b == Brightness.light
-      ? const Color(0xFF1A1A1A)
-      : const Color(0xFFF0F0F0);
+  final bool isDark = b == Brightness.dark;
+
+  // Use design tokens for colors
+  const Color primary = DionColors.primary;
+  final Color textColor = isDark
+      ? DionColors.textPrimaryDark
+      : DionColors.textPrimary;
+  final Color textSecondary = isDark
+      ? DionColors.textSecondaryDark
+      : DionColors.textSecondary;
+  final Color surfaceColor = isDark
+      ? DionColors.surfaceDark
+      : DionColors.surfaceLight;
+  final Color surfaceMuted = isDark
+      ? DionColors.surfaceMutedDark
+      : DionColors.surfaceMuted;
+  final Color borderColor = isDark
+      ? DionColors.borderDark
+      : DionColors.borderLight;
+  final Color dividerColor = isDark
+      ? DionColors.dividerDark
+      : DionColors.divider;
 
   final ColorScheme colorScheme =
       ColorScheme.fromSeed(brightness: b, seedColor: primary).copyWith(
+        primary: primary,
         onSurface: textColor,
-        onSurfaceVariant: textColor.withValues(alpha: 0.8),
+        onSurfaceVariant: textSecondary,
+        surface: surfaceColor,
+        surfaceContainerHighest: surfaceMuted,
       );
 
   final RoundedRectangleBorder smallRadiusShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(3),
+    borderRadius: BorderRadius.circular(DionRadius.sm),
   );
 
   return ThemeData(
     colorScheme: colorScheme,
+    scaffoldBackgroundColor: surfaceColor,
 
     appBarTheme: AppBarTheme(
-      backgroundColor: primary,
+      backgroundColor: surfaceColor,
       foregroundColor: textColor,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -65,76 +87,78 @@ ThemeData getTheme(Brightness b) {
       actionsIconTheme: IconThemeData(color: textColor),
       titleTextStyle: TextStyle(
         color: textColor,
-        fontSize: 20,
-        fontWeight: FontWeight.w500,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.3,
       ),
     ),
 
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: colorScheme.primary,
+      backgroundColor: primary,
       foregroundColor: colorScheme.onPrimary,
       elevation: 0,
       focusElevation: 0,
       hoverElevation: 0,
       highlightElevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
-        side: BorderSide(color: colorScheme.primary, width: 0.3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
     ),
 
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: surfaceColor,
       elevation: 0,
-      indicatorColor: colorScheme.primary.withValues(alpha: 0.2),
+      indicatorColor: primary.withValues(alpha: 0.15),
       indicatorShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
-      selectedIconTheme: IconThemeData(color: colorScheme.primary, size: 24),
+      selectedIconTheme: IconThemeData(color: primary, size: 22),
       unselectedIconTheme: IconThemeData(
-        color: colorScheme.onSurface.withValues(alpha: 0.5),
-        size: 24,
+        color: textSecondary.withValues(alpha: 0.7),
+        size: 22,
       ),
       selectedLabelTextStyle: TextStyle(
-        color: colorScheme.primary,
-        fontSize: 12,
+        color: primary,
+        fontSize: 11,
         fontWeight: FontWeight.w600,
+        letterSpacing: 0.2,
       ),
       unselectedLabelTextStyle: TextStyle(
-        color: colorScheme.onSurface.withValues(alpha: 0.5),
-        fontSize: 12,
+        color: textSecondary.withValues(alpha: 0.7),
+        fontSize: 11,
       ),
       useIndicator: true,
     ),
 
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: surfaceColor,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: colorScheme.primary.withValues(alpha: 0.2),
+      indicatorColor: primary.withValues(alpha: 0.15),
       indicatorShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return IconThemeData(color: colorScheme.primary, size: 24);
+          return IconThemeData(color: primary, size: 22);
         }
         return IconThemeData(
-          color: colorScheme.onSurface.withValues(alpha: 0.5),
-          size: 24,
+          color: textSecondary.withValues(alpha: 0.7),
+          size: 22,
         );
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return TextStyle(
-            color: colorScheme.primary,
-            fontSize: 12,
+            color: primary,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           );
         }
         return TextStyle(
-          color: colorScheme.onSurface.withValues(alpha: 0.5),
-          fontSize: 12,
+          color: textSecondary.withValues(alpha: 0.7),
+          fontSize: 11,
         );
       }),
     ),
@@ -143,111 +167,105 @@ ThemeData getTheme(Brightness b) {
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
-        side: BorderSide(
-          color: colorScheme.onSurface.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(DionRadius.md),
+        side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 0.5),
       ),
-      color: colorScheme.surface,
+      color: surfaceColor,
     ),
 
     dialogTheme: DialogThemeData(
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
-        side: BorderSide(
-          color: colorScheme.onSurface.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(DionRadius.md),
+        side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 0.5),
       ),
-      backgroundColor: colorScheme.surface,
+      backgroundColor: surfaceColor,
     ),
 
     popupMenuTheme: PopupMenuThemeData(
-      elevation: 4,
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
-        side: BorderSide(
-          color: colorScheme.onSurface.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(DionRadius.md),
+        side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 0.5),
       ),
-      color: colorScheme.surface,
+      color: surfaceColor,
     ),
 
     dropdownMenuTheme: DropdownMenuThemeData(
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(DionRadius.sm),
           borderSide: BorderSide(
-            color: colorScheme.onSurface.withValues(alpha: 0.2),
+            color: borderColor.withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(DionRadius.sm),
           borderSide: BorderSide(
-            color: colorScheme.onSurface.withValues(alpha: 0.2),
+            color: borderColor.withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(3),
-          borderSide: BorderSide(color: colorScheme.primary),
+          borderRadius: BorderRadius.circular(DionRadius.sm),
+          borderSide: BorderSide(color: primary),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       menuStyle: MenuStyle(
-        elevation: WidgetStateProperty.all(4),
+        elevation: WidgetStateProperty.all(8),
+        shadowColor: WidgetStateProperty.all(
+          Colors.black.withValues(alpha: 0.15),
+        ),
         surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.md),
             side: BorderSide(
-              color: colorScheme.onSurface.withValues(alpha: 0.2),
+              color: borderColor.withValues(alpha: 0.5),
               width: 0.5,
             ),
           ),
         ),
-        backgroundColor: WidgetStateProperty.all(colorScheme.surface),
+        backgroundColor: WidgetStateProperty.all(surfaceColor),
       ),
     ),
 
     menuTheme: MenuThemeData(
       style: MenuStyle(
-        elevation: WidgetStateProperty.all(4),
+        elevation: WidgetStateProperty.all(8),
+        shadowColor: WidgetStateProperty.all(
+          Colors.black.withValues(alpha: 0.15),
+        ),
         surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.md),
             side: BorderSide(
-              color: colorScheme.onSurface.withValues(alpha: 0.2),
+              color: borderColor.withValues(alpha: 0.5),
               width: 0.5,
             ),
           ),
         ),
-        backgroundColor: WidgetStateProperty.all(colorScheme.surface),
+        backgroundColor: WidgetStateProperty.all(surfaceColor),
       ),
     ),
 
     menuButtonTheme: MenuButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
-        overlayColor: WidgetStateProperty.all(
-          colorScheme.primary.withValues(alpha: 0.15),
-        ),
+        overlayColor: WidgetStateProperty.all(primary.withValues(alpha: 0.1)),
       ),
     ),
 
     textButtonTheme: TextButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
-        overlayColor: WidgetStateProperty.all(
-          colorScheme.primary.withValues(alpha: 0.15),
-        ),
+        overlayColor: WidgetStateProperty.all(primary.withValues(alpha: 0.1)),
       ),
     ),
 
@@ -256,16 +274,14 @@ ThemeData getTheme(Brightness b) {
         elevation: WidgetStateProperty.all(0),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
             side: BorderSide(
-              color: colorScheme.primary.withValues(alpha: 0.4),
+              color: borderColor.withValues(alpha: 0.5),
               width: 0.5,
             ),
           ),
         ),
-        overlayColor: WidgetStateProperty.all(
-          colorScheme.primary.withValues(alpha: 0.15),
-        ),
+        overlayColor: WidgetStateProperty.all(primary.withValues(alpha: 0.1)),
       ),
     ),
 
@@ -273,13 +289,11 @@ ThemeData getTheme(Brightness b) {
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3),
-            side: BorderSide(color: colorScheme.primary, width: 0.5),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
+            side: BorderSide(color: primary.withValues(alpha: 0.5), width: 0.5),
           ),
         ),
-        overlayColor: WidgetStateProperty.all(
-          colorScheme.primary.withValues(alpha: 0.15),
-        ),
+        overlayColor: WidgetStateProperty.all(primary.withValues(alpha: 0.1)),
       ),
     ),
 
@@ -287,7 +301,7 @@ ThemeData getTheme(Brightness b) {
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
         overlayColor: WidgetStateProperty.all(
-          colorScheme.onPrimary.withValues(alpha: 0.15),
+          colorScheme.onPrimary.withValues(alpha: 0.1),
         ),
       ),
     ),
@@ -295,137 +309,133 @@ ThemeData getTheme(Brightness b) {
     iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(smallRadiusShape),
-        overlayColor: WidgetStateProperty.all(
-          colorScheme.primary.withValues(alpha: 0.15),
-        ),
+        overlayColor: WidgetStateProperty.all(primary.withValues(alpha: 0.1)),
       ),
     ),
 
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         borderSide: BorderSide(
-          color: colorScheme.onSurface.withValues(alpha: 0.2),
+          color: borderColor.withValues(alpha: 0.5),
           width: 0.5,
         ),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         borderSide: BorderSide(
-          color: colorScheme.onSurface.withValues(alpha: 0.2),
+          color: borderColor.withValues(alpha: 0.5),
           width: 0.5,
         ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
-        borderSide: BorderSide(color: colorScheme.primary),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
+        borderSide: BorderSide(color: primary, width: 1),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
-        borderSide: BorderSide(color: colorScheme.error),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
+        borderSide: BorderSide(color: DionColors.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
-        borderSide: BorderSide(color: colorScheme.error),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
+        borderSide: BorderSide(color: DionColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      hintStyle: TextStyle(color: textSecondary.withValues(alpha: 0.5)),
     ),
 
     chipTheme: ChipThemeData(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
-        side: BorderSide(
-          color: colorScheme.onSurface.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
+        side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 0.5),
       ),
-      backgroundColor: colorScheme.surface,
-      selectedColor: colorScheme.primary.withValues(alpha: 0.2),
+      backgroundColor: surfaceColor,
+      selectedColor: primary.withValues(alpha: 0.15),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       pressElevation: 0,
     ),
 
     listTileTheme: ListTileThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
-      selectedTileColor: colorScheme.primary.withValues(alpha: 0.15),
-      selectedColor: colorScheme.primary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DionRadius.sm),
+      ),
+      selectedTileColor: primary.withValues(alpha: 0.1),
+      selectedColor: primary,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     ),
 
-    dividerTheme: DividerThemeData(
-      color: colorScheme.onSurface.withValues(alpha: 0.1),
-      thickness: 0.5,
-    ),
+    dividerTheme: DividerThemeData(color: dividerColor, thickness: 0.5),
 
     bottomSheetTheme: BottomSheetThemeData(
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(3),
-          topRight: Radius.circular(3),
+          topLeft: Radius.circular(DionRadius.lg),
+          topRight: Radius.circular(DionRadius.lg),
         ),
       ),
-      backgroundColor: colorScheme.surface,
+      backgroundColor: surfaceColor,
     ),
 
     snackBarTheme: SnackBarThemeData(
-      elevation: 4,
+      elevation: 8,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
-        side: BorderSide(
-          color: colorScheme.onSurface.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: colorScheme.inverseSurface,
-      contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
+      backgroundColor: isDark
+          ? DionColors.surfaceMuted
+          : DionColors.textPrimary,
+      contentTextStyle: TextStyle(
+        color: isDark ? DionColors.textPrimaryDark : Colors.white,
+      ),
     ),
 
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: colorScheme.inverseSurface,
-        borderRadius: BorderRadius.circular(3),
+        color: isDark ? DionColors.surfaceMuted : DionColors.textPrimary,
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
-      textStyle: TextStyle(color: colorScheme.onInverseSurface, fontSize: 12),
+      textStyle: TextStyle(
+        color: isDark ? DionColors.textPrimaryDark : Colors.white,
+        fontSize: 12,
+      ),
     ),
 
     sliderTheme: SliderThemeData(
       trackHeight: 4,
-      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-      activeTrackColor: colorScheme.primary,
-      inactiveTrackColor: colorScheme.onSurface.withValues(alpha: 0.2),
-      thumbColor: colorScheme.primary,
-      overlayColor: colorScheme.primary.withValues(alpha: 0.15),
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+      activeTrackColor: primary,
+      inactiveTrackColor: borderColor,
+      thumbColor: primary,
+      overlayColor: primary.withValues(alpha: 0.15),
     ),
 
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return colorScheme.primary;
+          return primary;
         }
-        return colorScheme.onSurface.withValues(alpha: 0.6);
+        return textSecondary.withValues(alpha: 0.6);
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return colorScheme.primary.withValues(alpha: 0.4);
+          return primary.withValues(alpha: 0.35);
         }
-        return colorScheme.onSurface.withValues(alpha: 0.2);
+        return borderColor;
       }),
       trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
     ),
 
     checkboxTheme: CheckboxThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
-      side: BorderSide(
-        color: colorScheme.onSurface.withValues(alpha: 0.5),
-        width: 1.5,
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+      side: BorderSide(color: textSecondary.withValues(alpha: 0.5), width: 1.5),
       fillColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return colorScheme.primary;
+          return primary;
         }
         return Colors.transparent;
       }),
@@ -435,27 +445,25 @@ ThemeData getTheme(Brightness b) {
     radioTheme: RadioThemeData(
       fillColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return colorScheme.primary;
+          return primary;
         }
-        return colorScheme.onSurface.withValues(alpha: 0.5);
+        return textSecondary.withValues(alpha: 0.5);
       }),
     ),
 
     progressIndicatorTheme: ProgressIndicatorThemeData(
-      color: colorScheme.primary,
-      linearTrackColor: colorScheme.onSurface.withValues(alpha: 0.1),
-      circularTrackColor: colorScheme.onSurface.withValues(alpha: 0.1),
+      color: primary,
+      linearTrackColor: borderColor,
+      circularTrackColor: borderColor,
     ),
 
     tabBarTheme: TabBarThemeData(
       indicator: UnderlineTabIndicator(
-        borderSide: BorderSide(color: colorScheme.primary, width: 2.5),
+        borderSide: BorderSide(color: primary, width: 2),
       ),
-      labelColor: colorScheme.primary,
-      unselectedLabelColor: colorScheme.onSurface.withValues(alpha: 0.5),
-      overlayColor: WidgetStateProperty.all(
-        colorScheme.primary.withValues(alpha: 0.15),
-      ),
+      labelColor: primary,
+      unselectedLabelColor: textSecondary.withValues(alpha: 0.7),
+      overlayColor: WidgetStateProperty.all(primary.withValues(alpha: 0.1)),
     ),
 
     drawerTheme: DrawerThemeData(
@@ -463,20 +471,22 @@ ThemeData getTheme(Brightness b) {
       surfaceTintColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topRight: Radius.circular(3),
-          bottomRight: Radius.circular(3),
+          topRight: Radius.circular(DionRadius.md),
+          bottomRight: Radius.circular(DionRadius.md),
         ),
       ),
-      backgroundColor: colorScheme.surface,
+      backgroundColor: surfaceColor,
     ),
 
     expansionTileTheme: ExpansionTileThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
-      collapsedShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
-      iconColor: colorScheme.primary,
-      collapsedIconColor: colorScheme.onSurface.withValues(alpha: 0.5),
+      collapsedShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DionRadius.sm),
+      ),
+      iconColor: primary,
+      collapsedIconColor: textSecondary.withValues(alpha: 0.5),
     ),
 
     searchBarTheme: SearchBarThemeData(
@@ -484,44 +494,43 @@ ThemeData getTheme(Brightness b) {
       surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
       shape: WidgetStateProperty.all(
         RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(DionRadius.sm),
           side: BorderSide(
-            color: colorScheme.onSurface.withValues(alpha: 0.2),
+            color: borderColor.withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
       ),
-      backgroundColor: WidgetStateProperty.all(colorScheme.surface),
+      backgroundColor: WidgetStateProperty.all(surfaceColor),
     ),
 
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DionRadius.sm),
+          ),
         ),
         side: WidgetStateProperty.all(
-          BorderSide(
-            color: colorScheme.onSurface.withValues(alpha: 0.2),
-            width: 0.5,
-          ),
+          BorderSide(color: borderColor.withValues(alpha: 0.5), width: 0.5),
         ),
         backgroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return colorScheme.primary.withValues(alpha: 0.2);
+            return primary.withValues(alpha: 0.15);
           }
-          return colorScheme.surface;
+          return surfaceColor;
         }),
         foregroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return colorScheme.primary;
+            return primary;
           }
-          return colorScheme.onSurface;
+          return textColor;
         }),
       ),
     ),
 
     badgeTheme: BadgeThemeData(
-      backgroundColor: colorScheme.primary,
+      backgroundColor: primary,
       textColor: colorScheme.onPrimary,
     ),
   );

@@ -1,11 +1,10 @@
-import 'dart:math';
-
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/async.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
@@ -19,13 +18,7 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/material.dart'
-    show
-        Divider,
-        Icons,
-        ListTile,
-        ReorderableListView,
-        showAdaptiveDialog,
-        showDialog;
+    show Colors, Icons, InkWell, Material, showAdaptiveDialog, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
@@ -36,15 +29,25 @@ class LibrarySettings extends StatelessWidget {
   Widget build(BuildContext context) {
     return NavScaff(
       child: ListView(
+        padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
         children: [
           const CategorySettings(),
-          SettingToggle(
-            title: 'Show All Tab',
-            setting: settings.library.showAllTab,
-          ),
-          SettingToggle(
-            title: 'Show None Tab',
-            setting: settings.library.showNoneTab,
+
+          SettingTitle(
+            title: 'Display',
+            subtitle: 'Library tab options',
+            children: [
+              SettingToggle(
+                title: 'Show All Tab',
+                description: 'Display tab showing all entries',
+                setting: settings.library.showAllTab,
+              ),
+              SettingToggle(
+                title: 'Show None Tab',
+                description: 'Display tab for uncategorized entries',
+                setting: settings.library.showNoneTab,
+              ),
+            ],
           ),
         ],
       ),
@@ -209,60 +212,117 @@ class _CategorySettingsState extends State<CategorySettings>
   Widget build(BuildContext context) {
     final categories = this.categories;
     if (categories == null) {
-      return const DionProgressBar();
+      return const Padding(
+        padding: EdgeInsets.all(DionSpacing.xl),
+        child: Center(child: DionProgressBar()),
+      );
     }
+
     return SettingTitle(
       title: 'Categories',
+      subtitle: 'Organize your library',
       children: [
-        ReorderableListView(
-          shrinkWrap: true,
-          onReorder: (oldIndex, newIndex) {
-            setState(() {
-              final cat = categories.removeAt(oldIndex);
-              categories.insert(min(newIndex, categories.length - 1), cat);
-              int i = 0;
-              this.categories = categories
-                  .map((e) => e.copyWith(index: i++))
-                  .toList();
-            });
-            locate<Database>().updateCategories(this.categories!);
-          },
-          children: [
-            for (final category in categories)
-              ListTile(
-                key: ValueKey(category),
-                title: Text(category.name),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(category.index.toString()),
-                    8.0.widthBox,
-                    DionIconbutton(
-                      onPressed: () {
-                        showUpdateDialog(context, category);
-                      },
-                      icon: const Icon(Icons.edit),
-                    ),
-                    DionIconbutton(
-                      onPressed: () async {
-                        await locate<Database>().removeCategory(category);
-                      },
-                      icon: const Icon(Icons.delete),
-                    ),
-                    14.0.widthBox,
-                  ],
-                ),
+        if (categories.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(DionSpacing.lg),
+            child: Center(
+              child: Text(
+                'No categories yet',
+                style: DionTypography.bodySmall(context.textTertiary),
               ),
-          ],
+            ),
+          ),
+        ...categories.map(
+          (category) => _CategoryTile(
+            category: category,
+            onEdit: () => showUpdateDialog(context, category),
+            onDelete: () async {
+              await locate<Database>().removeCategory(category);
+            },
+          ),
         ),
-        const Divider(),
-        DionTextbutton(
-          child: const Text('Add Category'),
-          onPressed: () {
-            showAddCategoryDialog(context, categories.length);
-          },
+        _AddCategoryButton(
+          onTap: () => showAddCategoryDialog(context, categories.length),
         ),
       ],
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  final Category category;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _CategoryTile({
+    required this.category,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.lg,
+        vertical: DionSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.drag_indicator, size: 18, color: context.textTertiary),
+          const SizedBox(width: DionSpacing.md),
+          Expanded(
+            child: Text(
+              category.name,
+              style: DionTypography.titleSmall(context.textPrimary),
+            ),
+          ),
+          DionIconbutton(
+            onPressed: onEdit,
+            icon: Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: context.textSecondary,
+            ),
+          ),
+          DionIconbutton(
+            onPressed: onDelete,
+            icon: Icon(Icons.delete_outline, size: 18, color: DionColors.error),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddCategoryButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddCategoryButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DionSpacing.lg,
+            vertical: DionSpacing.md,
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.add, size: 18, color: DionColors.primary),
+              const SizedBox(width: DionSpacing.md),
+              Text(
+                'Add Category',
+                style: DionTypography.titleSmall(DionColors.primary),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
