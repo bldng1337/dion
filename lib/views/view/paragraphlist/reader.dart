@@ -8,6 +8,7 @@ import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
+import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/view.dart';
 import 'package:dionysos/views/view/wrapper.dart';
@@ -89,7 +90,13 @@ class ReaderWrapScreen extends StatelessWidget {
 class ReaderRenderParagraph extends StatelessWidget {
   final Paragraph text;
   final Extension extension;
-  const ReaderRenderParagraph(this.text, this.extension, {super.key});
+  final int? paragraphIndex;
+  const ReaderRenderParagraph(
+    this.text,
+    this.extension, {
+    super.key,
+    this.paragraphIndex,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +114,13 @@ class ReaderRenderParagraph extends StatelessWidget {
         builder: (context, child) => makeParagraph(context, text),
       ),
     );
+  }
+
+  /// Whether this paragraph is the one currently being read by TTS.
+  bool _isTtsActive(TtsController? tts) {
+    if (tts == null || paragraphIndex == null) return false;
+    return tts.state != TtsState.stopped &&
+        tts.currentParagraphIndex == paragraphIndex;
   }
 
   Widget makeParagraph(BuildContext context, Paragraph text) {
@@ -127,6 +141,10 @@ class ReaderRenderParagraph extends StatelessWidget {
           ),
         );
       case final Paragraph_Text text:
+        final tts = TtsStateData.of(context);
+        if (_isTtsActive(tts)) {
+          return _buildTtsHighlightedText(context, text.content, tts!);
+        }
         if (psettings.text.bionic.value) {
           return ListenableBuilder(
             listenable: Listenable.merge([
@@ -305,6 +323,71 @@ class ReaderRenderParagraph extends StatelessWidget {
           ],
         );
     }
+  }
+
+  /// Builds a RichText widget that highlights the currently spoken word
+  /// by splitting the text into before/highlighted/after segments.
+  Widget _buildTtsHighlightedText(
+    BuildContext context,
+    String content,
+    TtsController tts,
+  ) {
+    final baseStyle = (context.bodyLarge ?? const TextStyle())
+        .copyWith(
+          height: psettings.text.linespacing.value,
+          fontSize: psettings.text.size.value.toDouble(),
+          fontWeight: FontWeight.lerp(
+            FontWeight.w100,
+            FontWeight.w900,
+            psettings.text.weight.value,
+          ),
+        )
+        .merge(psettings.font.value.syncTextStyle);
+
+    final highlightStyle = baseStyle.copyWith(
+      backgroundColor: context.theme.colorScheme.primary.withValues(alpha: 0.3),
+      color: context.theme.colorScheme.primary,
+    );
+
+    final start = tts.wordStart.clamp(0, content.length);
+    final end = tts.wordEnd.clamp(start, content.length);
+
+    if (start == end || start >= content.length) {
+      // No word highlight, just show the full text with a subtle active indicator
+      return Container(
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: context.theme.colorScheme.primary,
+              width: 3,
+            ),
+          ),
+        ),
+        padding: const EdgeInsets.only(left: 8),
+        child: Text(content, style: baseStyle),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: context.theme.colorScheme.primary, width: 3),
+        ),
+      ),
+      padding: const EdgeInsets.only(left: 8),
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(text: content.substring(0, start), style: baseStyle),
+            TextSpan(
+              text: content.substring(start, end),
+              style: highlightStyle,
+            ),
+            TextSpan(text: content.substring(end), style: baseStyle),
+          ],
+        ),
+      ),
+    );
   }
 }
 
