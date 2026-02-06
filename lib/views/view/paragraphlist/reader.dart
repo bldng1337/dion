@@ -378,12 +378,12 @@ class ReaderRenderParagraph extends StatelessWidget {
       child: RichText(
         text: TextSpan(
           children: [
-            TextSpan(text: content.substring(0, start), style: baseStyle),
+            TextSpan(text: content.substring(0, start+1), style: baseStyle),
             TextSpan(
-              text: content.substring(start, end),
+              text: content.substring(start+1, end+1),
               style: highlightStyle,
             ),
-            TextSpan(text: content.substring(end), style: baseStyle),
+            TextSpan(text: content.substring(end+1), style: baseStyle),
           ],
         ),
       ),
