@@ -37,10 +37,18 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   late final Observer supplierObserver;
   late final ScrollController controller;
   late final TtsController ttsController;
+  bool _keepAliveScheduled = false;
 
   void onScroll() {
     final epdata = widget.source.episode.data;
-    SessionData.of(context)?.manager.keepSessionAlive();
+    if (!_keepAliveScheduled) {
+      _keepAliveScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _keepAliveScheduled = false;
+        if (!mounted) return;
+        SessionData.of(context)?.manager.keepSessionAlive();
+      });
+    }
     if (controller.hasClients &&
         controller.offset > 0 &&
         controller.position.atEdge) {
