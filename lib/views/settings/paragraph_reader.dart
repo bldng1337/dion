@@ -1,6 +1,8 @@
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_font.dart';
@@ -8,6 +10,7 @@ import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class ParagraphReaderSettings extends StatelessWidget {
   const ParagraphReaderSettings({super.key});
@@ -204,8 +207,138 @@ class ParagraphReaderSettings extends StatelessWidget {
               ),
             ],
           ).conditional(settings.readerSettings.paragraphreader.text.bionic),
+
+          SettingTitle(
+            title: 'Text to Speech',
+            subtitle: 'Voice playback preferences',
+            children: [
+              _TtsLanguageSetting(
+                setting: settings.readerSettings.paragraphreader.tts.language,
+              ),
+              SettingSlider(
+                title: 'Speech Rate',
+                description: 'How fast the voice speaks',
+                min: 0.1,
+                max: 1.0,
+                step: 0.05,
+                setting: settings.readerSettings.paragraphreader.tts.rate,
+              ),
+              SettingSlider(
+                title: 'Pitch',
+                description: 'Voice tone and height',
+                min: 0.5,
+                max: 2.0,
+                step: 0.1,
+                setting: settings.readerSettings.paragraphreader.tts.pitch,
+              ),
+              SettingSlider(
+                title: 'Volume',
+                description: 'Voice volume level',
+                min: 0.0,
+                max: 1.0,
+                step: 0.05,
+                setting: settings.readerSettings.paragraphreader.tts.volume,
+              ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _TtsLanguageSetting extends StatefulWidget {
+  final Setting<String, dynamic> setting;
+
+  const _TtsLanguageSetting({required this.setting});
+
+  @override
+  State<_TtsLanguageSetting> createState() => _TtsLanguageSettingState();
+}
+
+class _TtsLanguageSettingState extends State<_TtsLanguageSetting> {
+  final FlutterTts _tts = FlutterTts();
+  late final Future<List<String>> _languagesFuture = _loadLanguages();
+
+  Future<List<String>> _loadLanguages() async {
+    final result = await _tts.getLanguages;
+    final list = (result as Iterable).map((e) => e.toString()).toSet().toList()
+      ..sort();
+    return list;
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.setting,
+      builder: (context, child) {
+        return LoadingBuilder<List<String>>(
+          future: _languagesFuture,
+          loading: (context) => Text(
+            'Loading...',
+            style: DionTypography.bodySmall(context.textTertiary),
+          ),
+          error: (context, _, _) => Text(
+            'Unable to load languages',
+            style: DionTypography.bodySmall(context.textTertiary),
+          ),
+          builder: (context, langs) {
+            final current = widget.setting.value;
+            final items = <DionDropdownItem<String>>[];
+            if (!langs.contains(current)) {
+              items.add(DionDropdownItem(label: current, value: current));
+            }
+            items.addAll(
+              langs.map((lang) => DionDropdownItem(label: lang, value: lang)),
+            );
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DionSpacing.lg,
+                vertical: DionSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Language',
+                          style: DionTypography.titleSmall(context.textPrimary),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Select the voice language',
+                          style: DionTypography.bodySmall(context.textTertiary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: DionSpacing.md),
+                  DionDropdown<String>(
+                    items: items,
+                    value: current,
+                    onChanged: (value) {
+                      if (value == null) return;
+                      widget.setting.value = value;
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

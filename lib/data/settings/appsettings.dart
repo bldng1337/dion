@@ -79,6 +79,16 @@ class PreferenceDoubleMetaData extends PreferenceMetaData<double> {
   String stringify(double value) => value.toString();
 }
 
+class PreferenceStringMetaData extends PreferenceMetaData<String> {
+  const PreferenceStringMetaData(super.id);
+
+  @override
+  String? parse(String value) => value;
+
+  @override
+  String stringify(String value) => value;
+}
+
 class PreferenceFontMetaData extends PreferenceMetaData<Font> {
   const PreferenceFontMetaData(super.id);
 
@@ -311,6 +321,24 @@ final settings = (
         bionicweight: Setting(
           0.5,
           const PreferenceDoubleMetaData('paragraphreader.text.bionicweight'),
+        )..addCollection(preferenceCollection),
+      ),
+      tts: (
+        language: Setting(
+          'en-US',
+          const PreferenceStringMetaData('paragraphreader.tts.language'),
+        )..addCollection(preferenceCollection),
+        rate: Setting(
+          1.0,
+          const PreferenceDoubleMetaData('paragraphreader.tts.rate'),
+        )..addCollection(preferenceCollection),
+        pitch: Setting(
+          1.0,
+          const PreferenceDoubleMetaData('paragraphreader.tts.pitch'),
+        )..addCollection(preferenceCollection),
+        volume: Setting(
+          1.0,
+          const PreferenceDoubleMetaData('paragraphreader.tts.volume'),
         )..addCollection(preferenceCollection),
       ),
     ),

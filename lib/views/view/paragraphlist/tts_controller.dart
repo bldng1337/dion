@@ -1,13 +1,13 @@
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 enum TtsState { stopped, playing, paused }
 
-/// InheritedWidget to propagate TTS state down the widget tree so that
-/// paragraph widgets can highlight text without explicit prop drilling.
 class TtsStateData extends InheritedWidget {
   final TtsController controller;
   const TtsStateData({
@@ -26,8 +26,6 @@ class TtsStateData extends InheritedWidget {
   bool updateShouldNotify(TtsStateData oldWidget) => true;
 }
 
-/// Extracts readable text from a list of paragraphs, skipping CustomUI and
-/// non-text elements. Returns a list of (paragraphIndex, text) pairs.
 List<(int index, String text)> extractTextFromParagraphs(
   List<Paragraph> paragraphs,
 ) {
@@ -83,17 +81,12 @@ String? _paragraphToText(Paragraph p) {
   }
 }
 
-/// Controller that manages TTS playback over a chapter's paragraphs.
-///
-/// Notifies listeners when state changes so the UI can highlight the current
-/// paragraph and the currently spoken word range.
-class TtsController with ChangeNotifier implements Disposable {
+class TtsController with ChangeNotifier, DisposeScope implements Disposable {
   final FlutterTts _tts = FlutterTts();
 
   TtsState _state = TtsState.stopped;
   TtsState get state => _state;
 
-  /// The paragraph index (in the original paragraph list) currently being spoken.
   int _currentParagraphIndex = -1;
   int get currentParagraphIndex => _currentParagraphIndex;
 
@@ -115,13 +108,24 @@ class TtsController with ChangeNotifier implements Disposable {
 
   TtsController() {
     _initTts();
+    _bindSettings();
   }
 
   Future<void> _initTts() async {
-    await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.5);
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
+    await _tts.setLanguage(
+      settings.readerSettings.paragraphreader.tts.language.value,
+    );
+    await _tts.setSpeechRate(
+      settings.readerSettings.paragraphreader.tts.rate.value,
+    );
+    await _tts.setVolume(
+      settings.readerSettings.paragraphreader.tts.volume.value,
+    );
+    await _tts.setPitch(
+      settings.readerSettings.paragraphreader.tts.pitch.value,
+    );
+
+    addDispose(() => _tts.stop());
 
     _tts.setStartHandler(() {
       _state = TtsState.playing;
@@ -165,8 +169,33 @@ class TtsController with ChangeNotifier implements Disposable {
     });
   }
 
-  /// Load paragraphs for the current chapter. Call this when the source data
-  /// changes (new chapter loaded).
+  void _bindSettings() {
+    Observer(
+      () => _tts.setLanguage(
+        settings.readerSettings.paragraphreader.tts.language.value,
+      ),
+      settings.readerSettings.paragraphreader.tts.language,
+    ).disposedBy(this);
+    Observer(
+      () => _tts.setSpeechRate(
+        settings.readerSettings.paragraphreader.tts.rate.value,
+      ),
+      settings.readerSettings.paragraphreader.tts.rate,
+    ).disposedBy(this);
+    Observer(
+      () => _tts.setPitch(
+        settings.readerSettings.paragraphreader.tts.pitch.value,
+      ),
+      settings.readerSettings.paragraphreader.tts.pitch,
+    ).disposedBy(this);
+    Observer(
+      () => _tts.setVolume(
+        settings.readerSettings.paragraphreader.tts.volume.value,
+      ),
+      settings.readerSettings.paragraphreader.tts.volume,
+    ).disposedBy(this);
+  }
+
   void loadParagraphs(List<Paragraph> paragraphs) {
     _segments = extractTextFromParagraphs(paragraphs);
     _segmentIndex = 0;
@@ -175,8 +204,6 @@ class TtsController with ChangeNotifier implements Disposable {
     _wordEnd = 0;
   }
 
-  /// Start speaking from a specific paragraph index (in the original list).
-  /// If [paragraphIndex] is null, starts from the beginning or resumes.
   Future<void> speak({int? paragraphIndex}) async {
     if (_segments.isEmpty) return;
 
@@ -259,11 +286,5 @@ class TtsController with ChangeNotifier implements Disposable {
   @override
   void disposedBy(DisposeScope disposeScope) {
     disposeScope.addDispose(dispose);
-  }
-
-  @override
-  Future<void> dispose() async {
-    await _tts.stop();
-    super.dispose();
   }
 }
