@@ -112,9 +112,9 @@ class TtsController with ChangeNotifier, DisposeScope implements Disposable {
   }
 
   Future<void> _initTts() async {
-    await _tts.setLanguage(
-      settings.readerSettings.paragraphreader.tts.language.value,
-    );
+    // await _tts.setLanguage(
+    //   settings.readerSettings.paragraphreader.tts.language.value,
+    // );
     await _tts.setSpeechRate(
       settings.readerSettings.paragraphreader.tts.rate.value,
     );
@@ -170,12 +170,12 @@ class TtsController with ChangeNotifier, DisposeScope implements Disposable {
   }
 
   void _bindSettings() {
-    Observer(
-      () => _tts.setLanguage(
-        settings.readerSettings.paragraphreader.tts.language.value,
-      ),
-      settings.readerSettings.paragraphreader.tts.language,
-    ).disposedBy(this);
+    // Observer(
+    //   () => _tts.setLanguage(
+    //     settings.readerSettings.paragraphreader.tts.language.value,
+    //   ),
+    //   settings.readerSettings.paragraphreader.tts.language,
+    // ).disposedBy(this);
     Observer(
       () => _tts.setSpeechRate(
         settings.readerSettings.paragraphreader.tts.rate.value,

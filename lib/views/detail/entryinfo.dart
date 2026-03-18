@@ -4,10 +4,16 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/custom_ui.dart';
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/placeholder.dart';
+import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/widgets/bounds.dart';
@@ -48,15 +54,7 @@ class EntryInfo extends StatelessWidget {
         _buildLibraryButton(context),
         _buildDescriptionSection(context),
         _buildCustomUISection(context),
-        if (entry is EntryDetailed)
-          Text(
-            '${(entry as EntryDetailed).episodes.length} ${entry.mediaType.getEpisodeNames((entry as EntryDetailed).episodes.length)}',
-            style: context.labelMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 1.0,
-              color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
-            ),
-          ),
+        if (entry is EntryDetailed) ChapterInfo(entry: entry as EntryDetailed),
       ].whereType<Widget>().toList(),
     ).paddingSymmetric(horizontal: 20, vertical: 12);
   }
@@ -490,4 +488,113 @@ Widget isEntryDetailed({
     highlightColor: context.scaffoldBackgroundColor.lighten(20),
     baseColor: context.theme.scaffoldBackgroundColor,
   );
+}
+
+class ChapterInfo extends StatelessWidget {
+  final EntryDetailed entry;
+
+  const ChapterInfo({super.key, required this.entry});
+
+  Future<_DownloadInfoData> _calculateDownloadInfo() async {
+    final downloadService = locate<DownloadService>();
+    int downloadedCount = 0;
+
+    for (int i = 0; i < entry.episodes.length; i++) {
+      final episodePath = EpisodePath(entry, i);
+      if (await downloadService.isDownloaded(episodePath)) {
+        downloadedCount++;
+      }
+    }
+
+    int totalSize = 0;
+    if (downloadedCount > 0) {
+      final downloadPath = locate<DirectoryProvider>().downloadspath
+          .sub(pathEncode(entry.boundExtensionId))
+          .sub(pathEncode(entry.id.uid));
+      totalSize = await getDirectorySize(downloadPath);
+    }
+
+    return _DownloadInfoData(
+      downloadedCount: downloadedCount,
+      totalSize: totalSize,
+    );
+  }
+
+  Widget buildChapterCount(BuildContext context) {
+    return Text(
+      '${entry.episodes.length} ${entry.mediaType.getEpisodeNames(entry.episodes.length)}',
+      style: context.labelMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 1.0,
+        color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (entry is! EntrySaved) {
+      return buildChapterCount(context);
+    }
+    return FutureBuilder<_DownloadInfoData>(
+      future: _calculateDownloadInfo(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.downloadedCount == 0) {
+          return buildChapterCount(context);
+        }
+
+        final data = snapshot.data!;
+        final sizeString = formatBytes(data.totalSize);
+
+        return Row(
+          children: [
+            buildChapterCount(context),
+            const SizedBox(width: 8),
+            Text(
+              '•',
+              style: context.labelMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.0,
+                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${data.downloadedCount} ${entry.mediaType.getEpisodeNames(data.downloadedCount)} downloaded',
+              style: context.labelMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.0,
+                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '•',
+              style: context.labelMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.0,
+                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              sizeString,
+              style: context.labelMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.0,
+                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DownloadInfoData {
+  final int downloadedCount;
+  final int totalSize;
+
+  _DownloadInfoData({required this.downloadedCount, required this.totalSize});
 }

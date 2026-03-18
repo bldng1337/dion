@@ -3,7 +3,6 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
-import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
@@ -36,19 +35,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   late final ListController listController;
   late final Observer supplierObserver;
   late final ScrollController controller;
-  late final TtsController ttsController;
-  bool _keepAliveScheduled = false;
 
   void onScroll() {
     final epdata = widget.source.episode.data;
-    if (!_keepAliveScheduled) {
-      _keepAliveScheduled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _keepAliveScheduled = false;
-        if (!mounted) return;
-        SessionData.of(context)?.manager.keepSessionAlive();
-      });
-    }
+    SessionData.of(context)?.manager.keepSessionAlive();
     if (controller.hasClients &&
         controller.offset > 0 &&
         controller.position.atEdge) {
@@ -89,28 +79,6 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     });
   }
 
-  void _onTtsChanged() {
-    if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {});
-    });
-    // Auto-scroll to the paragraph currently being spoken
-    if (ttsController.state == TtsState.playing &&
-        ttsController.currentParagraphIndex >= 0 &&
-        listController.isAttached &&
-        controller.hasClients) {
-      listController.animateToItem(
-        index: ttsController.currentParagraphIndex,
-        scrollController: controller,
-        alignment: 0.3,
-        duration: (double estimatedDistance) =>
-            const Duration(milliseconds: 300),
-        curve: (double estimatedDistance) => Curves.easeInOut,
-      );
-    }
-  }
-
   @override
   void initState() {
     WakelockPlus.toggle(enable: true);
@@ -119,15 +87,6 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
     listController = ListController()..disposedBy(scope);
     listController.addListener(onScroll);
-
-    ttsController = TtsController()..disposedBy(scope);
-    ttsController.loadParagraphs(widget.sourcedata.paragraphs);
-    ttsController.onChapterEnd = () {
-      if (widget.source.episode.hasnext) {
-        widget.source.episode.goNext(widget.supplier);
-      }
-    };
-    ttsController.addListener(_onTtsChanged);
 
     supplierObserver = Observer(jumpToProgress, widget.supplier)
       ..disposedBy(scope);
@@ -142,7 +101,6 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
   @override
   void dispose() {
-    ttsController.removeListener(_onTtsChanged);
     widget.source.episode.save();
     WakelockPlus.toggle(enable: false);
     super.dispose();
@@ -152,156 +110,76 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   Widget build(BuildContext context) {
     final epdata = widget.source.episode.data;
     final paragraphs = widget.sourcedata.paragraphs;
-    final bool isTtsRunning =
-        ttsController.state == TtsState.playing ||
-        ttsController.state == TtsState.paused;
-    return TtsStateData(
-      controller: ttsController,
-      child: NavScaff(
-        showNavbar: false,
-        child: Stack(
-          children: [
-            ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context).copyWith(),
-              child: CustomScrollView(
-                controller: controller,
-                slivers: [
-                  SliverAppBar(
-                    floating: true,
-                    title: DionTextScroll(widget.source.name),
-                    leading: DionIconbutton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () {
-                        ttsController.stop();
-                        context.pop();
-                      },
-                    ),
-                    actions: [
-                      DionIconbutton(
-                        icon: Icon(switch (ttsController.state) {
-                          TtsState.playing => Icons.pause,
-                          TtsState.paused => Icons.play_arrow,
-                          TtsState.stopped => Icons.volume_up,
-                        }),
-                        onPressed: () => ttsController.togglePlayPause(
-                          fromParagraph:
-                              listController.unobstructedVisibleRange?.$1,
-                        ),
-                      ),
-                      if (ttsController.state != TtsState.stopped)
-                        DionIconbutton(
-                          icon: const Icon(Icons.stop),
-                          onPressed: () => ttsController.stop(),
-                        ),
-                      DionIconbutton(
-                        icon: Icon(
-                          epdata.bookmark
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                        ),
-                        onPressed: () async {
-                          epdata.bookmark = !epdata.bookmark;
-                          await widget.source.episode.save();
-                          if (mounted) {
-                            setState(() {});
-                          }
-                        },
-                      ),
-                      DionIconbutton(
-                        icon: const Icon(Icons.open_in_browser),
-                        onPressed: () => launchUrl(
-                          Uri.parse(widget.source.episode.episode.url),
-                        ),
-                      ),
-                      DionIconbutton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: () =>
-                            context.push('/settings/paragraphreader'),
-                      ),
-                    ],
+    return NavScaff(
+      showNavbar: false,
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(),
+        child: CustomScrollView(
+          controller: controller,
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              title: DionTextScroll(widget.source.name),
+              leading: DionIconbutton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  context.pop();
+                },
+              ),
+              actions: [
+                DionIconbutton(
+                  icon: Icon(
+                    epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
                   ),
-                  if (widget.source.episode.hasprev)
-                    SliverToBoxAdapter(
-                      child: DionTextbutton(
-                        child: const Text(
-                          'Previous',
-                        ).paddingSymmetric(vertical: 16),
-                        onPressed: () =>
-                            widget.source.episode.goPrev(widget.supplier),
-                      ),
-                    ),
-                  SliverToBoxAdapter(
-                    child: EpisodeTitle(episode: widget.source.episode),
+                  onPressed: () async {
+                    epdata.bookmark = !epdata.bookmark;
+                    await widget.source.episode.save();
+                    if (mounted) {
+                      setState(() {});
+                    }
+                  },
+                ),
+                DionIconbutton(
+                  icon: const Icon(Icons.open_in_browser),
+                  onPressed: () =>
+                      launchUrl(Uri.parse(widget.source.episode.episode.url)),
+                ),
+                DionIconbutton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => context.push('/settings/paragraphreader'),
+                ),
+              ],
+            ),
+            if (widget.source.episode.hasprev)
+              SliverToBoxAdapter(
+                child: DionTextbutton(
+                  child: const Text('Previous').paddingSymmetric(vertical: 16),
+                  onPressed: () =>
+                      widget.source.episode.goPrev(widget.supplier),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: EpisodeTitle(episode: widget.source.episode),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              sliver: SuperSliverList.builder(
+                listController: listController,
+                itemBuilder: (context, index) => ReaderWrapScreen(
+                  ReaderRenderParagraph(
+                    paragraphs[index],
+                    widget.supplier.episode.entry.extension!,
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    sliver: SuperSliverList.builder(
-                      listController: listController,
-                      itemBuilder: (context, index) => ReaderWrapScreen(
-                        ReaderRenderParagraph(
-                          paragraphs[index],
-                          widget.supplier.episode.entry.extension!,
-                          paragraphIndex: index,
-                        ),
-                      ),
-                      itemCount: paragraphs.length,
-                    ),
-                  ),
-                  if (widget.source.episode.hasnext)
-                    SliverToBoxAdapter(
-                      child: DionTextbutton(
-                        child: const Text(
-                          'Next',
-                        ).paddingSymmetric(vertical: 16),
-                        onPressed: () =>
-                            widget.source.episode.goNext(widget.supplier),
-                      ),
-                    ),
-                  if (isTtsRunning)
-                    const SliverToBoxAdapter(child: SizedBox(height: 96)),
-                ],
+                ),
+                itemCount: paragraphs.length,
               ),
             ),
-            if (isTtsRunning)
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: SafeArea(
-                  top: false,
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        DionIconbutton(
-                          icon: Icon(
-                            ttsController.state == TtsState.playing
-                                ? Icons.pause
-                                : Icons.play_arrow,
-                          ),
-                          onPressed: () => ttsController.togglePlayPause(),
-                        ),
-                        DionIconbutton(
-                          icon: const Icon(Icons.stop),
-                          onPressed: () => ttsController.stop(),
-                        ),
-                      ],
-                    ),
-                  ),
+            if (widget.source.episode.hasnext)
+              SliverToBoxAdapter(
+                child: DionTextbutton(
+                  child: const Text('Next').paddingSymmetric(vertical: 16),
+                  onPressed: () =>
+                      widget.source.episode.goNext(widget.supplier),
                 ),
               ),
           ],
