@@ -108,7 +108,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
           });
         }
       },
-      locate<Database>().getListenable(DBEvent.categoryUpdated),
+      locate<Database>().globalListenable,
     ).disposedBy(scope);
 
     if (settings.library.showAllTab.value) {}
@@ -278,7 +278,7 @@ class _CategoryDisplayState extends State<CategoryDisplay>
           controller.requestMore();
         }
       },
-      locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
+      locate<Database>().globalListenable,
       callOnInit: false,
     ).disposedBy(scope);
     super.initState();

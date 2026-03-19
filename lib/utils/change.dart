@@ -24,6 +24,8 @@ mixin class KeyedChangeNotifier<T> implements Listenable {
     return _listeners[key]!;
   }
 
+  Listenable get globalListenable => _notifier;
+
   @override
   void addListener(VoidCallback listener) {
     _notifier.addListener(listener);
