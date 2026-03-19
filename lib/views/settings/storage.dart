@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/database.dart';
@@ -18,42 +19,112 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
-const archiveVersion = 1;
+const archiveVersion = 2;
 Future<void> applyBackup(Archive archive) async {
   final db = locate<Database>();
-  final entries =
+  final meta =
       json.decode(
-            String.fromCharCodes(archive.findFile('entrydata.json')!.content),
+            String.fromCharCodes(archive.findFile('dionmeta.json')!.content),
           )
-          as List<dynamic>;
-  for (final entry in entries) {
-    final entrydata = await EntrySaved.fromJson(entry as Map<String, dynamic>);
-    await db.updateEntry(entrydata);
+          as Map<String, dynamic>;
+  switch (meta['version'] as int) {
+    case 1:
+      final entries =
+          json.decode(
+                String.fromCharCodes(
+                  archive.findFile('entrydata.json')!.content,
+                ),
+              )
+              as List<dynamic>;
+      for (final entry in entries) {
+        final entryData = await EntrySaved.fromJson(
+          entry as Map<String, dynamic>,
+        );
+        await db.updateEntry(entryData);
+      }
+    case 2:
+      final entries =
+          json.decode(
+                String.fromCharCodes(
+                  archive.findFile('entrydata.json')!.content,
+                ),
+              )
+              as List<dynamic>;
+      for (final entry in entries) {
+        entry['categories'] = await db.getCategoriesByName(
+          (entry['categories'] as List<dynamic>).cast<String>(),
+        );
+        final entrydata = await EntrySaved.fromJson(
+          entry as Map<String, dynamic>,
+        );
+        await db.updateEntry(entrydata);
+      }
+      final activities =
+          json.decode(
+                String.fromCharCodes(
+                  archive.findFile('activitydata.json')!.content,
+                ),
+              )
+              as List<dynamic>;
+      for (final activity in activities) {
+        activity['time'] = DateTime.parse(activity['time'] as String);
+        final activityData = Activity.fromJson(
+          activity as Map<String, dynamic>,
+        );
+        await db.addActivity(activityData);
+      }
+    default:
+      logger.w('Unknown backup version: ${meta['version']}');
+      return;
   }
 }
+
 Future<Archive> createBackup() async {
   final db = locate<Database>();
-  final entries = [];
-  while (entries.length % 100 == 0) {
-    final entriesdb = await db.getEntries(0, 100).toList();
-    entries.addAll(entriesdb.map((e) => e.toJson()));
-  }
   final archive = Archive();
+  final entries = [];
+  int ind = 0;
+  while (entries.length % 100 == 0) {
+    // If we don't get 100 entries, we are at the end
+    final entriesdb = await db.getEntries(ind++, 100).toList();
+    entries.addAll(
+      entriesdb.map((e) {
+        final json = e.toJson();
+        json['categories'] = e.categories.map((c) => c.name).toList();
+        return json;
+      }),
+    );
+  }
+  archive.addFile(ArchiveFile.string('entrydata.json', json.encode(entries)));
+  final activities = [];
+  int actInd = 0;
+  while (activities.length % 100 == 0) {
+    final activitiesdb = await db.getActivities(actInd++, 100).toList();
+    activities.addAll(
+      activitiesdb.map((e) {
+        final json = e.toDBJson();
+        json['time'] = (json['time'] as DateTime)
+            .toIso8601String(); // Maybe we should do something that is robuster to schema changes here
+        return json;
+      }),
+    );
+  }
+  archive.addFile(
+    ArchiveFile.string('activitydata.json', json.encode(activities)),
+  );
   archive.addFile(
     ArchiveFile.string(
       'dionmeta.json',
       json.encode({
         'version': archiveVersion,
-        'content': ['entries'],
+        'content': ['entries', 'activities'],
       }),
     ),
   );
-  archive.addFile(ArchiveFile.string('entrydata.json', json.encode(entries)));
   return archive;
 }
 
 class Storage extends StatelessWidget {
-
   const Storage({super.key});
 
   @override
@@ -74,7 +145,9 @@ class Storage extends StatelessWidget {
                   final archive = await createBackup();
                   final String? dir = await getDirectoryPath();
                   if (dir == null) return;
-                  final file = File('$dir/dion-${DateTime.now().toIso8601String()}.dpkg');
+                  final file = File(
+                    '$dir/dion-${DateTime.now().toIso8601String().replaceAll(':', '-')}.dpkg',
+                  );
                   await file.create(recursive: true);
                   await file.writeAsBytes(ZipEncoder().encodeBytes(archive));
                 },
@@ -130,9 +203,7 @@ class Storage extends StatelessWidget {
           const SettingTitle(
             title: 'Storage Usage',
             subtitle: 'Overview of storage used by the app',
-            children: [
-              _StorageStatsSection(),
-            ],
+            children: [_StorageStatsSection()],
           ),
         ],
       ),
@@ -291,7 +362,6 @@ class _StorageCard extends StatelessWidget {
 }
 
 class _StorageStatsSection extends StatelessWidget {
-
   const _StorageStatsSection();
 
   @override

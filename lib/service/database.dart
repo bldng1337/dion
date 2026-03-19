@@ -138,6 +138,15 @@ class Database extends KeyedChangeNotifier<DBEvent> {
     return res.nonNulls.toList();
   }
 
+  Future<List<Category>> getCategoriesByName(Iterable<String> names) async {
+    if (names.isEmpty) return [];
+    final res = await adapter.queryDataClasses<Category>(
+      query: 'SELECT * FROM type::table(\$category) WHERE name IN \$names',
+      vars: {'category': categoryTable.tb, 'names': names.toList()},
+    ).toList();
+    return res;
+  }
+
   Future<int> getNumEntries() async {
     return await _countSQL(
       query: 'SELECT count() FROM type::table(\$entry) GROUP ALL;',
