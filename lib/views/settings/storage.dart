@@ -74,7 +74,7 @@ class Storage extends StatelessWidget {
                   final archive = await createBackup();
                   final String? dir = await getDirectoryPath();
                   if (dir == null) return;
-                  final file = File('$dir/dion.dpkg');
+                  final file = File('$dir/dion-${DateTime.now().toIso8601String()}.dpkg');
                   await file.create(recursive: true);
                   await file.writeAsBytes(ZipEncoder().encodeBytes(archive));
                 },
