@@ -42,10 +42,7 @@ class WidgetPlayground extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  DionTextbutton(
-                    onPressed: () {},
-                    child: const Text('Filled'),
-                  ),
+                  DionTextbutton(onPressed: () {}, child: const Text('Filled')),
                   DionTextbutton(
                     type: ButtonType.ghost,
                     onPressed: () {},
@@ -56,9 +53,7 @@ class WidgetPlayground extends StatelessWidget {
                     onPressed: () {},
                     child: const Text('Elevated'),
                   ),
-                  const DionTextbutton(
-                    child: Text('Disabled'),
-                  ),
+                  const DionTextbutton(child: Text('Disabled')),
                   DionTextbutton(
                     onPressed: () => Future.delayed(const Duration(seconds: 2)),
                     child: const Text('Loading'),
@@ -79,9 +74,7 @@ class WidgetPlayground extends StatelessWidget {
                     icon: const Icon(Icons.bookmark),
                     tooltip: 'Bookmark',
                   ),
-                  const DionIconbutton(
-                    icon: Icon(Icons.delete),
-                  ),
+                  const DionIconbutton(icon: Icon(Icons.delete)),
                   DionIconbutton(
                     onPressed: () => Future.delayed(const Duration(seconds: 2)),
                     icon: const Icon(Icons.cloud_upload),
@@ -91,9 +84,7 @@ class WidgetPlayground extends StatelessWidget {
               const Text('Toggle Button').paddingOnly(bottom: 8),
               Row(
                 children: [
-                  const Togglebutton(
-                    selected: true,
-                  ).paddingOnly(right: 8),
+                  const Togglebutton(selected: true).paddingOnly(right: 8),
                   const Togglebutton(selected: false),
                 ],
               ).paddingOnly(bottom: 16),
@@ -276,8 +267,8 @@ class WidgetPlayground extends StatelessWidget {
                   'when not expanded. Click on this text to expand or collapse '
                   'it. This helps in managing screen space when displaying '
                   'long content. The text will show an indicator when it can '
-                  'be expanded.${getText(100)}',
-                  // maxLines: 1,
+                  'be expanded.${getText(1000)}',
+                  maxLines: 1,
                 ),
               ).paddingOnly(bottom: 16),
             ],
@@ -288,51 +279,65 @@ class WidgetPlayground extends StatelessWidget {
               const Text('Progress Indicators').paddingOnly(bottom: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const DionProgressBar(
-                    
+                  const DionProgressBar().paddingOnly(right: 16),
+                  const DionProgressBar(value: 0.5).paddingOnly(right: 16),
+                  const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: DionProgressBar(type: DionProgressType.linear),
                   ).paddingOnly(right: 16),
-                  const DionProgressBar(
-                    value: 0.5,
-                  ).paddingOnly(right: 16),
-                  const DionProgressBar(type: DionProgressType.linear),
+                  const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: DionProgressBar(
+                      type: DionProgressType.linear,
+                      value: 0.5,
+                    ),
+                  ),
                 ],
               ).paddingOnly(bottom: 16),
               const Text('Error Display').paddingOnly(bottom: 8),
-              SizedBox(
-                width: 300,
-                height: 300,
-                child: ErrorDisplay(
-                  e: Exception('Sample error message'),
-                  s: StackTrace.current,
-                  message: 'Something went wrong',
-                  actions: [
-                    ErrorAction(
-                      label: 'Retry',
-                      onTap: () => Future.delayed(10.0.seconds),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 300,
+                    height: 300,
+                    child: ErrorDisplay(
+                      e: Exception('Sample error message'),
+                      s: StackTrace.current,
+                      message: 'Something went wrong',
+                      actions: [
+                        ErrorAction(
+                          label: 'Retry',
+                          onTap: () => Future.delayed(10.0.seconds),
+                        ),
+                        const ErrorAction(label: 'Dismiss'),
+                      ],
                     ),
-                    const ErrorAction(label: 'Dismiss'),
-                  ],
-                ),
-              ).paddingOnly(bottom: 16),
-              SizedBox(
-                width: 150,
-                height: 150,
-                child: ErrorDisplay(
-                  e: Exception('Different error type'),
-                  s: StackTrace.current,
-                  message: 'Custom error',
-                ),
-              ).paddingOnly(bottom: 16),
-              SizedBox(
-                width: 50,
-                height: 50,
-                child: ErrorDisplay(
-                  e: Exception('Different error type'),
-                  s: StackTrace.current,
-                  message: 'Custom error',
-                ),
-              ).paddingOnly(bottom: 16),
+                  ).paddingOnly(right: 16),
+                  SizedBox(
+                    width: 150,
+                    height: 150,
+                    child: ErrorDisplay(
+                      e: Exception('Different error type'),
+                      s: StackTrace.current,
+                      message: 'Custom error',
+                    ),
+                  ).paddingOnly(right: 16),
+                  SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: ErrorDisplay(
+                      e: Exception('Different error type'),
+                      s: StackTrace.current,
+                      message: 'Custom error',
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           SettingTitle(
@@ -378,26 +383,26 @@ class WidgetPlayground extends StatelessWidget {
                   ],
                 ),
               ).paddingOnly(bottom: 16),
-              // SizedBox( TODO: Fix trailing tab bar
-              //   height: 200,
-              //   child: DionTabBar(
-              //     trailing: const Icon(Icons.abc),
-              //     tabs: [
-              //       DionTab(
-              //         tab: const Text('Tab 1'),
-              //         child: const Center(child: Text('Content 1')),
-              //       ),
-              //       DionTab(
-              //         tab: const Text('Tab 2'),
-              //         child: const Center(child: Text('Content 2')),
-              //       ),
-              //       DionTab(
-              //         tab: const Text('Tab 3'),
-              //         child: const Center(child: Text('Content 3')),
-              //       ),
-              //     ],
-              //   ),
-              // ).paddingOnly(bottom: 16),
+          // SizedBox( TODO: Fix trailing tab bar
+          //   height: 200,
+          //   child: DionTabBar(
+          //     trailing: const Icon(Icons.abc),
+          //     tabs: [
+          //       DionTab(
+          //         tab: const Text('Tab 1'),
+          //         child: const Center(child: Text('Content 1')),
+          //       ),
+          //       DionTab(
+          //         tab: const Text('Tab 2'),
+          //         child: const Center(child: Text('Content 2')),
+          //       ),
+          //       DionTab(
+          //         tab: const Text('Tab 3'),
+          //         child: const Center(child: Text('Content 3')),
+          //       ),
+          //     ],
+          //   ),
+          // ).paddingOnly(bottom: 16),
               const SizedBox(
                 height: 200,
                 child: DionTabBar(
@@ -516,6 +521,13 @@ class WidgetPlayground extends StatelessWidget {
             children: [
               const Text('Loadable Button').paddingOnly(bottom: 8),
               // Note the DionTextbutton already uses Loadable internally so for simple loading flows just return a future from onPressed or make the callback async.
+              const Text('This button uses Loadable internally').paddingOnly(bottom: 8),
+              DionTextbutton(
+                onPressed: () async {
+                  await Future.delayed(const Duration(seconds: 2));
+                },
+                child: const Text('Loadable Button'),
+              ).paddingOnly(bottom: 16),
               const Text('Custom Loading State').paddingOnly(bottom: 8),
               Loadable(
                 loading: const Center(
@@ -528,20 +540,17 @@ class WidgetPlayground extends StatelessWidget {
                     ],
                   ),
                 ),
-                builder: (context, child, setFuture) => Column(
-                  children: [
-                    const SizedBox(height: 42),
-                    DionTextbutton(
-                      onPressed: () {
-                        setFuture(Future.delayed(const Duration(seconds: 2)));
-                      },
-                      child: child,
-                    ),
-                  ],
+                child: const Text('Some Button'),
+                builder: (context, child, setFuture) => DionTextbutton(
+                  onPressed: () {
+                    setFuture(Future.delayed(const Duration(seconds: 2)));
+                  },
+                  child: child,
                 ),
               ).paddingOnly(bottom: 16),
             ],
           ),
+          200.0.heightBox
         ],
       ),
     );
