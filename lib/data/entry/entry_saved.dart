@@ -308,6 +308,25 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     };
   }
 
+  static Future<List<Category>> handleCategories(dynamic categoryData) async {
+    if (categoryData == null) return [];
+    if (categoryData is! List) return [];
+    if (categoryData.isEmpty) return [];
+    if(categoryData[0] is Category) {
+      return categoryData.cast<Category>();
+    }
+    if (categoryData[0] is Map<String, dynamic>) {
+      return categoryData
+          .map((e) => Category.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    if (categoryData[0] is DBRecord) {
+      final db = locate<Database>();
+      return await db.getCategoriesbyId(fromDynamic(categoryData).toList());
+    }
+    return [];
+  }
+
   static Future<EntrySaved> fromJson(Map<String, dynamic> json) async {
     final db = locate<Database>();
     switch (json['version']) {
@@ -351,15 +370,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
                 )
                 .toList(),
           ),
-          categories:
-              (((json['categories'] as List<dynamic>?) ?? []).isEmpty ||
-                  (json['categories'][0] is! DBRecord))
-              ? ((json['categories'] as List<dynamic>?) ?? []).map((e) => Category.fromJson(e as Map<String, dynamic>)).toList()
-              : await db.getCategoriesbyId(
-                  fromDynamic(
-                    (json['categories'] as List<dynamic>?) ?? [],
-                  ).toList(),
-                ),
+          categories: await handleCategories(json['categories']),
           episodedata:
               (json['episodedata'] as List<dynamic>?)
                   ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
@@ -375,15 +386,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
       entry: rust.JsonEntryDetailed.fromJson(
         json['entry'] as Map<String, dynamic>,
       ),
-      categories:
-          (((json['categories'] as List<dynamic>?) ?? []).isEmpty ||
-              (json['categories'][0] is! DBRecord))
-          ? ((json['categories'] as List<dynamic>?) ?? []).map((e) => Category.fromJson(e as Map<String, dynamic>)).toList()
-          : await db.getCategoriesbyId(
-              fromDynamic(
-                (json['categories'] as List<dynamic>?) ?? [],
-              ).toList(),
-            ),
+      categories: await handleCategories(json['categories']),
       episodedata:
           (json['episodedata'] as List<dynamic>?)
               ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
