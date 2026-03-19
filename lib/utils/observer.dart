@@ -4,19 +4,30 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class Observer implements Disposable {
   final Function() callback;
+  final bool callIndirectly;
   Listenable listener;
-  Observer(this.callback, this.listener, {bool callOnInit = true}) {
+  Observer(this.callback, this.listener, {bool callOnInit = true, this.callIndirectly=true}) {
     if (callOnInit) {
+      _call();
+    }
+    listener.addListener(_call);
+  }
+
+  void _call() {
+    if(callIndirectly){
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        callback();
+      });
+    }else{
       callback();
     }
-    listener.addListener(callback);
   }
 
   void swapListener(Listenable newListener) {
     if(listener==newListener) return;
-    listener.removeListener(callback);
+    listener.removeListener(_call);
     listener = newListener;
-    listener.addListener(callback);
+    listener.addListener(_call);
   }
 
   @override
@@ -26,7 +37,7 @@ class Observer implements Disposable {
 
   @override
   Future<void> dispose() {
-    listener.removeListener(callback);
+    listener.removeListener(_call);
     return Future.value();
   }
 }
