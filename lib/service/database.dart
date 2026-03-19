@@ -162,7 +162,7 @@ class Database extends KeyedChangeNotifier<DBEvent> {
 
   Stream<EntrySaved> getEntries(int page, int limit) {
     return _getEntriesSQL(
-      'SELECT * FROM type::table(\$entry) LIMIT \$limit START \$offset*\$limit',
+      'SELECT * FROM type::table(\$entry) LIMIT \$limit START \$offset*\$limit FETCH categories',
       {'limit': limit, 'offset': page, 'entry': entryTable.tb},
     );
   }

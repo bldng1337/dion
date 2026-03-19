@@ -351,9 +351,15 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
                 )
                 .toList(),
           ),
-          categories: await db.getCategoriesbyId(
-            fromDynamic((json['categories'] as List<dynamic>?) ?? []).toList(),
-          ),
+          categories:
+              (((json['categories'] as List<dynamic>?) ?? []).isEmpty ||
+                  (json['categories'][0] is! DBRecord))
+              ? ((json['categories'] as List<dynamic>?) ?? []).map((e) => Category.fromJson(e as Map<String, dynamic>)).toList()
+              : await db.getCategoriesbyId(
+                  fromDynamic(
+                    (json['categories'] as List<dynamic>?) ?? [],
+                  ).toList(),
+                ),
           episodedata:
               (json['episodedata'] as List<dynamic>?)
                   ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
@@ -369,9 +375,15 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
       entry: rust.JsonEntryDetailed.fromJson(
         json['entry'] as Map<String, dynamic>,
       ),
-      categories: await db.getCategoriesbyId(
-        fromDynamic((json['categories'] as List<dynamic>?) ?? []).toList(),
-      ),
+      categories:
+          (((json['categories'] as List<dynamic>?) ?? []).isEmpty ||
+              (json['categories'][0] is! DBRecord))
+          ? ((json['categories'] as List<dynamic>?) ?? []).map((e) => Category.fromJson(e as Map<String, dynamic>)).toList()
+          : await db.getCategoriesbyId(
+              fromDynamic(
+                (json['categories'] as List<dynamic>?) ?? [],
+              ).toList(),
+            ),
       episodedata:
           (json['episodedata'] as List<dynamic>?)
               ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
