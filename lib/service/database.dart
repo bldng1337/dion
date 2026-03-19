@@ -149,7 +149,7 @@ class Database extends KeyedChangeNotifier<DBEvent> {
     if (category == null) {
       return await _countSQL(
         query:
-            'SELECT count() FROM type::table(\$entry) WHERE count(categories) = 0 GROUP ALL;',
+            'SELECT count() FROM type::table(\$entry) WHERE array::is_empty(categories) GROUP ALL;',
         vars: {'entry': entryTable.tb},
       );
     }
@@ -174,12 +174,12 @@ class Database extends KeyedChangeNotifier<DBEvent> {
   ) {
     if (category == null) {
       return _getEntriesSQL(
-        'SELECT * FROM type::table(\$entry) WHERE count(categories) = 0 LIMIT \$limit START \$offset*\$limit',
+        'SELECT * FROM type::table(\$entry) WHERE count(categories) = 0 LIMIT \$limit START \$offset*\$limit FETCH categories',
         {'limit': limit, 'offset': page, 'entry': entryTable.tb},
       );
     }
     return _getEntriesSQL(
-      'SELECT * FROM type::table(\$entry) WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit',
+      'SELECT * FROM type::table(\$entry) WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit FETCH categories',
       {
         'limit': limit,
         'offset': page,
