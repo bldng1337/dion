@@ -60,6 +60,7 @@ dependencies:
 
   google_fonts: ^6.3.3
   system_fonts: ^1.0.1
+  audio_session: ^0.2.3
 
   metis:
     git:
