@@ -5,6 +5,7 @@ import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
@@ -113,6 +114,21 @@ class _SettingsPopupState extends State<SettingsPopup>
         ...widget.entry.entryExtensions.sublist(index + 1),
       ];
     });
+  }
+
+  Future<void> _refreshEntryExtension(int index) async {
+    final entryExtension = widget.entry.entryExtensions[index];
+    if (entryExtension.extension == null) {
+      logger.w(
+        'Cannot refresh entry extension with id ${entryExtension.extensionId} because it was not found',
+      );
+      return;
+    }
+    await widget.entry.extension!.refreshEntryExtension(
+      widget.entry,
+      entryExtension.extension!,
+    );
+    setState(() {});// We dont have anything direct here as the extension itself should update the settings, but we need to trigger a rebuild to show the updated settings
   }
 
   void _addSourceExtension(Extension extension) {
@@ -492,12 +508,21 @@ class _SettingsPopupState extends State<SettingsPopup>
                   ),
                 )
               : null,
-          trailing: DionIconbutton(
-            icon: Icon(
-              Icons.delete_outline,
-              color: context.theme.colorScheme.error,
-            ),
-            onPressed: () => _removeEntryExtension(index),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DionIconbutton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: context.theme.colorScheme.error,
+                ),
+                onPressed: () => _removeEntryExtension(index),
+              ),
+              DionIconbutton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () => _refreshEntryExtension(index),
+              ),
+            ],
           ),
         ),
         if (settings.isNotEmpty) ...[

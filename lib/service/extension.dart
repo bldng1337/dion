@@ -275,6 +275,49 @@ class Extension extends ChangeNotifier {
     return EntryDetailedImpl(res.entry, id, res.settings);
   }
 
+  Future<EntrySaved> refreshEntryExtension(
+    EntrySaved e,
+    Extension extension, {
+    rust.CancelToken? token,
+  }) async {
+    final processor = extension
+        .getExtensionTypeOrNull<rust.ExtensionType_EntryProcessor>();
+    if (!(extension.isenabled && processor != null)) {
+      logger.w(
+        'Extension ${extension.id} is not enabled or does not have an EntryProcessor',
+      );
+      return e;
+    }
+    if (!processor.triggerMapEntry) {
+      logger.w(
+        'EntryProcessor for extension ${extension.id} is not set to trigger on mapEntry',
+      );
+      return e;
+    }
+    final ext = e.entryExtensions
+        .where((ext) => ext.extensionId == extension.id)
+        .firstOrNull;
+    if (ext == null) {
+      logger.w(
+        'Entry ${e.id} does not have an extension ${extension.id} in its entryExtensions',
+      );
+      return e;
+    }
+    print("Refreshing...");
+    print("Settings: ${ext.extensionSettings}");
+    final mapRes = await extension._proxy.mapEntry(
+      entry: e.entry,
+      settings: ext.extensionSettings,
+      token: token,
+    );
+    print("Refreshed");
+    print("Settings: ${ext.extensionSettings}");
+    e.entry = mapRes.entry;
+    ext.extensionSettings =
+        mapRes.settings; //TODO: Think about possible race conditions
+    return e;
+  }
+
   Future<void> disable() async {
     if (!isenabled || loading) return;
     if (meta.enabled) {
@@ -587,12 +630,13 @@ class ExtensionService with ChangeNotifier {
             if (entry == null) {
               return;
             }
-            final entryExts = entry.entryExtensions
+            final entryExt = entry.entryExtensions
                 .where((ext) => ext.extensionId == data.id)
-                .firstOrNull
-                ?.extensionSettings;
+                .firstOrNull;
+            final entryExts = entryExt?.extensionSettings;
             if (entryExts != null && entryExts.containsKey(key)) {
               entryExts[key] = entryExts[key]!.copyWith(value: value);
+              entry.extension?.refreshEntryExtension(entry, entryExt!.extension!);
               await entry.save();
               return;
             }
