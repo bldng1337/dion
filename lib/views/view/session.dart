@@ -98,7 +98,7 @@ class _SessionState extends State<Session> implements SessionManager {
     );
     sourceObserver = Observer(() {
       keepSessionAlive(saveToDb: true);
-    }, widget.source);
+    }, widget.source, callIndirectly: false);
   }
 
   @override

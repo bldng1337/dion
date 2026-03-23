@@ -38,6 +38,7 @@ class _SourceWrapperState extends State<SourceWrapper>
     _sourceObserver = Observer(
       _onSourceChanged,
       widget.source,
+      callIndirectly: false,
       callOnInit: false,
     )..disposedBy(scope);
   }

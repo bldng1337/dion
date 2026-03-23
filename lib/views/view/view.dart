@@ -64,7 +64,7 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
             error = source.exceptionOrNull;
           });
         }
-      }, supplier!).disposedBy(scope);
+      }, supplier!, callIndirectly: false).disposedBy(scope);
     }
   }
 
