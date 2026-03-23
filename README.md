@@ -28,28 +28,21 @@ An overview of the architecture can be found [here](ARCHITECTURE.md).
 
 ## Screenshots
 
-<p align="center">
-  <img src="./docs/screenshots/entry_desktop.png" alt="Entry / Series detail (desktop)" width="800" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/entry_mobile.png" alt="Entry / Series detail (mobile)" width="300" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/library_desktop.png" alt="Library (desktop)" width="800" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/library_mobile.png" alt="Library (mobile)" width="300" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/settings_desktop.png" alt="Settings (desktop)" width="800" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/activity_desktop.png" alt="Activity (desktop)" width="800" />
+<p align="center" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+  <span>
+    <img src="./docs/screenshots/entry_desktop.png" alt="Entry / Series detail (desktop)" height="300" />
+    <img src="./docs/screenshots/entry_mobile.png" alt="Entry / Series detail (mobile)" height="300" />
+  </span>
+  <span>
+    <img src="./docs/screenshots/library_desktop.png" alt="Library (desktop)" height="300" />
+    <img src="./docs/screenshots/library_mobile.png" alt="Library (mobile)" height="300" />
+  </span>
+  <span>
+    <img src="./docs/screenshots/settings_desktop.png" alt="Settings (desktop)" height="300" />
+  </span>
+  <span>
+    <img src="./docs/screenshots/activity_desktop.png" alt="Activity (desktop)" height="300" />
+  </span>
 </p>
 
 
