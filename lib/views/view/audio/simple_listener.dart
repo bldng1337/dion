@@ -6,6 +6,7 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/player.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/session.dart';
@@ -81,15 +82,18 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         }
         return;
       }
+      final startduration = Duration(
+        milliseconds: int.tryParse(source.episode.data.progress ?? '0') ?? 0,
+      );
       if (mounted) {
         setState(() {
           currentAudio = source.source as Source_Audio;
         });
       }
-      final startduration = Duration(
-        milliseconds: int.tryParse(source.episode.data.progress ?? '0') ?? 0,
-      );
       final stream = currentAudio!.sources[getStreamIndex()];
+      logger.d(
+        'Opening stream ${stream.url.url} with headers ${stream.url.header} at position $startduration',
+      );
       await player.open(
         Media(
           stream.url.url,
@@ -102,7 +106,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           loading = false;
         });
       }
-    }, widget.source)..disposedBy(scope);
+    }, widget.source,callIndirectly: false)..disposedBy(scope);
 
     Observer(
       () async {
@@ -128,6 +132,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       },
       streamIndex,
       callOnInit: false,
+      callIndirectly: false
     );
 
     locate<PlayerService>().setSession(
@@ -144,10 +149,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     );
     Observer(() {
       player.setVolume(settings.audioBookSettings.volume.value);
-    }, settings.audioBookSettings.volume).disposedBy(scope);
+    }, settings.audioBookSettings.volume,callIndirectly: false).disposedBy(scope);
     Observer(() {
       player.setRate(settings.audioBookSettings.speed.value);
-    }, settings.audioBookSettings.speed).disposedBy(scope);
+    }, settings.audioBookSettings.speed,callIndirectly: false).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
     player.stream.completed.listen((event) {
@@ -158,10 +163,12 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           player.state.playlist.medias.length - 1) {
         return;
       }
+      if (loading) return;
       widget.source.episode.goNext(widget.source);
     });
     player.stream.position.listen((event) {
       if (mounted == false) return;
+      if (loading) return;
       SessionData.of(context)?.manager.keepSessionAlive();
       widget.source.episode.data.progress = '${event.inMilliseconds}';
       if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
