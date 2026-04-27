@@ -65,12 +65,12 @@ dependencies:
   metis:
     git:
       url: https://github.com/bldng1337/metis.git
-      ref: 7065908c9ad00b439eedc77fffd6f3c1b771a60d
+      ref: 90fef4619598fca5a0eb72d997fbc3f2de3f481f
   rdion_runtime:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 1a0bb2eaa678f946d61a5be7a11079a360ee997e
+      ref: d1edd5b17d0b684edc8d71607f4fdbbcb73d5446
 
   # pdfx: ^2.8.0
   # flutter_inappwebview: ^6.1.5

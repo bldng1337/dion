@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart' hide TextStyle;
+import 'package:dionysos/utils/log.dart';
+import 'package:rdion_runtime/rdion_runtime.dart' as runtime;
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
@@ -18,6 +20,24 @@ import 'package:dionysos/widgets/selection.dart';
 import 'package:flutter/material.dart';
 
 final psettings = settings.readerSettings.paragraphreader;
+
+TextStyle? _applyRuntimeStyle(TextStyle? base, runtime.TextStyle? style) {
+  if (style == null) return base;
+  final decorations = <TextDecoration>[
+    if (style.underline == true || style.link != null) TextDecoration.underline,
+    if (style.strikethrough == true) TextDecoration.lineThrough,
+  ];
+  return (base ?? const TextStyle()).copyWith(
+    fontWeight: style.bold == true ? FontWeight.bold : null,
+    fontStyle: style.italic == true ? FontStyle.italic : null,
+    decoration: decorations.isEmpty
+        ? null
+        : TextDecoration.combine(decorations),
+    fontSize: style.fontSize?.toDouble(),
+    fontFamily: style.code == true ? 'monospace' : null,
+    color: style.link != null ? Colors.blue : null,
+  );
+}
 
 class ParagraphListReader extends StatelessWidget {
   const ParagraphListReader({super.key});
@@ -141,83 +161,101 @@ class ReaderRenderParagraph extends StatelessWidget {
                 builder: (context, style) => RichText(
                   text: getBionicText(
                     content: text.content,
-                    basicStyle: (context.bodyLarge ?? style)
-                        .merge(style)
-                        .copyWith(
-                          height: psettings.text.linespacing.value,
-                          fontSize: psettings.text.size.value.toDouble(),
-                          fontWeight: FontWeight.lerp(
-                            FontWeight.w100,
-                            FontWeight.w900,
-                            psettings.text.weight.value,
+                    basicStyle: _applyRuntimeStyle(
+                      (context.bodyLarge ?? style)
+                          .merge(style)
+                          .copyWith(
+                            height: psettings.text.linespacing.value,
+                            fontSize: psettings.text.size.value.toDouble(),
+                            fontWeight: FontWeight.lerp(
+                              FontWeight.w100,
+                              FontWeight.w900,
+                              psettings.text.weight.value,
+                            ),
                           ),
-                        ),
+                      text.style,
+                    ),
                     letters: psettings.text.bionicSettings.letters.value,
-                    markStyle: (context.bodyLarge ?? style)
-                        .merge(style)
-                        .copyWith(
-                          height: psettings.text.linespacing.value,
-                          fontSize: psettings
-                              .text
-                              .bionicSettings
-                              .bionicSize
-                              .value
-                              .toDouble(),
-                          fontWeight: FontWeight.lerp(
-                            FontWeight.w100,
-                            FontWeight.w900,
-                            psettings.text.bionicSettings.bionicWheight.value,
+                    markStyle: _applyRuntimeStyle(
+                      (context.bodyLarge ?? style)
+                          .merge(style)
+                          .copyWith(
+                            height: psettings.text.linespacing.value,
+                            fontSize: psettings
+                                .text
+                                .bionicSettings
+                                .bionicSize
+                                .value
+                                .toDouble(),
+                            fontWeight: FontWeight.lerp(
+                              FontWeight.w100,
+                              FontWeight.w900,
+                              psettings.text.bionicSettings.bionicWheight.value,
+                            ),
                           ),
-                        ),
+                      text.style,
+                    ),
                   ),
                 ),
                 error: (context, _, _) => RichText(
                   text: getBionicText(
                     content: text.content,
-                    basicStyle: context.bodyLarge?.copyWith(
-                      height: psettings.text.linespacing.value,
-                      fontSize: psettings.text.size.value.toDouble(),
-                      fontWeight: FontWeight.lerp(
-                        FontWeight.w100,
-                        FontWeight.w900,
-                        psettings.text.weight.value,
+                    basicStyle: _applyRuntimeStyle(
+                      context.bodyLarge?.copyWith(
+                        height: psettings.text.linespacing.value,
+                        fontSize: psettings.text.size.value.toDouble(),
+                        fontWeight: FontWeight.lerp(
+                          FontWeight.w100,
+                          FontWeight.w900,
+                          psettings.text.weight.value,
+                        ),
                       ),
+                      text.style,
                     ),
                     letters: psettings.text.bionicSettings.letters.value,
-                    markStyle: context.bodyLarge?.copyWith(
-                      height: psettings.text.linespacing.value,
-                      fontSize: psettings.text.bionicSettings.bionicSize.value
-                          .toDouble(),
-                      fontWeight: FontWeight.lerp(
-                        FontWeight.w100,
-                        FontWeight.w900,
-                        psettings.text.bionicSettings.bionicWheight.value,
+                    markStyle: _applyRuntimeStyle(
+                      context.bodyLarge?.copyWith(
+                        height: psettings.text.linespacing.value,
+                        fontSize: psettings.text.bionicSettings.bionicSize.value
+                            .toDouble(),
+                        fontWeight: FontWeight.lerp(
+                          FontWeight.w100,
+                          FontWeight.w900,
+                          psettings.text.bionicSettings.bionicWheight.value,
+                        ),
                       ),
+                      text.style,
                     ),
                   ),
                 ),
                 loading: (context) => RichText(
                   text: getBionicText(
                     content: text.content,
-                    basicStyle: context.bodyLarge?.copyWith(
-                      height: psettings.text.linespacing.value,
-                      fontSize: psettings.text.size.value.toDouble(),
-                      fontWeight: FontWeight.lerp(
-                        FontWeight.w100,
-                        FontWeight.w900,
-                        psettings.text.weight.value,
+                    basicStyle: _applyRuntimeStyle(
+                      context.bodyLarge?.copyWith(
+                        height: psettings.text.linespacing.value,
+                        fontSize: psettings.text.size.value.toDouble(),
+                        fontWeight: FontWeight.lerp(
+                          FontWeight.w100,
+                          FontWeight.w900,
+                          psettings.text.weight.value,
+                        ),
                       ),
+                      text.style,
                     ),
                     letters: psettings.text.bionicSettings.letters.value,
-                    markStyle: context.bodyLarge?.copyWith(
-                      height: psettings.text.linespacing.value,
-                      fontSize: psettings.text.bionicSettings.bionicSize.value
-                          .toDouble(),
-                      fontWeight: FontWeight.lerp(
-                        FontWeight.w100,
-                        FontWeight.w900,
-                        psettings.text.bionicSettings.bionicWheight.value,
+                    markStyle: _applyRuntimeStyle(
+                      context.bodyLarge?.copyWith(
+                        height: psettings.text.linespacing.value,
+                        fontSize: psettings.text.bionicSettings.bionicSize.value
+                            .toDouble(),
+                        fontWeight: FontWeight.lerp(
+                          FontWeight.w100,
+                          FontWeight.w900,
+                          psettings.text.bionicSettings.bionicWheight.value,
+                        ),
                       ),
+                      text.style,
                     ),
                   ),
                 ),
@@ -230,17 +268,20 @@ class ReaderRenderParagraph extends StatelessWidget {
           builder: (context, child) {
             return Text(
               text.content,
-              style: (context.bodyLarge ?? const TextStyle())
-                  .copyWith(
-                    height: psettings.text.linespacing.value,
-                    fontSize: psettings.text.size.value.toDouble(),
-                    fontWeight: FontWeight.lerp(
-                      FontWeight.w100,
-                      FontWeight.w900,
-                      psettings.text.weight.value,
-                    ),
-                  )
-                  .merge(psettings.font.value.syncTextStyle),
+              style: _applyRuntimeStyle(
+                (context.bodyLarge ?? const TextStyle())
+                    .copyWith(
+                      height: psettings.text.linespacing.value,
+                      fontSize: psettings.text.size.value.toDouble(),
+                      fontWeight: FontWeight.lerp(
+                        FontWeight.w100,
+                        FontWeight.w900,
+                        psettings.text.weight.value,
+                      ),
+                    )
+                    .merge(psettings.font.value.syncTextStyle),
+                text.style,
+              ),
             );
             // return LoadingBuilder(
             //   future: psettings.font.value.toTextStyle(),
@@ -478,7 +519,42 @@ InlineSpan wrapMixedContent(
       if (psettings.text.bionic.value) {
         return getBionicText(
           content: text.content,
-          basicStyle: (context.bodyLarge ?? style)
+          basicStyle: _applyRuntimeStyle(
+            (context.bodyLarge ?? style)
+                .merge(style)
+                .copyWith(
+                  height: psettings.text.linespacing.value,
+                  fontSize: psettings.text.size.value.toDouble(),
+                  fontWeight: FontWeight.lerp(
+                    FontWeight.w100,
+                    FontWeight.w900,
+                    psettings.text.weight.value,
+                  ),
+                ),
+            text.style,
+          ),
+          letters: psettings.text.bionicSettings.letters.value,
+          markStyle: _applyRuntimeStyle(
+            (context.bodyLarge ?? style)
+                .merge(style)
+                .copyWith(
+                  height: psettings.text.linespacing.value,
+                  fontSize: psettings.text.bionicSettings.bionicSize.value
+                      .toDouble(),
+                  fontWeight: FontWeight.lerp(
+                    FontWeight.w100,
+                    FontWeight.w900,
+                    psettings.text.bionicSettings.bionicWheight.value,
+                  ),
+                ),
+            text.style,
+          ),
+        );
+      }
+      return TextSpan(
+        text: text.content,
+        style: _applyRuntimeStyle(
+          (context.bodyLarge ?? style)
               .merge(style)
               .copyWith(
                 height: psettings.text.linespacing.value,
@@ -489,22 +565,9 @@ InlineSpan wrapMixedContent(
                   psettings.text.weight.value,
                 ),
               ),
-          letters: psettings.text.bionicSettings.letters.value,
-          markStyle: (context.bodyLarge ?? style)
-              .merge(style)
-              .copyWith(
-                height: psettings.text.linespacing.value,
-                fontSize: psettings.text.bionicSettings.bionicSize.value
-                    .toDouble(),
-                fontWeight: FontWeight.lerp(
-                  FontWeight.w100,
-                  FontWeight.w900,
-                  psettings.text.bionicSettings.bionicWheight.value,
-                ),
-              ),
-        );
-      }
-      return TextSpan(text: text.content);
+          text.style,
+        ),
+      );
     case final MixedContent_CustomUI customUi:
       return WidgetSpan(
         child: CustomUIWidget.fromUI(ui: customUi.ui, extension: extension),
@@ -560,7 +623,7 @@ InlineSpan renderSpan(
   if (!content.startsWith(RegExp('[A-Za-z0-9]'))) {
     return TextSpan(text: '$content ', style: basicStyle);
   }
-  if (content.length == 1) TextSpan(text: '$content ', style: markStyle);
+  if (content.length == 1) return TextSpan(text: '$content ', style: markStyle);
 
   final sub = min(letters, content.length);
 

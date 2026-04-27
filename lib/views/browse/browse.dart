@@ -3,7 +3,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart' hide TextStyle;
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/settings/library.dart';

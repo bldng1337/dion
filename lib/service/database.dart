@@ -54,6 +54,12 @@ class Database extends KeyedChangeNotifier<DBEvent> {
 
   Future<void> initDB(AdapterSurrealDB db) async {
     await db.use(db: 'default', ns: 'app');
+    await db.query('''
+DEFINE TABLE IF NOT EXISTS entry;
+DEFINE TABLE IF NOT EXISTS category;
+DEFINE TABLE IF NOT EXISTS activity;
+DEFINE TABLE IF NOT EXISTS extension;
+      ''');
     await db.setMigrationAdapter(
       version: dbVersion,
       migrationName: 'app',
@@ -140,10 +146,12 @@ class Database extends KeyedChangeNotifier<DBEvent> {
 
   Future<List<Category>> getCategoriesByName(Iterable<String> names) async {
     if (names.isEmpty) return [];
-    final res = await adapter.queryDataClasses<Category>(
-      query: 'SELECT * FROM type::table(\$category) WHERE name IN \$names',
-      vars: {'category': categoryTable.tb, 'names': names.toList()},
-    ).toList();
+    final res = await adapter
+        .queryDataClasses<Category>(
+          query: 'SELECT * FROM type::table(\$category) WHERE name IN \$names',
+          vars: {'category': categoryTable.tb, 'names': names.toList()},
+        )
+        .toList();
     return res;
   }
 
@@ -365,13 +373,17 @@ ORDER BY dayStr ASC
   }
 
   Future<void> merge(String path) async {
-    final otherdb = await AdapterSurrealDB.connect('surrealkv://$path');
+    final otherdbConnection = await AdapterSurrealDB.connect(
+      'surrealkv://$path',
+    );
+    final otherdb = Database();
     try {
-      await initDB(otherdb);
-      final CrdtAdapter adapter = db.getAdapter<CrdtAdapter>();
-      await db.getAdapter<CrdtAdapter>().sync(adapter.syncRepo);
+      await otherdb.initDB(otherdbConnection);
+      final localAdapter = db.getAdapter<CrdtAdapter>();
+      final remoteAdapter = otherdb.db.getAdapter<CrdtAdapter>();
+      await localAdapter.sync(remoteAdapter.syncRepo);
     } finally {
-      otherdb.dispose();
+      otherdbConnection.dispose();
     }
   }
 

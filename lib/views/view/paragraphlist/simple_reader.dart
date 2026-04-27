@@ -1,6 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
 import 'package:dionysos/views/view/session.dart';

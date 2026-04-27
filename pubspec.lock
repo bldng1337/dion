@@ -535,8 +535,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "1b7909aa42a326de24448bfbd83e50748ed47110"
-      resolved-ref: "1b7909aa42a326de24448bfbd83e50748ed47110"
+      ref: "4881b2c18dc3e680ccab0fa2693d468c05999f7e"
+      resolved-ref: "4881b2c18dc3e680ccab0fa2693d468c05999f7e"
       url: "https://github.com/bldng1337/flutter_surrealdb.git"
     source: git
     version: "0.0.1"
@@ -908,8 +908,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "7065908c9ad00b439eedc77fffd6f3c1b771a60d"
-      resolved-ref: "7065908c9ad00b439eedc77fffd6f3c1b771a60d"
+      ref: "90fef4619598fca5a0eb72d997fbc3f2de3f481f"
+      resolved-ref: "90fef4619598fca5a0eb72d997fbc3f2de3f481f"
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"
@@ -1093,8 +1093,8 @@ packages:
     dependency: "direct main"
     description:
       path: "dart/rdion_runtime"
-      ref: "1a0bb2eaa678f946d61a5be7a11079a360ee997e"
-      resolved-ref: "1a0bb2eaa678f946d61a5be7a11079a360ee997e"
+      ref: d1edd5b17d0b684edc8d71607f4fdbbcb73d5446
+      resolved-ref: d1edd5b17d0b684edc8d71607f4fdbbcb73d5446
       url: "https://github.com/bldng1337/dion-runtime.git"
     source: git
     version: "0.0.1"
@@ -1239,14 +1239,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
-  sprintf:
-    dependency: transitive
-    description:
-      name: sprintf
-      sha256: "1fc9ffe69d4df602376b52949af107d8f5703b77cda567c4d7d86a0693120f23"
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.0.0"
   sqflite:
     dependency: transitive
     description:
@@ -1475,10 +1467,10 @@ packages:
     dependency: "direct main"
     description:
       name: uuid
-      sha256: a5be9ef6618a7ac1e964353ef476418026db906c4facdedaa299b7a2e71690ff
+      sha256: "1fef9e8e11e2991bb773070d4656b7bd5d850967a2456cfc83cf47925ba79489"
       url: "https://pub.dev"
     source: hosted
-    version: "4.5.1"
+    version: "4.5.3"
   vector_math:
     dependency: transitive
     description:

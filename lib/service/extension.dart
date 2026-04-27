@@ -303,15 +303,11 @@ class Extension extends ChangeNotifier {
       );
       return e;
     }
-    print("Refreshing...");
-    print("Settings: ${ext.extensionSettings}");
     final mapRes = await extension._proxy.mapEntry(
       entry: e.entry,
       settings: ext.extensionSettings,
       token: token,
     );
-    print("Refreshed");
-    print("Settings: ${ext.extensionSettings}");
     e.entry = mapRes.entry;
     ext.extensionSettings =
         mapRes.settings; //TODO: Think about possible race conditions

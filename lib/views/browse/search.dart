@@ -1,7 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart' hide TextStyle;
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
