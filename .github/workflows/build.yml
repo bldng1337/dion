@@ -62,7 +62,7 @@ jobs:
         run: |
           export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --licenses
-          sdkmanager --install "build-tools;34.0.0"
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
 
       - name: Pub Get
         run: flutter pub get
