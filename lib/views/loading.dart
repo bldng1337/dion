@@ -1,10 +1,12 @@
 import 'package:dionysos/service/applinks.dart';
+import 'package:dionysos/service/auto_refresh.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/network.dart';
+import 'package:dionysos/service/notification.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/task.dart';
@@ -99,6 +101,18 @@ class LoadingView extends StatelessWidget {
           'AppLinksService',
           () async {
             await AppLinksService.ensureInitialized();
+          },
+        ),
+        (
+          'NotificationService',
+          () async {
+            await NotificationService.ensureInitialized();
+          },
+        ),
+        (
+          'AutoRefreshService',
+          () async {
+            await AutoRefreshService.ensureInitialized();
           },
         ),
         (

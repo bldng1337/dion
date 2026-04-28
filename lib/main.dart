@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:dionysos/routes.dart';
+import 'package:dionysos/service/auto_refresh.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:workmanager/workmanager.dart';
 
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -15,6 +19,9 @@ void main() async {
       stackTrace: details.stack,
     );
   };
+  if (!Platform.isWindows) {
+    await Workmanager().initialize(autoRefreshCallbackDispatcher);
+  }
   initApp(route: getRoutes());
 }
 

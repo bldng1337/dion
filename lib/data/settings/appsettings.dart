@@ -172,6 +172,20 @@ final settings = (
       ..addCollection(preferenceCollection),
     showNoneTab: Setting(true, const PreferenceBoolMetaData('library.shownone'))
       ..addCollection(preferenceCollection),
+    autoRefresh: (
+      enabled: Setting(
+        true,
+        const PreferenceBoolMetaData('library.autorefresh.enabled'),
+      )..addCollection(preferenceCollection),
+      interval: Setting(
+        24,
+        const PreferenceIntMetaData('library.autorefresh.interval'),
+      )..addCollection(preferenceCollection),
+      notify: Setting(
+        true,
+        const PreferenceBoolMetaData('library.autorefresh.notify'),
+      )..addCollection(preferenceCollection),
+    ),
   ),
   audioBookSettings: (
     volume: Setting(50.0, const PreferenceDoubleMetaData('audiobook.volume'))

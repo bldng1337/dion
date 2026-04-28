@@ -2,6 +2,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
@@ -15,6 +16,7 @@ import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/settings/setting_numberbox.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/material.dart'
@@ -47,6 +49,27 @@ class LibrarySettings extends StatelessWidget {
                 description: 'Display tab for uncategorized entries',
                 setting: settings.library.showNoneTab,
               ),
+            ],
+          ),
+          SettingTitle(
+            title: 'Auto-Refresh',
+            subtitle: 'Check for new episodes in ongoing entries',
+            children: [
+              SettingToggle(
+                title: 'Enable Auto-Refresh',
+                description: 'Periodically check for new episodes',
+                setting: settings.library.autoRefresh.enabled,
+              ),
+              SettingNumberbox<int>(
+                title: 'Refresh Interval',
+                description: 'Hours between checks',
+                setting: settings.library.autoRefresh.interval,
+              ).conditional(settings.library.autoRefresh.enabled),
+              SettingToggle(
+                title: 'Notifications',
+                description: 'Show notification when new episodes are found',
+                setting: settings.library.autoRefresh.notify,
+              ).conditional(settings.library.autoRefresh.enabled),
             ],
           ),
         ],
