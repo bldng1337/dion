@@ -92,7 +92,7 @@ class AutoRefreshService {
       _taskName,
       frequency: Duration(hours: intervalHours),
       constraints: Constraints(networkType: NetworkType.connected),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
     );
     logger.i('Scheduled auto-refresh task every $intervalHours hours');
   }
