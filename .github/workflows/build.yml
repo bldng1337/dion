@@ -62,7 +62,7 @@ jobs:
         run: |
           export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --licenses
-          sdkmanager --install "build-tools;30.0.3"
+          sdkmanager --install "build-tools;34.0.0"
 
       - name: Pub Get
         run: flutter pub get
@@ -90,7 +90,7 @@ jobs:
           ninja --version
           clang --version
           javac --version
-          $ANDROID_HOME/build-tools/30.0.3/apksigner --version
+          $ANDROID_HOME/build-tools/34.0.0/apksigner --version
 
       # - name: Build Linux (${{ matrix.build_mode }})
       #   if: matrix.os == 'ubuntu-latest'
@@ -106,8 +106,8 @@ jobs:
           echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
           echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
           echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-          $ANDROID_HOME/build-tools/30.0.3/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
-          $ANDROID_HOME/build-tools/30.0.3/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
       - name: Move APK
         if: matrix.os == 'ubuntu-latest'
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
