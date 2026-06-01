@@ -132,6 +132,14 @@ jobs:
       - name: Build iss script
         if: matrix.os == 'windows-latest'
         run: dart run inno_bundle:build --no-app --release --no-installer
+      - name: Remove non-English languages from iss script
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $issPath = "./build/windows/x64/installer/Release/inno-script.iss"
+          $content = Get-Content -Path $issPath
+          $content = $content | Where-Object { $_ -notmatch 'compiler:Languages\\' }
+          Set-Content -Path $issPath -Value $content
       - name: Add Registry entries for deep links
         if: matrix.os == 'windows-latest'
         shell: pwsh
