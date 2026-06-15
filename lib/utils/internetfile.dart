@@ -44,6 +44,9 @@ class InternetFile {
     Map<String, String>? headers,
     void Function(double)? onReceiveProgress,
   }) async {
+    if (!link.endsWith('.m3u8') && !link.endsWith('.m3u')) {
+      throw Exception('Invalid m3u8 file $link');
+    }
     final dir = file.parent;
     final contentdir = dir.sub(file.filenameWithoutExtension);
     try {
