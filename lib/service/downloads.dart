@@ -144,17 +144,31 @@ class DownloadTask extends Task {
       case final Source_Audio data:
         status = 'Downloading MP3';
         final source = data.sources[0];
-        final file = await InternetFile.downloadm3u8(
-          source.url.url,
-          InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
-          headers: source.url.header,
-          onReceiveProgress: (current) => progress = current,
-          rhttpToken: rhttpToken,
-        );
-        index['type'] = 'mp3';
-        index['lang'] = source.lang;
-        index['name'] = source.name;
-        index['playlist'] = file.filename;
+        if (source.url.url.endsWith('.mp3')) {
+          final file = await InternetFile.streamToFile(
+            source.url.url,
+            InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
+            headers: source.url.header,
+            onReceiveProgress: (current) => progress = current,
+            rhttpToken: rhttpToken,
+          );
+          index['type'] = 'mp3';
+          index['lang'] = source.lang;
+          index['name'] = source.name;
+          index['playlist'] = file.filename;
+        } else {
+          final file = await InternetFile.downloadm3u8(
+            source.url.url,
+            InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
+            headers: source.url.header,
+            onReceiveProgress: (current) => progress = current,
+            rhttpToken: rhttpToken,
+          );
+          index['type'] = 'mp3';
+          index['lang'] = source.lang;
+          index['name'] = source.name;
+          index['playlist'] = file.filename;
+        }
     }
     await dir.getFile('index.json').writeAsString(jsonEncode(index));
   }
