@@ -55,7 +55,7 @@ class InternetFile {
       );
       final m3u8 = res.body.split('\n');
       if (m3u8[0] != '#EXTM3U') {
-        throw Exception('Invalid m3u8 file');
+        throw Exception('Invalid m3u8 file $link');
       }
 
       if (!await contentdir.exists()) {
