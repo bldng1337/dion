@@ -87,6 +87,7 @@ Future<Archive> createBackup() async {
   while (entries.length % 100 == 0) {
     // If we don't get 100 entries, we are at the end
     final entriesdb = await db.getEntries(ind++, 100).toList();
+    if (entriesdb.isEmpty) break;
     entries.addAll(
       entriesdb.map((e) {
         final json = e.toJson();
@@ -100,6 +101,7 @@ Future<Archive> createBackup() async {
   int actInd = 0;
   while (activities.length % 100 == 0) {
     final activitiesdb = await db.getActivities(actInd++, 100).toList();
+    if (activitiesdb.isEmpty) break;
     activities.addAll(
       activitiesdb.map((e) {
         final json = e.toDBJson();
@@ -150,6 +152,9 @@ class Storage extends StatelessWidget {
                   );
                   await file.create(recursive: true);
                   await file.writeAsBytes(ZipEncoder().encodeBytes(archive));
+                  if (!await file.exists()) {
+                    throw Exception('Failed to create backup file');
+                  }
                 },
               ),
               _StorageAction(
