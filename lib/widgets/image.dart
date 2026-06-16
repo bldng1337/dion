@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
@@ -14,6 +16,7 @@ import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -127,6 +130,15 @@ class DionImage extends StatefulWidget {
     String url, {
     Map<String, String>? headers,
   }) async {
+    if (isSvgSource(url)) {
+      // SVGs are not [ImageProvider]s, so just warm the cache.
+      final cache = locate<CacheService>().imgcache;
+      await cache
+          .getImageFile(url, headers: headers)
+          .where((e) => e is FileInfo)
+          .last;
+      return;
+    }
     await precacheImage(
       DionNetworkImage(url, httpHeaders: headers),
       navigatorKey.currentContext!,
@@ -300,6 +312,20 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
     if (widget.imageUrl == null) {
       return SizedBox(width: width, height: height, child: noImage(context));
     }
+    if (isSvgSource(widget.imageUrl!)) {
+      return _DionSvgImage(
+        url: widget.imageUrl!,
+        width: width,
+        height: height,
+        httpHeaders: widget.httpHeaders,
+        boxFit: boxfit,
+        alignment: widget.alignment,
+        color: widget.color,
+        errorWidget: widget.errorWidget,
+        loadingBuilder: widget.loadingBuilder,
+        shouldAnimate: widget.shouldAnimate,
+      );
+    }
     return Image(
       key: _imageKey,
       image: DionNetworkImage(
@@ -372,6 +398,160 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
           child: child,
         );
       },
+    );
+  }
+}
+
+bool isSvgSource(String url) {
+  final path = url.split('?').first.split('#').first;
+  return path.toLowerCase().endsWith('.svg');
+}
+
+class _DionSvgImage extends StatefulWidget {
+  final String url;
+  final double? width;
+  final double? height;
+  final Map<String, String>? httpHeaders;
+  final BoxFit? boxFit;
+  final Alignment? alignment;
+  final Color? color;
+  final Widget? errorWidget;
+  final Widget Function(BuildContext context)? loadingBuilder;
+  final bool shouldAnimate;
+
+  const _DionSvgImage({
+    required this.url,
+    this.width,
+    this.height,
+    this.httpHeaders,
+    this.boxFit,
+    this.alignment,
+    this.color,
+    this.errorWidget,
+    this.loadingBuilder,
+    this.shouldAnimate = true,
+  });
+
+  @override
+  State<_DionSvgImage> createState() => _DionSvgImageState();
+}
+
+class _DionSvgImageState extends State<_DionSvgImage> {
+  Uint8List? _bytes;
+  Object? _error;
+  StackTrace? _stackTrace;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<Uint8List> _loadBytes() async {
+    final url = widget.url;
+    if (url.startsWith('file://')) {
+      final file = File(url.substring('file://'.length));
+      return file.readAsBytes();
+    }
+    final cache = locate<CacheService>().imgcache;
+    final fileinfo = await cache
+        .getImageFile(url, headers: widget.httpHeaders)
+        .where((e) => e is FileInfo)
+        .last;
+    return (fileinfo as FileInfo).file.readAsBytes();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _bytes = null;
+      _error = null;
+      _stackTrace = null;
+    });
+    try {
+      final bytes = await _loadBytes();
+      if (!mounted) return;
+      setState(() {
+        _bytes = bytes;
+      });
+    } catch (e, s) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _stackTrace = s;
+      });
+    }
+  }
+
+  Widget _loading(BuildContext context) {
+    if (widget.loadingBuilder != null) {
+      return widget.loadingBuilder!(context);
+    }
+    return Container(
+      color: Colors.red,
+      width: widget.width ?? widget.height ?? 24,
+      height: widget.height ?? widget.width ?? 24,
+    ).applyShimmer(highlightColor: widget.color);
+  }
+
+  Widget _errorWidget(BuildContext context) {
+    if (widget.errorWidget != null) {
+      return widget.errorWidget!;
+    }
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: ErrorDisplay(
+        e: _error,
+        s: _stackTrace,
+        message: 'Failed to load image ${widget.url}',
+        actions: [
+          ErrorAction(
+            label: 'Try Again',
+            onTap: () async {
+              await locate<CacheService>().imgcache.removeFile(widget.url);
+              await _load();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget current;
+    if (_error != null) {
+      current = _errorWidget(context);
+    } else if (_bytes == null) {
+      current = _loading(context);
+    } else {
+      current = SvgPicture.memory(
+        _bytes!,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.boxFit ?? BoxFit.contain,
+        alignment: widget.alignment ?? Alignment.center,
+        colorFilter: widget.color == null
+            ? null
+            : ColorFilter.mode(widget.color!, BlendMode.srcIn),
+      );
+    }
+    if (!widget.shouldAnimate) {
+      return current;
+    }
+    return AnimatedSwitcher(
+      duration: 400.milliseconds,
+      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+        return Stack(
+          fit: StackFit.passthrough,
+          alignment: Alignment.center,
+          children: <Widget>[
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
+      child: current,
     );
   }
 }
