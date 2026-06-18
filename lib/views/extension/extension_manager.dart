@@ -201,7 +201,7 @@ class _ExtensionManagerState extends State<ExtensionManager> {
               });
               const XTypeGroup typeGroup = XTypeGroup(
                 label: 'Extensions',
-                extensions: <String>['js'],
+                extensions: <String>['js', 'apk'],
               );
               final List<XFile> files = await openFiles(
                 acceptedTypeGroups: <XTypeGroup>[typeGroup],
@@ -321,7 +321,7 @@ class ExtensionList extends StatelessWidget {
                               color: Colors.green,
                             ),
                             onPressed: () async {
-                              await sourceExt.install(update.remoteId);
+                              await update.install();
                               updates.value = {
                                 ...updates.value..remove(ext.id),
                               };
@@ -531,13 +531,13 @@ class RemoteExtensionTile extends StatelessWidget {
               ? DionIconbutton(
                   tooltip: 'Install',
                   icon: const Icon(Icons.download),
-                  onPressed: () => sourceExt.install(extension.remoteId),
+                  onPressed: () => extension.install(),
                 )
               : canUpdate
               ? DionIconbutton(
                   tooltip: 'Update',
                   icon: const Icon(Icons.update),
-                  onPressed: () => sourceExt.install(extension.remoteId),
+                  onPressed: () => extension.install(),
                 )
               : const Icon(Icons.check, color: Colors.green),
         );

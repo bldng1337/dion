@@ -64,12 +64,14 @@ class ErrorDisplay extends StatelessWidget {
   final StackTrace? s;
   final String? message;
   final List<ErrorAction>? actions;
+  final bool logError;
   const ErrorDisplay({
     super.key,
     required this.e,
     this.s,
     this.message = '',
     this.actions,
+    this.logError = true,
   });
 
   String getErrorMessage() {
@@ -157,7 +159,9 @@ class ErrorDisplay extends StatelessWidget {
     if (e == null) {
       return Container();
     }
-    logger.e(message, error: e, stackTrace: s);
+    if(logError){
+      logger.e(message, error: e, stackTrace: s);
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {

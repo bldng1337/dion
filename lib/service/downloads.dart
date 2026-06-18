@@ -419,9 +419,4 @@ class DownloadService {
   }
 }
 
-String pathEncode(String path) {
-  return path
-      .trim()
-      .replaceAll(RegExp(r'[\\/:*?"<>| }{}\-,]'), '')
-      .replaceAll(RegExp('[_]{2,}'), '_');
-}
+String pathEncode(String path) => sanitizePathSegment(path);

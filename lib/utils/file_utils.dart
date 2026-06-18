@@ -79,3 +79,10 @@ Future<Directory> getBasePath() async {
       .sub('dion')
       .create(recursive: true);
 }
+
+String sanitizePathSegment(String segment) {
+  return segment
+      .trim()
+      .replaceAll(RegExp(r'[\\/:*?"<>| }{}\-,]'), '')
+      .replaceAll(RegExp('[_]{2,}'), '_');
+}

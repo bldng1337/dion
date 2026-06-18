@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
@@ -525,7 +527,8 @@ class ExtensionNotFoundException implements Exception {
 class ExtensionAdapter with ChangeNotifier {
   final _extensions = <Extension>[];
   final rust.ProxyAdapter adapter;
-  ExtensionAdapter(this.adapter);
+  final String name;
+  ExtensionAdapter(this.name, this.adapter);
 
   Future<void> reload() async {
     _extensions.clear();
@@ -613,11 +616,13 @@ class ExtensionService with ChangeNotifier {
 
   Future<rust.ManagerClient> getClient(String adapter) async {
     final dir = await locateAsync<DirectoryProvider>();
-    final managerpath = dir.extensionpath.sub('dion_extensions');
+    final managerpath = dir.extensionpath.sub('${adapter}_extensions');
     await managerpath.create(recursive: true);
     return await rust.ManagerClient.init(
       getClient: (data) async {
-        final extensionPath = managerpath.sub('data').sub(data.id);
+        final extensionPath = managerpath
+            .sub('data')
+            .sub(sanitizePathSegment(data.id));
         await extensionPath.create(recursive: true);
         return rust.ExtensionClient.init(
           setEntrySetting: (entryId, key, value) async {
@@ -632,7 +637,10 @@ class ExtensionService with ChangeNotifier {
             final entryExts = entryExt?.extensionSettings;
             if (entryExts != null && entryExts.containsKey(key)) {
               entryExts[key] = entryExts[key]!.copyWith(value: value);
-              entry.extension?.refreshEntryExtension(entry, entryExt!.extension!);
+              entry.extension?.refreshEntryExtension(
+                entry,
+                entryExt!.extension!,
+              );
               await entry.save();
               return;
             }
@@ -726,10 +734,13 @@ class ExtensionService with ChangeNotifier {
 
   Future<ExtensionService> init() async {
     await rust.RustLib.init();
-    _adapters['dion'] = ExtensionAdapter(
-      await rust.ProxyAdapter.initDion(
-        client: await getClient('dion_extensions'),
-      ),
+    await _registerAdapter(
+      'dion',
+      () async => rust.ProxyAdapter.initDion(client: await getClient('dion')),
+    );
+    await _registerAdapter(
+      'mihon',
+      () async => rust.ProxyAdapter.initMihon(client: await getClient('mihon')),
     );
     for (final adapter in _adapters.values) {
       adapter.addListener(() {
@@ -738,6 +749,21 @@ class ExtensionService with ChangeNotifier {
     }
     await reload();
     return this;
+  }
+
+  Future<void> _registerAdapter(
+    String name,
+    Future<rust.ProxyAdapter> Function() factory,
+  ) async {
+    try {
+      _adapters[name] = ExtensionAdapter(name, await factory());
+    } catch (e, stack) {
+      logger.e(
+        'Failed to initialize "$name" adapter; it will be unavailable',
+        error: e,
+        stackTrace: stack,
+      );
+    }
   }
 
   Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
@@ -844,6 +870,22 @@ class ExtensionService with ChangeNotifier {
 
   Extension? tryGetExtension(String id) {
     return getExtensions().where((e) => e.data.id == id).firstOrNull;
+  }
+
+  ExtensionAdapter? getAdapterForExtension(Extension ext) {
+    return _adapters.values
+        .where((adapter) => adapter._extensions.contains(ext))
+        .firstOrNull;
+  }
+
+  Future<Directory> getExtensionStorageDir(Extension ext) async {
+    final dir = await locateAsync<DirectoryProvider>();
+    final adapter = getAdapterForExtension(ext);
+    final adapterName = adapter?.name ?? 'dion';
+    return dir.extensionpath
+        .sub('${adapterName}_extensions')
+        .sub('data')
+        .sub(sanitizePathSegment(ext.id));
   }
 
   static Future<void> ensureInitialized() async {

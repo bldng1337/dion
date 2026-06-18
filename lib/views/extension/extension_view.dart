@@ -1,7 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/extension.dart';
-import 'package:dionysos/service/directoryprovider.dart';
-import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/storage.dart';
@@ -58,8 +56,8 @@ class _ExtensionViewState extends State<ExtensionView>
   Future<void> _calculateExtensionSize() async {
     if (extension == null) return;
     try {
-      final dirProvider = await locateAsync<DirectoryProvider>();
-      final extensionPath = dirProvider.extensionpath.sub('dion_extensions').sub('data').sub(extension!.id);
+      final sourceExt = locate<ExtensionService>();
+      final extensionPath = await sourceExt.getExtensionStorageDir(extension!);
       final size = await getDirectorySize(extensionPath);
       if (mounted) {
         setState(() {
