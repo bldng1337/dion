@@ -141,8 +141,14 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
         }
       }
     }
+    if (lastscrollOffset < scrollController.offset - 500) {
+      SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+      widget.source.episode.save();
+      lastscrollOffset = scrollController.offset.toInt();
+    }
   }
 
+  int lastscrollOffset = 0;
   void jumpToProgress() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!listController.isAttached || !scrollController.hasClients) {

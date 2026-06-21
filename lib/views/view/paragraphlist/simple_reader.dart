@@ -48,7 +48,6 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       widget.source.episode.save();
       return;
     }
-
     if (listController.isAttached) {
       final position = listController.unobstructedVisibleRange?.$1;
 
@@ -60,7 +59,14 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
         widget.source.episode.data.progress = position.toString();
       }
     }
+    if (lastscrollOffset < controller.offset - 500) {
+      SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+      widget.source.episode.save();
+      lastscrollOffset = controller.offset.toInt();
+    }
   }
+
+  int lastscrollOffset = 0;
 
   void jumpToProgress() {
     WidgetsBinding.instance.addPostFrameCallback((_) {

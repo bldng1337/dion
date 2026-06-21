@@ -186,6 +186,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       final secs = event.inSeconds;
       if (secs != 0 && secs % 5 == 0) {
         widget.source.episode.save();
+        SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
       }
       if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
         widget.source.cache.preload(widget.source.episode.next);

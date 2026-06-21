@@ -36,7 +36,7 @@ abstract class SessionManager {
   EpisodeActivity get session;
   ValueNotifier<EpisodeActivity> get sessionNotifier;
 
-  void keepSessionAlive();
+  void keepSessionAlive({bool saveToDb = false});
 }
 
 class _SessionState extends State<Session> implements SessionManager {
@@ -96,9 +96,13 @@ class _SessionState extends State<Session> implements SessionManager {
         id: const Uuid().v4(),
       ),
     );
-    sourceObserver = Observer(() {
-      keepSessionAlive(saveToDb: true);
-    }, widget.source, callIndirectly: false);
+    sourceObserver = Observer(
+      () {
+        keepSessionAlive(saveToDb: true);
+      },
+      widget.source,
+      callIndirectly: false,
+    );
   }
 
   @override

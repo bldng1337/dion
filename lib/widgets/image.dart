@@ -130,6 +130,10 @@ class DionImage extends StatefulWidget {
     String url, {
     Map<String, String>? headers,
   }) async {
+    if (url.startsWith('mihon:')) {
+      //We ignore mihon scheme urls
+      return;
+    }
     if (isSvgSource(url)) {
       // SVGs are not [ImageProvider]s, so just warm the cache.
       final cache = locate<CacheService>().imgcache;
@@ -310,6 +314,10 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         ? BoxFit.contain
         : widget.boxFit ?? BoxFit.contain;
     if (widget.imageUrl == null) {
+      return SizedBox(width: width, height: height, child: noImage(context));
+    }
+    if (widget.imageUrl!.startsWith('mihon:')) {
+      //We ignore mihon scheme urls
       return SizedBox(width: width, height: height, child: noImage(context));
     }
     if (isSvgSource(widget.imageUrl!)) {

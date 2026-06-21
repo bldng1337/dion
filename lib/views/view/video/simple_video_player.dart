@@ -172,6 +172,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           playlistindex / player.state.playlist.medias.length > 0.5) {
         widget.source.cache.preload(widget.source.episode.next);
       }
+      if (event.inSeconds % 5 == 0) {
+        SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+        widget.source.episode.save();
+      }
     });
   }
 
