@@ -56,57 +56,61 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         title: 'dion',
       ),
     );
-    sourceObserver = Observer(() async {
-      if (mounted) {
-        setState(() {
-          loading = true;
-        });
-      }
-      final res = await widget.source.cache.get(widget.source.episode);
-      if (res.isFailure) {
+    sourceObserver = Observer(
+      () async {
         if (mounted) {
           setState(() {
-            exception = res.exceptionOrNull;
+            loading = true;
           });
         }
-        return;
-      }
-      final source = res.getOrThrow;
-      if (source.source is! Source_Audio) {
+        final res = await widget.source.cache.get(widget.source.episode);
+        if (res.isFailure) {
+          if (mounted) {
+            setState(() {
+              exception = res.exceptionOrNull;
+            });
+          }
+          return;
+        }
+        final source = res.getOrThrow;
+        if (source.source is! Source_Audio) {
+          if (mounted) {
+            setState(() {
+              exception = Exception(
+                'Unexpected Type Expected Source_Audio got ${source.source.runtimeType}',
+              );
+            });
+          }
+          return;
+        }
+        final startduration = Duration(
+          milliseconds: int.tryParse(source.episode.data.progress ?? '0') ?? 0,
+        );
         if (mounted) {
           setState(() {
-            exception = Exception(
-              'Unexpected Type Expected Source_Audio got ${source.source.runtimeType}',
-            );
+            currentAudio = source.source as Source_Audio;
           });
         }
-        return;
-      }
-      final startduration = Duration(
-        milliseconds: int.tryParse(source.episode.data.progress ?? '0') ?? 0,
-      );
-      if (mounted) {
-        setState(() {
-          currentAudio = source.source as Source_Audio;
-        });
-      }
-      final stream = currentAudio!.sources[getStreamIndex()];
-      logger.d(
-        'Opening stream ${stream.url.url} with headers ${stream.url.header} at position $startduration',
-      );
-      await player.open(
-        Media(
-          stream.url.url,
-          httpHeaders: stream.url.header,
-          start: startduration,
-        ),
-      );
-      if (mounted) {
-        setState(() {
-          loading = false;
-        });
-      }
-    }, widget.source,callIndirectly: false)..disposedBy(scope);
+        final stream = currentAudio!.sources[getStreamIndex()];
+        logger.d(
+          'Opening stream ${stream.url.url} with headers ${stream.url.header} at position $startduration',
+        );
+        await player.open(
+          Media(
+            stream.url.url,
+            httpHeaders: stream.url.header,
+            start: startduration,
+          ),
+        );
+        if (mounted) {
+          setState(() {
+            loading = false;
+          });
+        }
+      },
+      widget.source,
+      callIndirectly: false,
+    )..disposedBy(scope);
 
     Observer(
       () async {
@@ -132,7 +136,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       },
       streamIndex,
       callOnInit: false,
-      callIndirectly: false
+      callIndirectly: false,
     );
 
     locate<PlayerService>().setSession(
@@ -147,12 +151,20 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         },
       )..disposedBy(scope),
     );
-    Observer(() {
-      player.setVolume(settings.audioBookSettings.volume.value);
-    }, settings.audioBookSettings.volume,callIndirectly: false).disposedBy(scope);
-    Observer(() {
-      player.setRate(settings.audioBookSettings.speed.value);
-    }, settings.audioBookSettings.speed,callIndirectly: false).disposedBy(scope);
+    Observer(
+      () {
+        player.setVolume(settings.audioBookSettings.volume.value);
+      },
+      settings.audioBookSettings.volume,
+      callIndirectly: false,
+    ).disposedBy(scope);
+    Observer(
+      () {
+        player.setRate(settings.audioBookSettings.speed.value);
+      },
+      settings.audioBookSettings.speed,
+      callIndirectly: false,
+    ).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
     player.stream.completed.listen((event) {
@@ -171,6 +183,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       if (loading) return;
       SessionData.of(context)?.manager.keepSessionAlive();
       widget.source.episode.data.progress = '${event.inMilliseconds}';
+      final secs = event.inSeconds;
+      if (secs != 0 && secs % 5 == 0) {
+        widget.source.episode.save();
+      }
       if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
         widget.source.cache.preload(widget.source.episode.next);
       }
@@ -369,6 +385,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                               icon: Icon(icon),
                               onPressed: () async {
                                 await player.playOrPause();
+                                await widget.source.episode.save();
                               },
                             );
                           },
