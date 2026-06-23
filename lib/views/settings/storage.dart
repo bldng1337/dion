@@ -11,7 +11,9 @@ import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/platform.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
@@ -145,15 +147,20 @@ class Storage extends StatelessWidget {
                 icon: Icons.backup_outlined,
                 onTap: () async {
                   final archive = await createBackup();
-                  final String? dir = await getDirectoryPath();
-                  if (dir == null) return;
-                  final file = File(
-                    '$dir/dion-${DateTime.now().toIso8601String().replaceAll(':', '-')}.dpkg',
-                  );
-                  await file.create(recursive: true);
-                  await file.writeAsBytes(ZipEncoder().encodeBytes(archive));
-                  if (!await file.exists()) {
-                    throw Exception('Failed to create backup file');
+                  final fileName =
+                      'dion-${DateTime.now().toIso8601String().replaceAll(':', '-')}.dpkg';
+                  if (getPlatform() == CPlatform.ios ||
+                      getPlatform() == CPlatform.android) {
+                    final dir = await getTemporaryDirectory();
+                    final file = File('${dir.path}/$fileName');
+                    await file.writeAsBytes(ZipEncoder().encodeBytes(archive));
+                    await shareFiles([file]);
+                  } else {
+                    final String? dir = await getDirectoryPath();
+                    if (dir == null) return;
+                    final file = File('$dir/$fileName');
+                    await file.create(recursive: true);
+                    await file.writeAsBytes(ZipEncoder().encodeBytes(archive));
                   }
                 },
               ),
