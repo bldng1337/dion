@@ -838,6 +838,19 @@ class ExtensionService with ChangeNotifier {
   }
 
   Future<void> install(String location) async {
+    if (location.contains('.dion')) {
+      final adapter = _adapters['dion'];
+      if (adapter != null) {
+        await adapter.install(location);
+        return;
+      }
+    }
+    if (location.contains('.apk')) {
+      final adapter = _adapters['mihon'];
+      if (adapter != null) {
+        await adapter.install(location);
+      }
+    }
     for (final adapter in _adapters.values) {
       try {
         await adapter.install(location);
