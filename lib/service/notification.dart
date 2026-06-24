@@ -39,7 +39,7 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      settings,
+      settings: settings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
 
@@ -50,15 +50,19 @@ class NotificationService {
   }
 
   Future<void> _requestAndroidPermissions() async {
-    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidPlugin == null) return;
     await androidPlugin.requestNotificationsPermission();
   }
 
   Future<void> _createAndroidChannel() async {
-    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidPlugin == null) return;
     const channel = AndroidNotificationChannel(
       _channelId,
@@ -86,7 +90,8 @@ class NotificationService {
     }
 
     final diff = newCount - previousCount;
-    final body = '$diff new episode${diff == 1 ? '' : 's'} available '
+    final body =
+        '$diff new episode${diff == 1 ? '' : 's'} available '
         '($previousCount → $newCount)';
 
     const androidDetails = AndroidNotificationDetails(
@@ -96,11 +101,14 @@ class NotificationService {
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
     );
-    const notificationDetails = NotificationDetails(
-      android: androidDetails,
-    );
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
-    await _plugin.show(id, title, body, notificationDetails);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
+    );
     logger.i('Shown notification for "$title": $body');
   }
 
@@ -129,11 +137,14 @@ class NotificationService {
         summaryText: '$totalEntries entries updated',
       ),
     );
-    final notificationDetails = NotificationDetails(
-      android: androidDetails,
-    );
+    final notificationDetails = NotificationDetails(android: androidDetails);
 
-    await _plugin.show(0, 'Library Updates', body, notificationDetails);
+    await _plugin.show(
+      id: 0,
+      title: 'Library Updates',
+      body: body,
+      notificationDetails: notificationDetails,
+    );
     logger.i('Shown summary notification: $body');
   }
 
