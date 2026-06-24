@@ -42,6 +42,10 @@ dependencies:
   audio_video_progress_bar: ^2.0.3
   super_sliver_list: ^0.4.1
 
+  # Visualizations
+  contribution_heatmap: ^0.5.3
+  flutter_treemap: ^1.0.0
+
   # Platform
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.3.4

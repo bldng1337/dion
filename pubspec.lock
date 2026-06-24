@@ -265,6 +265,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  contribution_heatmap:
+    dependency: "direct main"
+    description:
+      name: contribution_heatmap
+      sha256: cedfb14f058f17baf793f929fb6ed512cf0f36d316f2dbaf0754ef3c98cc1d4e
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.3"
   convert:
     dependency: transitive
     description:
@@ -657,6 +665,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_treemap:
+    dependency: "direct main"
+    description:
+      name: flutter_treemap
+      sha256: "6c99734c4535c1899edc095c6820742d7995992f7580c8cd032375994f6c1c59"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   flutter_tts:
     dependency: "direct main"
     description:

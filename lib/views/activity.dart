@@ -1,5 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/activity/activity.dart';
+import 'package:dionysos/data/activity/entry_duration.dart';
 import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
@@ -10,7 +11,8 @@ import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
-import 'package:dionysos/widgets/activity_chart.dart';
+import 'package:dionysos/widgets/activity_heatmap.dart';
+import 'package:dionysos/widgets/activity_treemap.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
@@ -355,32 +357,118 @@ class _ActivityViewState extends State<ActivityView> {
     return NavScaff(
       destination: homedestinations,
       title: const Text('Activity'),
-      child: Column(
-        children: [
-          ActivityData(),
-          Expanded(
-            child: DynamicList(
-              showDataSources: false,
-              controller: controller,
-              itemBuilder: (context, item) => item.render(context),
-            ),
-          ),
-        ],
+      child: DynamicList(
+        showDataSources: false,
+        controller: controller,
+        header: const ActivitySummary(),
+        itemBuilder: (context, item) => item.render(context),
       ),
     );
   }
 }
 
-class ActivityData extends StatelessWidget {
+class ActivitySummary extends StatefulWidget {
+  const ActivitySummary({super.key});
+
   @override
-    Widget build(BuildContext context) {
-      final db = locate<Database>();
-      return LoadingBuilder(
-        future: db.getDailyActivityDurations(days: 364),
-        builder: (context, activityData) {
-          return ActivityChart(activityData: activityData, weeks: 20);
-        },
-        loading: (context) => const DionProgressBar().paddingVertical(24),
-      );
-    }
+  State<ActivitySummary> createState() => _ActivitySummaryState();
+}
+
+class _ActivitySummaryState extends State<ActivitySummary> {
+  late final Future<(Map<DateTime, Duration>, List<EntryDuration>)> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    final db = locate<Database>();
+    _future = () async {
+      final daily = db.getDailyActivityDurations(days: 364);
+      final entries = db.getEntryDurations();
+      return (await daily, await entries);
+    }();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop = context.showNavbar;
+    return LoadingBuilder<(Map<DateTime, Duration>, List<EntryDuration>)>(
+      future: _future,
+      builder: (context, data) {
+        final (activityData, entryDurations) = data;
+        return isDesktop
+            ? _DesktopSummary(
+                activityData: activityData,
+                entryDurations: entryDurations,
+              )
+            : _MobileSummary(
+                activityData: activityData,
+                entryDurations: entryDurations,
+              );
+      },
+      loading: (context) => const DionProgressBar().paddingVertical(24),
+    );
+  }
+}
+
+class _DesktopSummary extends StatelessWidget {
+  final Map<DateTime, Duration> activityData;
+  final List<EntryDuration> entryDurations;
+
+  const _DesktopSummary({
+    required this.activityData,
+    required this.entryDurations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: SizedBox(
+        height: 280,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 5,
+              child: ActivityHeatmapPanel(activityData: activityData),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 4,
+              child: ActivityTreemapPanel(entries: entryDurations),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileSummary extends StatelessWidget {
+  final Map<DateTime, Duration> activityData;
+  final List<EntryDuration> entryDurations;
+
+  const _MobileSummary({
+    required this.activityData,
+    required this.entryDurations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ActivityHeatmapPanel(activityData: activityData),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 280,
+            child: ActivityTreemapPanel(entries: entryDurations),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:async/async.dart';
 import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/activity/activity.dart';
+import 'package:dionysos/data/activity/entry_duration.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
@@ -16,7 +17,7 @@ import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
 
-const dbVersion = 1;
+const dbVersion = 2;
 const entryTable = DBTable('entry');
 const categoryTable = DBTable('category');
 const activityTable = DBTable('activity');
@@ -60,12 +61,11 @@ DEFINE TABLE IF NOT EXISTS category;
 DEFINE TABLE IF NOT EXISTS activity;
 DEFINE TABLE IF NOT EXISTS extension;
       ''');
-    await db.setMigrationAdapter(
-      version: dbVersion,
-      migrationName: 'app',
-      onMigrate: (db, from, to) async {},
-      onCreate: (db) async {},
-    );
+    final dataclass = await db.setDataClassAdapter();
+    dataclass.registerDataClass(Category.fromJson);
+    dataclass.registerDataClass(EntrySaved.fromJson);
+    dataclass.registerDataClass(Activity.fromJson);
+    dataclass.registerDataClass(ExtensionMetaData.fromJson);
     await db.setCrdtAdapter(
       tablesToSync: const {
         SyncTable(
@@ -85,12 +85,56 @@ DEFINE TABLE IF NOT EXISTS extension;
         ),
       },
     );
-    final dataclass = await db.setDataClassAdapter();
-    dataclass.registerDataClass(Category.fromJson);
-    dataclass.registerDataClass(EntrySaved.fromJson);
-    dataclass.registerDataClass(Activity.fromJson);
-    dataclass.registerDataClass(ExtensionMetaData.fromJson);
+    await db.setMigrationAdapter(
+      version: dbVersion,
+      migrationName: 'app',
+      onMigrate: (migrateDb, from, to) async {
+        if (from < 2) {
+          final adapter = db.getAdapter<DBDataClassAdapter>();
+          await _migrateBatched<Activity>(adapter, activityTable);
+          await _migrateBatched<EntrySaved>(
+            adapter,
+            entryTable,
+            fetch: 'categories',
+          );
+        }
+      },
+      onCreate: (db) async {},
+    );
     this.db = db;
+  }
+
+  Future<void> _migrateBatched<T extends DBConstClass>(
+    DBDataClassAdapter adapter,
+    DBTable table, {
+    String? fetch,
+  }) async {
+    const batchSize = 200;
+    final fetchClause = fetch == null ? '' : ' FETCH $fetch';
+    var offset = 0;
+    while (true) {
+      final batch = await adapter
+          .queryDataClasses<T>(
+            query:
+                'SELECT * FROM type::table(\$table) ORDER BY id LIMIT \$limit START \$offset$fetchClause',
+            vars: {'table': table.tb, 'limit': batchSize, 'offset': offset},
+          )
+          .toList();
+      if (batch.isEmpty) break;
+      for (final item in batch) {
+        try {
+          await adapter.save(item);
+        } catch (e, stack) {
+          logger.e(
+            'Failed to migrate ${table.tb} record',
+            error: e,
+            stackTrace: stack,
+          );
+        }
+      }
+      if (batch.length < batchSize) break;
+      offset += batchSize;
+    }
   }
 
   Future<void> init({bool inMemory = false}) async {
@@ -324,6 +368,85 @@ ORDER BY dayStr ASC
     }
 
     return result;
+  }
+
+  Future<List<EntryDuration>> getEntryDurations({int days = 365}) async {
+    final start = DateTime.now().subtract(Duration(days: days)).toUtc();
+
+    final [aggRes] = await db.query(
+      '''
+SELECT
+  entry.entry.id.uid AS uid,
+  math::sum(duration) AS total
+FROM activity
+WHERE
+  time >= \$start AND
+  duration > 0
+GROUP BY uid
+ORDER BY total DESC
+'''
+          .trim(),
+      vars: {'start': start},
+    );
+
+    if (aggRes is! List || aggRes.isEmpty) return [];
+
+    final order = <String>[];
+    final totals = <String, Duration>{};
+    for (final row in aggRes) {
+      if (row is! Map) continue;
+      final uid = row['uid'];
+      final total = row['total'];
+      if (uid is! String || total == null) continue;
+      order.add(uid);
+      totals[uid] = Duration(seconds: (total as num).toInt());
+    }
+    if (order.isEmpty) return [];
+
+    final byUid = <String, Entry>{};
+    final saved = await adapter
+        .queryDataClasses<EntrySaved>(
+          query:
+              'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids FETCH categories',
+          vars: {'entry': entryTable.tb, 'uids': order},
+        )
+        .toList();
+    for (final e in saved) {
+      byUid[e.id.uid] = e;
+    }
+
+    final missing = order.where((u) => !byUid.containsKey(u)).toList();
+    if (missing.isNotEmpty) {
+      final [actRes] = await db.query(
+        'SELECT entry, time FROM activity WHERE entry.entry.id.uid IN \$uids ORDER BY time DESC',
+        vars: {'uids': missing},
+      );
+      if (actRes is List) {
+        for (final row in actRes) {
+          if (row is! Map) continue;
+          final entryJson = row['entry'];
+          if (entryJson == null) continue;
+          try {
+            final entry = Entry.fromJson(
+              Map<String, dynamic>.from(entryJson as Map),
+            );
+            byUid.putIfAbsent(entry.id.uid, () => entry);
+          } catch (e, stack) {
+            logger.e(
+              'Failed to parse activity entry payload',
+              error: e,
+              stackTrace: stack,
+            );
+          }
+        }
+      }
+    }
+
+    return [
+      for (final uid in order)
+        if (byUid.containsKey(uid) && totals[uid] != null)
+          EntryDuration(entry: byUid[uid]!, duration: totals[uid]!),
+    ];
   }
 
   Future<EntrySaved?> getSavedById(EntryId entry) async {

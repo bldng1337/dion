@@ -591,11 +591,11 @@ class DynamicList<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item) itemBuilder;
   final Widget Function(BuildContext context, Object error, StackTrace? trace)?
   errorBuilder;
-  // final Widget Function(BuildContext context, S seperator) seperatorBuilder;
-  // final S? Function(BuildContext context, T item, T next) shouldSeperate;
   final DataSourceController<T> controller;
   final double preload;
   final bool showDataSources;
+
+  final Widget? header;
   const DynamicList({
     super.key,
     required this.itemBuilder,
@@ -603,8 +603,7 @@ class DynamicList<T> extends StatefulWidget {
     required this.controller,
     this.preload = 0.7,
     this.showDataSources = true,
-    // required this.seperatorBuilder,
-    // required this.shouldSeperate,
+    this.header,
   }) : assert(preload >= 0 && preload <= 1);
 
   @override
@@ -656,46 +655,48 @@ class _DynamicListState<T> extends State<DynamicList<T>>
   @override
   Widget build(BuildContext context) {
     loadMore();
-    return Column(
-      children: [
+    return CustomScrollView(
+      controller: controller,
+      slivers: [
+        if (widget.header != null) SliverToBoxAdapter(child: widget.header),
         if (widget.showDataSources)
-          SizedBox(
-            height: 40,
-            child: ListView(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              children: [
-                ...widget.controller.sources.map(
-                  (e) => DionBadge(
-                    color: e.name.color,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (e.isfinished)
-                          const Icon(Icons.close, size: 20).paddingAll(2),
-                        if (!e.isfinished && !e.requesting)
-                          const Icon(Icons.check, size: 20).paddingAll(2),
-                        if (e.requesting)
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: const CircularProgressIndicator(
-                              color: Colors.white70,
-                              strokeWidth: 2,
-                            ).paddingAll(2),
-                          ),
-                        Text(e.name).paddingAll(2),
-                      ],
-                    ),
-                  ).paddingHorizontal(4),
-                ),
-              ],
-            ),
-          ).paddingAll(5),
-        ListView.builder(
-          padding: EdgeInsets.zero,
-          controller: controller,
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 40,
+              child: ListView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                children: [
+                  ...widget.controller.sources.map(
+                    (e) => DionBadge(
+                      color: e.name.color,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (e.isfinished)
+                            const Icon(Icons.close, size: 20).paddingAll(2),
+                          if (!e.isfinished && !e.requesting)
+                            const Icon(Icons.check, size: 20).paddingAll(2),
+                          if (e.requesting)
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white70,
+                                strokeWidth: 2,
+                              ).paddingAll(2),
+                            ),
+                          Text(e.name).paddingAll(2),
+                        ],
+                      ),
+                    ).paddingHorizontal(4),
+                  ),
+                ],
+              ),
+            ).paddingAll(5),
+          ),
+        SliverList.builder(
           itemCount:
               widget.controller.items.length +
               (widget.controller.finished ? 0 : 1),
@@ -721,7 +722,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
               },
             );
           },
-        ).expanded(),
+        ),
       ],
     );
   }
