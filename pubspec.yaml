@@ -76,7 +76,7 @@ dependencies:
       ref: 24e95762c2d0f3441276061f7ed12bee7742dbb3
 
   # pdfx: ^2.8.0
-  # flutter_inappwebview: ^6.1.5
+  flutter_inappwebview: ^6.1.5
   # feedback: ^3.1.0
 
 dev_dependencies:

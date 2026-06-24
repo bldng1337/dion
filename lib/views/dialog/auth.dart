@@ -7,8 +7,16 @@ import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/progress.dart';
-import 'package:flutter/material.dart' show Icons, FocusNode, TextInputType;
+import 'package:flutter/material.dart'
+    show
+        Dialog,
+        FocusNode,
+        IconButton,
+        Icons,
+        LinearProgressIndicator,
+        TextInputType;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:rhttp/rhttp.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -23,8 +31,7 @@ class AuthDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return account.authData.when(
-      cookie: (loginpage, logonpage) =>
-          UnsupportedAuthDialog(account: account, authType: 'Cookie'),
+      cookie: (loginpage, logonpage) => CookieAuthDialog(account: account),
       apiKey: () => ApiKeyAuthDialog(account: account),
       userPass: () => UserPassAuthDialog(account: account),
       oAuth: (authorizationUrl, tokenUrl, clientId, clientSecret, scope) =>
@@ -492,6 +499,181 @@ class UnsupportedAuthDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(null),
         ),
       ],
+    );
+  }
+}
+
+class CookieAuthDialog extends StatefulWidget {
+  final Account account;
+  const CookieAuthDialog({super.key, required this.account});
+
+  @override
+  State<CookieAuthDialog> createState() => _CookieAuthDialogState();
+}
+
+class _CookieAuthDialogState extends State<CookieAuthDialog> {
+  late final rust.AuthData_Cookie _authData;
+  WebViewEnvironment? _webViewEnvironment;
+  bool _environmentReady = false;
+  bool _processing = false;
+  int _progress = 0;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final authData = widget.account.authData;
+    _authData = authData is rust.AuthData_Cookie
+        ? authData
+        : const rust.AuthData_Cookie(loginpage: '', logonpage: '');
+    _initEnvironment();
+  }
+
+  Future<void> _initEnvironment() async {
+    // A WebViewEnvironment is required on Windows (WebView2). On Android/iOS
+    // it is unsupported, so we fall back to the platform default there.
+    try {
+      _webViewEnvironment = await WebViewEnvironment.create();
+    } catch (_) {
+      _webViewEnvironment = null;
+    }
+    if (mounted) setState(() => _environmentReady = true);
+  }
+
+  @override
+  void dispose() {
+    _webViewEnvironment?.dispose();
+    super.dispose();
+  }
+
+  bool _isLogonPage(WebUri url) {
+    final current = Uri.tryParse(url.toString());
+    final target = Uri.tryParse(_authData.logonpage);
+    if (current == null || target == null) {
+      return url.toString().startsWith(_authData.logonpage);
+    }
+    return current.host == target.host && current.path == target.path;
+  }
+
+  Future<void> _onLoadStop(
+    InAppWebViewController controller,
+    WebUri? url,
+  ) async {
+    if (_processing || url == null || !_isLogonPage(url)) return;
+    setState(() {
+      _processing = true;
+      _error = null;
+    });
+
+    try {
+      final cookieManager = CookieManager.instance(
+        webViewEnvironment: _webViewEnvironment,
+      );
+      final Map<String, List<String>> cookies = {};
+      for (final page in [_authData.loginpage, _authData.logonpage]) {
+        if (page.isEmpty) continue;
+        final pageCookies = await cookieManager.getCookies(url: WebUri(page));
+        for (final cookie in pageCookies) {
+          final name = cookie.name;
+          final value = cookie.value;
+          final valueStr = value == null ? '' : value.toString();
+          final list = cookies.putIfAbsent(name, () => <String>[]);
+          if (!list.contains(valueStr)) list.add(valueStr);
+        }
+      }
+
+      if (!mounted) return;
+      if (cookies.isEmpty) {
+        setState(() {
+          _error = 'No cookies were set after signing in.';
+          _processing = false;
+        });
+        return;
+      }
+
+      Navigator.of(context).pop(rust.AuthCreds.cookies(cookies: cookies));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to retrieve cookies: $e';
+        _processing = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return Dialog(
+      insetPadding: EdgeInsets.zero,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(3)),
+      ),
+      child: SizedBox(
+        width: size.width * 0.85,
+        height: size.height * 0.85,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 4, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Sign in', style: context.titleLarge),
+                        Text(widget.account.domain, style: context.bodySmall),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            if (_environmentReady && _progress > 0 && _progress < 100)
+              LinearProgressIndicator(value: _progress / 100),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  _error!,
+                  style: context.bodySmall?.copyWith(
+                    color: context.theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            Expanded(
+              child: !_environmentReady
+                  ? const Center(child: DionProgressBar())
+                  : Stack(
+                      children: [
+                        InAppWebView(
+                          webViewEnvironment: _webViewEnvironment,
+                          initialUrlRequest: URLRequest(
+                            url: WebUri(_authData.loginpage),
+                          ),
+                          onProgressChanged: (controller, progress) =>
+                              setState(() => _progress = progress),
+                          onLoadStop: _onLoadStop,
+                          onReceivedError: (controller, request, error) {
+                            if (request.isForMainFrame == true) {
+                              setState(() => _error = error.description);
+                            }
+                          },
+                        ),
+                        if (_processing) const Center(child: DionProgressBar()),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
