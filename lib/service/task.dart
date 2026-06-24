@@ -93,6 +93,7 @@ abstract class Task extends ChangeNotifier {
   set progress(double? value) {
     _progress = value;
     notifyListeners();
+    locate<TaskManager>().notifyListeners();
   }
 
   TaskStatus get taskstatus {

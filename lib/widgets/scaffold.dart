@@ -5,7 +5,6 @@ import 'package:dionysos/utils/platform.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/widgets/dialog.dart';
-import 'package:dionysos/widgets/progress.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -29,11 +28,17 @@ class _JobIndicator extends StatelessWidget {
         .toList();
   }
 
+  double? _overallProgress(List<Task> tasks) {
+    final measured = tasks
+        .where((task) => task.running && task.progress != null)
+        .map((task) => task.progress!)
+        .toList();
+    if (measured.isEmpty) return null;
+    return measured.fold<double>(0, (a, b) => a + b) / measured.length;
+  }
+
   void _showJobListPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const _JobListPopup(),
-    );
+    showDialog(context: context, builder: (context) => const _JobListPopup());
   }
 
   @override
@@ -42,67 +47,97 @@ class _JobIndicator extends StatelessWidget {
       listenable: locate<TaskManager>(),
       builder: (context, child) {
         final tasks = _getActiveTasks();
-        final hasRunningTasks = tasks.any((task) => task.running);
-        final hasErrorTasks = tasks.any((task) => task.error != null);
+        final runningCount = tasks.where((task) => task.running).length;
+        final errorCount = tasks.where((task) => task.error != null).length;
+        final hasRunning = runningCount > 0;
+        final hasError = errorCount > 0;
 
-        IconData iconData;
-        Color? iconColor;
+        final primaryAccent = context.isDarkMode
+            ? DionColors.primary
+            : DionColors.primaryDark;
+        final Color accent = hasError
+            ? DionColors.error
+            : (hasRunning ? primaryAccent : context.textTertiary);
+        final progress = _overallProgress(tasks);
 
-        if (hasErrorTasks) {
-          iconData = Icons.error_outline;
-          iconColor = DionColors.error;
-        } else if (hasRunningTasks || tasks.isNotEmpty) {
-          iconData = Icons.sync;
-          iconColor = context.isDarkMode ? DionColors.primary : DionColors.primaryDark;
-        } else {
-          iconData = Icons.pending_actions_outlined;
-          iconColor = context.textSecondary;
-        }
+        final String tooltip = tasks.isEmpty
+            ? 'No active tasks'
+            : hasError
+            ? '$errorCount failed · ${tasks.length} total'
+            : hasRunning
+            ? '$runningCount running · ${tasks.length} total'
+            : '${tasks.length} queued';
 
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _showJobListPopup(context),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.all(DionSpacing.sm),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    iconData,
-                    color: iconColor,
-                    size: 24,
-                  ),
-                  if (tasks.isNotEmpty)
-                    Positioned(
-                      right: -4,
-                      top: -4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
+        return Tooltip(
+          message: tooltip,
+          waitDuration: const Duration(milliseconds: 500),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _showJobListPopup(context),
+              borderRadius: BorderRadius.circular(20),
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Tinted background disc.
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(
+                          alpha: tasks.isEmpty ? 0.06 : 0.12,
                         ),
-                        decoration: BoxDecoration(
-                          color: hasErrorTasks
-                              ? DionColors.error
-                              : (hasRunningTasks
-                                  ? DionColors.primary
-                                  : context.textSecondary),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          tasks.length.toString(),
-                          style: DionTypography.labelSmall(Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
+                        shape: BoxShape.circle,
                       ),
                     ),
-                ],
+                    // Progress ring around the button.
+                    if (hasRunning)
+                      SizedBox(
+                        width: 38,
+                        height: 38,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 2.5,
+                          strokeCap: StrokeCap.round,
+                          color: accent,
+                          backgroundColor: accent.withValues(alpha: 0.15),
+                        ),
+                      ),
+                    Icon(Icons.checklist_rounded, size: 18, color: accent),
+                    if (tasks.isNotEmpty)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accent,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              width: 1.5,
+                            ),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            tasks.length.toString(),
+                            style: DionTypography.labelSmall(Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -124,78 +159,137 @@ class _JobListPopup extends StatelessWidget {
         .toList();
   }
 
+  double? _overallProgress(List<Task> tasks) {
+    final measured = tasks
+        .where((task) => task.running && task.progress != null)
+        .map((task) => task.progress!)
+        .toList();
+    if (measured.isEmpty) return null;
+    return measured.fold<double>(0, (a, b) => a + b) / measured.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: locate<TaskManager>(),
       builder: (context, child) {
         final tasks = _getActiveTasks();
+        final runningCount = tasks.where((task) => task.running).length;
+        final errorCount = tasks.where((task) => task.error != null).length;
+        final hasRunning = runningCount > 0;
+        final hasError = errorCount > 0;
+
+        final primaryAccent = context.isDarkMode
+            ? DionColors.primary
+            : DionColors.primaryDark;
+        final Color accent = hasError
+            ? DionColors.error
+            : (hasRunning ? primaryAccent : context.textTertiary);
+        final progress = _overallProgress(tasks);
+
+        final String subtitle = tasks.isEmpty
+            ? 'Nothing running'
+            : hasError
+            ? '$errorCount failed · ${tasks.length} total'
+            : hasRunning
+            ? '$runningCount running · ${tasks.length} total'
+            : '${tasks.length} queued';
 
         return DionDialog(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 400,
-              maxHeight: 500,
-            ),
+            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 560),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(DionSpacing.lg),
+                  padding: const EdgeInsets.fromLTRB(
+                    DionSpacing.lg,
+                    DionSpacing.lg,
+                    DionSpacing.sm,
+                    DionSpacing.md,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.task_alt),
-                      const SizedBox(width: DionSpacing.sm),
-                      Text(
-                        'Active Jobs',
-                        style: DionTypography.titleLarge(context.textPrimary),
-                      ),
-                      const Spacer(),
-                      if (tasks.isNotEmpty)
-                        Text(
-                          '${tasks.length} task${tasks.length != 1 ? 's' : ''}',
-                          style: DionTypography.bodySmall(context.textSecondary),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
                         ),
+                        child: Icon(
+                          Icons.checklist_rounded,
+                          size: 20,
+                          color: accent,
+                        ),
+                      ),
+                      const SizedBox(width: DionSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Tasks',
+                              style: DionTypography.titleMedium(
+                                context.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              subtitle,
+                              style: DionTypography.bodySmall(
+                                context.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        tooltip: 'Close',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
                     ],
                   ),
                 ),
+                if (hasRunning)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      DionSpacing.lg,
+                      0,
+                      DionSpacing.lg,
+                      DionSpacing.md,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: DionRadius.small,
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 4,
+                        color: accent,
+                        backgroundColor: accent.withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
                 const Divider(height: 1),
                 Flexible(
                   child: tasks.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(DionSpacing.xxl),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.check_circle_outline,
-                                  size: 48,
-                                  color: context.textTertiary,
-                                ),
-                                const SizedBox(height: DionSpacing.md),
-                                Text(
-                                  'No active jobs',
-                                  style: DionTypography.bodyMedium(
-                                    context.textTertiary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
+                      ? const _JobEmptyState()
                       : ListView.separated(
                           shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(
-                            vertical: DionSpacing.md,
+                            vertical: DionSpacing.sm,
                           ),
                           itemCount: tasks.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(height: 1, indent: DionSpacing.lg),
-                          itemBuilder: (context, index) {
-                            final task = tasks[index];
-                            return _TaskListItem(task: task);
-                          },
+                          separatorBuilder: (context, index) => Divider(
+                            height: 1,
+                            indent: DionSpacing.lg,
+                            endIndent: DionSpacing.lg,
+                            color: context.dionDivider,
+                          ),
+                          itemBuilder: (context, index) =>
+                              _TaskListItem(task: tasks[index]),
                         ),
                 ),
               ],
@@ -207,6 +301,48 @@ class _JobListPopup extends StatelessWidget {
   }
 }
 
+class _JobEmptyState extends StatelessWidget {
+  const _JobEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.xxl,
+        vertical: DionSpacing.xxl,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: DionColors.success.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 30,
+              color: DionColors.success,
+            ),
+          ),
+          const SizedBox(height: DionSpacing.md),
+          Text(
+            'All caught up',
+            style: DionTypography.titleSmall(context.textPrimary),
+          ),
+          const SizedBox(height: DionSpacing.xs),
+          Text(
+            'No active tasks right now',
+            style: DionTypography.bodySmall(context.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TaskListItem extends StatelessWidget {
   final Task task;
 
@@ -214,31 +350,39 @@ class _TaskListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasError = task.error != null;
-    final isRunning = task.running;
-
     return ListenableBuilder(
       listenable: task,
       builder: (context, child) {
+        final hasError = task.error != null;
+        final isRunning = task.running;
+        final hasProgress = task.progress != null;
+
+        final primaryAccent = context.isDarkMode
+            ? DionColors.primary
+            : DionColors.primaryDark;
+        final Color accent = hasError
+            ? DionColors.error
+            : (isRunning ? primaryAccent : context.textTertiary);
+
         return Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: DionSpacing.lg,
-            vertical: DionSpacing.sm,
+            vertical: DionSpacing.md,
           ),
           child: Row(
             children: [
-              Icon(
-                hasError
-                    ? Icons.error_outline
-                    : (isRunning ? Icons.sync : Icons.pending),
-                size: 20,
-                color: hasError
-                    ? DionColors.error
-                    : (isRunning
-                        ? DionColors.primary
-                        : context.textSecondary),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: _TaskStatusGlyph(
+                  hasError: hasError,
+                  isRunning: isRunning,
+                  hasProgress: hasProgress,
+                  progress: task.progress,
+                  accent: accent,
+                ),
               ),
-              const SizedBox(width: DionSpacing.sm),
+              const SizedBox(width: DionSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,38 +394,76 @@ class _TaskListItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (task.status.isNotEmpty || hasError)
+                    if (task.status.isNotEmpty || hasError) ...[
+                      const SizedBox(height: 2),
                       Text(
-                        hasError
-                            ? 'Error: ${task.error.toString()}'
-                            : task.status,
+                        hasError ? task.error.toString() : task.status,
                         style: DionTypography.bodySmall(
                           hasError ? DionColors.error : context.textSecondary,
                         ),
-                        maxLines: 1,
+                        maxLines: hasError ? 2 : 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(width: DionSpacing.sm),
-              if (task.progress != null || isRunning)
-                SizedBox(
-                  width: 60,
-                  height: 20,
-                  child: DionProgressBar(
-                    value: task.progress,
-                    type: DionProgressType.linear,
-                    color: hasError
-                        ? DionColors.error
-                        : DionColors.primary,
-                  ),
+              if (isRunning)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  tooltip: 'Cancel task',
+                  visualDensity: VisualDensity.compact,
+                  color: context.textTertiary,
+                  onPressed: task.cancel,
                 ),
             ],
           ),
         );
       },
     );
+  }
+}
+
+class _TaskStatusGlyph extends StatelessWidget {
+  final bool hasError;
+  final bool isRunning;
+  final bool hasProgress;
+  final double? progress;
+  final Color accent;
+
+  const _TaskStatusGlyph({
+    required this.hasError,
+    required this.isRunning,
+    required this.hasProgress,
+    required this.progress,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (hasError) {
+      return Icon(Icons.error_outline, size: 22, color: accent);
+    }
+    if (isRunning) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              value: hasProgress ? progress : null,
+              strokeWidth: 2,
+              strokeCap: StrokeCap.round,
+              color: accent,
+              backgroundColor: accent.withValues(alpha: 0.15),
+            ),
+          ),
+          Icon(Icons.play_arrow, size: 9, color: accent),
+        ],
+      );
+    }
+    return Icon(Icons.hourglass_empty, size: 20, color: accent);
   }
 }
 
