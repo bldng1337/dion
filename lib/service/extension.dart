@@ -827,6 +827,18 @@ class ExtensionService with ChangeNotifier {
   }
 
   Future<RemoteExtensionRepo> getRepo(String url) async {
+    if(url.contains('index.repo.json')) {
+      final adapter = _adapters['dion'];
+      if (adapter != null) {
+        return await adapter.getRepo(url);
+      }
+    }
+    if(url.contains('index.min.json')){
+      final adapter = _adapters['mihon'];
+      if (adapter != null) {
+        return await adapter.getRepo(url);
+      }
+    }
     for (final adapter in _adapters.values) {
       try {
         return await adapter.getRepo(url);
