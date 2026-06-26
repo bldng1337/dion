@@ -39,6 +39,7 @@ class _SettingFontState extends State<SettingFont> {
       ),
     );
     SystemFonts().loadAllFonts().then((fonts) {
+      if (!mounted) return;
       this.fonts.addAll(
         fonts.map((font) => Font(name: font, type: FontType.system)),
       );
