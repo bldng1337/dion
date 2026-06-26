@@ -19,7 +19,7 @@ import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moment_dart/moment_dart.dart';
@@ -111,29 +111,64 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
 
   @override
   Widget render(BuildContext context) {
+    final Entry entry = savedentry ?? activity.entry;
+    final action = switch (entry.mediaType) {
+      MediaType.audio => 'Listened to',
+      MediaType.video => 'Watched',
+      MediaType.book => 'Read',
+      MediaType.comic => 'Read',
+      _ => 'Consumed',
+    };
     if (extension == null) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: DionContainer(
-          color: context.theme.colorScheme.errorContainer.withValues(
-            alpha: 0.08,
-          ),
-          borderColor: context.theme.colorScheme.error.withValues(alpha: 0.15),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: DionContainer(
+            color: context.theme.colorScheme.surfaceContainer,
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  color: context.theme.colorScheme.error.withOpacity(0.85),
-                  size: 22,
-                ).paddingOnly(right: 12),
+                // Cover Image
+                if (entry.cover != null) _ActivityCover(entry: entry),
+
+                // Content
                 Expanded(
-                  child: Text(
-                    'Unknown extension — content details unavailable',
-                    style: context.bodyMedium?.copyWith(
-                      color: context.theme.colorScheme.error.withOpacity(0.9),
-                      fontSize: 13.5,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Text(
+                          entry.title.trim(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.2,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _ActivityMetadata(
+                          activity: activity,
+                          extensionName: null,
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Action & Episode Info
+                        Text(
+                          (activity.fromepisode == activity.toepisode)
+                              ? '$action episode ${activity.fromepisode}'
+                              : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
+                          style: context.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: context.theme.colorScheme.onSurface
+                                .withOpacity(0.85),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -143,15 +178,6 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
         ),
       );
     }
-
-    final Entry entry = savedentry ?? activity.entry;
-    final action = switch (entry.mediaType) {
-      MediaType.audio => 'Listened to',
-      MediaType.video => 'Watched',
-      MediaType.book => 'Read',
-      MediaType.comic => 'Read',
-      _ => 'Consumed',
-    };
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
@@ -257,7 +283,7 @@ class _ActivityCover extends StatelessWidget {
 
 class _ActivityMetadata extends StatelessWidget {
   final EpisodeActivity activity;
-  final String extensionName;
+  final String? extensionName;
 
   const _ActivityMetadata({
     required this.activity,
@@ -279,7 +305,13 @@ class _ActivityMetadata extends StatelessWidget {
           ),
           width,
         ),
-        _buildMetaItem(context, Icons.extension_outlined, extensionName, width),
+        _buildMetaItem(
+          context,
+          Icons.extension_outlined,
+          extensionName ?? 'Extension not found',
+          width,
+          color: extensionName == null ? Colors.redAccent : null,
+        ),
         _buildMetaItem(
           context,
           Icons.access_time,
@@ -294,20 +326,22 @@ class _ActivityMetadata extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String text,
-    double width,
-  ) {
+    double width, {
+    Color? color,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
           size: 13,
-          color: context.theme.colorScheme.onSurface.withOpacity(0.45),
+          color: color ?? context.theme.colorScheme.onSurface.withOpacity(0.45),
         ).paddingOnly(right: width < 500 ? 2.5 : 4),
         Text(
           text,
           style: context.labelSmall?.copyWith(
-            color: context.theme.colorScheme.onSurface.withOpacity(0.5),
+            color:
+                color ?? context.theme.colorScheme.onSurface.withOpacity(0.5),
             fontSize: 11.5,
             letterSpacing: 0.1,
           ),
