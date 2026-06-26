@@ -166,6 +166,16 @@ final settings = (
       <String>[],
       const StringListMetaData('extension.repositories'),
     )..addCollection(preferenceCollection),
+    autoUpdate: (
+      enabled: Setting(
+        true,
+        const PreferenceBoolMetaData('extension.autoupdate.enabled'),
+      )..addCollection(preferenceCollection),
+      interval: Setting(
+        24,
+        const PreferenceIntMetaData('extension.autoupdate.interval'),
+      )..addCollection(preferenceCollection),
+    ),
   ),
   library: (
     showAllTab: Setting(false, const PreferenceBoolMetaData('library.showall'))

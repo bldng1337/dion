@@ -1,8 +1,11 @@
 import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/settings/setting_numberbox.dart';
 import 'package:dionysos/widgets/settings/setting_stringlist.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
+import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/widgets.dart';
 
 class ExtensionSettings extends StatelessWidget {
@@ -22,6 +25,22 @@ class ExtensionSettings extends StatelessWidget {
                 setting: settings.extension.repositories,
                 title: 'Repository URLs',
               ),
+            ],
+          ),
+          SettingTitle(
+            title: 'Auto-Update',
+            subtitle: 'Periodically check for extension updates',
+            children: [
+              SettingToggle(
+                title: 'Enable Auto-Update',
+                description: 'Check repositories for newer extension versions',
+                setting: settings.extension.autoUpdate.enabled,
+              ),
+              SettingNumberbox<int>(
+                title: 'Check Interval',
+                description: 'Hours between checks',
+                setting: settings.extension.autoUpdate.interval,
+              ).conditional(settings.extension.autoUpdate.enabled),
             ],
           ),
         ],

@@ -5,6 +5,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/notification.dart';
 import 'package:dionysos/service/player.dart';
@@ -113,6 +114,12 @@ class LoadingView extends StatelessWidget {
           'AutoRefreshService',
           () async {
             await AutoRefreshService.ensureInitialized();
+          },
+        ),
+        (
+          'Setting up Extension Update Service',
+          () async {
+            await ExtensionUpdateService.ensureInitialized();
           },
         ),
         (

@@ -4,9 +4,11 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart' as src;
+import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
@@ -23,13 +25,14 @@ import 'package:flutter/material.dart'
         Colors,
         DropdownButton,
         DropdownMenuItem,
+        FilterChip,
         Icons,
         TextButton,
         TextField,
         showDialog;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pub_semver/pub_semver.dart';
 
 class ExtensionManager extends StatefulWidget {
   const ExtensionManager({super.key});
@@ -41,59 +44,6 @@ class ExtensionManager extends StatefulWidget {
 class _ExtensionManagerState extends State<ExtensionManager> {
   bool loading = false;
   Object? error;
-  final ValueNotifier<Map<String, src.RemoteExtension>> updates = ValueNotifier(
-    {},
-  );
-  bool checkingUpdates = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkForUpdates();
-  }
-
-  Future<void> _checkForUpdates() async {
-    if (checkingUpdates) return;
-    setState(() {
-      checkingUpdates = true;
-    });
-    final sourceExt = locate<src.ExtensionService>();
-    final repos = settings.extension.repositories.value;
-    final installed = sourceExt.getExtensions();
-    final installedIds = installed.map((e) => e.id).toSet();
-    final Map<String, src.RemoteExtension> foundUpdates = {};
-
-    for (final repoUrl in repos) {
-      try {
-        final repo = await sourceExt.getRepo(repoUrl);
-        int page = 1;
-        bool hasNext = true;
-        while (hasNext) {
-          final res = await repo.browse(page: page);
-          for (final remote in res) {
-            if (installedIds.contains(remote.id)) {
-              final inst = installed.firstWhere((e) => e.id == remote.id);
-              if (Version.parse(remote.version) > inst.version) {
-                foundUpdates[remote.id] = remote;
-              }
-            }
-          }
-          if (res.isEmpty) hasNext = false;
-          page++;
-          if (page > 5) break; // Limit to 5 pages per repo for update check
-        }
-      } catch (e) {
-        logger.e('Update check failed for $repoUrl', error: e);
-      }
-    }
-
-    updates.value = foundUpdates;
-    if (mounted) {
-      setState(() {
-        checkingUpdates = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,12 +80,21 @@ class _ExtensionManagerState extends State<ExtensionManager> {
     return NavScaff(
       title: const DionTextScroll('Manage Extensions'),
       actions: [
-        DionIconbutton(
-          tooltip: 'Check for Updates',
-          onPressed: _checkForUpdates,
-          icon: checkingUpdates
-              ? const SizedBox(width: 20, height: 20, child: DionProgressBar())
-              : const Icon(Icons.update),
+        ValueListenableBuilder<bool>(
+          valueListenable: locate<ExtensionUpdateService>().checking,
+          builder: (context, checking, _) => DionIconbutton(
+            tooltip: 'Check for Updates',
+            onPressed: checking
+                ? null
+                : () => locate<ExtensionUpdateService>().checkNow(),
+            icon: checking
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: DionProgressBar(),
+                  )
+                : const Icon(Icons.update),
+          ),
         ),
         DionIconbutton(
           tooltip: 'Refresh Installed',
@@ -161,32 +120,8 @@ class _ExtensionManagerState extends State<ExtensionManager> {
         DionIconbutton(
           tooltip: 'Add Repository',
           onPressed: () async {
-            final controller = TextEditingController();
-            final res = await showDialog<String>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Add Repository'),
-                content: TextField(
-                  controller: controller,
-                  // decoration: const InputDecoration(hintText: 'https://...'),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, controller.text),
-                    child: const Text('Add'),
-                  ),
-                ],
-              ),
-            );
-            if (res != null && res.isNotEmpty) {
-              settings.extension.repositories.value = [
-                ...settings.extension.repositories.value,
-                res,
-              ];
+            await showAddRepositoryDialog(context);
+            if (mounted) {
               setState(() {});
             }
           },
@@ -228,11 +163,11 @@ class _ExtensionManagerState extends State<ExtensionManager> {
       child: DionTabBar(
         tabs: [
           DionTab(
-            child: ExtensionList(updates: updates),
+            child: const ExtensionList(),
             tab: const Text('Installed').paddingAll(6),
           ),
           DionTab(
-            child: const ExtensionRepoBrowser(),
+            child: const ExtensionCatalog(),
             tab: const Text('Available').paddingAll(6),
           ),
         ],
@@ -242,12 +177,12 @@ class _ExtensionManagerState extends State<ExtensionManager> {
 }
 
 class ExtensionList extends StatelessWidget {
-  final ValueNotifier<Map<String, src.RemoteExtension>> updates;
-  const ExtensionList({super.key, required this.updates});
+  const ExtensionList({super.key});
 
   @override
   Widget build(BuildContext context) {
     final sourceExt = locate<src.ExtensionService>();
+    final updateService = locate<ExtensionUpdateService>();
     return ListenableBuilder(
       listenable: sourceExt,
       builder: (context, child) {
@@ -258,8 +193,8 @@ class ExtensionList extends StatelessWidget {
         if (exts.isEmpty) {
           return const Center(child: Text('No extensions installed'));
         }
-        return ValueListenableBuilder(
-          valueListenable: updates,
+        return ValueListenableBuilder<Map<String, src.RemoteExtension>>(
+          valueListenable: updateService.updates,
           builder: (context, updateMap, _) {
             return ListView.builder(
               itemCount: exts.length,
@@ -322,9 +257,7 @@ class ExtensionList extends StatelessWidget {
                             ),
                             onPressed: () async {
                               await update.install();
-                              updates.value = {
-                                ...updates.value..remove(ext.id),
-                              };
+                              updateService.markUpdated(ext.id);
                             },
                           ),
                         DionIconbutton(
@@ -348,45 +281,93 @@ class ExtensionList extends StatelessWidget {
   }
 }
 
-class ExtensionRepoBrowser extends StatefulWidget {
-  const ExtensionRepoBrowser({super.key});
+class _ResolvedRepo {
+  final String url;
+  final src.RemoteExtensionRepo repo;
+  _ResolvedRepo(this.url, this.repo);
 
-  @override
-  State<ExtensionRepoBrowser> createState() => _ExtensionRepoBrowserState();
+  String get sourceType => repo.adapter.name;
 }
 
-class _ExtensionRepoBrowserState extends State<ExtensionRepoBrowser> {
-  String? selectedRepo;
-  DataSourceController<src.RemoteExtension>? controller;
+class ExtensionCatalog extends StatefulWidget {
+  const ExtensionCatalog({super.key});
+
+  @override
+  State<ExtensionCatalog> createState() => _ExtensionCatalogState();
+}
+
+class _ExtensionCatalogState extends State<ExtensionCatalog>
+    with StateDisposeScopeMixin {
+  List<_ResolvedRepo>? _resolved;
+
+  String? _selectedRepoUrl;
+
+  String? _selectedSourceType;
+
+  bool _updatesOnly = false;
+
+  DataSourceController<src.RemoteExtension>? _controller;
 
   @override
   void initState() {
     super.initState();
-    _initRepo();
+    _resolveRepos();
   }
 
-  void _initRepo() {
+  Future<void> _resolveRepos() async {
     final repos = settings.extension.repositories.value;
-    if (repos.isNotEmpty) {
-      selectedRepo = repos.first;
-      _updateController();
+    final sourceExt = locate<src.ExtensionService>();
+    final resolved = <_ResolvedRepo>[];
+    for (final url in repos) {
+      try {
+        resolved.add(_ResolvedRepo(url, await sourceExt.getRepo(url)));
+      } catch (e) {
+        logger.e('Failed to load repo $url', error: e);
+      }
     }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _resolved = resolved;
+      if (_selectedRepoUrl != null &&
+          !resolved.any((r) => r.url == _selectedRepoUrl)) {
+        _selectedRepoUrl = null;
+      }
+      _rebuildController();
+    });
   }
 
-  Future<void> _updateController() async {
-    if (selectedRepo == null) return;
-    final sourceExt = locate<src.ExtensionService>();
-    try {
-      final repo = await sourceExt.getRepo(selectedRepo!);
-      final dataSource = sourceExt.getRepoDataSources(repo);
-      if (mounted) {
-        setState(() {
-          controller = DataSourceController(dataSource);
-        });
-      }
-    } catch (e) {
-      logger.e('Failed to load repo $selectedRepo', error: e);
+  void _rebuildController() {
+    final resolved = _resolved;
+    if (resolved == null || resolved.isEmpty || _updatesOnly) {
+      _controller = null;
+      return;
     }
+    final effective = effectiveRepos(resolved);
+    if (effective.isEmpty) {
+      _controller = null;
+      return;
+    }
+    final sources = effective.map((r) {
+      final source = r.repo.adapter.getRepoDataSource(r.repo.data);
+      source.name = r.repo.data.name.isNotEmpty ? r.repo.data.name : r.url;
+      return source;
+    }).toList();
+    _controller = DataSourceController<src.RemoteExtension>(sources);
+  }
+
+  List<_ResolvedRepo> effectiveRepos(List<_ResolvedRepo> resolved) {
+    return resolved.where((r) {
+      final matchesRepo = _selectedRepoUrl == null || r.url == _selectedRepoUrl;
+      final matchesSource =
+          _selectedSourceType == null || r.sourceType == _selectedSourceType;
+      return matchesRepo && matchesSource;
+    }).toList();
+  }
+
+  void _applyFilter() {
+    setState(_rebuildController);
   }
 
   @override
@@ -400,8 +381,11 @@ class _ExtensionRepoBrowserState extends State<ExtensionRepoBrowser> {
             const Text('No repositories configured'),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () {
-                _showAddRepoDialog();
+              onPressed: () async {
+                await showAddRepositoryDialog(context);
+                if (mounted) {
+                  _resolveRepos();
+                }
               },
               child: const Text('Add Repository'),
             ),
@@ -410,92 +394,152 @@ class _ExtensionRepoBrowserState extends State<ExtensionRepoBrowser> {
       );
     }
 
+    final resolved = _resolved;
+    if (resolved == null) {
+      return const Center(child: DionProgressBar());
+    }
+
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              if (repos.length > 1)
-                Expanded(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: selectedRepo,
-                    items: repos
-                        .map(
-                          (url) =>
-                              DropdownMenuItem(value: url, child: Text(url)),
-                        )
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        selectedRepo = val;
-                        _updateController();
-                      });
-                    },
-                  ),
-                )
-              else
-                Expanded(
-                  child: Text(
-                    selectedRepo ?? '',
-                    style: context.bodyMedium,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              DionIconbutton(
-                tooltip: 'Refresh Repository',
-                icon: const Icon(Icons.refresh),
-                onPressed: _updateController,
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: controller == null
-              ? const Center(child: DionProgressBar())
-              : DynamicList<src.RemoteExtension>(
-                  showDataSources: false,
-                  controller: controller!,
-                  itemBuilder: (context, item) =>
-                      RemoteExtensionTile(extension: item),
-                ),
-        ),
+        _buildFilterBar(resolved),
+        Expanded(child: _buildBody(resolved)),
       ],
     );
   }
 
-  Future<void> _showAddRepoDialog() async {
-    final controller = TextEditingController();
-    final res = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Repository'),
-        content: TextField(
-          controller: controller,
-          // decoration: const InputDecoration(hintText: 'https://...'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+  Widget _buildFilterBar(List<_ResolvedRepo> resolved) {
+    final sourceTypes = resolved.map((r) => r.sourceType).toSet().toList();
+    final updateService = locate<ExtensionUpdateService>();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButton<String?>(
+                  isExpanded: true,
+                  value: _selectedRepoUrl,
+                  hint: const Text('All repositories'),
+                  items: [
+                    // value omitted -> null, meaning "all repositories"
+                    const DropdownMenuItem<String?>(
+                      child: Text('All repositories'),
+                    ),
+                    ...resolved.map(
+                      (r) => DropdownMenuItem<String?>(
+                        value: r.url,
+                        child: Text(
+                          r.repo.data.name.isNotEmpty
+                              ? r.repo.data.name
+                              : r.url,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    _selectedRepoUrl = val;
+                    _applyFilter();
+                  },
+                ),
+              ),
+              DionIconbutton(
+                tooltip: 'Refresh Repositories',
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  setState(() {
+                    _resolved = null;
+                  });
+                  _resolveRepos();
+                },
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Add'),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ValueListenableBuilder<Map<String, src.RemoteExtension>>(
+              valueListenable: updateService.updates,
+              builder: (context, updateMap, _) {
+                final updateCount = updateMap.length;
+                return Row(
+                  children: [
+                    for (final type in sourceTypes)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: FilterChip(
+                          label: Text(type),
+                          selected: _selectedSourceType == type,
+                          onSelected: (selected) {
+                            _selectedSourceType = selected ? type : null;
+                            _applyFilter();
+                          },
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: FilterChip(
+                        label: Text(
+                          updateCount > 0
+                              ? 'Updates ($updateCount)'
+                              : 'Updates',
+                        ),
+                        selected: _updatesOnly,
+                        onSelected: (selected) {
+                          setState(() {
+                            _updatesOnly = selected;
+                            _rebuildController();
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
     );
-    if (res != null && res.isNotEmpty) {
-      settings.extension.repositories.value = [
-        ...settings.extension.repositories.value,
-        res,
-      ];
-      setState(() {
-        _initRepo();
-      });
+  }
+
+  Widget _buildBody(List<_ResolvedRepo> resolved) {
+    if (_updatesOnly) {
+      return _buildUpdatesList();
     }
+    final controller = _controller;
+    if (controller == null) {
+      return const Center(child: Text('No extensions found'));
+    }
+    return DynamicList<src.RemoteExtension>(
+      key: ValueKey('$_selectedRepoUrl|$_selectedSourceType'),
+      showDataSources: false,
+      controller: controller,
+      itemBuilder: (context, item) => RemoteExtensionTile(extension: item),
+    );
+  }
+
+  Widget _buildUpdatesList() {
+    final updateService = locate<ExtensionUpdateService>();
+    return ValueListenableBuilder<Map<String, src.RemoteExtension>>(
+      valueListenable: updateService.updates,
+      builder: (context, updateMap, _) {
+        var entries = updateMap.values.toList();
+        if (_selectedSourceType != null) {
+          entries = entries
+              .where((e) => e.adapter.name == _selectedSourceType)
+              .toList();
+        }
+        if (entries.isEmpty) {
+          return const Center(child: Text('No updates available'));
+        }
+        return ListView.builder(
+          itemCount: entries.length,
+          itemBuilder: (context, i) =>
+              RemoteExtensionTile(extension: entries[i]),
+        );
+      },
+    );
   }
 }
 
@@ -506,13 +550,14 @@ class RemoteExtensionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sourceExt = locate<src.ExtensionService>();
+    final updateService = locate<ExtensionUpdateService>();
     return ListenableBuilder(
       listenable: sourceExt,
       builder: (context, _) {
         final installed = sourceExt.tryGetExtension(extension.id);
         final canUpdate =
             installed != null &&
-            Version.parse(extension.version) > installed.version;
+            parseVersion(extension.version) > installed.version;
 
         return DionListTile(
           leading: SizedBox(
@@ -531,17 +576,53 @@ class RemoteExtensionTile extends StatelessWidget {
               ? DionIconbutton(
                   tooltip: 'Install',
                   icon: const Icon(Icons.download),
-                  onPressed: () => extension.install(),
+                  onPressed: () async {
+                    await extension.install();
+                    updateService.markUpdated(extension.id);
+                  },
                 )
               : canUpdate
               ? DionIconbutton(
                   tooltip: 'Update',
                   icon: const Icon(Icons.update),
-                  onPressed: () => extension.install(),
+                  onPressed: () async {
+                    await extension.install();
+                    updateService.markUpdated(extension.id);
+                  },
                 )
               : const Icon(Icons.check, color: Colors.green),
         );
       },
     );
+  }
+}
+
+Future<void> showAddRepositoryDialog(BuildContext context) async {
+  final controller = TextEditingController();
+  final res = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Add Repository'),
+      content: TextField(
+        controller: controller,
+        // decoration: const InputDecoration(hintText: 'https://...'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, controller.text),
+          child: const Text('Add'),
+        ),
+      ],
+    ),
+  );
+  if (res != null && res.isNotEmpty) {
+    settings.extension.repositories.value = [
+      ...settings.extension.repositories.value,
+      res,
+    ];
   }
 }

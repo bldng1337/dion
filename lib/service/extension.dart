@@ -14,6 +14,7 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/views/action_dialog.dart';
 import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/dialog/auth.dart';
@@ -145,7 +146,7 @@ class Extension extends ChangeNotifier {
     }
   }
 
-  Version get version => Version.parse(data.version);
+  Version get version => parseVersion(data.version);
 
   @override
   bool operator ==(Object other) {
@@ -827,13 +828,13 @@ class ExtensionService with ChangeNotifier {
   }
 
   Future<RemoteExtensionRepo> getRepo(String url) async {
-    if(url.contains('index.repo.json')) {
+    if (url.contains('index.repo.json')) {
       final adapter = _adapters['dion'];
       if (adapter != null) {
         return await adapter.getRepo(url);
       }
     }
-    if(url.contains('index.min.json')){
+    if (url.contains('index.min.json')) {
       final adapter = _adapters['mihon'];
       if (adapter != null) {
         return await adapter.getRepo(url);
