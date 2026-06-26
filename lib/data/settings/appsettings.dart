@@ -207,6 +207,12 @@ final settings = (
     //   const PreferenceBoolMetaData('audiobook.subtitle'),
     // ),
   ),
+  videoSettings: (
+    volume: Setting(50.0, const PreferenceDoubleMetaData('video.volume'))
+      ..addCollection(preferenceCollection),
+    speed: Setting(1.0, const PreferenceDoubleMetaData('video.speed'))
+      ..addCollection(preferenceCollection),
+  ),
   update: (
     enabled: Setting(true, const PreferenceBoolMetaData('update.enabled'))
       ..addCollection(preferenceCollection),

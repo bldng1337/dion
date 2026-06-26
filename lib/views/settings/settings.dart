@@ -170,6 +170,12 @@ class Settings extends StatelessWidget {
                 path: '/settings/audiolistener',
               ),
               SettingNav(
+                title: 'Video Player',
+                subtitle: 'Playback controls and video settings',
+                icon: Icons.play_circle_outline_outlined,
+                path: '/settings/videoplayer',
+              ),
+              SettingNav(
                 title: 'Image List Reader',
                 subtitle: 'Image display and navigation',
                 icon: Icons.image_outlined,

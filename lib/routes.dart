@@ -22,6 +22,7 @@ import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/settings/storage.dart';
 import 'package:dionysos/views/settings/sync.dart';
 import 'package:dionysos/views/settings/tasks.dart';
+import 'package:dionysos/views/settings/videoplayer.dart';
 import 'package:dionysos/views/settings/update_settings.dart';
 import 'package:dionysos/views/settings/widget_playground.dart';
 import 'package:dionysos/views/view/view.dart';
@@ -154,6 +155,11 @@ GoRouter getRoutes() => GoRouter(
           path: '/imagelistreader',
           pageBuilder: (context, state) =>
               getTransition(context, state, const ImageListReaderSettings()),
+        ),
+        GoRoute(
+          path: '/videoplayer',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const VideoPlayerSettings()),
         ),
         GoRoute(
           path: '/sync',

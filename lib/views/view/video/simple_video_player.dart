@@ -150,11 +150,11 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       )..disposedBy(scope),
     );
     Observer(() {
-      player.setVolume(settings.audioBookSettings.volume.value);
-    }, settings.audioBookSettings.volume).disposedBy(scope);
+      player.setVolume(settings.videoSettings.volume.value);
+    }, settings.videoSettings.volume).disposedBy(scope);
     Observer(() {
-      player.setRate(settings.audioBookSettings.speed.value);
-    }, settings.audioBookSettings.speed).disposedBy(scope);
+      player.setRate(settings.videoSettings.speed.value);
+    }, settings.videoSettings.speed).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
     player.stream.completed.listen((event) {
