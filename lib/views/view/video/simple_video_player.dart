@@ -82,6 +82,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       if (prog != null && !source.episode.data.finished) {
         startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
       }
+      if (currentVideo!.sources.isEmpty) {
+        setState(() {
+          exception = Exception('No video sources available');
+        });
+        return;
+      }
       final stream = currentVideo!.sources[getStreamIndex()];
       await player.open(
         Media(
