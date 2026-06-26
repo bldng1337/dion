@@ -360,8 +360,8 @@ ORDER BY dayStr ASC
         result[day] = totalDuration;
         continue;
       }
-      if (totalDuration is double) {
-        result[day] = Duration(seconds: (totalDuration as num).toInt());
+      if (totalDuration is num) {
+        result[day] = Duration(seconds: totalDuration.toInt());
         continue;
       }
       result[day] = Duration.zero;
