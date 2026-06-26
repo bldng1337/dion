@@ -281,6 +281,18 @@ DEFINE TABLE IF NOT EXISTS extension;
     notifyListeners([DBEvent.activityUpdated]);
   }
 
+  Future<void> addActivities(Iterable<Activity> activities) async {
+    for (final activity in activities) {
+      await adapter.save(activity);
+    }
+    notifyListeners([DBEvent.activityUpdated]);
+  }
+
+  Future<void> clearActivities() async {
+    await db.query('DELETE activity');
+    notifyListeners([DBEvent.activityUpdated]);
+  }
+
   Stream<Activity> getActivities(int page, int limit) {
     return adapter.queryDataClasses<Activity>(
       query:
