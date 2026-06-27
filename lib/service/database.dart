@@ -1,7 +1,7 @@
 import 'package:async/async.dart';
-import 'package:dionysos/data/Category.dart';
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/activity/entry_duration.dart';
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
@@ -99,7 +99,7 @@ DEFINE TABLE IF NOT EXISTS extension;
           );
         }
       },
-      onCreate: (db) async {},
+      onCreate: (db) {},
     );
     this.db = db;
   }

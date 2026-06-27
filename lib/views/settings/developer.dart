@@ -9,7 +9,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:flutter/material.dart'
-    show AlertDialog, Icons, Material, InkWell, TextButton, showDialog;
+    show AlertDialog, Icons, InkWell, Material, TextButton, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
@@ -226,7 +226,7 @@ void _confirmGenerateFakeActivity(BuildContext context) {
     confirmLabel: 'Generate',
   ).then((confirmed) {
     if (!confirmed) return;
-    final task = GenerateFakeActivityTask(days: 365);
+    final task = GenerateFakeActivityTask();
     final manager = locate<TaskManager>();
     manager.root
         .createOrGetCategory('dev', 'Test', concurrency: 3)

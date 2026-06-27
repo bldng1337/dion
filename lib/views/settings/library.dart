@@ -1,5 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/Category.dart';
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
@@ -144,7 +144,7 @@ void showEditCategoriesDialog(BuildContext context, EntrySaved entry) {
                         : MultiDropdownItem(value: e, label: e.name),
                   )
                   .toList(),
-              onSelectionChange: (selection) async {
+              onSelectionChange: (selection) {
                 entry.categories = selection;
               },
             ).paddingAll(10),
@@ -310,7 +310,11 @@ class _CategoryTile extends StatelessWidget {
           ),
           DionIconbutton(
             onPressed: onDelete,
-            icon: Icon(Icons.delete_outline, size: 18, color: DionColors.error),
+            icon: const Icon(
+              Icons.delete_outline,
+              size: 18,
+              color: DionColors.error,
+            ),
           ),
         ],
       ),
@@ -336,7 +340,7 @@ class _AddCategoryButton extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(Icons.add, size: 18, color: DionColors.primary),
+              const Icon(Icons.add, size: 18, color: DionColors.primary),
               const SizedBox(width: DionSpacing.md),
               Text(
                 'Add Category',

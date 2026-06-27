@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:dionysos/data/Category.dart';
-import 'package:dionysos/data/entry/entry.dart';
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
@@ -312,7 +311,7 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
     if (categoryData == null) return [];
     if (categoryData is! List) return [];
     if (categoryData.isEmpty) return [];
-    if(categoryData[0] is Category) {
+    if (categoryData[0] is Category) {
       return categoryData.cast<Category>();
     }
     if (categoryData[0] is Map<String, dynamic>) {
@@ -328,7 +327,6 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   }
 
   static Future<EntrySaved> fromJson(Map<String, dynamic> json) async {
-    final db = locate<Database>();
     switch (json['version']) {
       case 1:
         return EntrySaved(

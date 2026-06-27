@@ -213,10 +213,8 @@ class EpisodeTile extends StatelessWidget {
     if (episodepath.episode.cover == null) {
       return 60.0;
     }
-    final isWide =
-        WidgetsBinding.instance.window.physicalSize.width /
-            WidgetsBinding.instance.window.devicePixelRatio >=
-        600;
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final isWide = view.physicalSize.width / view.devicePixelRatio >= 600;
     return isWide ? 110.0 : 80.0;
   }
 

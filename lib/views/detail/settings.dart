@@ -1,5 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
-import 'package:dionysos/data/Category.dart';
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
@@ -128,7 +128,9 @@ class _SettingsPopupState extends State<SettingsPopup>
       widget.entry,
       entryExtension.extension!,
     );
-    setState(() {});// We dont have anything direct here as the extension itself should update the settings, but we need to trigger a rebuild to show the updated settings
+    setState(
+      () {},
+    ); // We dont have anything direct here as the extension itself should update the settings, but we need to trigger a rebuild to show the updated settings
   }
 
   void _addSourceExtension(Extension extension) {

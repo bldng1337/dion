@@ -24,7 +24,6 @@ class _LogViewState extends State<LogView> {
     Level.info,
     Level.warning,
     Level.error,
-    Level.wtf,
     Level.fatal,
   };
 
@@ -59,17 +58,9 @@ class _LogViewState extends State<LogView> {
                   onSelected: (selected) {
                     setState(() {
                       if (selected) {
-                        _selectedLevels.addAll([
-                          Level.trace,
-                          Level.debug,
-                          Level.verbose,
-                        ]);
+                        _selectedLevels.addAll([Level.trace, Level.debug]);
                       } else {
-                        _selectedLevels.removeAll([
-                          Level.trace,
-                          Level.debug,
-                          Level.verbose,
-                        ]);
+                        _selectedLevels.removeAll([Level.trace, Level.debug]);
                       }
                     });
                   },
@@ -103,17 +94,9 @@ class _LogViewState extends State<LogView> {
                   onSelected: (selected) {
                     setState(() {
                       if (selected) {
-                        _selectedLevels.addAll([
-                          Level.error,
-                          Level.wtf,
-                          Level.fatal,
-                        ]);
+                        _selectedLevels.addAll([Level.error, Level.fatal]);
                       } else {
-                        _selectedLevels.removeAll([
-                          Level.error,
-                          Level.wtf,
-                          Level.fatal,
-                        ]);
+                        _selectedLevels.removeAll([Level.error, Level.fatal]);
                       }
                     });
                   },
@@ -175,20 +158,21 @@ class _LogItem extends StatelessWidget {
   Color _getColor(Level level) {
     return switch (level) {
       Level.all || Level.info => Colors.blue,
-      Level.trace || Level.debug || Level.verbose => Colors.green,
+      Level.trace || Level.debug => Colors.green,
       Level.warning => Colors.orange,
-      Level.error || Level.wtf || Level.fatal => Colors.red,
-      Level.off || Level.nothing => Colors.grey,
+      Level.error || Level.fatal => Colors.red,
+      _ => Colors.grey, // off and deprecated levels (verbose/wtf/nothing)
     };
   }
 
   IconData _getIcon(Level level) {
     return switch (level) {
       Level.all || Level.info => Icons.info_outline,
-      Level.trace || Level.debug || Level.verbose => Icons.bug_report_outlined,
+      Level.trace || Level.debug => Icons.bug_report_outlined,
       Level.warning => Icons.warning_amber_rounded,
-      Level.error || Level.wtf || Level.fatal => Icons.error_outline,
-      Level.off || Level.nothing => Icons.help_outline,
+      Level.error || Level.fatal => Icons.error_outline,
+      _ =>
+        Icons.help_outline, // off and deprecated levels (verbose/wtf/nothing)
     };
   }
 
@@ -264,7 +248,7 @@ class _LogItem extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: context.theme.colorScheme.surfaceContainerHighest
-                          .withOpacity(0.3),
+                          .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(

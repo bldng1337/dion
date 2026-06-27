@@ -55,7 +55,7 @@ class ErrorBoundary extends StatelessWidget {
 
 class ErrorAction {
   final String label;
-  final FutureOr<void> Function()? onTap;
+  final FutureOr<void> Function()? onTap; // ignore: avoid_futureor_void
   const ErrorAction({required this.label, this.onTap});
 }
 
@@ -159,7 +159,7 @@ class ErrorDisplay extends StatelessWidget {
     if (e == null) {
       return Container();
     }
-    if(logError){
+    if (logError) {
       logger.e(message, error: e, stackTrace: s);
     }
 

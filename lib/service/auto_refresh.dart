@@ -22,6 +22,7 @@ class AutoRefreshService {
   Timer? _timer;
   DateTime? _lastRefresh;
 
+  // ignore: unreachable_from_main
   static Future<void> ensureInitialized() async {
     final service = AutoRefreshService();
     await service.init();
@@ -205,6 +206,7 @@ class AutoRefreshService {
     }
   }
 
+  // ignore: unreachable_from_main
   void dispose() {
     _timer?.cancel();
     settings.library.autoRefresh.enabled.removeListener(_onSettingsChanged);
@@ -240,7 +242,8 @@ void autoRefreshCallbackDispatcher() {
       // Read preference directly instead of relying on the global [settings]
       // object, which may not be initialized in this background isolate.
       final prefs = locate<PreferenceService>();
-      final shouldNotify = prefs.getString('library.autorefresh.notify') == 'true';
+      final shouldNotify =
+          prefs.getString('library.autorefresh.notify') == 'true';
 
       final results = await AutoRefreshService.performRefresh(
         shouldNotify: shouldNotify,

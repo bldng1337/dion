@@ -9,8 +9,6 @@ import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:uuid/uuid.dart';
 
-typedef _ProgressCallback = void Function(double progress, String status);
-
 /// Generates randomized, intentionally non-uniform [EpisodeActivity] data over
 /// the past [days] for every entry currently saved in the library.
 ///
@@ -33,7 +31,7 @@ Future<int> _generateFakeActivity({
   required Uuid uuid,
   required List<EntrySaved> entries,
   bool Function()? shouldCancel,
-  _ProgressCallback? onProgress,
+  void Function(double, String)? onProgress,
 }) async {
   final now = DateTime.now();
   final db = locate<Database>();
@@ -188,12 +186,10 @@ int _durationSecondsForMediaType(MediaType mediaType, Random rnd) {
     case MediaType.video:
       // 20 - 45 minutes
       baseSeconds = (20 + rnd.nextInt(26)) * 60;
-      break;
     case MediaType.book:
     case MediaType.comic:
       // 10 - 40 minutes
       baseSeconds = (10 + rnd.nextInt(31)) * 60;
-      break;
     default:
       baseSeconds = (15 + rnd.nextInt(16)) * 60;
   }

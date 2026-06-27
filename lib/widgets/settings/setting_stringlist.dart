@@ -130,7 +130,7 @@ class _SettingStringListState extends State<SettingStringList> {
                 ),
                 const SizedBox(width: DionSpacing.sm),
                 DionIconbutton(
-                  icon: Icon(Icons.add, color: DionColors.primary),
+                  icon: const Icon(Icons.add, color: DionColors.primary),
                   onPressed: _addEntryFromController,
                 ),
               ],

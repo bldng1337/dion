@@ -107,7 +107,7 @@ class _SettingTextboxState extends State<SettingTextbox> {
     );
 
     if (widget.description != null) {
-      return Tooltip(message: widget.description!, child: tile);
+      return Tooltip(message: widget.description, child: tile);
     }
     return tile;
   }

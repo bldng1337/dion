@@ -131,7 +131,7 @@ class _SettingNumberboxState<T extends num> extends State<SettingNumberbox<T>> {
     );
 
     if (widget.description != null) {
-      return Tooltip(message: widget.description!, child: tile);
+      return Tooltip(message: widget.description, child: tile);
     }
     return tile;
   }

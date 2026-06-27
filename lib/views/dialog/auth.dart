@@ -16,11 +16,11 @@ import 'package:flutter/material.dart'
         LinearProgressIndicator,
         TextInputType;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:rhttp/rhttp.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 /// Stateless router that displays the appropriate authentication dialog
 /// based on the account's authentication data type.
@@ -106,7 +106,7 @@ class _ApiKeyAuthDialogState extends State<ApiKeyAuthDialog> {
       actions: [
         DionTextbutton(
           child: const Text('Cancel'),
-          onPressed: () => Navigator.of(context).pop(null),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         DionTextbutton(
           onPressed: _handleSubmit,
@@ -205,7 +205,7 @@ class _UserPassAuthDialogState extends State<UserPassAuthDialog> {
       actions: [
         DionTextbutton(
           child: const Text('Cancel'),
-          onPressed: () => Navigator.of(context).pop(null),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         DionTextbutton(onPressed: _handleSubmit, child: const Text('Login')),
       ],
@@ -316,6 +316,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
                   ? int.tryParse(expiresIn)
                   : null;
 
+              if (!mounted) return;
               if (accessToken != null) {
                 Navigator.of(context).pop(
                   rust.AuthCreds.oAuth(
@@ -415,7 +416,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
               )
             else
               Text(
-                'Click below to authorize this app via OAuth. You will be redirected to the provider\'s website.',
+                "Click below to authorize this app via OAuth. You will be redirected to the provider's website.",
                 style: context.bodyMedium,
               ),
           ],
@@ -426,7 +427,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
           : [
               DionTextbutton(
                 child: const Text('Cancel'),
-                onPressed: () => Navigator.of(context).pop(null),
+                onPressed: () => Navigator.of(context).pop(),
               ),
               if (_error == null)
                 DionTextbutton(
@@ -496,7 +497,7 @@ class UnsupportedAuthDialog extends StatelessWidget {
       actions: [
         DionTextbutton(
           child: const Text('Close'),
-          onPressed: () => Navigator.of(context).pop(null),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ],
     );

@@ -22,13 +22,14 @@ import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:flutter/material.dart' show showDialog;
 import 'package:flutter/widgets.dart' show ChangeNotifier;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 export 'package:rdion_runtime/rdion_runtime.dart'
-    hide Entry, EntryDetailed, Row, RustLib, Setting, Account;
+    hide Account, Entry, EntryDetailed, Row, RustLib, Setting;
 
 typedef CustomUIRow = rust.Row;
 

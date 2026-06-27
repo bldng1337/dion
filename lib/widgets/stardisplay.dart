@@ -30,7 +30,7 @@ class Stardisplay extends StatelessWidget {
       shaderCallback: (Rect rect) {
         return LinearGradient(
           stops: [0, fill, fill],
-          colors: [color, color, color.withOpacity(0)],
+          colors: [color, color, color.withValues(alpha: 0)],
         ).createShader(rect);
       },
       child: Row(

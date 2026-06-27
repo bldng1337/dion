@@ -12,7 +12,6 @@ final preferenceCollection = SettingCollection<dynamic, PreferenceMetaData>();
 
 abstract class PreferenceMetaData<T> extends SettingMetaData<T> {
   final String id;
-  @override
   const PreferenceMetaData(this.id);
 
   @override

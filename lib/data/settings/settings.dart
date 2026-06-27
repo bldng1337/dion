@@ -44,7 +44,9 @@ class SettingView<
   WT,
   WM extends SettingMetaData<WT>
 >
-    implements Setting<T, M> {
+    implements
+        // ignore: avoid_implementing_value_types
+        Setting<T, M> {
   final Setting<WT, WM> setting;
 
   SettingView(this.setting);

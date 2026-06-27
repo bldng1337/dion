@@ -45,12 +45,12 @@ class ContextMenuState extends State<ContextMenu> {
   void didUpdateWidget(covariant ContextMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.selectionActive) {
-      Future.microtask(() async {
+      Future.microtask(() {
         _bottomSheetController?.close();
         _bottomSheetController = null;
       });
     } else if (_drawerEnabled && _bottomSheetController == null) {
-      Future.microtask(() async {
+      Future.microtask(() {
         if (!mounted) return;
         _bottomSheetController = Scaffold.of(context).showBottomSheet(
           (BuildContext context) => SizedBox(

@@ -4,8 +4,6 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle;
-import 'package:dionysos/utils/log.dart';
-import 'package:rdion_runtime/rdion_runtime.dart' as runtime;
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
@@ -18,6 +16,7 @@ import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/selection.dart';
 import 'package:flutter/material.dart';
+import 'package:rdion_runtime/rdion_runtime.dart' as runtime;
 
 final psettings = settings.readerSettings.paragraphreader;
 

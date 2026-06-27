@@ -165,7 +165,7 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                           style: context.bodySmall?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: context.theme.colorScheme.onSurface
-                                .withOpacity(0.85),
+                                .withValues(alpha: 0.85),
                           ),
                         ),
                       ],
@@ -228,7 +228,7 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                           style: context.bodySmall?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: context.theme.colorScheme.onSurface
-                                .withOpacity(0.85),
+                                .withValues(alpha: 0.85),
                           ),
                         ),
                       ],
@@ -335,13 +335,13 @@ class _ActivityMetadata extends StatelessWidget {
         Icon(
           icon,
           size: 13,
-          color: color ?? context.theme.colorScheme.onSurface.withOpacity(0.45),
+          color: color ?? context.theme.colorScheme.onSurface.withValues(alpha: 0.45),
         ).paddingOnly(right: width < 500 ? 2.5 : 4),
         Text(
           text,
           style: context.labelSmall?.copyWith(
             color:
-                color ?? context.theme.colorScheme.onSurface.withOpacity(0.5),
+                color ?? context.theme.colorScheme.onSurface.withValues(alpha: 0.5),
             fontSize: 11.5,
             letterSpacing: 0.1,
           ),

@@ -103,7 +103,7 @@ class _SettingFontState extends State<SettingFont> {
         );
 
         if (widget.description != null) {
-          return Tooltip(message: widget.description!, child: tile);
+          return Tooltip(message: widget.description, child: tile);
         }
         return tile;
       },

@@ -36,8 +36,6 @@ class AudioPlayerHandler extends BaseAudioHandler {
   PlaySession? _session;
 
   @override
-  AudioPlayerHandler();
-  @override
   Future<void> play() {
     if (_session != null) {
       _session!.player.play();

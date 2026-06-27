@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 
 class DionIconbutton extends StatelessWidget {
   final String? tooltip;
-  final FutureOr<void> Function()? onPressed;
+  final FutureOr<void> Function()? onPressed; // ignore: avoid_futureor_void
   final Widget? icon;
   const DionIconbutton({super.key, this.onPressed, this.icon, this.tooltip});
 

@@ -34,7 +34,7 @@ class SettingToggle extends StatelessWidget {
         );
 
         if (description != null) {
-          return Tooltip(message: description!, child: tile);
+          return Tooltip(message: description, child: tile);
         }
         return tile;
       },

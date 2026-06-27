@@ -1,27 +1,25 @@
 import 'package:flutter/widgets.dart';
 
+class _NotifiableChangeNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
 mixin class KeyedChangeNotifier<T> implements Listenable {
-  final Map<T, ChangeNotifier> _listeners = {};
-  final _notifier = ChangeNotifier();
+  final Map<T, _NotifiableChangeNotifier> _listeners = {};
+  final _notifier = _NotifiableChangeNotifier();
 
   void addKeyedListener(T key, VoidCallback listener) {
-    if (!_listeners.containsKey(key)) {
-      _listeners[key] = ChangeNotifier();
-    }
-    _listeners[key]!.addListener(listener);
+    _listeners
+        .putIfAbsent(key, () => _NotifiableChangeNotifier())
+        .addListener(listener);
   }
 
   void removeKeyedListener(T key, VoidCallback listener) {
-    if (_listeners.containsKey(key)) {
-      _listeners[key]!.removeListener(listener);
-    }
+    _listeners[key]?.removeListener(listener);
   }
 
   Listenable getListenable(T key) {
-    if (!_listeners.containsKey(key)) {
-      _listeners[key] = ChangeNotifier();
-    }
-    return _listeners[key]!;
+    return _listeners.putIfAbsent(key, () => _NotifiableChangeNotifier());
   }
 
   Listenable get globalListenable => _notifier;
@@ -38,11 +36,8 @@ mixin class KeyedChangeNotifier<T> implements Listenable {
 
   void notifyListeners(Iterable<T> keys) {
     for (final key in keys) {
-      if (_listeners.containsKey(key)) {
-        // Doesn't matter here as we are using the raw ChangeNotifier maybe we could make a custom class implementing Listenable but it should function the same regardless
-        _listeners[key]!.notifyListeners();
-      }
+      _listeners[key]?.notify();
     }
-    _notifier.notifyListeners();
+    _notifier.notify();
   }
 }

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/data/Category.dart';
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
@@ -28,6 +28,7 @@ class Library extends StatefulWidget {
   _LibraryState createState() => _LibraryState();
 }
 
+// ignore: avoid_implementing_value_types
 class PseudoCategory implements Category {
   @override
   final String name;
@@ -73,43 +74,40 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
 
   @override
   void initState() {
-    Observer(
-      () async {
-        if (mounted) {
-          final categories = await locate<Database>().getCategories();
+    Observer(() async {
+      if (mounted) {
+        final categories = await locate<Database>().getCategories();
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          this.categories = categories;
+        });
+        for (final cat in categories) {
+          final count = await locate<Database>().getNumEntriesInCategory(cat);
           if (!mounted) {
             return;
           }
           setState(() {
-            this.categories = categories;
-          });
-          for (final cat in categories) {
-            final count = await locate<Database>().getNumEntriesInCategory(cat);
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              categoryCounts[cat] = count;
-            });
-          }
-          final total = await locate<Database>().getNumEntries();
-          if (!mounted) {
-            return;
-          }
-          setState(() {
-            totalCount = total;
-          });
-          final none = await locate<Database>().getNumEntriesInCategory(null);
-          if (!mounted) {
-            return;
-          }
-          setState(() {
-            noneCount = none;
+            categoryCounts[cat] = count;
           });
         }
-      },
-      locate<Database>().globalListenable,
-    ).disposedBy(scope);
+        final total = await locate<Database>().getNumEntries();
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          totalCount = total;
+        });
+        final none = await locate<Database>().getNumEntriesInCategory(null);
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          noneCount = none;
+        });
+      }
+    }, locate<Database>().globalListenable).disposedBy(scope);
 
     if (settings.library.showAllTab.value) {}
     if (settings.library.showNoneTab.value) {}

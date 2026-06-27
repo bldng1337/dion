@@ -7,7 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class Togglebutton extends StatelessWidget {
-  final FutureOr<void> Function()? onPressed;
+  final FutureOr<void> Function()? onPressed; // ignore: avoid_futureor_void
   final bool selected;
   final Widget? icon;
   final Widget? selectedIcon;

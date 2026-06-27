@@ -77,8 +77,6 @@ class AppLinksService {
   void _handleLink(Uri uri) {
     _linkController.add(uri);
 
-    if (onLinkReceived != null) {
-      onLinkReceived!(uri);
-    }
+    onLinkReceived?.call(uri);
   }
 }

@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 enum ButtonType { ghost, filled, elevated }
 
 class DionTextbutton extends StatelessWidget {
-  final FutureOr<void> Function()? onPressed;
+  final FutureOr<void> Function()? onPressed; // ignore: avoid_futureor_void
   final ButtonType type;
   final Widget child;
   final Color? color;

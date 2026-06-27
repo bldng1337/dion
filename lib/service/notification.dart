@@ -32,7 +32,7 @@ class NotificationService {
       appUserModelId: 'bldng.dion',
       guid: '79666d46-1ad2-5190-9e30-fb4f1f0e093a',
     );
-    final settings = InitializationSettings(
+    const settings = InitializationSettings(
       android: androidSettings,
       linux: linuxSettings,
       windows: windowsSettings,
@@ -68,7 +68,6 @@ class NotificationService {
       _channelId,
       _channelName,
       description: _channelDescription,
-      importance: Importance.defaultImportance,
     );
     await androidPlugin.createNotificationChannel(channel);
   }
@@ -98,8 +97,6 @@ class NotificationService {
       _channelId,
       _channelName,
       channelDescription: _channelDescription,
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
     );
     const notificationDetails = NotificationDetails(android: androidDetails);
 
@@ -129,8 +126,6 @@ class NotificationService {
       _channelId,
       _channelName,
       channelDescription: _channelDescription,
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
       styleInformation: InboxStyleInformation(
         titles,
         contentTitle: 'Library Updates',

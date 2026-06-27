@@ -95,6 +95,7 @@ class MultiDropdownController<T> extends ChangeNotifier {
 class DionMultiDropdown<T extends Object> extends StatefulWidget {
   final Widget? defaultItem;
   final List<MultiDropdownItem<T>>? items;
+  // ignore: avoid_futureor_void
   final FutureOr<void> Function(List<T>)? onSelectionChange;
   final MultiDropdownController<T>? controller;
   final Widget Function(

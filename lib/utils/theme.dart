@@ -112,12 +112,12 @@ ThemeData getTheme(Brightness b) {
       indicatorShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
-      selectedIconTheme: IconThemeData(color: primary, size: 22),
+      selectedIconTheme: const IconThemeData(color: primary, size: 22),
       unselectedIconTheme: IconThemeData(
         color: textSecondary.withValues(alpha: 0.7),
         size: 22,
       ),
-      selectedLabelTextStyle: TextStyle(
+      selectedLabelTextStyle: const TextStyle(
         color: primary,
         fontSize: 11,
         fontWeight: FontWeight.w600,
@@ -140,7 +140,7 @@ ThemeData getTheme(Brightness b) {
       ),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return IconThemeData(color: primary, size: 22);
+          return const IconThemeData(color: primary, size: 22);
         }
         return IconThemeData(
           color: textSecondary.withValues(alpha: 0.7),
@@ -149,7 +149,7 @@ ThemeData getTheme(Brightness b) {
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return TextStyle(
+          return const TextStyle(
             color: primary,
             fontSize: 11,
             fontWeight: FontWeight.w600,
@@ -212,7 +212,7 @@ ThemeData getTheme(Brightness b) {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DionRadius.sm),
-          borderSide: BorderSide(color: primary),
+          borderSide: const BorderSide(color: primary),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
@@ -330,15 +330,15 @@ ThemeData getTheme(Brightness b) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(DionRadius.sm),
-        borderSide: BorderSide(color: primary, width: 1),
+        borderSide: const BorderSide(color: primary),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(DionRadius.sm),
-        borderSide: BorderSide(color: DionColors.error),
+        borderSide: const BorderSide(color: DionColors.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(DionRadius.sm),
-        borderSide: BorderSide(color: DionColors.error),
+        borderSide: const BorderSide(color: DionColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       hintStyle: TextStyle(color: textSecondary.withValues(alpha: 0.5)),
@@ -458,7 +458,7 @@ ThemeData getTheme(Brightness b) {
     ),
 
     tabBarTheme: TabBarThemeData(
-      indicator: UnderlineTabIndicator(
+      indicator: const UnderlineTabIndicator(
         borderSide: BorderSide(color: primary, width: 2),
       ),
       labelColor: primary,

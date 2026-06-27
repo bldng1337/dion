@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
-import 'package:dionysos/data/Category.dart';
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry.dart' as entrydata;
 import 'package:dionysos/data/entry/entry_saved.dart' as entrydata;
 import 'package:dionysos/data/versioning.dart';
@@ -301,7 +301,8 @@ final Map<String, entrydata.EntrySaved> emptyEntrySavedList = {
   ),
 };
 
-class MockExtension extends Mock implements Extension {}
+class MockExtension extends Mock
+    implements Extension {} // ignore: avoid_implementing_value_types
 
 const category = Category('test', DBRecord('category', 'test'), 0);
 
@@ -330,6 +331,7 @@ Future<void> testDeserialize(Map<String, dynamic> idata) async {
             'Deserializing entry ${entry.key} for version ${idata['version']}',
       );
     } catch (e) {
+      // ignore: avoid_print
       print(
         'Error deserializing entry ${entry.key} for version ${idata['version']}',
       );
@@ -348,6 +350,7 @@ Future<void> testDeserialize(Map<String, dynamic> idata) async {
             'Deserializing entriesaved ${entry.key} for version ${idata['version']}',
       );
     } catch (e) {
+      // ignore: avoid_print
       print(
         'Error deserializing entriesaved ${entry.key} for version ${idata['version']}',
       );
@@ -359,9 +362,9 @@ Future<void> testDeserialize(Map<String, dynamic> idata) async {
 void main() {
   group('Versioning', () {
     setUpAll(() {
-      registerFallbackValue(emptyEntryList[0]);
-      registerFallbackValue(emptyEntryDetailedList[0]);
-      registerFallbackValue(emptyEntrySavedList[0]);
+      registerFallbackValue(emptyEntryList.values.first);
+      registerFallbackValue(emptyEntryDetailedList.values.first);
+      registerFallbackValue(emptyEntrySavedList.values.first);
     });
     group('Entry', () {
       test('Write current serialization', () {

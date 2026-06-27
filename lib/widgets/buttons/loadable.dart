@@ -8,7 +8,7 @@ class Loadable extends StatefulWidget {
   final Widget Function(
     BuildContext context,
     Widget child,
-    Function(FutureOr<void> future),
+    Function(FutureOr<void> future), // ignore: avoid_futureor_void
   )
   builder;
   final Widget? loading;

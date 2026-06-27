@@ -32,7 +32,7 @@ void main() {
         expect(completable.value, 42);
       });
 
-      test('Completable completes with error', () async {
+      test('Completable completes with error', () {
         final completable = Completable<int>();
         final error = Exception('Test Error');
         completable.completeError(error);
@@ -46,7 +46,7 @@ void main() {
       test('DionMapCache basic get and put', () async {
         final cache = DionMapCache<num, num>.fromsize(
           maximumSize: 10,
-          loader: (key) async => key * 2,
+          loader: (key) => key * 2,
         );
 
         final result = await cache.get(5);
@@ -60,7 +60,7 @@ void main() {
         var loadCount = 0;
         final cache = DionMapCache<num, num>.fromsize(
           maximumSize: 10,
-          loader: (key) async {
+          loader: (key) {
             loadCount++;
             return key * loadCount;
           },
@@ -82,7 +82,7 @@ void main() {
       test('DionMapCache invalidator', () async {
         final cache = DionMapCache<num, DateTime>.fromsize(
           maximumSize: 10,
-          loader: (key) async => DateTime.now(),
+          loader: (key) => DateTime.now(),
           invalidator: (key, duration) =>
               duration > const Duration(milliseconds: 100),
         );

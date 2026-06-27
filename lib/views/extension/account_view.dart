@@ -1,11 +1,11 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:flutter/material.dart';
-import 'package:dionysos/utils/log.dart';
 
 class AccountsView extends StatelessWidget {
   const AccountsView({super.key, required this.extension});
