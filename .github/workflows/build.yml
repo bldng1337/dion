@@ -128,6 +128,12 @@ jobs:
       - name: Build Windows (${{ matrix.build_mode }})
         if: matrix.os == 'windows-latest'
         shell: bash
+        env:
+          # flutter_inappwebview_windows uses <experimental/coroutine>, which MSVC
+          # 14.5x hard-removed (STL1011). Define this so every cl.exe invocation,
+          # including the plugin's, suppresses the error until the plugin migrates
+          # to C++20 <coroutine>.
+          CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
         run: flutter build windows --${{ matrix.build_mode }} --verbose
       - name: Build iss script
         if: matrix.os == 'windows-latest'
