@@ -14,6 +14,37 @@
 # not be renamed or removed.
 -keep class eu.kanade.tachiyomi.** { *; }
 
+# === Dynamically-loaded extension dependencies ===
+# Mihon/Aniyomi extensions are Kotlin code loaded at runtime via a
+# PathClassLoader. R8 can only see statically-reachable code, so every library
+# an extension links against by name must be kept wholesale, or the extension
+# dies during class verification with NoClassDefFoundError, e.g.:
+#   Failed resolution of: Lkotlin/collections/CollectionsKt;
+#   Failed resolution of: Lkotlin/jvm/functions/Function0;
+# (kotlin-stdlib, the HTTP/HTML/Rx stacks, and kotlinx.* are all needed.)
+
+# Kotlin standard library — every extension references kotlin.collections.*,
+# kotlin.jvm.functions.Function0/1/2, etc. Without this, R8 inlines the app's
+# own collection/lambda calls, drops the now-unreachable facade classes, and
+# extensions crash on first class load.
+-keep class kotlin.** { *; }
+
+# kotlinx: coroutines (extension suspend code), serialization runtime (JSON/
+# protobuf parsers used by many sources), and the okio serialization bridge.
+-keep class kotlinx.** { *; }
+
+# OkHttp + Okio: extensions issue HTTP requests through HttpSource/NetworkHelper
+# and reference okhttp3/okio types directly (interceptors, Request/Response,
+# Buffer, etc.).
+-keep class okhttp3.** { *; }
+-keep class okio.** { *; }
+
+# JSoup — the vast majority of manga extensions parse HTML with it.
+-keep class org.jsoup.** { *; }
+
+# RxJava — a number of older extensions build their fetch pipelines with it.
+-keep class rx.** { *; }
+
 # Injekt dependency injection is used reflectively by Mihon extensions.
 -keep class uy.kohesive.injekt.** { *; }
 
