@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/applinks.dart';
 import 'package:dionysos/service/extension.dart';
@@ -513,6 +515,10 @@ class CookieAuthDialog extends StatefulWidget {
 }
 
 class _CookieAuthDialogState extends State<CookieAuthDialog> {
+  static const String _androidChromeUserAgent =
+      'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) '
+      'Chrome/138.0.0.0 Mobile Safari/537.36';
+
   late final rust.AuthData_Cookie _authData;
   WebViewEnvironment? _webViewEnvironment;
   bool _environmentReady = false;
@@ -656,6 +662,11 @@ class _CookieAuthDialogState extends State<CookieAuthDialog> {
                       children: [
                         InAppWebView(
                           webViewEnvironment: _webViewEnvironment,
+                          initialSettings: InAppWebViewSettings(
+                            userAgent: Platform.isAndroid
+                                ? _androidChromeUserAgent
+                                : null,
+                          ),
                           initialUrlRequest: URLRequest(
                             url: WebUri(_authData.loginpage),
                           ),
