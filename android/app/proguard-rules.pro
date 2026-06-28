@@ -67,3 +67,12 @@
 # (See build/app/outputs/mapping/release/missing_rules.txt.)
 -dontwarn kotlinx.coroutines.slf4j.MDCContext
 -dontwarn kotlinx.coroutines.slf4j.**
+
+# OkHttp (pulled in transitively by the rhttp package) ships GraalVM
+# native-image integration under okhttp3.internal.graal.*, which references
+# GraalVM/SubstrateVM classes that are not present on Android. R8 full mode
+# treats the missing classes as a hard error; suppress them.
+# (See build/app/outputs/mapping/release/missing_rules.txt.)
+-dontwarn com.oracle.svm.core.annotate.**
+-dontwarn org.graalvm.nativeimage.**
+-dontwarn java.lang.Module
