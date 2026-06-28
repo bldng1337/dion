@@ -1,14 +1,19 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/platform.dart';
+import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
+import 'package:path_provider/path_provider.dart';
 
 class LogView extends StatefulWidget {
   const LogView({super.key});
@@ -39,6 +44,50 @@ class _LogViewState extends State<LogView> {
 
   bool _isLevelSelected(Level level) {
     return _selectedLevels.contains(level);
+  }
+
+  List<OutputEvent> get _filteredLogs {
+    return logBuffer.buffer
+        .where((element) => _selectedLevels.contains(element.origin.level))
+        .toList();
+  }
+
+  String _formatLogs(List<OutputEvent> logs) {
+    final buffer = StringBuffer();
+    // Export in chronological order (oldest first)
+    for (final element in logs) {
+      final time = element.origin.time.toIso8601String();
+      final level = element.origin.level.name.toUpperCase();
+      buffer.writeln('[$time] [$level]');
+      buffer.writeln(element.lines.join('\n'));
+      if (element.origin.error != null) {
+        buffer.writeln('Error: ${element.origin.error}');
+      }
+      if (element.origin.stackTrace != null) {
+        buffer.writeln('Stack trace:');
+        buffer.writeln(element.origin.stackTrace);
+      }
+      buffer.writeln('---');
+    }
+    return buffer.toString();
+  }
+
+  Future<void> _exportLogs() async {
+    final content = _formatLogs(_filteredLogs);
+    final fileName =
+        'dion-logs-${DateTime.now().toIso8601String().replaceAll(':', '-')}.txt';
+    if (getPlatform() == CPlatform.ios || getPlatform() == CPlatform.android) {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsString(content);
+      await shareFiles([file]);
+    } else {
+      final String? dir = await getDirectoryPath();
+      if (dir == null) return;
+      final file = File('$dir/$fileName');
+      await file.create(recursive: true);
+      await file.writeAsString(content);
+    }
   }
 
   @override
@@ -109,6 +158,11 @@ class _LogViewState extends State<LogView> {
                   icon: const Icon(Icons.delete_outline, size: 18),
                   label: const Text('Clear'),
                 ),
+                TextButton.icon(
+                  onPressed: _filteredLogs.isEmpty ? null : _exportLogs,
+                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  label: const Text('Export'),
+                ),
               ],
             ),
           ),
@@ -116,9 +170,7 @@ class _LogViewState extends State<LogView> {
             child: ListenableBuilder(
               listenable: logBuffer,
               builder: (context, child) {
-                final filteredLogs = logBuffer.buffer.where((element) {
-                  return _selectedLevels.contains(element.origin.level);
-                }).toList();
+                final filteredLogs = _filteredLogs;
 
                 if (filteredLogs.isEmpty) {
                   return const Center(
