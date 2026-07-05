@@ -386,7 +386,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                               icon: Icon(icon),
                               onPressed: () async {
                                 await player.playOrPause();
-                                await widget.source.episode.save();
+                                widget.source.episode.save();
                               },
                             );
                           },
