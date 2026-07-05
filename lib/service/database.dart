@@ -250,6 +250,21 @@ DEFINE TABLE IF NOT EXISTS extension;
     );
   }
 
+  Stream<EntrySaved> searchEntries(String query, int page, int limit) {
+    return _getEntriesSQL(
+      'SELECT * FROM type::table(\$entry) WHERE '
+      'array::any(entry.titles, |\$t| string::contains(string::lowercase(\$t), \$query)) OR '
+      '(entry.author != NONE AND array::any(entry.author, |\$a| string::contains(string::lowercase(\$a), \$query))) '
+      'LIMIT \$limit START \$offset*\$limit FETCH categories',
+      {
+        'entry': entryTable.tb,
+        'query': query.toLowerCase(),
+        'limit': limit,
+        'offset': page,
+      },
+    );
+  }
+
   Future<int> _countSQL({
     required String query,
     Map<String, dynamic>? vars,

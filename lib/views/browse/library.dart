@@ -15,6 +15,7 @@ import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/searchbar.dart';
 import 'package:dionysos/widgets/tabbar.dart';
 import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
@@ -72,6 +73,12 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
   int? totalCount;
   int? noneCount;
 
+  bool _searching = false;
+  String _query = '';
+  DataSourceController<EntrySaved>? _searchController;
+  Timer? _debounce;
+  late final FocusNode _searchFocus = FocusNode()..disposedBy(scope);
+
   @override
   void initState() {
     Observer(() async {
@@ -114,6 +121,55 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     super.initState();
   }
 
+  void _toggleSearch() {
+    if (_searching) {
+      _exitSearch();
+    } else {
+      setState(() => _searching = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _searchFocus.requestFocus());
+    }
+  }
+
+  void _exitSearch() {
+    _debounce?.cancel();
+    _debounce = null;
+    _searchController?.dispose();
+    _searchController = null;
+    setState(() {
+      _searching = false;
+      _query = '';
+    });
+  }
+
+  void _runSearch(String query) {
+    final trimmed = query.trim();
+    if (trimmed == _query) return;
+    _query = trimmed;
+    _searchController?.dispose();
+    if (trimmed.isEmpty) {
+      _searchController = null;
+      setState(() {});
+      return;
+    }
+    _searchController = DataSourceController<EntrySaved>([
+      SingleStreamSource((i) => locate<Database>().searchEntries(trimmed, i, 25)),
+    ]);
+    setState(() {});
+    _searchController!.requestMore();
+  }
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), () => _runSearch(query));
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = this.categories;
@@ -123,9 +179,53 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
         child: const Center(child: DionProgressBar()),
       );
     }
+    if (_searching) {
+      return NavScaff(
+        destination: homedestinations,
+        title: const Text('Library'),
+        actions: [
+          DionIconbutton(
+            icon: const Icon(Icons.close),
+            onPressed: _exitSearch,
+          ),
+        ],
+        child: Column(
+          children: [
+            DionSearchbar(
+              focusNode: _searchFocus,
+              hintText: 'Search library',
+              style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
+              keyboardType: TextInputType.text,
+              hintStyle: const WidgetStatePropertyAll(
+                TextStyle(color: Colors.grey),
+              ),
+              onChanged: _onSearchChanged,
+              onSubmitted: _runSearch,
+            ).paddingAll(5),
+            if (_searchController == null)
+              const Expanded(
+                child: Center(child: Text('Type to search your library')),
+              )
+            else
+              DynamicGrid<EntrySaved>(
+                showDataSources: false,
+                itemBuilder: (context, item) =>
+                    EntryDisplay(entry: item, showSaved: false),
+                controller: _searchController!,
+              ).expanded(),
+          ],
+        ),
+      );
+    }
     return NavScaff(
       destination: homedestinations,
       title: const Text('Library'),
+      actions: [
+        DionIconbutton(
+          icon: const Icon(Icons.search),
+          onPressed: _toggleSearch,
+        ),
+      ],
       child: DionTabBar(
         scrollable: true,
         tabs: [

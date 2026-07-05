@@ -12,6 +12,8 @@ class DionSearchbar extends StatelessWidget {
   final WidgetStateProperty<TextStyle?>? hintStyle;
   final TextInputType? keyboardType;
   final List<Widget>? actions;
+  final bool autofocus;
+  final FocusNode? focusNode;
 
   const DionSearchbar({
     super.key,
@@ -23,6 +25,8 @@ class DionSearchbar extends StatelessWidget {
     this.hintStyle,
     this.keyboardType,
     this.actions,
+    this.autofocus = false,
+    this.focusNode,
   });
 
   @override
@@ -58,6 +62,7 @@ class DionSearchbar extends StatelessWidget {
         hintStyle: hintStyle,
         keyboardType: keyboardType,
         trailing: actions,
+        focusNode: focusNode,
       ),
       DionThemeMode.cupertino => CupertinoSearchTextField(
         controller: controller,
@@ -67,6 +72,8 @@ class DionSearchbar extends StatelessWidget {
         style: style?.resolve({WidgetState.focused}),
         placeholderStyle: hintStyle?.resolve({WidgetState.focused}),
         keyboardType: keyboardType,
+        autofocus: autofocus,
+        focusNode: focusNode,
       ),
     };
   }
