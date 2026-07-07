@@ -114,7 +114,13 @@ class Card extends StatelessWidget {
 class EntryCard extends StatelessWidget {
   final Entry entry;
   final bool showSaved;
-  const EntryCard({super.key, required this.entry, this.showSaved = false});
+  final Function()? onTapOverride;
+  const EntryCard({
+    super.key,
+    required this.entry,
+    this.showSaved = false,
+    this.onTapOverride,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -202,12 +208,14 @@ class EntryCard extends StatelessWidget {
           ).paddingOnly(bottom: 5, left: 5),
         ],
       ),
-      onTap: () {
-        context.push(
-          '/detail',
-          extra: [entry],
-        ); //TODO: Hack until i implement Codec for Entry
-      },
+      onTap:
+          onTapOverride ??
+          () {
+            context.push(
+              '/detail',
+              extra: [entry],
+            ); //TODO: Hack until i implement Codec for Entry
+          },
     );
   }
 }

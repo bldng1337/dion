@@ -8,6 +8,7 @@ import 'package:dionysos/views/browse/library.dart';
 import 'package:dionysos/views/browse/search.dart';
 import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/detail/detail.dart';
+import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/views/extension/extension_manager.dart';
 import 'package:dionysos/views/extension/extension_view.dart';
 import 'package:dionysos/views/loading.dart';
@@ -101,6 +102,15 @@ GoRouter getRoutes() => GoRouter(
         context,
         state,
         const Detail(),
+        transition: Transition.fade,
+      ),
+    ),
+    GoRoute(
+      path: '/migrate',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const MigrateEntryPage(),
         transition: Transition.fade,
       ),
     ),

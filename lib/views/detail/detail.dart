@@ -15,6 +15,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/detail/entryinfo.dart';
 import 'package:dionysos/views/detail/episodelist.dart';
 import 'package:dionysos/views/detail/settings.dart';
+import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/context_menu.dart';
@@ -343,6 +344,30 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
             }
           },
           icon: const Icon(Icons.refresh, size: 18),
+        ),
+      if (entry is EntrySaved)
+        DionIconbutton(
+          tooltip: 'Migrate',
+          onPressed: () async {
+            final navigator = GoRouter.of(context);
+            final migrated = await showMigrateEntryPage(
+              context,
+              entry! as EntrySaved,
+            );
+            await Future.delayed(const Duration(milliseconds: 10));
+            print("Migrated: $migrated");
+            print("Migrated: ${migrated?.title}");
+            print(migrated != null);
+            print(context.mounted);
+            if (migrated != null && context.mounted) {
+              print("Switching to migrated entry");
+              navigator.replace('/detail', extra: [migrated]);
+              setState(() {
+                entry = migrated;
+              });
+            }
+          },
+          icon: const Icon(Icons.swap_horiz, size: 18),
         ),
       if (entry is EntryDetailed)
         DionIconbutton(

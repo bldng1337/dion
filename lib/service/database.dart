@@ -506,6 +506,7 @@ ORDER BY total DESC
   }
 
   Future<void> addEntry(EntrySaved entry) async {
+    print('Adding entry: ${entry.id.uid}');
     await adapter.save(entry);
     notifyListeners([DBEvent.entryAddedOrRemoved]);
   }

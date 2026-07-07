@@ -6,6 +6,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle;
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/card.dart';
@@ -165,6 +166,20 @@ class _EntryDisplayState extends State<EntryDisplay> {
             label: 'Edit Categories',
             onTap: () async {
               showEditCategoriesDialog(context, item as EntrySaved);
+            },
+          ),
+        if (item is EntrySaved)
+          ContextMenuItem(
+            label: 'Migrate',
+            onTap: () async {
+              final migrated = await showMigrateEntryPage(
+                context,
+                item as EntrySaved,
+              );
+              if (migrated != null && context.mounted) {
+                item = migrated;
+                setState(() {});
+              }
             },
           ),
       ],

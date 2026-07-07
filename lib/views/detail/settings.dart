@@ -15,6 +15,7 @@ import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart' show FontWeight, Icons, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
@@ -220,6 +221,26 @@ class _SettingsPopupState extends State<SettingsPopup>
                       context,
                       availableSourceExtensions,
                     ),
+                    if (kDebugMode) ...[
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(context, 'DEBUG'),
+                      Text(
+                        'Uid: ${widget.entry.id.uid} ${widget.entry.id.uid.length}',
+                        style: context.bodySmall?.copyWith(
+                          color: context.theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Iddata: ${widget.entry.id.iddata}',
+                        style: context.bodySmall?.copyWith(
+                          color: context.theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
