@@ -50,16 +50,7 @@ Future<EntrySaved> migrateEntry(EntrySaved source, Entry target) async {
     entryExtensions: source.entryExtensions,
     sourceExtensions: source.sourceExtensions,
   );
-  print(source.id.toJson());
-  print(migrated.id.toJson());
-  print(source.dbId.id);
-  print(migrated.dbId.id);
-  await Future.delayed(
-    const Duration(milliseconds: 15),
-  ); //Some delay to mitigate some race condition TODO: investigate why this is needed
-  print("Is deleted: ${migrated.deleted}");
   await db.addEntry(migrated);
-  await Future.delayed(const Duration(milliseconds: 15));
   await source.delete();
   return migrated;
 }

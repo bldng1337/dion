@@ -354,13 +354,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               context,
               entry! as EntrySaved,
             );
-            await Future.delayed(const Duration(milliseconds: 10));
-            print("Migrated: $migrated");
-            print("Migrated: ${migrated?.title}");
-            print(migrated != null);
-            print(context.mounted);
             if (migrated != null && context.mounted) {
-              print("Switching to migrated entry");
               navigator.replace('/detail', extra: [migrated]);
               setState(() {
                 entry = migrated;
