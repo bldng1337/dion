@@ -11,6 +11,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/service/mock_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -20,6 +21,7 @@ import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/dialog/auth.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart' show showDialog;
 import 'package:flutter/widgets.dart' show ChangeNotifier;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -614,6 +616,9 @@ const storage =
 
 class ExtensionService with ChangeNotifier {
   final Map<String, ExtensionAdapter> _adapters = {};
+  // Inbuilt debug/test mock extensions. Present only in debug builds (see
+  // [init]); survives [reload] so it is never wiped by adapter refreshes.
+  final List<Extension> _mockExtensions = [];
   bool loading = false;
 
   Future<rust.ManagerClient> getClient(String adapter) async {
@@ -749,8 +754,21 @@ class ExtensionService with ChangeNotifier {
         notifyListeners();
       });
     }
+    if (kDebugMode) {
+      // Register an inbuilt placeholder extension so Browse/Search/the
+      // Extension Manager and every reader can be exercised end-to-end
+      // without a real extension installed. Tree-shaken out of release builds.
+      _registerMockExtension();
+    }
     await reload();
     return this;
+  }
+
+  void _registerMockExtension() {
+    if (_mockExtensions.any((e) => e.id == MockExtension.mockId)) return;
+    final mock = MockExtension();
+    mock.addListener(notifyListeners);
+    _mockExtensions.add(mock);
   }
 
   Future<void> _registerAdapter(
@@ -787,6 +805,7 @@ class ExtensionService with ChangeNotifier {
   Iterable<Extension> getExtensions({bool Function(Extension e)? extfilter}) {
     return _adapters.values
         .expand((e) => e._extensions)
+        .followedBy(_mockExtensions)
         .where((e) => extfilter == null || extfilter(e));
   }
 

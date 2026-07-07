@@ -7,6 +7,8 @@ import 'package:dionysos/utils/service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:rhttp/rhttp.dart';
 
+export 'package:dionysos/service/mock_extension.dart' show MockExtension;
+
 Future<MockDatabase> mockDatabase() async {
   final db = MockDatabase();
   register<Database>(db);
