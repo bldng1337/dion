@@ -39,11 +39,11 @@ final homedestinations = [
   Destination(ico: Icons.settings, name: 'Settings', path: '/settings'),
 ];
 
-GoRouter getRoutes() => GoRouter(
+GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
   navigatorKey: navigatorKey,
   extraCodec: const MyExtraCodec(),
   debugLogDiagnostics: true,
-  initialLocation: '/',
+  initialLocation: initialLocation,
   // redirect: (context, state) {
   //   return null;
   // },
