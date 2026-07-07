@@ -473,8 +473,7 @@ class MockExtension with ChangeNotifier implements Extension {
             title: s.title,
             mediaType: s.type,
             cover: rust.Link(
-              url:
-                  'https://placehold.co/300x450/1F1F1F/FFFFFF/png?text=${Uri.encodeComponent(s.title)}',
+              url: 'https://loremflickr.com/800/1200?random=${s.views}',
             ),
             author: const ['Mock Author'],
             rating: s.rating,

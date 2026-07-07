@@ -22,10 +22,6 @@ An extensible Media Reader for all kind of media.
   - Video
   - Audio
 
-## Architecture
-
-An overview of the architecture can be found [here](ARCHITECTURE.md).
-
 ## Screenshots
 
 <p align="center" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
@@ -39,9 +35,11 @@ An overview of the architecture can be found [here](ARCHITECTURE.md).
   </span>
   <span>
     <img src="./docs/screenshots/settings_desktop.png" alt="Settings (desktop)" height="300" />
+    <img src="./docs/screenshots/settings_mobile.png" alt="Settings (mobile)" height="300" />
   </span>
   <span>
     <img src="./docs/screenshots/activity_desktop.png" alt="Activity (desktop)" height="300" />
+    <img src="./docs/screenshots/activity_mobile.png" alt="Activity (mobile)" height="300" />
   </span>
 </p>
 
