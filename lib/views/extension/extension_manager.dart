@@ -298,7 +298,7 @@ class ExtensionCatalog extends StatefulWidget {
 
 class _ExtensionCatalogState extends State<ExtensionCatalog>
     with StateDisposeScopeMixin {
-  List<_ResolvedRepo>? _resolved;
+  List<_ResolvedRepo> _resolved = [];
 
   String? _selectedRepoUrl;
 
@@ -317,25 +317,28 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
   Future<void> _resolveRepos() async {
     final repos = settings.extension.repositories.value;
     final sourceExt = locate<src.ExtensionService>();
-    final resolved = <_ResolvedRepo>[];
-    for (final url in repos) {
-      try {
-        resolved.add(_ResolvedRepo(url, await sourceExt.getRepo(url)));
-      } catch (e) {
-        logger.e('Failed to load repo $url', error: e);
-      }
-    }
-    if (!mounted) {
-      return;
-    }
     setState(() {
-      _resolved = resolved;
-      if (_selectedRepoUrl != null &&
-          !resolved.any((r) => r.url == _selectedRepoUrl)) {
+      _resolved = [];
+      if (_selectedRepoUrl != null) {
         _selectedRepoUrl = null;
       }
       _rebuildController();
     });
+    for (final url in repos) {
+      try {
+        sourceExt.getRepo(url).then((repo) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _resolved.add(_ResolvedRepo(url, repo));
+            _rebuildController();
+          });
+        });
+      } catch (e) {
+        logger.e('Failed to load repo $url', error: e);
+      }
+    }
   }
 
   void _rebuildController() {
@@ -395,7 +398,7 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     }
 
     final resolved = _resolved;
-    if (resolved == null) {
+    if (resolved.isEmpty) {
       return const Center(child: DionProgressBar());
     }
 
@@ -448,9 +451,6 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
                 tooltip: 'Refresh Repositories',
                 icon: const Icon(Icons.refresh),
                 onPressed: () {
-                  setState(() {
-                    _resolved = null;
-                  });
                   _resolveRepos();
                 },
               ),
