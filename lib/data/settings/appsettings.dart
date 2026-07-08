@@ -157,7 +157,7 @@ class StringListMetaData extends PreferenceMetaData<List<String>> {
 
 enum ReaderMode { paginated, infinite }
 
-enum UpdateChannel { stable, beta }
+enum UpdateChannel { stable, beta, nightly }
 
 final settings = (
   extension: (
@@ -227,6 +227,10 @@ final settings = (
       Version.none,
       const VersionMetaData('update.lastnotified'),
     ),
+    lastnotifiednightly: Setting(
+      '',
+      const PreferenceStringMetaData('update.lastnotifiednightly'),
+    )..addCollection(preferenceCollection),
   ),
   sync: (
     enabled: Setting(true, const PreferenceBoolMetaData('sync.enabled'))

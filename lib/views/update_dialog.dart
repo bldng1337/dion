@@ -50,9 +50,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
       );
     }
     if (!loading) {
+      final commit = widget.update.commit;
       return DionAlertDialog(
         title: Text(
-          'Version ${widget.update.version} is available!',
+          commit == null
+              ? 'Version ${widget.update.version} is available!'
+              : 'Nightly build $commit is available!',
           style: context.titleLarge,
         ),
         content: Text(widget.update.body, style: context.bodyMedium),

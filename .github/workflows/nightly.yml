@@ -1,0 +1,202 @@
+name: Nightly
+
+# Build a fresh rolling "nightly" release on every new commit to main.
+# Artifacts land on a single persistent release tagged `nightly`; each build
+# overwrites the previous artifacts (replacesArtifacts) and refreshes a small
+# nightly.json manifest the app's updater reads to compare commit hashes.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  Build:
+    permissions:
+      contents: write
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        build_mode:
+          - release
+    env:
+      CARGOKIT_VERBOSE: 1
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+
+      - uses: actions/checkout@v3
+        with:
+          # Full history so we have a usable commit hash/date.
+          fetch-depth: 0
+      - uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # 2.16.0
+        with:
+          channel: "stable"
+          cache: true
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+      - name: Set up JDK 17
+        if: (matrix.os == 'ubuntu-latest')
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+      - name: Install build tools
+        if: (matrix.os == 'ubuntu-latest')
+        run: |
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+          yes | sdkmanager --licenses
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Pub Get
+        run: flutter pub get
+      - name: Build Launcher Icons
+        run: flutter pub run flutter_launcher_icons
+      - name: update-packages
+        if: (matrix.os == 'ubuntu-latest')
+        run: sudo apt-get update
+      - name: Install mpv
+        if: (matrix.os == 'ubuntu-latest')
+        run: sudo apt install libmpv-dev mpv --fix-missing
+
+      - name: Create output directory
+        run: mkdir -p ./output
+
+      - name: Compute build metadata
+        shell: bash
+        run: |
+          NORMAL_VERSION=$(awk '/^version:/ { print $2 }' pubspec.yaml)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_DATE=$(git show -s --format=%cI HEAD)
+          BUILD_VERSION="${NORMAL_VERSION}+nightly.${SHORT_SHA}"
+          {
+            echo "NORMAL_VERSION=$NORMAL_VERSION"
+            echo "SHORT_SHA=$SHORT_SHA"
+            echo "BUILD_VERSION=$BUILD_VERSION"
+            echo "COMMIT_DATE=$COMMIT_DATE"
+          } >> "$GITHUB_ENV"
+          echo "Building nightly $BUILD_VERSION"
+
+      - name: Write nightly.json manifest
+        shell: bash
+        run: |
+          # Deterministic on both runners for a given commit, so uploading it
+          # twice (once per matrix leg) is a harmless no-op replacement.
+          cat > nightly.json <<EOF
+          {
+            "version": "$BUILD_VERSION",
+            "base_version": "$NORMAL_VERSION",
+            "commit": "$SHORT_SHA",
+            "commit_date": "$COMMIT_DATE",
+            "channel": "nightly"
+          }
+          EOF
+          cat nightly.json
+
+      - name: Versions
+        run: |
+          flutter --version
+          dart --version
+          cargo --version
+
+      - name: Build Android (${{ matrix.build_mode }})
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: flutter build apk --${{ matrix.build_mode }} --verbose \
+          --dart-define=BUILD_VERSION="$BUILD_VERSION" \
+          --dart-define=BUILD_COMMIT="$SHORT_SHA" \
+          --dart-define=BUILD_CHANNEL=nightly
+      - name: Sign APK
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
+          echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
+          echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+      - name: Move APK
+        if: matrix.os == 'ubuntu-latest'
+        run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
+
+      - name: Build Windows (${{ matrix.build_mode }})
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: flutter build windows --${{ matrix.build_mode }} --verbose \
+          --dart-define=BUILD_VERSION="$BUILD_VERSION" \
+          --dart-define=BUILD_COMMIT="$SHORT_SHA" \
+          --dart-define=BUILD_CHANNEL=nightly
+      - name: Build iss script
+        if: matrix.os == 'windows-latest'
+        run: dart run inno_bundle:build --no-app --release --no-installer
+      - name: Remove non-English languages from iss script
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $issPath = "./build/windows/x64/installer/Release/inno-script.iss"
+          $content = Get-Content -Path $issPath
+          $content = $content | Where-Object { $_ -notmatch 'compiler:Languages\\' }
+          Set-Content -Path $issPath -Value $content
+      - name: Add Registry entries for deep links
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $issPath = "./build/windows/x64/installer/Release/inno-script.iss"
+          $registrySection = @"
+
+          [Registry]
+          Root: HKCR; Subkey: "dion"; ValueType: string; ValueData: "URL:Dion Protocol"; Flags: uninsdeletekey
+          Root: HKCR; Subkey: "dion"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+          Root: HKCR; Subkey: "dion\DefaultIcon"; ValueType: string; ValueData: "{app}\dion.exe,0"
+          Root: HKCR; Subkey: "dion\shell\open\command"; ValueType: string; ValueData: """{app}\dion.exe"" ""%1"""
+          "@
+
+          Add-Content -Path $issPath -Value $registrySection
+
+      - name: Build installer
+        if: matrix.os == 'windows-latest'
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: ./build/windows/x64/installer/Release/inno-script.iss
+      - name: Move installer
+        if: matrix.os == 'windows-latest'
+        run: mv ./build/windows/x64/installer/Release/*.exe ./output/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "./output/*"
+          name: dion-nightly-${{ matrix.os }}-${{ matrix.build_mode }}
+
+      # Single rolling release tagged `nightly`. Both matrix legs attach to it;
+      # replacesArtifacts overwrites same-named assets so the release stays
+      # fresh. makeLatest: false keeps the real latest release untouched.
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: nightly
+          name: Nightly ${{ env.BUILD_VERSION }}
+          prerelease: true
+          makeLatest: "false"
+          allowUpdates: true
+          replacesArtifacts: true
+          artifacts: "./output/*,./nightly.json"
+          body: |
+            Automated nightly build from ${{ env.SHORT_SHA }}.
+
+            - Version: ${{ env.BUILD_VERSION }}
+            - Base version: ${{ env.NORMAL_VERSION }}
+            - Commit: ${{ env.SHORT_SHA }}
+            - Commit date: ${{ env.COMMIT_DATE }}
+
+            This build tracks the latest commit on main. It is updated on every push, replacing the previous artifacts.

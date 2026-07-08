@@ -38,7 +38,7 @@ class UpdateSettings extends StatelessWidget {
             children: [
               SettingDropdown(
                 title: 'Update Channel',
-                description: 'Choose between stable and beta releases',
+                description: 'Choose between stable, beta and nightly builds',
                 setting: settings.update.channel,
               ),
             ],
