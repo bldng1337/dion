@@ -77,7 +77,7 @@ dependencies:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 72d887c09bc6e0c5c8705ca3a0ee8ddf7eff9560
+      ref: e28982217a0c9cd77cda05232aafe8e405b85482
 
   # pdfx: ^2.8.0
   flutter_inappwebview: ^6.1.5
