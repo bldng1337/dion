@@ -20,7 +20,14 @@ import 'package:dionysos/widgets/settings/setting_numberbox.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/material.dart'
-    show Colors, Icons, InkWell, Material, showAdaptiveDialog, showDialog;
+    show
+        Colors,
+        Icons,
+        InkWell,
+        Material,
+        ReorderableListView,
+        showAdaptiveDialog,
+        showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
@@ -254,20 +261,72 @@ class _CategorySettingsState extends State<CategorySettings>
                 style: DionTypography.bodySmall(context.textTertiary),
               ),
             ),
-          ),
-        ...categories.map(
-          (category) => _CategoryTile(
-            category: category,
-            onEdit: () => showUpdateDialog(context, category),
-            onDelete: () async {
-              await locate<Database>().removeCategory(category);
+          )
+        else
+          _ReorderableCategoryList(
+            categories: categories,
+            onReorder: (oldIndex, newIndex) {
+              setState(() {
+                final cat = categories.removeAt(oldIndex);
+                categories.insert(newIndex, cat);
+                var i = 0;
+                this.categories = categories
+                    .map((e) => e.copyWith(index: i++))
+                    .toList();
+              });
+              locate<Database>().updateCategories(this.categories!);
+            },
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              return _CategoryTile(
+                key: ValueKey(category.id),
+                category: category,
+                onEdit: () => showUpdateDialog(context, category),
+                onDelete: () async {
+                  await locate<Database>().removeCategory(category);
+                },
+              );
             },
           ),
-        ),
         _AddCategoryButton(
           onTap: () => showAddCategoryDialog(context, categories.length),
         ),
       ],
+    );
+  }
+}
+
+class _ReorderableCategoryList extends StatelessWidget {
+  final List<Category> categories;
+  final void Function(int oldIndex, int newIndex) onReorder;
+  final Widget Function(BuildContext context, int index) itemBuilder;
+
+  const _ReorderableCategoryList({
+    required this.categories,
+    required this.onReorder,
+    required this.itemBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      onReorderItem: onReorder,
+      padding: EdgeInsets.zero,
+      itemCount: categories.length,
+      proxyDecorator: (child, _, animation) => Material(
+        color: Colors.transparent,
+        elevation: 1,
+        borderRadius: DionRadius.medium,
+        child: child,
+      ),
+      itemBuilder: (context, index) => ReorderableDragStartListener(
+        key: ValueKey(categories[index].id),
+        index: index,
+        child: itemBuilder(context, index),
+      ),
     );
   }
 }
@@ -278,6 +337,7 @@ class _CategoryTile extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _CategoryTile({
+    super.key,
     required this.category,
     required this.onEdit,
     required this.onDelete,
