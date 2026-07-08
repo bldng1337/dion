@@ -3,6 +3,7 @@ import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/immutable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
+import 'package:dionysos/widgets/selection.dart';
 import 'package:flutter/material.dart';
 
 /// A string list setting with the new clean design.
@@ -97,9 +98,11 @@ class _SettingStringListState extends State<SettingStringList> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        e.$2,
-                        style: DionTypography.bodyMedium(context.textPrimary),
+                      child: Selection(
+                        child: Text(
+                          e.$2,
+                          style: DionTypography.bodyMedium(context.textPrimary),
+                        ),
                       ),
                     ),
                     const SizedBox(width: DionSpacing.sm),
