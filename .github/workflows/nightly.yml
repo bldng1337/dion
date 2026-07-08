@@ -115,10 +115,12 @@ jobs:
       - name: Build Android (${{ matrix.build_mode }})
         if: matrix.os == 'ubuntu-latest'
         shell: bash
-        run: flutter build apk --${{ matrix.build_mode }} --verbose \
-          --dart-define=BUILD_VERSION="$BUILD_VERSION" \
-          --dart-define=BUILD_COMMIT="$SHORT_SHA" \
-          --dart-define=BUILD_CHANNEL=nightly
+
+        run: |
+          flutter build apk --${{ matrix.build_mode }} --verbose \
+            --dart-define=BUILD_VERSION="$BUILD_VERSION" \
+            --dart-define=BUILD_COMMIT="$SHORT_SHA" \
+            --dart-define=BUILD_CHANNEL=nightly
       - name: Sign APK
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -134,10 +136,11 @@ jobs:
       - name: Build Windows (${{ matrix.build_mode }})
         if: matrix.os == 'windows-latest'
         shell: bash
-        run: flutter build windows --${{ matrix.build_mode }} --verbose \
-          --dart-define=BUILD_VERSION="$BUILD_VERSION" \
-          --dart-define=BUILD_COMMIT="$SHORT_SHA" \
-          --dart-define=BUILD_CHANNEL=nightly
+        run: |
+          flutter build windows --${{ matrix.build_mode }} --verbose \
+            --dart-define=BUILD_VERSION="$BUILD_VERSION" \
+            --dart-define=BUILD_COMMIT="$SHORT_SHA" \
+            --dart-define=BUILD_CHANNEL=nightly
       - name: Build iss script
         if: matrix.os == 'windows-latest'
         run: dart run inno_bundle:build --no-app --release --no-installer
