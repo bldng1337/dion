@@ -37,6 +37,7 @@ class Detail extends StatefulWidget {
 
 class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   Entry? entry;
+  Entry? _lastSeed;
   late CancelToken tok;
   Object? error;
   StackTrace? errstack;
@@ -245,6 +246,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     } catch (e, stack) {
       logger.e('Error checking if entry is saved', error: e, stackTrace: stack);
       error = e;
+      errstack = stack;
       if (mounted) {
         setState(() {});
       }
@@ -261,6 +263,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     } catch (e, stack) {
       logger.e('Error loading entry', error: e, stackTrace: stack);
       error = e;
+      errstack = stack;
       if (mounted) {
         setState(() {});
       }
@@ -272,12 +275,13 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     super.didChangeDependencies();
     final newentry =
         (GoRouterState.of(context).extra! as List<Object?>)[0]! as Entry;
-    if (entry.runtimeType == newentry.runtimeType && newentry.id == entry?.id) {
+    if (identical(newentry, _lastSeed)) {
       return;
     }
     if (!mounted) return;
     setState(() {});
     entry = newentry;
+    _lastSeed = newentry;
     if (tok.isDisposed) {
       tok = CancelToken()..disposedBy(scope);
     }
