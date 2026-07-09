@@ -5,6 +5,7 @@ import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
+import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
@@ -263,6 +264,47 @@ DEFINE TABLE IF NOT EXISTS extension;
         'offset': page,
       },
     );
+  }
+
+  Stream<EntrySaved> queryEntries({
+    EntryScope scope = const EntryScopeAll(),
+    LibraryFilters filters = LibraryFilters.empty,
+    LibrarySort sort = const LibrarySort(),
+    required int page,
+    int limit = 25,
+  }) {
+    final (where, vars) = _buildEntryWhere(scope, filters);
+    final projection = sort.toProjection();
+    final selectClause = projection == null ? '*' : '*, ${projection.select}';
+    final orderClause = projection == null ? '' : ' ${projection.orderBy}';
+    return _getEntriesSQL(
+      'SELECT $selectClause FROM type::table(\$entry)$where$orderClause '
+      'LIMIT \$limit START \$offset*\$limit FETCH categories',
+      {'entry': entryTable.tb, 'limit': limit, 'offset': page, ...vars},
+    );
+  }
+
+  Future<int> countEntries({
+    EntryScope scope = const EntryScopeAll(),
+    LibraryFilters filters = LibraryFilters.empty,
+  }) async {
+    final (where, vars) = _buildEntryWhere(scope, filters);
+    return await _countSQL(
+      query: 'SELECT count() FROM type::table(\$entry)$where GROUP ALL;',
+      vars: {'entry': entryTable.tb, ...vars},
+    );
+  }
+
+  (String, Map<String, dynamic>) _buildEntryWhere(
+    EntryScope scope,
+    LibraryFilters filters,
+  ) {
+    final conditions = <String>[];
+    final vars = <String, dynamic>{};
+    scope.writeCondition(conditions, vars);
+    filters.writeConditions(conditions, vars);
+    if (conditions.isEmpty) return ('', vars);
+    return (' WHERE ${conditions.join(' AND ')}', vars);
   }
 
   Future<int> _countSQL({

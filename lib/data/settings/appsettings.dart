@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dionysos/data/font.dart';
+import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/log.dart';
@@ -181,6 +182,14 @@ final settings = (
       ..addCollection(preferenceCollection),
     showNoneTab: Setting(true, const PreferenceBoolMetaData('library.shownone'))
       ..addCollection(preferenceCollection),
+    sortKey: Setting(
+      LibrarySortKey.none,
+      const PreferenceEnumMetaData('library.sortkey', LibrarySortKey.values),
+    )..addCollection(preferenceCollection),
+    sortDescending: Setting(
+      false,
+      const PreferenceBoolMetaData('library.sortdescending'),
+    )..addCollection(preferenceCollection),
     autoRefresh: (
       enabled: Setting(
         true,
