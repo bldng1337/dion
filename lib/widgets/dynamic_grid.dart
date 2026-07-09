@@ -18,6 +18,11 @@ abstract class DataSource<T> {
   bool get isfinished;
   bool get requesting;
   void reset();
+
+  int _generation = 0;
+
+  /// Bumps the generation, invalidating any in-flight request.
+  void bumpGeneration() => _generation++;
 }
 
 class StreamSource<T> extends DataSource<T> {
@@ -27,6 +32,7 @@ class StreamSource<T> extends DataSource<T> {
   int index = 0;
   @override
   bool requesting = false;
+  StreamSubscription<List<T>>? _subscription;
   StreamSource(this.loadmore);
 
   @override
@@ -35,9 +41,11 @@ class StreamSource<T> extends DataSource<T> {
     if (isfinished) return;
     if (streamController == null) return;
     requesting = true;
-    final completer = Completer();
-    loadmore(index++).listen(
+    final generation = _generation;
+    final completer = Completer<void>();
+    _subscription = loadmore(index++).listen(
       (e) {
+        if (generation != _generation) return;
         if (e.isEmpty) {
           isfinished = true;
           return;
@@ -45,6 +53,7 @@ class StreamSource<T> extends DataSource<T> {
         streamController?.add(e.map((e) => Result.success(e)).toList());
       },
       onError: (e, stack) {
+        if (generation != _generation) return;
         try {
           streamController?.add(<Result<T>>[
             Result.failure(e as Exception, stack is StackTrace ? stack : null),
@@ -55,6 +64,7 @@ class StreamSource<T> extends DataSource<T> {
       },
       cancelOnError: true,
       onDone: () {
+        if (generation != _generation) return;
         requesting = false;
         completer.complete();
       },
@@ -64,6 +74,9 @@ class StreamSource<T> extends DataSource<T> {
 
   @override
   void reset() {
+    bumpGeneration();
+    _subscription?.cancel();
+    _subscription = null;
     index = 0;
     isfinished = false;
     requesting = false;
@@ -94,6 +107,7 @@ class SingleStreamSource<T> extends DataSource<T> {
   int index = 0;
   @override
   bool requesting = false;
+  StreamSubscription<T>? _subscription;
   SingleStreamSource(this.loadmore);
 
   @override
@@ -102,14 +116,17 @@ class SingleStreamSource<T> extends DataSource<T> {
     if (isfinished) return;
     if (streamController == null) return;
     requesting = true;
+    final generation = _generation;
     var hasdelivered = false;
-    final completer = Completer();
-    loadmore(index++).listen(
+    final completer = Completer<void>();
+    _subscription = loadmore(index++).listen(
       (e) {
+        if (generation != _generation) return;
         hasdelivered = true;
         streamController?.add([Result.success(e)]);
       },
       onError: (e, stack) {
+        if (generation != _generation) return;
         try {
           if (e is Exception) {
             streamController?.add(<Result<T>>[
@@ -129,6 +146,7 @@ class SingleStreamSource<T> extends DataSource<T> {
       },
       cancelOnError: true,
       onDone: () {
+        if (generation != _generation) return;
         completer.complete();
         requesting = false;
         if (!hasdelivered) {
@@ -141,6 +159,9 @@ class SingleStreamSource<T> extends DataSource<T> {
 
   @override
   void reset() {
+    bumpGeneration();
+    _subscription?.cancel();
+    _subscription = null;
     index = 0;
     isfinished = false;
     requesting = false;
@@ -171,6 +192,7 @@ class AsyncStreamSource<T> extends DataSource<T> {
   int index = 0;
   @override
   bool requesting = false;
+  StreamSubscription<List<T>>? _subscription;
   AsyncStreamSource(this.loadmore);
 
   @override
@@ -179,9 +201,17 @@ class AsyncStreamSource<T> extends DataSource<T> {
     if (isfinished) return;
     if (streamController == null) return;
     requesting = true;
-    final completer = Completer();
-    (await loadmore(index++)).listen(
+    final generation = _generation;
+    final completer = Completer<void>();
+    final stream = await loadmore(index++);
+    // A reset() may have happened while awaiting the stream.
+    if (generation != _generation) {
+      requesting = false;
+      return;
+    }
+    _subscription = stream.listen(
       (e) {
+        if (generation != _generation) return;
         if (e.isEmpty) {
           isfinished = true;
           return;
@@ -189,6 +219,7 @@ class AsyncStreamSource<T> extends DataSource<T> {
         streamController?.add(e.map((e) => Result.success(e)).toList());
       },
       onError: (e, stack) {
+        if (generation != _generation) return;
         try {
           streamController?.add(<Result<T>>[
             Result.failure(e as Exception, stack is StackTrace ? stack : null),
@@ -199,6 +230,7 @@ class AsyncStreamSource<T> extends DataSource<T> {
       },
       cancelOnError: true,
       onDone: () {
+        if (generation != _generation) return;
         completer.complete();
         requesting = false;
       },
@@ -208,6 +240,9 @@ class AsyncStreamSource<T> extends DataSource<T> {
 
   @override
   void reset() {
+    bumpGeneration();
+    _subscription?.cancel();
+    _subscription = null;
     index = 0;
     isfinished = false;
     requesting = false;
@@ -246,8 +281,14 @@ class AsyncSource<T> extends DataSource<T> {
     if (isfinished) return;
     if (streamController == null) return;
     requesting = true;
+    final generation = _generation;
     try {
       final e = await loadmore(index++);
+      // A reset() may have happened while awaiting.
+      if (generation != _generation) {
+        requesting = false;
+        return;
+      }
       if (e.isEmpty) {
         isfinished = true;
         requesting = false;
@@ -255,6 +296,10 @@ class AsyncSource<T> extends DataSource<T> {
       }
       streamController?.add(e.map((e) => Result.success(e)).toList());
     } catch (e, stack) {
+      if (generation != _generation) {
+        requesting = false;
+        return;
+      }
       try {
         streamController?.add(<Result<T>>[
           Result.failure(e as Exception, stack),
@@ -274,6 +319,7 @@ class AsyncSource<T> extends DataSource<T> {
 
   @override
   void reset() {
+    bumpGeneration();
     index = 0;
     isfinished = false;
     requesting = false;
@@ -321,8 +367,14 @@ class PageAsyncSource<T> extends DataSource<T> {
     if (isfinished) return;
     if (streamController == null) return;
     requesting = true;
+    final generation = _generation;
     try {
       final e = await loadmore(index++);
+      // A reset() may have happened while awaiting.
+      if (generation != _generation) {
+        requesting = false;
+        return;
+      }
       if (e == null) {
         isfinished = true;
         requesting = false;
@@ -338,6 +390,10 @@ class PageAsyncSource<T> extends DataSource<T> {
       }
       streamController?.add(e.items.map((e) => Result.success(e)).toList());
     } catch (e, stack) {
+      if (generation != _generation) {
+        requesting = false;
+        return;
+      }
       try {
         streamController?.add(<Result<T>>[
           Result.failure(e as Exception, stack),
@@ -357,6 +413,7 @@ class PageAsyncSource<T> extends DataSource<T> {
 
   @override
   void reset() {
+    bumpGeneration();
     index = 0;
     isfinished = false;
     requesting = false;
@@ -420,6 +477,7 @@ class DataSourceController<T> extends ChangeNotifier {
     }
     index = 0;
     finished = false;
+    loading = false;
     items.clear();
     notifyListeners();
   }
