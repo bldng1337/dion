@@ -210,7 +210,7 @@ DEFINE TABLE IF NOT EXISTS extension;
     if (category == null) {
       return await _countSQL(
         query:
-            'SELECT count() FROM type::table(\$entry) WHERE array::is_empty(categories) GROUP ALL;',
+            'SELECT count() FROM type::table(\$entry) WHERE array::is_empty(categories??[]) GROUP ALL;',
         vars: {'entry': entryTable.tb},
       );
     }
