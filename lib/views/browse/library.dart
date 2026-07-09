@@ -11,7 +11,6 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -126,7 +125,9 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
       _exitSearch();
     } else {
       setState(() => _searching = true);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _searchFocus.requestFocus());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _searchFocus.requestFocus(),
+      );
     }
   }
 
@@ -152,7 +153,9 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
       return;
     }
     _searchController = DataSourceController<EntrySaved>([
-      SingleStreamSource((i) => locate<Database>().searchEntries(trimmed, i, 25)),
+      SingleStreamSource(
+        (i) => locate<Database>().searchEntries(trimmed, i, 25),
+      ),
     ]);
     setState(() {});
     _searchController!.requestMore();
@@ -160,7 +163,10 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
 
   void _onSearchChanged(String query) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), () => _runSearch(query));
+    _debounce = Timer(
+      const Duration(milliseconds: 250),
+      () => _runSearch(query),
+    );
   }
 
   @override
@@ -184,10 +190,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
         destination: homedestinations,
         title: const Text('Library'),
         actions: [
-          DionIconbutton(
-            icon: const Icon(Icons.close),
-            onPressed: _exitSearch,
-          ),
+          DionIconbutton(icon: const Icon(Icons.close), onPressed: _exitSearch),
         ],
         child: Column(
           children: [
@@ -233,58 +236,20 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
             DionTab(
               child: CategoryDisplay(category: cat, key: ValueKey(cat)),
               tab: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(cat.name),
-                  SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child:
-                          (categoryCounts[cat] != null &&
-                              categoryCounts[cat]! > 0)
-                          ? DionContainer(
-                              key: ValueKey('badge_${cat.name}'),
-                              color: context.theme.primaryColor,
-                              child: Text(
-                                '${categoryCounts[cat]}',
-                                textAlign: TextAlign.center,
-                                style: context.labelSmall?.copyWith(
-                                  color: Colors.white,
-                                ),
-                              ).paddingHorizontal(3),
-                            )
-                          : SizedBox.shrink(key: ValueKey('empty_${cat.name}')),
-                    ),
-                  ).paddingAll(3),
+                  _CountBadge(count: categoryCounts[cat]).paddingOnly(left: 5),
                 ],
               ),
             ),
           if (settings.library.showAllTab.value)
             DionTab(
               tab: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text('All'),
-                  SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: (totalCount != null && totalCount! > 0)
-                          ? DionContainer(
-                              key: const ValueKey('badge_all'),
-                              color: context.theme.primaryColor,
-                              child: Text(
-                                '$totalCount',
-                                textAlign: TextAlign.center,
-                                style: context.labelSmall?.copyWith(
-                                  color: Colors.white,
-                                ),
-                              ).paddingHorizontal(3),
-                            )
-                          : const SizedBox.shrink(key: ValueKey('empty_all')),
-                    ),
-                  ),
+                  _CountBadge(count: totalCount).paddingOnly(left: 5),
                 ],
               ),
               child: CategoryDisplay(
@@ -300,30 +265,10 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
           if (settings.library.showNoneTab.value)
             DionTab(
               tab: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text('No Category'),
-                  SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: (noneCount != null && noneCount! > 0)
-                          ? DionContainer(
-                              key: const ValueKey('badge_no_category'),
-                              color: context.theme.primaryColor,
-                              child: Text(
-                                '$noneCount',
-                                textAlign: TextAlign.center,
-                                style: context.labelSmall?.copyWith(
-                                  color: Colors.white,
-                                ),
-                              ).paddingHorizontal(3),
-                            )
-                          : const SizedBox.shrink(
-                              key: ValueKey('empty_no_category'),
-                            ),
-                    ),
-                  ).paddingAll(3),
+                  _CountBadge(count: noneCount).paddingOnly(left: 5),
                 ],
               ),
               child: CategoryDisplay(
@@ -390,6 +335,49 @@ class _CategoryDisplayState extends State<CategoryDisplay>
       itemBuilder: (BuildContext context, item) =>
           EntryDisplay(entry: item, showSaved: false),
       controller: controller,
+    );
+  }
+}
+
+/// A compact count badge for tab labels.
+///
+/// Renders as a circle for single digits and grows into a pill for larger
+/// numbers, so counts > 9 no longer overflow a fixed-size box. Shows nothing
+/// while the count is loading (null) or zero.
+class _CountBadge extends StatelessWidget {
+  final int? count;
+
+  const _CountBadge({this.count});
+
+  static const double _size = 18;
+  static const double _hPad = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = count;
+    final visible = value != null && value > 0;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: visible
+          ? Container(
+              key: const ValueKey(true),
+              constraints: const BoxConstraints(
+                minWidth: _size,
+                minHeight: _size,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: _hPad),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: context.theme.primaryColor,
+                borderRadius: BorderRadius.circular(_size / 2),
+              ),
+              child: Text(
+                '$value',
+                textAlign: TextAlign.center,
+                style: context.labelSmall?.copyWith(color: Colors.white),
+              ),
+            )
+          : const SizedBox.shrink(key: ValueKey(false)),
     );
   }
 }
