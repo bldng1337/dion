@@ -60,7 +60,6 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     }
     if (lastscrollOffset < controller.offset - 500) {
       SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-      widget.source.episode.save();
       lastscrollOffset = controller.offset.toInt();
     }
   }

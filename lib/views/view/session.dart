@@ -50,7 +50,7 @@ class _SessionState extends State<Session> implements SessionManager {
   @override
   void keepSessionAlive({bool saveToDb = false}) {
     if (DateTime.now().difference(lastKeepAlive) <
-        const Duration(milliseconds: 500)) {
+        const Duration(milliseconds: 1000)) {
       return;
     }
     updateSession(saveToDb: saveToDb);
@@ -81,6 +81,7 @@ class _SessionState extends State<Session> implements SessionManager {
     );
     if (!saveToDb) return;
     await db.addActivity(session);
+    await widget.source.episode.save();
   }
 
   @override

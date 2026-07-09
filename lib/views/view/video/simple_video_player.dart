@@ -180,7 +180,6 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       }
       if (event.inSeconds % 5 == 0) {
         SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-        widget.source.episode.save();
       }
     });
   }

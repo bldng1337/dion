@@ -185,7 +185,6 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       widget.source.episode.data.progress = '${event.inMilliseconds}';
       final secs = event.inSeconds;
       if (secs != 0 && secs % 5 == 0) {
-        widget.source.episode.save();
         SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
       }
       if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
@@ -386,7 +385,11 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                               icon: Icon(icon),
                               onPressed: () async {
                                 await player.playOrPause();
-                                widget.source.episode.save();
+                                if (context.mounted) {
+                                  SessionData.of(
+                                    context,
+                                  )?.manager.keepSessionAlive(saveToDb: true);
+                                }
                               },
                             );
                           },

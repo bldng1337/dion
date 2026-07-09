@@ -143,7 +143,6 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     }
     if (lastscrollOffset < scrollController.offset - 500) {
       SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-      widget.source.episode.save();
       lastscrollOffset = scrollController.offset.toInt();
     }
   }
