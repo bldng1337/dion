@@ -156,7 +156,10 @@ class EntryCard extends StatelessWidget {
         }, size: 15),
       ],
       trailingBadges: [
-        if (entry is EntrySaved && entry.language.toLowerCase() != 'unknown')
+        if (entry is EntrySaved &&
+            entry.language.toLowerCase() != 'unknown' &&
+            (FlagCode.fromCountryCode(entry.language) != null ||
+                FlagCode.fromLanguageCode(entry.language) != null))
           switch (FlagCode.fromCountryCode(entry.language)) {
             null => CountryFlag.fromLanguageCode(
               entry.language,
