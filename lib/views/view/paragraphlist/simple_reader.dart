@@ -117,77 +117,81 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     final paragraphs = widget.sourcedata.paragraphs;
     return NavScaff(
       showNavbar: false,
-      child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(),
-        child: CustomScrollView(
-          controller: controller,
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              title: DionTextScroll(widget.source.name),
-              leading: DionIconbutton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  context.pop();
-                },
-              ),
-              actions: [
-                DionIconbutton(
-                  icon: Icon(
-                    epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
-                  ),
-                  onPressed: () async {
-                    epdata.bookmark = !epdata.bookmark;
-                    await widget.source.episode.save();
-                    if (mounted) {
-                      setState(() {});
-                    }
+      child: ReaderSelectable(
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(),
+          child: CustomScrollView(
+            controller: controller,
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                title: DionTextScroll(widget.source.name),
+                leading: DionIconbutton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    context.pop();
                   },
                 ),
-                DionIconbutton(
-                  icon: const Icon(Icons.open_in_browser),
-                  onPressed: () =>
-                      launchUrl(Uri.parse(widget.source.episode.episode.url)),
-                ),
-                DionIconbutton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () => context.push('/settings/paragraphreader'),
-                ),
-              ],
-            ),
-            if (widget.source.episode.hasprev)
-              SliverToBoxAdapter(
-                child: DionTextbutton(
-                  child: const Text('Previous').paddingSymmetric(vertical: 16),
-                  onPressed: () =>
-                      widget.source.episode.goPrev(widget.supplier),
-                ),
+                actions: [
+                  DionIconbutton(
+                    icon: Icon(
+                      epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
+                    ),
+                    onPressed: () async {
+                      epdata.bookmark = !epdata.bookmark;
+                      await widget.source.episode.save();
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  DionIconbutton(
+                    icon: const Icon(Icons.open_in_browser),
+                    onPressed: () =>
+                        launchUrl(Uri.parse(widget.source.episode.episode.url)),
+                  ),
+                  DionIconbutton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => context.push('/settings/paragraphreader'),
+                  ),
+                ],
               ),
-            SliverToBoxAdapter(
-              child: EpisodeTitle(episode: widget.source.episode),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              sliver: SuperSliverList.builder(
-                listController: listController,
-                itemBuilder: (context, index) => ReaderWrapScreen(
-                  ReaderRenderParagraph(
-                    paragraphs[index],
-                    widget.supplier.episode.entry.extension!,
+              if (widget.source.episode.hasprev)
+                SliverToBoxAdapter(
+                  child: DionTextbutton(
+                    child: const Text(
+                      'Previous',
+                    ).paddingSymmetric(vertical: 16),
+                    onPressed: () =>
+                        widget.source.episode.goPrev(widget.supplier),
                   ),
                 ),
-                itemCount: paragraphs.length,
-              ),
-            ),
-            if (widget.source.episode.hasnext)
               SliverToBoxAdapter(
-                child: DionTextbutton(
-                  child: const Text('Next').paddingSymmetric(vertical: 16),
-                  onPressed: () =>
-                      widget.source.episode.goNext(widget.supplier),
+                child: EpisodeTitle(episode: widget.source.episode),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                sliver: SuperSliverList.builder(
+                  listController: listController,
+                  itemBuilder: (context, index) => ReaderWrapScreen(
+                    ReaderRenderParagraph(
+                      paragraphs[index],
+                      widget.supplier.episode.entry.extension!,
+                    ),
+                  ),
+                  itemCount: paragraphs.length,
                 ),
               ),
-          ],
+              if (widget.source.episode.hasnext)
+                SliverToBoxAdapter(
+                  child: DionTextbutton(
+                    child: const Text('Next').paddingSymmetric(vertical: 16),
+                    onPressed: () =>
+                        widget.source.episode.goNext(widget.supplier),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

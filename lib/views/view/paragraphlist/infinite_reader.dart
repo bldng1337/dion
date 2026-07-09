@@ -115,18 +115,20 @@ class _InfiniteParagraphListReaderState
                   ],
                 );
               },
-              child: ReaderWrapScreen(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: source.paragraphs
-                      .map(
-                        (e) => ReaderRenderParagraph(
-                          e,
-                          widget.supplier.episode.entry.extension!,
-                        ),
-                      )
-                      .toList(),
+              child: ReaderSelectable(
+                child: ReaderWrapScreen(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: source.paragraphs
+                        .map(
+                          (e) => ReaderRenderParagraph(
+                            e,
+                            widget.supplier.episode.entry.extension!,
+                          ),
+                        )
+                        .toList(),
+                  ),
                 ),
               ),
             );

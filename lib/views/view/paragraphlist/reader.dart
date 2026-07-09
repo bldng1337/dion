@@ -80,25 +80,35 @@ class ReaderWrapScreen extends StatelessWidget {
       listenable: Listenable.merge([
         psettings.text.linewidth,
         psettings.text.adaptivewidth,
-        psettings.text.selectable,
       ]),
       builder: (context, child) {
         if (psettings.text.adaptivewidth.value &&
             context.width < context.height) {
-          if (psettings.text.selectable.value) {
-            return Selection(child: child!);
-          }
           return child!;
         }
         final width =
             context.width * (1 - (psettings.text.linewidth.value / 100));
         final padding = width / 2;
-        if (psettings.text.selectable.value) {
-          return Selection(
-            child: child!,
-          ).paddingOnly(left: padding, right: padding);
-        }
         return child!.paddingOnly(left: padding, right: padding);
+      },
+      child: child,
+    );
+  }
+}
+
+class ReaderSelectable extends StatelessWidget {
+  final Widget child;
+  const ReaderSelectable({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: psettings.text.selectable,
+      builder: (context, child) {
+        if (psettings.text.selectable.value) {
+          return Selection(child: child!);
+        }
+        return child!;
       },
       child: child,
     );
