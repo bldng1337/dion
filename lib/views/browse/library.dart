@@ -7,6 +7,7 @@ import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
@@ -353,11 +354,6 @@ class _EntryGridState extends State<EntryGrid>
   }
 }
 
-/// A compact count badge for tab labels.
-///
-/// Renders as a circle for single digits and grows into a pill for larger
-/// numbers, so counts > 9 no longer overflow a fixed-size box. Shows nothing
-/// while the count is loading (null) or zero.
 class _CountBadge extends StatelessWidget {
   final int? count;
 
@@ -383,7 +379,7 @@ class _CountBadge extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: context.theme.primaryColor,
-                borderRadius: BorderRadius.circular(_size / 2),
+                borderRadius: DionRadius.small,
               ),
               child: Text(
                 '$value',
