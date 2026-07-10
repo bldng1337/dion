@@ -12,6 +12,7 @@ import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/views/extension/extension_manager.dart';
 import 'package:dionysos/views/extension/extension_view.dart';
 import 'package:dionysos/views/loading.dart';
+import 'package:dionysos/views/settings/about.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/developer.dart';
 import 'package:dionysos/views/settings/developer/log.dart';
@@ -190,6 +191,11 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
           path: '/extension',
           pageBuilder: (context, state) =>
               getTransition(context, state, const ExtensionSettings()),
+        ),
+        GoRoute(
+          path: '/about',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const AboutSettings()),
         ),
       ],
     ),

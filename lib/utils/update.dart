@@ -272,10 +272,12 @@ Future<Update?> checkNightlyUpdate() async {
   );
 }
 
-Future<void> checkVersion({bool force = false}) async {
+enum CheckResult { skipped, upToDate, updateAvailable, error }
+
+Future<CheckResult> checkVersion({bool force = false}) async {
   if (!force) {
     if (kDebugMode) {
-      return;
+      return CheckResult.skipped;
     }
   }
   try {
@@ -285,10 +287,12 @@ Future<void> checkVersion({bool force = false}) async {
     final update = isNightlyChannel
         ? await checkNightlyUpdate()
         : await checkUpdate();
-    if (update == null) return;
+    if (update == null) return CheckResult.upToDate;
     logger.i('New update available: ${update.version}');
     await notify(update, force: force);
+    return CheckResult.updateAvailable;
   } catch (e, stack) {
     logger.e('Failed to check for updates', error: e, stackTrace: stack);
+    return CheckResult.error;
   }
 }

@@ -238,6 +238,12 @@ class Settings extends StatelessWidget {
                 icon: Icons.extension_outlined,
                 path: '/settings/extension',
               ),
+              SettingNav(
+                title: 'About',
+                subtitle: 'Version, build info and updates',
+                icon: Icons.info_outline,
+                path: '/settings/about',
+              ),
             ],
           ),
         ],
