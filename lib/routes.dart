@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:awesome_extensions/awesome_extensions_dart.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse/browse.dart';
@@ -8,6 +9,7 @@ import 'package:dionysos/views/browse/library.dart';
 import 'package:dionysos/views/browse/search.dart';
 import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/detail/detail.dart';
+import 'package:dionysos/views/detail/saved_quotes.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/views/extension/extension_manager.dart';
 import 'package:dionysos/views/extension/extension_view.dart';
@@ -103,6 +105,17 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         context,
         state,
         const Detail(),
+        transition: Transition.fade,
+      ),
+    ),
+    GoRoute(
+      path: '/quotes',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        SavedQuotesView(
+          entry: (state.extra! as List<Object?>)[0]! as EntrySaved,
+        ),
         transition: Transition.fade,
       ),
     ),

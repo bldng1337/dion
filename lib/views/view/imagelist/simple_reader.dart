@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
@@ -8,12 +9,14 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Colors, Icons, SliverAppBar;
+import 'package:flutter/material.dart'
+    show Colors, Icons, ScaffoldMessenger, SliverAppBar, SnackBar;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
@@ -365,15 +368,44 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   }
 
   Widget makeImage(BuildContext context, Link image) {
-    return DionImage(
-      imageUrl: image.url,
-      boxFit: BoxFit.fitWidth,
-      httpHeaders: image.header,
-      shouldAnimate: false,
-      loadingBuilder: (context) => Container(
-        height: context.height * 1.2,
-        color: Colors.red,
-      ).applyShimmer(),
+    final canSave = widget.source.episode.entry is EntrySaved;
+    return ContextMenu(
+      active: canSave,
+      contextItems: [
+        ContextMenuItem(
+          label: 'Save Image',
+          onTap: () async {
+            final ep = widget.source.episode;
+            if (ep.entry is! EntrySaved) return;
+            ep.data.images.add(
+              SavedImage(
+                url: image.url,
+                headers: image.header,
+                savedAt: DateTime.now(),
+              ),
+            );
+            await ep.save();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Image saved'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+        ),
+      ],
+      child: DionImage(
+        imageUrl: image.url,
+        boxFit: BoxFit.fitWidth,
+        httpHeaders: image.header,
+        shouldAnimate: false,
+        loadingBuilder: (context) => Container(
+          height: context.height * 1.2,
+          color: Colors.red,
+        ).applyShimmer(),
+      ),
     );
   }
 }

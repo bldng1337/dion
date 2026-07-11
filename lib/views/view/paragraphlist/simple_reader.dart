@@ -118,6 +118,11 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     return NavScaff(
       showNavbar: false,
       child: ReaderSelectable(
+        selectionContextItems: (text) => quoteContextItems(
+          context,
+          widget.source.episode,
+          text,
+        ),
         child: ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(),
           child: CustomScrollView(

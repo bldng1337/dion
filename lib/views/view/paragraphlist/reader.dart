@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle;
@@ -11,6 +12,7 @@ import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/view.dart';
 import 'package:dionysos/views/view/wrapper.dart';
+import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -98,7 +100,13 @@ class ReaderWrapScreen extends StatelessWidget {
 
 class ReaderSelectable extends StatelessWidget {
   final Widget child;
-  const ReaderSelectable({super.key, required this.child});
+  final List<ContextMenuItem> Function(String selectedText)?
+  selectionContextItems;
+  const ReaderSelectable({
+    super.key,
+    required this.child,
+    this.selectionContextItems,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +114,10 @@ class ReaderSelectable extends StatelessWidget {
       listenable: psettings.text.selectable,
       builder: (context, child) {
         if (psettings.text.selectable.value) {
-          return Selection(child: child!);
+          return Selection(
+            selectionContextItems: selectionContextItems,
+            child: child!,
+          );
         }
         return child!;
       },
@@ -645,4 +656,31 @@ InlineSpan renderSpan(
       ),
     ],
   );
+}
+
+List<ContextMenuItem> quoteContextItems(
+  BuildContext context,
+  EpisodePath episode,
+  String selectedText,
+) {
+  if (episode.entry is! EntrySaved) return const [];
+  return [
+    ContextMenuItem(
+      label: 'Save as Quote',
+      onTap: () async {
+        episode.data.quotes.add(
+          SavedQuote(text: selectedText, savedAt: DateTime.now()),
+        );
+        await episode.save();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Quote saved'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+    ),
+  ];
 }

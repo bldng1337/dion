@@ -14,30 +14,116 @@ import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
+class SavedQuote {
+  final String text;
+  final DateTime savedAt;
+
+  const SavedQuote({required this.text, required this.savedAt});
+
+  @override
+  bool operator ==(Object other) =>
+      other is SavedQuote && text == other.text && savedAt == other.savedAt;
+
+  @override
+  int get hashCode => Object.hash(text, savedAt);
+
+  @override
+  String toString() => 'SavedQuote{text: $text, savedAt: $savedAt}';
+
+  Map<String, dynamic> toJson() {
+    return {'text': text, 'savedAt': savedAt.toIso8601String()};
+  }
+
+  factory SavedQuote.fromJson(Map<String, dynamic> json) {
+    return SavedQuote(
+      text: json['text'] as String,
+      savedAt: DateTime.parse(json['savedAt'] as String),
+    );
+  }
+}
+
+class SavedImage {
+  final String url;
+  final Map<String, String>? headers;
+  final DateTime savedAt;
+
+  const SavedImage({required this.url, this.headers, required this.savedAt});
+
+  @override
+  bool operator ==(Object other) =>
+      other is SavedImage &&
+      url == other.url &&
+      savedAt == other.savedAt;
+
+  @override
+  int get hashCode => Object.hash(url, savedAt);
+
+  @override
+  String toString() =>
+      'SavedImage{url: $url, headers: $headers, savedAt: $savedAt}';
+
+  Map<String, dynamic> toJson() {
+    return {
+      'url': url,
+      if (headers != null) 'headers': headers,
+      'savedAt': savedAt.toIso8601String(),
+    };
+  }
+
+  factory SavedImage.fromJson(Map<String, dynamic> json) {
+    return SavedImage(
+      url: json['url'] as String,
+      headers: (json['headers'] as Map<String, dynamic>?)?.cast(),
+      savedAt: DateTime.parse(json['savedAt'] as String),
+    );
+  }
+}
+
 class EpisodeData {
   bool bookmark;
   bool finished;
   String? progress;
-  EpisodeData({required this.bookmark, required this.finished, this.progress});
-  EpisodeData.empty() : this(bookmark: false, finished: false, progress: null);
+  List<SavedQuote> quotes;
+  List<SavedImage> images;
+  EpisodeData({
+    required this.bookmark,
+    required this.finished,
+    this.progress,
+    List<SavedQuote>? quotes,
+    List<SavedImage>? images,
+  }) : quotes = quotes ?? [],
+       images = images ?? [];
+  EpisodeData.empty()
+    : this(bookmark: false, finished: false, progress: null);
 
   @override
   bool operator ==(Object other) =>
       other is EpisodeData &&
       bookmark == other.bookmark &&
       finished == other.finished &&
-      progress == other.progress;
+      progress == other.progress &&
+      _listEquals(quotes, other.quotes) &&
+      _listEquals(images, other.images);
 
   @override
-  int get hashCode => bookmark.hashCode ^ finished.hashCode ^ progress.hashCode;
+  int get hashCode =>
+      Object.hash(bookmark, finished, progress, Object.hashAll(quotes),
+          Object.hashAll(images));
 
   @override
   String toString() {
-    return 'EpisodeData{bookmark: $bookmark, finished: $finished, progress: $progress}';
+    return 'EpisodeData{bookmark: $bookmark, finished: $finished, '
+        'progress: $progress, quotes: $quotes, images: $images}';
   }
 
   Map<String, dynamic> toJson() {
-    return {'bookmark': bookmark, 'finished': finished, 'progress': progress};
+    return {
+      'bookmark': bookmark,
+      'finished': finished,
+      'progress': progress,
+      'quotes': quotes.map((e) => e.toJson()).toList(),
+      'images': images.map((e) => e.toJson()).toList(),
+    };
   }
 
   factory EpisodeData.fromJson(Map<String, dynamic> json) {
@@ -45,8 +131,27 @@ class EpisodeData {
       bookmark: json['bookmark'] as bool,
       finished: json['finished'] as bool,
       progress: json['progress'] as String?,
+      quotes:
+          (json['quotes'] as List<dynamic>?)
+              ?.map((e) => SavedQuote.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      images:
+          (json['images'] as List<dynamic>?)
+              ?.map((e) => SavedImage.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
+}
+
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (int i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 class EntrySavedSettings {

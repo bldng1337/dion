@@ -116,6 +116,11 @@ class _InfiniteParagraphListReaderState
                 );
               },
               child: ReaderSelectable(
+                selectionContextItems: (text) => quoteContextItems(
+                  context,
+                  sourcepath.episode,
+                  text,
+                ),
                 child: ReaderWrapScreen(
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

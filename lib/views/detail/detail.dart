@@ -14,6 +14,7 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/detail/entryinfo.dart';
 import 'package:dionysos/views/detail/episodelist.dart';
+import 'package:dionysos/views/detail/saved_quotes.dart';
 import 'package:dionysos/views/detail/settings.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
@@ -320,6 +321,22 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   Widget buildDetailScreen(BuildContext context) {
     final actions = [
+      if (entry is EntrySaved)
+        ListenableBuilder(
+          listenable: locate<Database>().getListenable(DBEvent.entryUpdated),
+          builder: (context, _) {
+            if (!entryHasSavedContent(entry! as EntrySaved)) {
+              return const SizedBox.shrink();
+            }
+            return DionIconbutton(
+              tooltip: 'Saved Quotes',
+              onPressed: () {
+                context.push('/quotes', extra: [entry!]);
+              },
+              icon: const Icon(Icons.format_quote, size: 18),
+            );
+          },
+        ),
       if (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
         DionIconbutton(
           onPressed: () {
