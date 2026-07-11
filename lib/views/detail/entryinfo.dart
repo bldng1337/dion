@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/utils/color.dart';
@@ -17,12 +19,18 @@ import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/widgets/bounds.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 
+import 'package:dionysos/widgets/dialog.dart';
+import 'package:dionysos/widgets/dion_textbox.dart';
+import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
-import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
+import 'package:flutter/material.dart'
+    show Colors, FontWeight, Icons, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -326,6 +334,7 @@ class EntryInfo extends StatelessWidget {
                 }
               }
             : null,
+        onLongPress: isEnabled ? () => _showCategoriesDialog(context) : null,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -344,6 +353,37 @@ class EntryInfo extends StatelessWidget {
         ),
       ),
     ).paddingOnly(bottom: 28);
+  }
+
+  Future<void> _showCategoriesDialog(BuildContext context) async {
+    final initialCategories = entry is EntrySaved
+        ? (entry as EntrySaved).categories
+        : const <Category>[];
+    final result = await showDialog<List<Category>>(
+      context: context,
+      builder: (context) =>
+          _CategoryChooserDialog(initialCategories: initialCategories),
+    );
+    if (result == null) return;
+    if (!context.mounted) return;
+
+    if (entry is EntrySaved) {
+      // Already in library: just update the categories.
+      final saved = entry as EntrySaved;
+      saved.categories = result;
+      await saved.save();
+      if (context.mounted) {
+        context.replace('/detail', extra: [saved]);
+      }
+    } else if (entry is EntryDetailed) {
+      // Not yet in library: add it with the chosen categories.
+      final saved = await (entry as EntryDetailed).toSavedWithCategories(
+        result,
+      );
+      if (context.mounted) {
+        context.replace('/detail', extra: [saved]);
+      }
+    }
   }
 
   Widget _buildDescriptionSection(BuildContext context) {
@@ -555,7 +595,9 @@ class ChapterInfo extends StatelessWidget {
               style: context.labelMedium?.copyWith(
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                color: context.theme.colorScheme.onSurface.withValues(
+                  alpha: 0.8,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -564,7 +606,9 @@ class ChapterInfo extends StatelessWidget {
               style: context.labelMedium?.copyWith(
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                color: context.theme.colorScheme.onSurface.withValues(
+                  alpha: 0.8,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -573,7 +617,9 @@ class ChapterInfo extends StatelessWidget {
               style: context.labelMedium?.copyWith(
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                color: context.theme.colorScheme.onSurface.withValues(
+                  alpha: 0.8,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -582,7 +628,9 @@ class ChapterInfo extends StatelessWidget {
               style: context.labelMedium?.copyWith(
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                color: context.theme.colorScheme.onSurface.withValues(
+                  alpha: 0.8,
+                ),
               ),
             ),
           ],
@@ -597,4 +645,147 @@ class _DownloadInfoData {
   final int totalSize;
 
   _DownloadInfoData({required this.downloadedCount, required this.totalSize});
+}
+
+class _CategoryChooserDialog extends StatefulWidget {
+  final List<Category> initialCategories;
+
+  const _CategoryChooserDialog({required this.initialCategories});
+
+  @override
+  State<_CategoryChooserDialog> createState() => _CategoryChooserDialogState();
+}
+
+class _CategoryChooserDialogState extends State<_CategoryChooserDialog> {
+  late MultiDropdownController<Category> _controller;
+  bool _loading = true;
+  final _newCategoryController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MultiDropdownController<Category>();
+    _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _newCategoryController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCategories() async {
+    final categories = await locate<Database>().getCategories();
+    _controller.setItems(
+      categories.map((e) => MultiDropdownItem(label: e.name, value: e)),
+    );
+    _controller.selectWhere(
+      (item) => widget.initialCategories.contains(item.value),
+    );
+    if (mounted) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _addCategory() async {
+    final name = _newCategoryController.text.trim();
+    if (name.isEmpty) return;
+    final db = locate<Database>();
+    final categories = await db.getCategories();
+    final category = Category.construct(name, categories.length);
+    await db.updateCategory(category);
+    _controller.add(
+      MultiDropdownItem.active(label: category.name, value: category),
+    );
+    _newCategoryController.clear();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DionDialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Categories',
+                style: context.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ).paddingOnly(bottom: 4),
+              Text(
+                'Pick the categories to add this entry to.',
+                style: context.bodySmall?.copyWith(
+                  color: context.theme.colorScheme.onSurface.withValues(
+                    alpha: 0.55,
+                  ),
+                ),
+              ).paddingOnly(bottom: 16),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: DionProgressBar()),
+                )
+              else ...[
+                DionMultiDropdown(
+                  controller: _controller,
+                  defaultItem: Text(
+                    'Choose categories',
+                    style: context.bodyMedium?.copyWith(
+                      color: context.theme.colorScheme.onSurface.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                  ),
+                ).paddingOnly(bottom: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DionTextbox(
+                        controller: _newCategoryController,
+                        hintText: 'New category',
+                        onSubmitted: (_) => _addCategory(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    DionIconbutton(
+                      icon: const Icon(Icons.add),
+                      onPressed: _addCategory,
+                    ),
+                  ],
+                ).paddingOnly(bottom: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    DionTextbutton(
+                      type: ButtonType.ghost,
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ).paddingOnly(right: 8),
+                    DionTextbutton(
+                      onPressed: () {
+                        final selection = _controller.selected
+                            .where((e) => e.selected)
+                            .map((e) => e.value)
+                            .toList();
+                        Navigator.pop(context, selection);
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

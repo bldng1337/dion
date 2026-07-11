@@ -262,6 +262,13 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
   }
 
   @override
+  Future<EntrySaved> toSavedWithCategories(List<Category> categories) async {
+    this.categories = categories;
+    await save();
+    return this;
+  }
+
+  @override
   FutureOr<EntryDetailed> refresh({CancelToken? token}) async {
     await locate<ExtensionService>().detail(this, token: token);
     await save();

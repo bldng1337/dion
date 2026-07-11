@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/versioning.dart';
@@ -23,6 +24,7 @@ abstract class EntryDetailed extends Entry {
   rust.EntryDetailed get toRust;
 
   FutureOr<EntrySaved> toSaved();
+  Future<EntrySaved> toSavedWithCategories(List<Category> categories);
   FutureOr<EntryDetailed> refresh({CancelToken? token});
 
   static EntryDetailed fromSaved(EntrySaved saved) {
@@ -103,6 +105,21 @@ class EntryDetailedImpl implements EntryDetailed {
     final saved = EntrySaved(
       entry: entry,
       categories: [],
+      episodedata: [],
+      boundExtensionId: boundExtensionId,
+      episode: 0,
+      savedSettings: EntrySavedSettings.defaultSettings(),
+      extensionSettings: extensionSettings,
+    );
+    await locate<Database>().addEntry(saved);
+    return saved;
+  }
+
+  @override
+  Future<EntrySaved> toSavedWithCategories(List<Category> categories) async {
+    final saved = EntrySaved(
+      entry: entry,
+      categories: categories,
       episodedata: [],
       boundExtensionId: boundExtensionId,
       episode: 0,

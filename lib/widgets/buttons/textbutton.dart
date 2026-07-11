@@ -11,12 +11,14 @@ enum ButtonType { ghost, filled, elevated }
 
 class DionTextbutton extends StatelessWidget {
   final FutureOr<void> Function()? onPressed; // ignore: avoid_futureor_void
+  final FutureOr<void> Function()? onLongPress; // ignore: avoid_futureor_void
   final ButtonType type;
   final Widget child;
   final Color? color;
   const DionTextbutton({
     super.key,
     this.onPressed,
+    this.onLongPress,
     this.color,
     required this.child,
     this.type = ButtonType.filled,
@@ -115,11 +117,17 @@ class DionTextbutton extends StatelessWidget {
           onPressed: () {
             setFuture(onPressed?.call());
           },
+          onLongPress: onLongPress == null
+              ? null
+              : () {
+                  setFuture(onLongPress!.call());
+                },
           child: child,
         ),
       ),
       DionThemeMode.cupertino => CupertinoButton(
         onPressed: onPressed,
+        onLongPress: onLongPress,
         child: child,
       ),
     };
