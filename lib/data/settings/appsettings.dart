@@ -538,6 +538,12 @@ final settings = (
             'paragraphreader.bindings.jumpup',
           ),
         )..addCollection(preferenceCollection),
+        toggleTts: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.keyP)],
+          const PreferenceBindingListMetaData(
+            'paragraphreader.bindings.toggletts',
+          ),
+        )..addCollection(preferenceCollection),
       ),
     ),
   ),

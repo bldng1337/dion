@@ -198,6 +198,13 @@ class ParagraphReaderSettings extends StatelessWidget {
                 setting:
                     settings.readerSettings.paragraphreader.bindings.jumpUp,
               ),
+              SettingBindings(
+                title: 'Read Aloud',
+                description: 'Inputs that toggle text-to-speech playback',
+                icon: Icons.record_voice_over,
+                setting:
+                    settings.readerSettings.paragraphreader.bindings.toggleTts,
+              ),
             ],
           ),
 

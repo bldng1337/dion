@@ -4,6 +4,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
+import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -37,6 +38,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   late final ListController listController;
   late final Observer supplierObserver;
   late final ScrollController controller;
+  late final TtsController tts;
 
   void onScroll() {
     final epdata = widget.source.episode.data;
@@ -86,6 +88,23 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     });
   }
 
+  void _followTts() {
+    if (!listController.isAttached || !controller.hasClients) return;
+    final index = tts.currentParagraphIndex;
+    if (index < 0) return;
+    final range = listController.visibleRange;
+    if (range != null && index >= range.$1 && index <= range.$2) return;
+    listController.animateToItem(
+      index: index,
+      alignment: 0.0,
+      scrollController: controller,
+      duration: (estimatedDistance) => Duration(
+        milliseconds: (200 + (estimatedDistance / 5).clamp(0, 300)).round(),
+      ),
+      curve: (estimatedDistance) => Curves.easeOut,
+    );
+  }
+
   @override
   void initState() {
     WakelockPlus.toggle(enable: true);
@@ -94,6 +113,11 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
     listController = ListController()..disposedBy(scope);
     listController.addListener(onScroll);
+
+    tts = TtsController()..disposedBy(scope);
+    tts.loadParagraphs(widget.sourcedata.paragraphs);
+    tts.onChapterEnd = _nextChapter;
+    tts.addListener(_followTts);
 
     supplierObserver = Observer(jumpToProgress, widget.supplier)
       ..disposedBy(scope);
@@ -135,8 +159,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   void _jumpDown() {
     if (!controller.hasClients) return;
     final position = controller.position;
-    final distance = (position.viewportDimension * 0.85)
-        .clamp(64.0, double.infinity);
+    final distance = (position.viewportDimension * 0.85).clamp(
+      64.0,
+      double.infinity,
+    );
     controller.animateTo(
       (position.pixels + distance).clamp(0.0, position.maxScrollExtent),
       duration: const Duration(milliseconds: 160),
@@ -147,13 +173,22 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   void _jumpUp() {
     if (!controller.hasClients) return;
     final position = controller.position;
-    final distance = (position.viewportDimension * 0.85)
-        .clamp(64.0, double.infinity);
+    final distance = (position.viewportDimension * 0.85).clamp(
+      64.0,
+      double.infinity,
+    );
     controller.animateTo(
       (position.pixels - distance).clamp(0.0, position.maxScrollExtent),
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOut,
     );
+  }
+
+  void _toggleTts() {
+    final fromParagraph = listController.isAttached
+        ? listController.unobstructedVisibleRange?.$1
+        : null;
+    tts.togglePlayPause(fromParagraph: fromParagraph);
   }
 
   @override
@@ -165,11 +200,13 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       child: BindingDispatcher(
         actions: [
           BindingAction(
-            setting: settings.readerSettings.paragraphreader.bindings.nextChapter,
+            setting:
+                settings.readerSettings.paragraphreader.bindings.nextChapter,
             onTrigger: _nextChapter,
           ),
           BindingAction(
-            setting: settings.readerSettings.paragraphreader.bindings.prevChapter,
+            setting:
+                settings.readerSettings.paragraphreader.bindings.prevChapter,
             onTrigger: _prevChapter,
           ),
           BindingAction(
@@ -178,21 +215,21 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
             onTrigger: _toggleBookmark,
           ),
           BindingAction(
-            setting:
-                settings.readerSettings.paragraphreader.bindings.jumpDown,
+            setting: settings.readerSettings.paragraphreader.bindings.jumpDown,
             onTrigger: _jumpDown,
           ),
           BindingAction(
             setting: settings.readerSettings.paragraphreader.bindings.jumpUp,
             onTrigger: _jumpUp,
           ),
+          BindingAction(
+            setting: settings.readerSettings.paragraphreader.bindings.toggleTts,
+            onTrigger: _toggleTts,
+          ),
         ],
         child: ReaderSelectable(
-          selectionContextItems: (text) => quoteContextItems(
-            context,
-            widget.source.episode,
-            text,
-          ),
+          selectionContextItems: (text) =>
+              quoteContextItems(context, widget.source.episode, text),
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(context).copyWith(),
             child: CustomScrollView(
@@ -208,20 +245,38 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                     },
                   ),
                   actions: [
+                    ListenableBuilder(
+                      listenable: tts,
+                      builder: (context, _) {
+                        return DionIconbutton(
+                          tooltip: 'Read aloud',
+                          icon: Icon(
+                            tts.state == TtsState.playing
+                                ? Icons.stop
+                                : Icons.play_arrow,
+                          ),
+                          onPressed: _toggleTts,
+                        );
+                      },
+                    ),
                     DionIconbutton(
                       icon: Icon(
-                        epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
+                        epdata.bookmark
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
                       ),
                       onPressed: _toggleBookmark,
                     ),
                     DionIconbutton(
                       icon: const Icon(Icons.open_in_browser),
-                      onPressed: () =>
-                          launchUrl(Uri.parse(widget.source.episode.episode.url)),
+                      onPressed: () => launchUrl(
+                        Uri.parse(widget.source.episode.episode.url),
+                      ),
                     ),
                     DionIconbutton(
                       icon: const Icon(Icons.settings),
-                      onPressed: () => context.push('/settings/paragraphreader'),
+                      onPressed: () =>
+                          context.push('/settings/paragraphreader'),
                     ),
                   ],
                 ),
