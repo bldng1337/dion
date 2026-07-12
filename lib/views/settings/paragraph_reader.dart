@@ -184,6 +184,20 @@ class ParagraphReaderSettings extends StatelessWidget {
                     .bindings
                     .toggleBookmark,
               ),
+              SettingBindings(
+                title: 'Jump Down',
+                description: 'Inputs that scroll the page down',
+                icon: Icons.arrow_downward,
+                setting:
+                    settings.readerSettings.paragraphreader.bindings.jumpDown,
+              ),
+              SettingBindings(
+                title: 'Jump Up',
+                description: 'Inputs that scroll the page up',
+                icon: Icons.arrow_upward,
+                setting:
+                    settings.readerSettings.paragraphreader.bindings.jumpUp,
+              ),
             ],
           ),
 

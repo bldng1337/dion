@@ -226,6 +226,36 @@ final settings = (
       ..addCollection(preferenceCollection),
     speed: Setting(1.0, const PreferenceDoubleMetaData('audiobook.speed'))
       ..addCollection(preferenceCollection),
+    bindings: (
+      playPause: Setting(
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.space)],
+        const PreferenceBindingListMetaData('audiobook.bindings.playpause'),
+      )..addCollection(preferenceCollection),
+      seekForward: Setting(
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.arrowRight)],
+        const PreferenceBindingListMetaData('audiobook.bindings.seekforward'),
+      )..addCollection(preferenceCollection),
+      seekBackward: Setting(
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.arrowLeft)],
+        const PreferenceBindingListMetaData('audiobook.bindings.seekbackward'),
+      )..addCollection(preferenceCollection),
+      nextChapter: Setting(
+        <InputBinding>[
+          const KeyBind(LogicalKeyboardKey.mediaTrackNext),
+        ],
+        const PreferenceBindingListMetaData('audiobook.bindings.next'),
+      )..addCollection(preferenceCollection),
+      prevChapter: Setting(
+        <InputBinding>[
+          const KeyBind(LogicalKeyboardKey.mediaTrackPrevious),
+        ],
+        const PreferenceBindingListMetaData('audiobook.bindings.prev'),
+      )..addCollection(preferenceCollection),
+      toggleBookmark: Setting(
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.keyB, ctrl: true)],
+        const PreferenceBindingListMetaData('audiobook.bindings.bookmark'),
+      )..addCollection(preferenceCollection),
+    ),
     // subtitle: Setting( TODO
     //   true,
     //   const PreferenceBoolMetaData('audiobook.subtitle'),
@@ -236,6 +266,24 @@ final settings = (
       ..addCollection(preferenceCollection),
     speed: Setting(1.0, const PreferenceDoubleMetaData('video.speed'))
       ..addCollection(preferenceCollection),
+    bindings: (
+      nextChapter: Setting(
+        <InputBinding>[
+          const KeyBind(LogicalKeyboardKey.keyN, ctrl: true),
+        ],
+        const PreferenceBindingListMetaData('video.bindings.next'),
+      )..addCollection(preferenceCollection),
+      prevChapter: Setting(
+        <InputBinding>[
+          const KeyBind(LogicalKeyboardKey.keyP, ctrl: true),
+        ],
+        const PreferenceBindingListMetaData('video.bindings.prev'),
+      )..addCollection(preferenceCollection),
+      toggleBookmark: Setting(
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.keyB, ctrl: true)],
+        const PreferenceBindingListMetaData('video.bindings.bookmark'),
+      )..addCollection(preferenceCollection),
+    ),
   ),
   update: (
     enabled: Setting(true, const PreferenceBoolMetaData('update.enabled'))
@@ -287,6 +335,47 @@ final settings = (
         50.0,
         const PreferenceDoubleMetaData('paragraphreader.text.volume'),
       )..addCollection(preferenceCollection),
+      bindings: (
+        nextChapter: Setting(
+          <InputBinding>[
+            const KeyBind(LogicalKeyboardKey.arrowRight),
+            const SwipeGesture(SwipeDirection.left),
+          ],
+          const PreferenceBindingListMetaData('imagelistreader.bindings.next'),
+        )..addCollection(preferenceCollection),
+        prevChapter: Setting(
+          <InputBinding>[
+            const KeyBind(LogicalKeyboardKey.arrowLeft),
+            const SwipeGesture(SwipeDirection.right),
+          ],
+          const PreferenceBindingListMetaData('imagelistreader.bindings.prev'),
+        )..addCollection(preferenceCollection),
+        toggleBookmark: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.keyB, ctrl: true)],
+          const PreferenceBindingListMetaData(
+            'imagelistreader.bindings.bookmark',
+          ),
+        )..addCollection(preferenceCollection),
+        jumpDown: Setting(
+          <InputBinding>[
+            const KeyBind(LogicalKeyboardKey.arrowDown),
+            const KeyBind(LogicalKeyboardKey.space),
+            const SwipeGesture(SwipeDirection.up),
+          ],
+          const PreferenceBindingListMetaData(
+            'imagelistreader.bindings.jumpdown',
+          ),
+        )..addCollection(preferenceCollection),
+        jumpUp: Setting(
+          <InputBinding>[
+            const KeyBind(LogicalKeyboardKey.arrowUp),
+            const SwipeGesture(SwipeDirection.down),
+          ],
+          const PreferenceBindingListMetaData(
+            'imagelistreader.bindings.jumpup',
+          ),
+        )..addCollection(preferenceCollection),
+      ),
     ),
     paragraphreader: (
       mode: Setting(
@@ -418,6 +507,21 @@ final settings = (
           <InputBinding>[const KeyBind(LogicalKeyboardKey.keyB, ctrl: true)],
           const PreferenceBindingListMetaData(
             'paragraphreader.bindings.bookmark',
+          ),
+        )..addCollection(preferenceCollection),
+        jumpDown: Setting(
+          <InputBinding>[
+            const KeyBind(LogicalKeyboardKey.arrowDown),
+            const KeyBind(LogicalKeyboardKey.space),
+          ],
+          const PreferenceBindingListMetaData(
+            'paragraphreader.bindings.jumpdown',
+          ),
+        )..addCollection(preferenceCollection),
+        jumpUp: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.arrowUp)],
+          const PreferenceBindingListMetaData(
+            'paragraphreader.bindings.jumpup',
           ),
         )..addCollection(preferenceCollection),
       ),

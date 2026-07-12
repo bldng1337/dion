@@ -132,6 +132,30 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     }
   }
 
+  void _jumpDown() {
+    if (!controller.hasClients) return;
+    final position = controller.position;
+    final distance = (position.viewportDimension * 0.85)
+        .clamp(64.0, double.infinity);
+    controller.animateTo(
+      (position.pixels + distance).clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _jumpUp() {
+    if (!controller.hasClients) return;
+    final position = controller.position;
+    final distance = (position.viewportDimension * 0.85)
+        .clamp(64.0, double.infinity);
+    controller.animateTo(
+      (position.pixels - distance).clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final epdata = widget.source.episode.data;
@@ -152,6 +176,15 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
             setting:
                 settings.readerSettings.paragraphreader.bindings.toggleBookmark,
             onTrigger: _toggleBookmark,
+          ),
+          BindingAction(
+            setting:
+                settings.readerSettings.paragraphreader.bindings.jumpDown,
+            onTrigger: _jumpDown,
+          ),
+          BindingAction(
+            setting: settings.readerSettings.paragraphreader.bindings.jumpUp,
+            onTrigger: _jumpUp,
           ),
         ],
         child: ReaderSelectable(

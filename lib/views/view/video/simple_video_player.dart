@@ -9,6 +9,7 @@ import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/session.dart';
+import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -201,6 +202,27 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     widget.source.episode.save();
     player.dispose();
     super.dispose();
+  }
+
+  void _nextChapter() {
+    if (widget.source.episode.hasnext) {
+      widget.source.episode.goNext(widget.source);
+    }
+  }
+
+  void _prevChapter() {
+    if (widget.source.episode.hasprev) {
+      widget.source.episode.goPrev(widget.source);
+    }
+  }
+
+  Future<void> _toggleBookmark() async {
+    widget.source.episode.data.bookmark =
+        !widget.source.episode.data.bookmark;
+    await widget.source.episode.save();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   List<Widget> getActions(bool isFullscreen) => [
@@ -449,17 +471,33 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           return Text(widget.source.episode.name);
         },
       ),
-      child: Center(
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.width * 9.0 / 16.0,
-          child: MaterialVideoControlsTheme(
-            normal: getPlayerTheme(false),
-            fullscreen: getPlayerTheme(true),
-            child: Video(
-              controller: controller,
-              controls: MaterialVideoControls,
-              filterQuality: FilterQuality.high,
+      child: BindingDispatcher(
+        actions: [
+          BindingAction(
+            setting: settings.videoSettings.bindings.nextChapter,
+            onTrigger: _nextChapter,
+          ),
+          BindingAction(
+            setting: settings.videoSettings.bindings.prevChapter,
+            onTrigger: _prevChapter,
+          ),
+          BindingAction(
+            setting: settings.videoSettings.bindings.toggleBookmark,
+            onTrigger: _toggleBookmark,
+          ),
+        ],
+        child: Center(
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.width * 9.0 / 16.0,
+            child: MaterialVideoControlsTheme(
+              normal: getPlayerTheme(false),
+              fullscreen: getPlayerTheme(true),
+              child: Video(
+                controller: controller,
+                controls: MaterialVideoControls,
+                filterQuality: FilterQuality.high,
+              ),
             ),
           ),
         ),

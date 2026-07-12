@@ -2,11 +2,12 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/settings/setting_bindings.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 class ImageListReaderSettings extends StatelessWidget {
   const ImageListReaderSettings({super.key});
@@ -59,6 +60,50 @@ class ImageListReaderSettings extends StatelessWidget {
                 step: 5.0,
                 setting: settings.readerSettings.imagelistreader.volume,
               ).conditional(settings.readerSettings.imagelistreader.music),
+            ],
+          ),
+
+          SettingTitle(
+            title: 'Controls',
+            subtitle: 'Keybinds & gestures',
+            children: [
+              SettingBindings(
+                title: 'Next Chapter',
+                description: 'Inputs that advance to the next chapter',
+                icon: Icons.skip_next,
+                setting:
+                    settings.readerSettings.imagelistreader.bindings.nextChapter,
+              ),
+              SettingBindings(
+                title: 'Previous Chapter',
+                description: 'Inputs that go back to the previous chapter',
+                icon: Icons.skip_previous,
+                setting:
+                    settings.readerSettings.imagelistreader.bindings.prevChapter,
+              ),
+              SettingBindings(
+                title: 'Toggle Bookmark',
+                description: 'Inputs that toggle the chapter bookmark',
+                icon: Icons.bookmark_border,
+                setting: settings
+                    .readerSettings
+                    .imagelistreader
+                    .bindings
+                    .toggleBookmark,
+              ),
+              SettingBindings(
+                title: 'Jump Down',
+                description: 'Inputs that scroll down',
+                icon: Icons.arrow_downward,
+                setting:
+                    settings.readerSettings.imagelistreader.bindings.jumpDown,
+              ),
+              SettingBindings(
+                title: 'Jump Up',
+                description: 'Inputs that scroll up',
+                icon: Icons.arrow_upward,
+                setting: settings.readerSettings.imagelistreader.bindings.jumpUp,
+              ),
             ],
           ),
         ],

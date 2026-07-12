@@ -7,6 +7,7 @@ import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/session.dart';
+import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/context_menu.dart';
@@ -225,6 +226,49 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     super.dispose();
   }
 
+  void _nextChapter() {
+    if (!widget.source.episode.hasnext) return;
+    widget.source.episode.goNext(widget.supplier);
+  }
+
+  void _prevChapter() {
+    if (!widget.source.episode.hasprev) return;
+    widget.source.episode.goPrev(widget.supplier);
+  }
+
+  Future<void> _toggleBookmark() async {
+    final epdata = widget.source.episode.data;
+    epdata.bookmark = !epdata.bookmark;
+    await widget.source.episode.save();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _jumpDown() {
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    final distance =
+        (position.viewportDimension * 0.85).clamp(64.0, double.infinity);
+    scrollController.animateTo(
+      (position.pixels + distance).clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _jumpUp() {
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    final distance =
+        (position.viewportDimension * 0.85).clamp(64.0, double.infinity);
+    scrollController.animateTo(
+      (position.pixels - distance).clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+    );
+  }
+
   Widget wrapScreen(BuildContext context, Widget child) {
     return ListenableBuilder(
       listenable: Listenable.merge([psettings.width, psettings.adaptivewidth]),
@@ -246,7 +290,32 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     final images = widget.sourcedata.links;
     return NavScaff(
       showNavbar: false,
-      child: ScrollConfiguration(
+      child: BindingDispatcher(
+        actions: [
+          BindingAction(
+            setting: settings.readerSettings.imagelistreader.bindings.nextChapter,
+            onTrigger: _nextChapter,
+          ),
+          BindingAction(
+            setting:
+                settings.readerSettings.imagelistreader.bindings.prevChapter,
+            onTrigger: _prevChapter,
+          ),
+          BindingAction(
+            setting:
+                settings.readerSettings.imagelistreader.bindings.toggleBookmark,
+            onTrigger: _toggleBookmark,
+          ),
+          BindingAction(
+            setting: settings.readerSettings.imagelistreader.bindings.jumpDown,
+            onTrigger: _jumpDown,
+          ),
+          BindingAction(
+            setting: settings.readerSettings.imagelistreader.bindings.jumpUp,
+            onTrigger: _jumpUp,
+          ),
+        ],
+        child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(),
         child: InteractiveViewer(
           minScale: 0.1,
@@ -363,6 +432,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/session.dart';
+import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -212,6 +213,46 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     player.dispose();
   }
 
+  Future<void> _playPause() async {
+    await player.playOrPause();
+    if (!mounted) return;
+    SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+  }
+
+  void _seekBy(int milliseconds) {
+    final target = player.state.position + Duration(milliseconds: milliseconds);
+    final duration = player.state.duration;
+    final clamped = target < Duration.zero
+        ? Duration.zero
+        : target > duration
+        ? duration
+        : target;
+    player.seek(clamped);
+  }
+
+  void _seekForward() => _seekBy(5000);
+
+  void _seekBackward() => _seekBy(-5000);
+
+  void _nextChapter() {
+    if (!widget.source.episode.hasnext) return;
+    widget.source.episode.goNext(widget.source);
+  }
+
+  void _prevChapter() {
+    if (!widget.source.episode.hasprev) return;
+    widget.source.episode.goPrev(widget.source);
+  }
+
+  Future<void> _toggleBookmark() async {
+    final epdata = widget.source.episode.data;
+    epdata.bookmark = !epdata.bookmark;
+    await widget.source.episode.save();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   String getTitle() {
     if (player.state.playlist.medias.isEmpty ||
         player.state.playlist.medias.length <= player.state.playlist.index) {
@@ -316,8 +357,35 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           return Text(getTitle());
         },
       ),
-      child: Container(
-        margin: const EdgeInsets.all(20),
+      child: BindingDispatcher(
+        actions: [
+          BindingAction(
+            setting: settings.audioBookSettings.bindings.playPause,
+            onTrigger: _playPause,
+          ),
+          BindingAction(
+            setting: settings.audioBookSettings.bindings.seekForward,
+            onTrigger: _seekForward,
+          ),
+          BindingAction(
+            setting: settings.audioBookSettings.bindings.seekBackward,
+            onTrigger: _seekBackward,
+          ),
+          BindingAction(
+            setting: settings.audioBookSettings.bindings.nextChapter,
+            onTrigger: _nextChapter,
+          ),
+          BindingAction(
+            setting: settings.audioBookSettings.bindings.prevChapter,
+            onTrigger: _prevChapter,
+          ),
+          BindingAction(
+            setting: settings.audioBookSettings.bindings.toggleBookmark,
+            onTrigger: _toggleBookmark,
+          ),
+        ],
+        child: Container(
+          margin: const EdgeInsets.all(20),
         child: Column(
           children: [
             Expanded(
@@ -440,6 +508,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
               ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
+import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/large_list.dart';
 import 'package:dionysos/widgets/progress.dart';
@@ -46,6 +47,15 @@ class _InfiniteParagraphListReaderState
     super.dispose();
   }
 
+  Future<void> _toggleBookmark() async {
+    widget.supplier.episode.data.bookmark =
+        !widget.supplier.episode.data.bookmark;
+    await widget.supplier.episode.save();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -86,7 +96,15 @@ class _InfiniteParagraphListReaderState
           onPressed: () => context.push('/settings/paragraphreader'),
         ),
       ],
-      child: ScrollConfiguration(
+      child: BindingDispatcher(
+        actions: [
+          BindingAction(
+            setting:
+                settings.readerSettings.paragraphreader.bindings.toggleBookmark,
+            onTrigger: _toggleBookmark,
+          ),
+        ],
+        child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: HugeListView(
           firstShown: (value) {
@@ -138,6 +156,7 @@ class _InfiniteParagraphListReaderState
               ),
             );
           },
+        ),
         ),
       ),
     );
