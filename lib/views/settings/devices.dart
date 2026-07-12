@@ -5,6 +5,7 @@ import 'package:dionysos/service/lansync/discovery.dart';
 import 'package:dionysos/service/lansync/lansync_service.dart';
 import 'package:dionysos/service/lansync/pairing_store.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
@@ -64,7 +65,8 @@ class _DevicesSettingsState extends State<DevicesSettings> {
     try {
       await _service.syncNow(deviceId);
       if (mounted) _showSnack('Synced with $name');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      logger.e('Sync failed for $deviceId', error: e, stackTrace: stackTrace);
       if (mounted) _showSnack('Sync failed: $e');
     } finally {
       if (mounted) setState(() => _busy[deviceId] = false);
