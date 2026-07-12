@@ -4,12 +4,13 @@ import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/settings/setting_bindings.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_font.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 class ParagraphReaderSettings extends StatelessWidget {
@@ -146,6 +147,42 @@ class ParagraphReaderSettings extends StatelessWidget {
                 description: 'Allow selecting and copying text',
                 setting:
                     settings.readerSettings.paragraphreader.text.selectable,
+              ),
+            ],
+          ),
+          SettingTitle(
+            title: 'Controls',
+            subtitle: 'Keybinds & gestures',
+            children: [
+              SettingBindings(
+                title: 'Next Chapter',
+                description: 'Inputs that advance to the next chapter',
+                icon: Icons.skip_next,
+                setting: settings
+                    .readerSettings
+                    .paragraphreader
+                    .bindings
+                    .nextChapter,
+              ),
+              SettingBindings(
+                title: 'Previous Chapter',
+                description: 'Inputs that go back to the previous chapter',
+                icon: Icons.skip_previous,
+                setting: settings
+                    .readerSettings
+                    .paragraphreader
+                    .bindings
+                    .prevChapter,
+              ),
+              SettingBindings(
+                title: 'Toggle Bookmark',
+                description: 'Inputs that toggle the chapter bookmark',
+                icon: Icons.bookmark_border,
+                setting: settings
+                    .readerSettings
+                    .paragraphreader
+                    .bindings
+                    .toggleBookmark,
               ),
             ],
           ),

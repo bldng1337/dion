@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/library/library_query.dart';
+import 'package:dionysos/data/settings/binding.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:flutter/services.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 final preferenceCollection = SettingCollection<dynamic, PreferenceMetaData>();
@@ -154,6 +156,20 @@ class StringListMetaData extends PreferenceMetaData<List<String>> {
 
   @override
   String stringify(List<String> value) => json.encode(value);
+}
+
+class PreferenceBindingListMetaData
+    extends PreferenceMetaData<List<InputBinding>> {
+  const PreferenceBindingListMetaData(super.id);
+
+  @override
+  List<InputBinding>? parse(String value) => (json.decode(value) as List<dynamic>)
+      .map((e) => InputBinding.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  @override
+  String stringify(List<InputBinding> value) =>
+      json.encode(value.map((b) => b.toJson()).toList());
 }
 
 enum ReaderMode { paginated, infinite }
@@ -381,6 +397,28 @@ final settings = (
         volume: Setting(
           1.0,
           const PreferenceDoubleMetaData('paragraphreader.tts.volume'),
+        )..addCollection(preferenceCollection),
+      ),
+      bindings: (
+        nextChapter: Setting(
+          <InputBinding>[
+            const KeyBind(LogicalKeyboardKey.arrowRight),
+            const SwipeGesture(SwipeDirection.left),
+          ],
+          const PreferenceBindingListMetaData('paragraphreader.bindings.next'),
+        )..addCollection(preferenceCollection),
+        prevChapter: Setting(
+          <InputBinding>[
+            const KeyBind(LogicalKeyboardKey.arrowLeft),
+            const SwipeGesture(SwipeDirection.right),
+          ],
+          const PreferenceBindingListMetaData('paragraphreader.bindings.prev'),
+        )..addCollection(preferenceCollection),
+        toggleBookmark: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.keyB, ctrl: true)],
+          const PreferenceBindingListMetaData(
+            'paragraphreader.bindings.bookmark',
+          ),
         )..addCollection(preferenceCollection),
       ),
     ),
