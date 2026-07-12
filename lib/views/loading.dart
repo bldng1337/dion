@@ -6,6 +6,7 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/extension_updates.dart';
+import 'package:dionysos/service/lansync/lansync_service.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/notification.dart';
 import 'package:dionysos/service/player.dart';
@@ -13,6 +14,7 @@ import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/update.dart';
+import 'package:dionysos/views/dialog/pairing.dart';
 import 'package:dionysos/widgets/app_loader.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/widgets.dart';
@@ -60,6 +62,13 @@ class LoadingView extends StatelessWidget {
           'PreferenceService',
           () async {
             await PreferenceService.ensureInitialized();
+          },
+        ),
+        (
+          'LAN Sync',
+          () async {
+            await LanSyncService.ensureInitialized();
+            registerPairingDialog();
           },
         ),
         (

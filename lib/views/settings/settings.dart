@@ -193,6 +193,12 @@ class Settings extends StatelessWidget {
                 path: '/settings/sync',
               ),
               SettingNav(
+                title: 'Devices',
+                subtitle: 'Pair and sync with devices on your network',
+                icon: Icons.devices_outlined,
+                path: '/settings/devices',
+              ),
+              SettingNav(
                 title: 'Storage',
                 subtitle: 'Cache and download management',
                 icon: Icons.storage_outlined,

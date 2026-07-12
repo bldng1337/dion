@@ -18,6 +18,7 @@ import 'package:dionysos/views/settings/about.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/developer.dart';
 import 'package:dionysos/views/settings/developer/log.dart';
+import 'package:dionysos/views/settings/devices.dart';
 import 'package:dionysos/views/settings/extension.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/library.dart';
@@ -189,6 +190,11 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
           path: '/sync',
           pageBuilder: (context, state) =>
               getTransition(context, state, const SyncSettings()),
+        ),
+        GoRoute(
+          path: '/devices',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const DevicesSettings()),
         ),
         GoRoute(
           path: '/library',

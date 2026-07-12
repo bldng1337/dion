@@ -33,6 +33,10 @@ dependencies:
   path_provider: ^2.1.5
   intl: ^0.20.2
   moment_dart: ^5.2.3
+  nsd: ^5.0.1
+  basic_utils: ^5.7.0
+  pointycastle: ^3.9.1
+
   # Widgets
   go_router: ^14.3.0
   scrollable_positioned_list: ^0.3.8

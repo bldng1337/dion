@@ -312,6 +312,20 @@ final settings = (
       null as Directory?,
       const PreferenceDirectoryMetaData('sync.path'),
     )..addCollection(preferenceCollection),
+    lan: (
+      enabled: Setting(
+        true,
+        const PreferenceBoolMetaData('sync.lan.enabled'),
+      )..addCollection(preferenceCollection),
+      deviceName: Setting(
+        Platform.localHostname,
+        const PreferenceStringMetaData('sync.lan.devicename'),
+      )..addCollection(preferenceCollection),
+      discoverable: Setting(
+        true,
+        const PreferenceBoolMetaData('sync.lan.discoverable'),
+      )..addCollection(preferenceCollection),
+    ),
   ),
   readerSettings: (
     imagelistreader: (
