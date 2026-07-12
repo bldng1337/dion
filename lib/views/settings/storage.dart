@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -15,6 +16,8 @@ import 'package:dionysos/utils/platform.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/utils/storage.dart';
+import 'package:dionysos/widgets/buttons/loadable.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:file_selector/file_selector.dart';
@@ -244,7 +247,8 @@ class _StorageAction extends StatelessWidget {
   final String title;
   final String description;
   final IconData icon;
-  final VoidCallback onTap;
+  // ignore: avoid_futureor_void
+  final FutureOr<void> Function() onTap;
   final bool isDestructive;
 
   const _StorageAction({
@@ -261,46 +265,109 @@ class _StorageAction extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DionSpacing.lg,
-            vertical: DionSpacing.md,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: DionRadius.small,
+      child: Loadable(
+        loading: Stack(
+          alignment: Alignment.center,
+          children: [
+            Opacity(
+              opacity: 0.3,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DionSpacing.lg,
+                  vertical: DionSpacing.md,
                 ),
-                child: Icon(icon, size: 18, color: color),
-              ),
-              const SizedBox(width: DionSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      style: DionTypography.titleSmall(
-                        isDestructive ? color : context.textPrimary,
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: DionRadius.small,
+                      ),
+                      child: Icon(icon, size: 18, color: color),
+                    ),
+                    const SizedBox(width: DionSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
+                            style: DionTypography.titleSmall(
+                              isDestructive ? color : context.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            description,
+                            style: DionTypography.bodySmall(
+                              context.textTertiary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      description,
-                      style: DionTypography.bodySmall(context.textTertiary),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: context.textTertiary,
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 20, color: context.textTertiary),
-            ],
+            ),
+            const DionProgressBar(size: 16),
+          ],
+        ),
+        builder: (context, child, setFuture) => InkWell(
+          onTap: () {
+            setFuture(onTap.call());
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DionSpacing.lg,
+              vertical: DionSpacing.md,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: DionRadius.small,
+                  ),
+                  child: Icon(icon, size: 18, color: color),
+                ),
+                const SizedBox(width: DionSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: DionTypography.titleSmall(
+                          isDestructive ? color : context.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: DionTypography.bodySmall(context.textTertiary),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: context.textTertiary,
+                ),
+              ],
+            ),
           ),
         ),
       ),
