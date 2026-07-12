@@ -7,6 +7,15 @@ import 'package:dionysos/utils/log.dart';
 import 'package:flutter/foundation.dart';
 import 'package:nsd/nsd.dart';
 
+/// Build an `https://host:port` URL, bracketing IPv6 hosts so the colons in
+/// the address are not mistaken for the host/port separator (RFC 3986 §3.2.2).
+String lanSyncHttpUrl(InternetAddress address, int port) {
+  final host = address.type == InternetAddressType.IPv6
+      ? '[${address.address}]'
+      : address.address;
+  return 'https://$host:$port';
+}
+
 class DiscoveredPeer {
   final String deviceId;
   final String name;
@@ -24,7 +33,7 @@ class DiscoveredPeer {
     required this.port,
   });
 
-  String get httpUrl => 'https://${address.address}:$port';
+  String get httpUrl => lanSyncHttpUrl(address, port);
 
   @override
   bool operator ==(Object other) =>
@@ -147,6 +156,12 @@ class LanDiscovery {
     final name = _txtString(txt, MdnsTxt.name) ?? service.name;
     final pv = int.tryParse(_txtString(txt, MdnsTxt.pv) ?? '') ?? 0;
     final fp = _txtString(txt, MdnsTxt.fp) ?? '';
+    service.addresses!.sort((a, b) {
+      // Prefer IPv4 over IPv6
+      if (a.type == b.type) return 0;
+      if (a.type == InternetAddressType.IPv4) return -1;
+      return 1;
+    });
     final addr = service.addresses?.isEmpty == false
         ? service.addresses!.first
         : null;

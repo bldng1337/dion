@@ -224,7 +224,7 @@ class DiscoveredPeerOrAddress {
   factory DiscoveredPeerOrAddress.fromAddress(
     InternetAddress address,
     int port,
-  ) => DiscoveredPeerOrAddress._('https://${address.address}:$port');
+  ) => DiscoveredPeerOrAddress._(lanSyncHttpUrl(address, port));
 }
 
 class LanSyncException implements Exception {

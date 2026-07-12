@@ -273,6 +273,16 @@ class LanSyncServer {
     );
     _sessions[sessionId] = session;
 
+    // Respond with B's info + the sessionId. If B declined, we still return
+    // the info so A can show the prompt, but mark acceptance in the session;
+    // A's confirm will then fail.
+    _respond(
+      req,
+      HttpStatus.ok,
+      PairInitMessage(info: _identity.toInfo(), sessionId: sessionId).toJson(),
+      version: dionSyncProtocolVersion,
+    );
+
     final sas = sasCodeString(_identity.fingerprint, peerFp);
     // Prompt the local user (B). This may take a while; we await it so the
     // response reflects the outcome. The initiator (A) shows its own prompt
@@ -284,16 +294,6 @@ class LanSyncServer {
       logger.w('LAN sync: pairing prompt failed', error: e);
     }
     session.accepted = accepted;
-
-    // Respond with B's info + the sessionId. If B declined, we still return
-    // the info so A can show the prompt, but mark acceptance in the session;
-    // A's confirm will then fail.
-    _respond(
-      req,
-      HttpStatus.ok,
-      PairInitMessage(info: _identity.toInfo(), sessionId: sessionId).toJson(),
-      version: dionSyncProtocolVersion,
-    );
   }
 
   Future<void> _handlePairConfirm(HttpRequest req) async {
