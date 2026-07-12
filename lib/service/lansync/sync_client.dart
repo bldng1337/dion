@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dionysos/service/lansync/crypto_util.dart';
 import 'package:dionysos/service/lansync/discovery.dart';
 import 'package:dionysos/service/lansync/identity.dart';
 import 'package:dionysos/service/lansync/pairing_store.dart';
 import 'package:dionysos/service/lansync/protocol.dart';
+import 'package:dionysos/service/lansync/signing.dart';
 import 'package:metis/adapter/sync/repo.dart';
 
 /// Callback used to ask the local user (acting as A, the initiator) to
@@ -63,13 +65,19 @@ class LanSyncClient {
         return true;
       };
 
-      // 1. init
+      // 1. init wrap our info in a PairInitMessage and sign the canonical
+      // encoding so the responder can verify we hold the private key for the
+      // cert in the body (the pairing client does not present a TLS client
+      // certificate, so identity is established via this signature).
+      final info = _identity.toInfo();
+      final tbs = canonicalPairingTbs(info);
+      final signature = signPayload(_identity.privateKeyPem, tbs);
       final initReq = await client.postUrl(
         Uri.parse('${peer.httpUrl}/pair/init'),
       );
       initReq.headers.contentType = ContentType.json;
       initReq.headers.set(protocolVersionHeader, '$dionSyncProtocolVersion');
-      initReq.write(_identity.toInfo().encode());
+      initReq.write(PairInitMessage(info: info, signature: signature).encode());
       final initRes = await initReq.close();
       final initBody = await utf8.decoder.bind(initRes).join();
       if (initRes.statusCode != HttpStatus.ok) {
@@ -96,8 +104,18 @@ class LanSyncClient {
         return null;
       }
 
-      // 3. confirm
-      final result = await _sendConfirm(client, peer.httpUrl, sessionId, true);
+      // 3. confirm sign the sessionId to prove continued possession.
+      final confirmSig = signPayload(
+        _identity.privateKeyPem,
+        Uint8List.fromList(utf8.encode(sessionId)),
+      );
+      final result = await _sendConfirm(
+        client,
+        peer.httpUrl,
+        sessionId,
+        true,
+        signature: confirmSig,
+      );
       if (!result.paired) {
         // B declined (or its session expired).
         return null;
@@ -118,13 +136,18 @@ class LanSyncClient {
     HttpClient client,
     String baseUrl,
     String sessionId,
-    bool accept,
-  ) async {
+    bool accept, {
+    String? signature,
+  }) async {
     final req = await client.postUrl(Uri.parse('$baseUrl/pair/confirm'));
     req.headers.contentType = ContentType.json;
     req.headers.set(protocolVersionHeader, '$dionSyncProtocolVersion');
     req.write(
-      PairConfirmMessage(sessionId: sessionId, accept: accept).encode(),
+      PairConfirmMessage(
+        sessionId: sessionId,
+        accept: accept,
+        signature: signature,
+      ).encode(),
     );
     final res = await req.close();
     final body = await utf8.decoder.bind(res).join();
@@ -134,23 +157,43 @@ class LanSyncClient {
     return PairConfirmResult.decode(body);
   }
 
-  /// Build an mTLS [HttpClient] that trusts [pairedDevice]'s cert and presents
-  /// our own. Used for sync (protected routes).
+  /// Build an mTLS [HttpClient] that presents our own client cert and pins the
+  /// server identity to [pairedDevice]'s recorded fingerprint. Used for sync
+  /// (protected routes).
+  ///
+  /// The peer's cert is added to the trust store, but that alone is not
+  /// sufficient: BoringSSL still performs hostname/SAN verification, and our
+  /// self-signed device certs carry no SAN, so a connection to an IP-address
+  /// peer fails with `CERTIFICATE_VERIFY_FAILED: IP address mismatch`. The
+  /// `badCertificateCallback` therefore accepts the cert **only** when its
+  /// fingerprint equals the paired device's — binding the connection to the
+  /// exact peer we paired with, rather than to hostname matching.
   HttpClient _mtlsHttpClientFor(PairedDevice pairedDevice) {
     final context = _identity.buildContext(
       trustedCertPems: [pairedDevice.certPem],
     );
     final client = HttpClient(context: context);
-    // The peer's cert is in our trust store, so no badCertificateCallback is
-    // needed for a paired connection.
+    client.badCertificateCallback = (cert, host, port) {
+      return fingerprintOf(cert.pem) == pairedDevice.fingerprint;
+    };
     return client;
   }
 
-  /// Build an [HttpClient] that presents our own cert (client cert) but
-  /// accepts any server cert via [badCertificateCallback] (TOFU). The caller
-  /// sets the callback to capture/validate the peer fingerprint.
+  /// Build an [HttpClient] for the pairing handshake. It does **not** present
+  /// a client certificate: the server requests one (it must, so that mTLS sync
+  /// works after pairing), but during pairing our cert is not yet in the peer's
+  /// trust store, and presenting an untrusted client cert causes BoringSSL to
+  /// abort the TLS handshake (`Connection closed before full header was
+  /// received`). Identity is instead proven via the request-body signature
+  /// (see [signing.dart]).
+  ///
+  /// The caller sets `badCertificateCallback` to TOFU-accept the peer's
+  /// self-signed server cert and capture its fingerprint.
   HttpClient _pairingHttpClient() {
-    final context = _identity.buildContext();
+    // withTrustedRoots: false so the system root store is never consulted —
+    // only TOFU-accepted peer certs (via badCertificateCallback) are trusted.
+    // ignore: avoid_redundant_argument_values
+    final context = SecurityContext(withTrustedRoots: false);
     return HttpClient(context: context);
   }
 

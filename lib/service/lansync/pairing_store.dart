@@ -5,6 +5,28 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const _kPairedKey = 'lan.paired';
 
+abstract class PairingKeyValueStore {
+  Future<String?> read({required String key});
+  Future<void> write({required String key, required String value});
+  Future<void> delete({required String key});
+}
+
+/// Adapts [FlutterSecureStorage] to [PairingKeyValueStore].
+class _SecureStorageAdapter implements PairingKeyValueStore {
+  final FlutterSecureStorage _storage;
+  const _SecureStorageAdapter(this._storage);
+
+  @override
+  Future<String?> read({required String key}) => _storage.read(key: key);
+
+  @override
+  Future<void> write({required String key, required String value}) =>
+      _storage.write(key: key, value: value);
+
+  @override
+  Future<void> delete({required String key}) => _storage.delete(key: key);
+}
+
 class PairedDevice {
   final String deviceId;
   final String name;
@@ -48,11 +70,11 @@ class PairedDevice {
 }
 
 class PairingStore extends ChangeNotifier {
-  final FlutterSecureStorage _storage;
+  final PairingKeyValueStore _storage;
   List<PairedDevice> _devices = const [];
 
-  PairingStore({FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage();
+  PairingStore({PairingKeyValueStore? storage})
+    : _storage = storage ?? const _SecureStorageAdapter(FlutterSecureStorage());
 
   List<PairedDevice> get devices => List.unmodifiable(_devices);
 

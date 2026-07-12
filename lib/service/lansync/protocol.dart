@@ -53,21 +53,29 @@ class DeviceInfo {
 /// Body of the [/pair/init] request (A => B) and [/pair/init] response (B => A).
 /// On the response [sessionId] identifies the pairing session B created so A
 /// can later confirm it; [info] is B's [DeviceInfo].
+///
+/// On the request, [signature] is the initiator's RSA signature over
+/// `canonicalPairingTbs(info)` — proof that the sender holds the private key
+/// for [DeviceInfo.certPem], since the pairing client does not present a TLS
+/// client certificate. Absent on the response.
 class PairInitMessage {
   final DeviceInfo info;
   final String? sessionId;
+  final String? signature;
 
-  const PairInitMessage({required this.info, this.sessionId});
+  const PairInitMessage({required this.info, this.sessionId, this.signature});
 
   Map<String, dynamic> toJson() => {
     'info': info.toJson(),
     if (sessionId != null) 'sessionId': sessionId,
+    if (signature != null) 'signature': signature,
   };
 
   factory PairInitMessage.fromJson(Map<String, dynamic> json) =>
       PairInitMessage(
         info: DeviceInfo.fromJson(json['info'] as Map<String, dynamic>),
         sessionId: json['sessionId'] as String?,
+        signature: json['signature'] as String?,
       );
 
   String encode() => jsonEncode(toJson());
@@ -77,18 +85,32 @@ class PairInitMessage {
 }
 
 /// Body of the [/pair/confirm] request (A => B).
+///
+/// [signature] is the initiator's RSA signature over the UTF-8 bytes of
+/// [sessionId], proving continued possession of the private key for the cert
+/// bound to the pairing session.
 class PairConfirmMessage {
   final String sessionId;
   final bool accept;
+  final String? signature;
 
-  const PairConfirmMessage({required this.sessionId, required this.accept});
+  const PairConfirmMessage({
+    required this.sessionId,
+    required this.accept,
+    this.signature,
+  });
 
-  Map<String, dynamic> toJson() => {'sessionId': sessionId, 'accept': accept};
+  Map<String, dynamic> toJson() => {
+    'sessionId': sessionId,
+    'accept': accept,
+    if (signature != null) 'signature': signature,
+  };
 
   factory PairConfirmMessage.fromJson(Map<String, dynamic> json) =>
       PairConfirmMessage(
         sessionId: json['sessionId'] as String,
         accept: json['accept'] as bool,
+        signature: json['signature'] as String?,
       );
 
   String encode() => jsonEncode(toJson());

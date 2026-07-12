@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dionysos/service/lansync/crypto_util.dart';
 import 'package:dionysos/service/lansync/identity.dart';
 import 'package:dionysos/service/lansync/pairing_store.dart';
 import 'package:dionysos/service/lansync/protocol.dart';
+import 'package:dionysos/service/lansync/signing.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:metis/adapter/sync/repo.dart';
 import 'package:uuid/uuid.dart';
@@ -233,9 +235,21 @@ class LanSyncServer {
     }
     final msg = PairInitMessage.fromJson(body);
     final peerInfo = msg.info;
-    // The fingerprint must match the TLS-presented certificate, not the body.
-    final peerFp = _peerFingerprint(req);
-    if (peerFp == null || peerFp != peerInfo.fingerprint) {
+    // Identity comes from the request body, not a TLS client cert (the pairing
+    // client presents none). Require a valid signature over the canonical
+    // encoding of the initiator's info, made with the private key matching the
+    // cert in the body — this proves the sender holds that key.
+    final tbs = canonicalPairingTbs(peerInfo);
+    if (msg.signature == null ||
+        !verifyPayload(peerInfo.certPem, tbs, msg.signature!)) {
+      _respond(req, HttpStatus.forbidden, {
+        'error': 'invalid signature',
+      }, version: dionSyncProtocolVersion);
+      return;
+    }
+    // The fingerprint must match the cert in the body, not a stale value.
+    final peerFp = fingerprintOf(peerInfo.certPem);
+    if (peerFp != peerInfo.fingerprint) {
       _respond(req, HttpStatus.forbidden, {
         'error': 'cert fingerprint mismatch',
       }, version: dionSyncProtocolVersion);
@@ -304,9 +318,14 @@ class LanSyncServer {
       );
       return;
     }
-    // The confirmer's TLS cert must match the session's peer.
-    final peerFp = _peerFingerprint(req);
-    if (peerFp == null || peerFp != session.peerFingerprint) {
+    // The confirmer must prove continued possession of the private key for the
+    // cert bound to this session, by signing the sessionId.
+    if (msg.signature == null ||
+        !verifyPayload(
+          session.peerInfo.certPem,
+          Uint8List.fromList(utf8.encode(msg.sessionId)),
+          msg.signature!,
+        )) {
       _respond(
         req,
         HttpStatus.forbidden,
@@ -334,15 +353,17 @@ class LanSyncServer {
         fingerprint: session.peerFingerprint,
       ),
     );
-    _respond(
+    // Await the response flush *before* restarting the server: restart() calls
+    // stop() which force-closes in-flight connections, so closing here first
+    // ensures the client receives the full 200 response.
+    await _respond(
       req,
       HttpStatus.ok,
       const PairConfirmResult(paired: true).toJson(),
       version: dionSyncProtocolVersion,
     );
     // Rebuild the trust store so the newly paired peer's cert is accepted on
-    // subsequent mTLS sync requests. The response is already closed, so
-    // rebinding the server is safe.
+    // subsequent mTLS sync requests.
     await onPairingChanged?.call();
   }
 
@@ -358,7 +379,7 @@ class LanSyncServer {
     }
   }
 
-  void _respond(
+  Future<void> _respond(
     HttpRequest req,
     int status,
     Map<String, dynamic> body, {
@@ -371,7 +392,7 @@ class LanSyncServer {
       req.response.headers.set(protocolVersionHeader, '$version');
     }
     req.response.write(jsonEncode(body));
-    req.response.close();
+    return req.response.close();
   }
 
   void _sweepSessions() {
