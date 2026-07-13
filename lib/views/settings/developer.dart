@@ -107,6 +107,12 @@ class DeveloperSettings extends StatelessWidget {
                 onTap: () => context.push('/dev/logs'),
               ),
               _DevAction(
+                title: 'Query Console',
+                description: 'Run SurrealQL queries and inspect results',
+                icon: Icons.terminal,
+                onTap: () => context.push('/dev/query'),
+              ),
+              _DevAction(
                 title: 'Widget Playground',
                 description: 'Showcase and test widgets',
                 icon: Icons.widgets_outlined,
