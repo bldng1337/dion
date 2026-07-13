@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 0
       - uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # 2.16.0
         with:
-          channel: "stable"
+          flutter-version: "3.44.2"
           cache: true
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
