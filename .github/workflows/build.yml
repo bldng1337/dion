@@ -35,10 +35,32 @@ jobs:
           # sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
       - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # 2.16.0
+      - name: Resolve Flutter version
+        id: flutter-action
+        uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # 2.16.0
         with:
           channel: "stable"
-          cache: true
+          dry-run: true
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.flutter-action.outputs.CACHE-PATH }}
+          key: ${{ steps.flutter-action.outputs.CACHE-KEY }}
+          restore-keys: ${{ steps.flutter-action.outputs.CACHE-KEY }}
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.flutter-action.outputs.PUB-CACHE-PATH }}
+          key: ${{ steps.flutter-action.outputs.PUB-CACHE-KEY }}-${{ hashFiles('**/pubspec.lock') }}
+          # No `restore-keys`: a pubspec.lock change is a clean miss so
+          # `flutter pub get` installs fresh from the committed lock instead of
+          # re-resolving against a stale cache (which corrupts
+          # .dart_tool/package_graph.json on Flutter 3.44.6).
+      - name: Install Flutter SDK
+        uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # 2.16.0
+        with:
+          flutter-version: ${{ steps.flutter-action.outputs.VERSION }}
+          cache: false
       # - name: Install GTK
       #   if: (matrix.os == 'ubuntu-latest')
       #   run: sudo apt-get update && sudo apt-get install libgtk-3-dev
