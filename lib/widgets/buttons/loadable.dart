@@ -36,20 +36,21 @@ class _LoadableState extends State<Loadable> {
         if (!mounted) return;
         setState(() {});
       });
-      future.then(
-        (_) {
-          if (!mounted) return;
-          setState(() {
-            _loading = false;
+      future
+          .catchError((e, stackTrace) {
+            logger.e(
+              'Error loading future',
+              error: e,
+              stackTrace: stackTrace as StackTrace,
+            );
+            return null;
+          })
+          .then((_) {
+            if (!mounted) return;
+            setState(() {
+              _loading = false;
+            });
           });
-        },
-        onError: (e) {
-          logger.e('Error loading future', error: e);
-          setState(() {
-            _loading = false;
-          });
-        },
-      );
     });
   }
 }
