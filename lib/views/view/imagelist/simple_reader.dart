@@ -80,7 +80,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     );
   }
 
-  void initPlayer() {
+  Future<void> initPlayer() async {
     if (player != null) return;
     if (widget.sourcedata.audio?.isEmpty ?? true) return;
     player = Player(
@@ -90,7 +90,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       ),
     );
     locate<PlayerService>().setSession(
-      PlaySession(
+      await AudioPlayerHandler.create(
         widget.supplier,
         player!,
         gonext: () {
@@ -182,15 +182,15 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     listController.addListener(onScroll);
 
     WakelockPlus.toggle(enable: true);
-    Observer(() {
+    Observer(() async {
       if (psettings.music.value) {
-        setState(() {
-          initPlayer();
-        });
+        await initPlayer();
+        setState(() {});
       } else {
         setState(() {
           player?.dispose();
           player = null;
+          locate<PlayerService>().clearSession();
         });
       }
     }, psettings.music).disposedBy(scope);

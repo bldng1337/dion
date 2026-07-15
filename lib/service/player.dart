@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/utils/service.dart';
@@ -5,12 +7,12 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:media_kit/media_kit.dart';
 
 class PlayerService {
-  late AudioHandler _audioHandler;
+  late SwitchAudioHandler _audioHandler;
 
   static Future<void> ensureInitialized() async {
     final self = PlayerService();
     self._audioHandler = await AudioService.init(
-      builder: () => AudioPlayerHandler(),
+      builder: () => SwitchAudioHandler(),
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'me.bldng.dionysos.audio.channel',
         androidNotificationChannelName: 'Audio playback',
@@ -21,238 +23,47 @@ class PlayerService {
     register<PlayerService>(self);
   }
 
-  Future<void> setSession(PlaySession session) async {
-    await _audioHandler.customAction('setSession', {'session': session});
+  AudioHandler get currentSession => _audioHandler.inner;
+
+  Future<void> setSession(FutureOr<AudioHandler> handler) async {
+    _audioHandler.inner = await handler;
   }
 
-  Future<void> disposeSession(PlaySession session) async {
-    await _audioHandler.customAction('invalidateSession', {'session': session});
+  Future<void> clearSession() async {
+    _audioHandler.inner = BaseAudioHandler();
   }
 }
 
 //Windows.Media.SystemMediaTransportControls
 //C++/WinRT
-class AudioPlayerHandler extends BaseAudioHandler {
-  PlaySession? _session;
-
-  @override
-  Future<void> play() {
-    if (_session != null) {
-      _session!.player.play();
-    }
-    return super.play();
-  }
-
-  @override
-  Future<void> pause() {
-    if (_session != null) {
-      _session!.player.pause();
-    }
-    return super.pause();
-  }
-
-  @override
-  Future<void> skipToNext() {
-    if (_session != null) {
-      _session!.gonext?.call();
-    }
-    return super.skipToNext();
-  }
-
-  @override
-  Future<void> skipToPrevious() {
-    if (_session != null) {
-      _session!.goprev?.call();
-    }
-    return super.skipToPrevious();
-  }
-
-  Future<void> setSession(PlaySession session) async {
-    // Update position
-    var lastduration = Duration.zero;
-    session.player.stream.position.listen((event) {
-      if ((lastduration - event).inMilliseconds < 1000) {
-        return;
-      }
-      lastduration = event;
-      playbackState.add(playbackState.value.copyWith(updatePosition: event));
-    });
-
-    // Update buffering
-    session.player.stream.buffering.listen((event) {
-      if (event) {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (session.eppath.hasprev && session.goprev != null)
-                MediaControl.skipToPrevious,
-              MediaControl.pause,
-              if (session.eppath.hasnext && session.gonext != null)
-                MediaControl.skipToNext,
-            ],
-            processingState: AudioProcessingState.buffering,
-          ),
-        );
-      } else {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (session.eppath.hasprev && session.goprev != null)
-                MediaControl.skipToPrevious,
-              MediaControl.play,
-              if (session.eppath.hasnext && session.gonext != null)
-                MediaControl.skipToNext,
-            ],
-            processingState: AudioProcessingState.ready,
-          ),
-        );
-      }
-    });
-
-    // Update buffer
-    session.player.stream.buffer.listen((event) {
-      playbackState.add(playbackState.value.copyWith(bufferedPosition: event));
-    });
-
-    // Update playing
-    session.player.stream.playing.listen((event) {
-      if (event) {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (session.eppath.hasprev && session.goprev != null)
-                MediaControl.skipToPrevious,
-              MediaControl.pause,
-              if (session.eppath.hasnext && session.gonext != null)
-                MediaControl.skipToNext,
-            ],
-            playing: true,
-          ),
-        );
-      } else {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (session.eppath.hasprev && session.goprev != null)
-                MediaControl.skipToPrevious,
-              MediaControl.play,
-              if (session.eppath.hasnext && session.gonext != null)
-                MediaControl.skipToNext,
-            ],
-            playing: false,
-          ),
-        );
-      }
-    });
-
-    playbackState.add(
-      playbackState.value.copyWith(
-        controls: [
-          if (session.eppath.hasprev && session.goprev != null)
-            MediaControl.skipToPrevious,
-          if (session.player.state.playing)
-            MediaControl.pause
-          else
-            MediaControl.play,
-          if (session.eppath.hasnext && session.gonext != null)
-            MediaControl.skipToNext,
-        ],
-        processingState: session.player.state.buffering
-            ? AudioProcessingState.buffering
-            : AudioProcessingState.ready,
-        playing: session.player.state.playing,
-        bufferedPosition: session.player.state.buffer,
-        updatePosition: session.player.state.position,
-      ),
-    );
-    session.player.stream.duration.listen((event) {
-      mediaItem.add(mediaItem.value!.copyWith(duration: event));
-    });
-    session.source.addListener(() {
-      mediaItem.add(
-        MediaItem(
-          id: session.eppath.name,
-          title: session.eppath.name,
-          album: session.eppath.entry.title,
-          artist: session.eppath.entry.author?[0],
-          duration: session.player.state.duration,
-          artUri: session.eppath.cover != null
-              ? Uri.tryParse(session.eppath.cover!.url)
-              : null,
-          artHeaders: session.eppath.cover != null
-              ? session.eppath.entry.cover!.header
-              : null,
-          // rating: session.eppath.entry.rating != null
-          //     ? Rating.newStarRating(
-          //         RatingStyle.percentage,
-          //         (session.eppath.entry.rating ?? 0 * 100) as int,
-          //       )
-          //     : null,
-        ),
-      );
-    });
-    mediaItem.add(
-      MediaItem(
-        id: session.eppath.name,
-        title: session.eppath.name,
-        album: session.eppath.entry.title,
-        artist: session.eppath.entry.author?[0],
-        duration: session.player.state.duration,
-        artUri: session.eppath.cover != null
-            ? Uri.tryParse(session.eppath.cover!.url)
-            : null,
-        artHeaders: session.eppath.cover != null
-            ? session.eppath.entry.cover!.header
-            : null,
-        // rating: session.eppath.entry.rating != null
-        //     ? Rating.newStarRating(
-        //         RatingStyle.percentage,
-        //         (session.eppath.entry.rating ?? 0 * 100) as int,
-        //       )
-        //     : null,
-      ),
-    );
-    _session = session;
-  }
-
-  @override
-  Future customAction(String name, [Map<String, dynamic>? extras]) async {
-    switch (name) {
-      case 'invalidateSession':
-        final session = extras?['session'] as PlaySession?;
-        if (session == null) {
-          return;
-        }
-        if (_session?.eppath == session.eppath) {
-          _session = null;
-          playbackState.add(
-            playbackState.value.copyWith(
-              controls: [],
-              processingState: AudioProcessingState.idle,
-              playing: false,
-            ),
-          );
-        }
-      case 'setSession':
-        final session = extras?['session'] as PlaySession?;
-        if (session == null) {
-          return;
-        }
-        setSession(session);
-    }
-    return super.customAction(name, extras);
-  }
-}
-
-class PlaySession implements Disposable {
+class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
   final SourceSupplier source;
   final Function()? gonext;
   final Function()? goprev;
   final Player player;
 
+  /// Stream subscriptions created in [_init]; cancelled in [dispose].
+  final List<StreamSubscription> _streamSubs = [];
+
   EpisodePath get eppath => source.episode;
 
-  PlaySession(this.source, this.player, {this.gonext, this.goprev});
+  AudioPlayerHandler._(this.source, this.player, {this.gonext, this.goprev});
+
+  static Future<AudioPlayerHandler> create(
+    SourceSupplier source,
+    Player player, {
+    Function()? gonext,
+    Function()? goprev,
+  }) async {
+    final handler = AudioPlayerHandler._(
+      source,
+      player,
+      gonext: gonext,
+      goprev: goprev,
+    );
+    await handler._init();
+    return handler;
+  }
 
   @override
   void disposedBy(DisposeScope disposeScope) {
@@ -261,6 +72,169 @@ class PlaySession implements Disposable {
 
   @override
   Future<void> dispose() async {
-    locate<PlayerService>().disposeSession(this);
+    for (final sub in _streamSubs) {
+      await sub.cancel();
+    }
+    _streamSubs.clear();
+    source.removeListener(_publishMediaFromSource);
+    final player = locate<PlayerService>();
+    if (this != player.currentSession) {
+      return;
+    }
+    player.clearSession();
+  }
+
+  @override
+  Future<void> play() {
+    player.play();
+    return super.play();
+  }
+
+  @override
+  Future<void> pause() {
+    player.pause();
+    return super.pause();
+  }
+
+  @override
+  Future<void> skipToNext() {
+    gonext?.call();
+    return super.skipToNext();
+  }
+
+  @override
+  Future<void> skipToPrevious() {
+    goprev?.call();
+    return super.skipToPrevious();
+  }
+
+  /// Publish a [MediaItem] derived from the current [source]. Registered as a
+  /// listener on [source] in [_init] and removed in [dispose].
+  void _publishMediaFromSource() {
+    mediaItem.add(
+      MediaItem(
+        id: eppath.name,
+        title: eppath.name,
+        album: eppath.entry.title,
+        artist: eppath.entry.author?[0],
+        duration: player.state.duration,
+        artUri: eppath.cover != null ? Uri.tryParse(eppath.cover!.url) : null,
+        artHeaders: eppath.cover != null ? eppath.entry.cover!.header : null,
+        // rating: eppath.entry.rating != null
+        //     ? Rating.newStarRating(
+        //         RatingStyle.percentage,
+        //         (eppath.entry.rating ?? 0 * 100) as int,
+        //       )
+        //     : null,
+      ),
+    );
+  }
+
+  Future<void> _init() async {
+    // Update position
+    var lastduration = Duration.zero;
+    _streamSubs.add(player.stream.position.listen((event) {
+      if ((lastduration - event).inMilliseconds < 1000) {
+        return;
+      }
+      lastduration = event;
+      playbackState.add(playbackState.value.copyWith(updatePosition: event));
+    }));
+
+    // Update buffering
+    _streamSubs.add(player.stream.buffering.listen((event) {
+      if (event) {
+        playbackState.add(
+          playbackState.value.copyWith(
+            controls: [
+              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
+              MediaControl.pause,
+              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+            ],
+            processingState: AudioProcessingState.buffering,
+          ),
+        );
+      } else {
+        playbackState.add(
+          playbackState.value.copyWith(
+            controls: [
+              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
+              MediaControl.play,
+              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+            ],
+            processingState: AudioProcessingState.ready,
+          ),
+        );
+      }
+    }));
+
+    // Update buffer
+    _streamSubs.add(player.stream.buffer.listen((event) {
+      playbackState.add(playbackState.value.copyWith(bufferedPosition: event));
+    }));
+
+    // Update playing
+    _streamSubs.add(player.stream.playing.listen((event) {
+      if (event) {
+        playbackState.add(
+          playbackState.value.copyWith(
+            controls: [
+              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
+              MediaControl.pause,
+              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+            ],
+            playing: true,
+          ),
+        );
+      } else {
+        playbackState.add(
+          playbackState.value.copyWith(
+            controls: [
+              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
+              MediaControl.play,
+              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+            ],
+            playing: false,
+          ),
+        );
+      }
+    }));
+
+    playbackState.add(
+      playbackState.value.copyWith(
+        controls: [
+          if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
+          if (player.state.playing) MediaControl.pause else MediaControl.play,
+          if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+        ],
+        processingState: player.state.buffering
+            ? AudioProcessingState.buffering
+            : AudioProcessingState.ready,
+        playing: player.state.playing,
+        bufferedPosition: player.state.buffer,
+        updatePosition: player.state.position,
+      ),
+    );
+    _streamSubs.add(player.stream.duration.listen((event) {
+      mediaItem.add(mediaItem.value!.copyWith(duration: event));
+    }));
+    source.addListener(_publishMediaFromSource);
+    mediaItem.add(
+      MediaItem(
+        id: eppath.name,
+        title: eppath.name,
+        album: eppath.entry.title,
+        artist: eppath.entry.author?[0],
+        duration: player.state.duration,
+        artUri: eppath.cover != null ? Uri.tryParse(eppath.cover!.url) : null,
+        artHeaders: eppath.cover != null ? eppath.entry.cover!.header : null,
+        // rating: eppath.entry.rating != null
+        //     ? Rating.newStarRating(
+        //         RatingStyle.percentage,
+        //         (eppath.entry.rating ?? 0 * 100) as int,
+        //       )
+        //     : null,
+      ),
+    );
   }
 }

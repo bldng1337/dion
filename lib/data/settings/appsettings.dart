@@ -163,9 +163,10 @@ class PreferenceBindingListMetaData
   const PreferenceBindingListMetaData(super.id);
 
   @override
-  List<InputBinding>? parse(String value) => (json.decode(value) as List<dynamic>)
-      .map((e) => InputBinding.fromJson(e as Map<String, dynamic>))
-      .toList();
+  List<InputBinding>? parse(String value) =>
+      (json.decode(value) as List<dynamic>)
+          .map((e) => InputBinding.fromJson(e as Map<String, dynamic>))
+          .toList();
 
   @override
   String stringify(List<InputBinding> value) =>
@@ -240,15 +241,11 @@ final settings = (
         const PreferenceBindingListMetaData('audiobook.bindings.seekbackward'),
       )..addCollection(preferenceCollection),
       nextChapter: Setting(
-        <InputBinding>[
-          const KeyBind(LogicalKeyboardKey.mediaTrackNext),
-        ],
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.mediaTrackNext)],
         const PreferenceBindingListMetaData('audiobook.bindings.next'),
       )..addCollection(preferenceCollection),
       prevChapter: Setting(
-        <InputBinding>[
-          const KeyBind(LogicalKeyboardKey.mediaTrackPrevious),
-        ],
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.mediaTrackPrevious)],
         const PreferenceBindingListMetaData('audiobook.bindings.prev'),
       )..addCollection(preferenceCollection),
       toggleBookmark: Setting(
@@ -268,15 +265,11 @@ final settings = (
       ..addCollection(preferenceCollection),
     bindings: (
       nextChapter: Setting(
-        <InputBinding>[
-          const KeyBind(LogicalKeyboardKey.keyN, ctrl: true),
-        ],
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.keyN, ctrl: true)],
         const PreferenceBindingListMetaData('video.bindings.next'),
       )..addCollection(preferenceCollection),
       prevChapter: Setting(
-        <InputBinding>[
-          const KeyBind(LogicalKeyboardKey.keyP, ctrl: true),
-        ],
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.keyP, ctrl: true)],
         const PreferenceBindingListMetaData('video.bindings.prev'),
       )..addCollection(preferenceCollection),
       toggleBookmark: Setting(
@@ -313,10 +306,8 @@ final settings = (
       const PreferenceDirectoryMetaData('sync.path'),
     )..addCollection(preferenceCollection),
     lan: (
-      enabled: Setting(
-        true,
-        const PreferenceBoolMetaData('sync.lan.enabled'),
-      )..addCollection(preferenceCollection),
+      enabled: Setting(true, const PreferenceBoolMetaData('sync.lan.enabled'))
+        ..addCollection(preferenceCollection),
       deviceName: Setting(
         Platform.localHostname,
         const PreferenceStringMetaData('sync.lan.devicename'),
@@ -501,6 +492,26 @@ final settings = (
           1.0,
           const PreferenceDoubleMetaData('paragraphreader.tts.volume'),
         )..addCollection(preferenceCollection),
+        regularise: (
+          enabled: Setting(
+            true,
+            const PreferenceBoolMetaData(
+              'paragraphreader.tts.regularise.enabled',
+            ),
+          )..addCollection(preferenceCollection),
+          stripSeparators: Setting(
+            true,
+            const PreferenceBoolMetaData(
+              'paragraphreader.tts.regularise.strip_separators',
+            ),
+          )..addCollection(preferenceCollection),
+          collapseBlankLines: Setting(
+            true,
+            const PreferenceBoolMetaData(
+              'paragraphreader.tts.regularise.collapse_blank_lines',
+            ),
+          )..addCollection(preferenceCollection),
+        ),
       ),
       bindings: (
         nextChapter: Setting(

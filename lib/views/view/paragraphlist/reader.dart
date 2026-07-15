@@ -9,6 +9,7 @@ import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
+import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/view.dart';
 import 'package:dionysos/views/view/wrapper.dart';
@@ -18,6 +19,8 @@ import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/selection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+import 'package:inline_result/inline_result.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as runtime;
 
 final psettings = settings.readerSettings.paragraphreader;
@@ -40,36 +43,90 @@ TextStyle? _applyRuntimeStyle(TextStyle? base, runtime.TextStyle? style) {
   );
 }
 
-class ParagraphListReader extends StatelessWidget {
+class ParagraphListReader extends StatefulWidget {
   const ParagraphListReader({super.key});
 
   @override
+  State<ParagraphListReader> createState() => _ParagraphListReaderState();
+}
+
+class _ParagraphListReaderState extends State<ParagraphListReader>
+    with StateDisposeScopeMixin {
+  late final TtsController tts;
+  SourceSupplier? _supplier;
+
+  @override
+  void initState() {
+    super.initState();
+    tts = TtsController()..disposedBy(scope);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final supplier = SourceSuplierData.of(context)!.supplier;
+    if (_supplier != supplier) {
+      _supplier = supplier;
+      tts.onLoadNextChapter = () async {
+        final supplier = _supplier;
+        if (supplier == null) return null;
+        final ep = supplier.episode;
+        if (!ep.hasnext) return null;
+        await ep.goNext(supplier);
+        // Load the source for the now-current episode.
+        final result = await supplier.sourceFuture;
+        final sourcePath = result.getOrThrow;
+        final source = sourcePath.source as Source_Paragraphlist;
+        return (
+          paragraphs: source.paragraphs,
+          hasNext: supplier.episode.hasnext,
+          media: ttsMediaInfoFor(supplier.episode),
+        );
+      };
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: psettings.font,
-      builder: (context, child) => LoadingBuilder(
-        future: psettings.font.value.toTextStyle(),
-        loading: (context) =>
-            const NavScaff(child: Center(child: DionProgressBar())),
-        builder: (context, value) => ListenableBuilder(
-          listenable: psettings.mode,
-          builder: (context, child) => switch (psettings.mode.value) {
-            ReaderMode.paginated => SourceWrapper(
-              builder: (context, source) => SimpleParagraphlistReader(
-                key: ValueKey(source.episode),
-                source: source,
+    return TtsStateData(
+      controller: tts,
+      child: ListenableBuilder(
+        listenable: psettings.font,
+        builder: (context, child) => LoadingBuilder(
+          future: psettings.font.value.toTextStyle(),
+          loading: (context) =>
+              const NavScaff(child: Center(child: DionProgressBar())),
+          builder: (context, value) => ListenableBuilder(
+            listenable: psettings.mode,
+            builder: (context, child) => switch (psettings.mode.value) {
+              ReaderMode.paginated => SourceWrapper(
+                builder: (context, source) => SimpleParagraphlistReader(
+                  key: ValueKey(source.episode),
+                  source: source,
+                  supplier: SourceSuplierData.of(context)!.supplier,
+                ),
+                source: SourceSuplierData.of(context)!.supplier,
+              ),
+              ReaderMode.infinite => InfiniteParagraphListReader(
                 supplier: SourceSuplierData.of(context)!.supplier,
               ),
-              source: SourceSuplierData.of(context)!.supplier,
-            ),
-            ReaderMode.infinite => InfiniteParagraphListReader(
-              supplier: SourceSuplierData.of(context)!.supplier,
-            ),
-          },
+            },
+          ),
         ),
       ),
     );
   }
+}
+
+TtsMediaInfo ttsMediaInfoFor(EpisodePath ep) {
+  final cover = ep.cover ?? ep.entry.cover;
+  return TtsMediaInfo(
+    title: ep.name,
+    album: ep.entry.title,
+    artist: ep.entry.author?.isNotEmpty == true ? ep.entry.author!.first : null,
+    artUri: cover != null ? Uri.tryParse(cover.url) : null,
+    artHeaders: cover?.header,
+  );
 }
 
 class ReaderWrapScreen extends StatelessWidget {

@@ -299,6 +299,46 @@ class ParagraphReaderSettings extends StatelessWidget {
               ),
             ],
           ),
+
+          // Text Regularisation Section
+          SettingTitle(
+            title: 'Text Regularisation',
+            subtitle: 'Clean up text before reading aloud',
+            children: [
+              SettingToggle(
+                title: 'Enable Regularisation',
+                description: 'Strip formatting-only artefacts from spoken text',
+                setting: settings
+                    .readerSettings
+                    .paragraphreader
+                    .tts
+                    .regularise
+                    .enabled,
+              ),
+              SettingToggle(
+                title: 'Strip Separators',
+                description: 'Remove separator lines like ---------- or *****',
+                setting: settings
+                    .readerSettings
+                    .paragraphreader
+                    .tts
+                    .regularise
+                    .stripSeparators,
+              ),
+              SettingToggle(
+                title: 'Collapse Blank Lines',
+                description: 'Reduce runs of blank lines to a single gap',
+                setting: settings
+                    .readerSettings
+                    .paragraphreader
+                    .tts
+                    .regularise
+                    .collapseBlankLines,
+              ),
+            ],
+          ).conditional(
+            settings.readerSettings.paragraphreader.tts.regularise.enabled,
+          ),
         ],
       ),
     );

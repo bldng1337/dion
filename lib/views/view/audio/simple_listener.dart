@@ -141,7 +141,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     );
 
     locate<PlayerService>().setSession(
-      PlaySession(
+      await AudioPlayerHandler.create(
         widget.source,
         player,
         gonext: () {

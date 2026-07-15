@@ -135,7 +135,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       callOnInit: false,
     );
     locate<PlayerService>().setSession(
-      PlaySession(
+      await AudioPlayerHandler.create(
         widget.source,
         player,
         gonext: () {
