@@ -85,7 +85,7 @@ const Map<String, EntryDetailed> emptyEntryDetailedList = {
         CustomUI.text(text: 'column text'),
         CustomUI.image(image: Link(url: 'image'), width: 100, height: 200),
         CustomUI.link(link: 'https://example.com', label: 'example'),
-        CustomUI.timeStamp(
+        CustomUI.timestamp(
           timestamp: '2020-01-01T00:00:00Z',
           display: TimestampType.relative,
         ),

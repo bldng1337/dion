@@ -210,7 +210,7 @@ class MockExtension with ChangeNotifier implements Extension {
   }) async {}
 
   @override
-  Future<void> runAction(rust.Action action, {rust.CancelToken? token}) async {}
+  Future<EventResult?> runAction(rust.Action action, {rust.CancelToken? token}) async {}
 
   @override
   Future<EntrySaved> refreshEntryExtension(

@@ -12,16 +12,20 @@ class CustomUIViewData {
 }
 
 class CustomUiView extends StatelessWidget {
-  const CustomUiView();
+  /// The data to render. When null (e.g. when reached via the `/custom` router
+  /// route) it is read from the current [GoRouterState].
+  final CustomUIViewData? data;
+
+  const CustomUiView({super.key, this.data});
 
   @override
   Widget build(BuildContext context) {
-    final data =
+    final d = data ??
         (GoRouterState.of(context).extra! as List<Object?>)[0]!
             as CustomUIViewData;
     return NavScaff(
-      title: data.title != null ? Text(data.title!) : null,
-      child: CustomUIWidget.fromUI(ui: data.ui, extension: data.extension),
+      title: d.title != null ? Text(d.title!) : null,
+      child: CustomUIWidget.fromUI(ui: d.ui, extension: d.extension),
     );
   }
 }

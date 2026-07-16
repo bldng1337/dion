@@ -67,21 +67,39 @@ class Card extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ...(leadingBadges ?? []).map(
-                      (e) => DionContainer(
-                        type: ContainerType.filled,
-                        color: context.theme.colorScheme.surfaceContainer,
-                        child: e.paddingAll(3),
-                      ).paddingAll(3),
+                    Flexible(
+                      child: Wrap(
+                        children: [
+                          ...(leadingBadges ?? []).map(
+                            (e) => IntrinsicWidth(
+                              child: DionContainer(
+                                type: ContainerType.filled,
+                                color: context.theme.colorScheme.surfaceContainer,
+                                child: e.paddingAll(3),
+                              ).paddingAll(3),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Spacer(),
-                    ...(trailingBadges ?? []).map(
-                      (e) => DionContainer(
-                        type: ContainerType.filled,
-                        color: context.theme.colorScheme.surfaceContainer,
-                        child: e.paddingAll(3),
-                      ).paddingAll(3),
+                    Flexible(
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        children: [
+                          ...(trailingBadges ?? []).map(
+                            (e) => IntrinsicWidth(
+                              child: DionContainer(
+                                type: ContainerType.filled,
+                                color: context.theme.colorScheme.surfaceContainer,
+                                child: e.paddingAll(3),
+                              ).paddingAll(3),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

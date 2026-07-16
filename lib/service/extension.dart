@@ -11,6 +11,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/mock_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
@@ -22,8 +23,17 @@ import 'package:dionysos/views/dialog/auth.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/material.dart' show showDialog;
-import 'package:flutter/widgets.dart' show ChangeNotifier;
+import 'package:flutter/material.dart' show DialogRoute, showDialog;
+import 'package:flutter/widgets.dart'
+    show
+        ChangeNotifier,
+        CurveTween,
+        Curves,
+        FadeTransition,
+        Navigator,
+        NavigatorState,
+        PageRouteBuilder,
+        Route;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -102,6 +112,31 @@ class Account extends ChangeNotifier {
   }
 }
 
+/// A handle to a view (popup or nav) opened by an [Extension], used to dismiss
+/// it precisely via [NavigatorState.removeRoute] without affecting unrelated
+/// views on the navigator stack (e.g. those owned by the app or other
+/// extensions).
+class _ExtensionViewHandle {
+  _ExtensionViewHandle({required this.route, required this.navigator});
+
+  final Route<dynamic> route;
+  final NavigatorState navigator;
+  bool _dismissed = false;
+
+  /// Whether the view is still showing on the navigator and has not been
+  /// dismissed.
+  bool get isActive => !_dismissed && route.isActive;
+
+  /// Removes the view from the navigator. Safe to call multiple times.
+  void dismiss() {
+    if (_dismissed) return;
+    _dismissed = true;
+    if (route.isActive) {
+      navigator.removeRoute(route);
+    }
+  }
+}
+
 class Extension extends ChangeNotifier {
   final rust.ExtensionData data;
   final rust.ProxyExtension _proxy;
@@ -114,6 +149,12 @@ class Extension extends ChangeNotifier {
   ExtensionMetaData _meta;
   bool isenabled;
   bool loading = false;
+
+  /// Views (popups and navs) currently opened by this extension, in the order
+  /// they were opened. Tracked so [Action_PopView] can dismiss only this
+  /// extension's views, never those owned by the app or other extensions.
+  final List<_ExtensionViewHandle> _activeViews = [];
+
   Extension(
     this.data,
     this._proxy,
@@ -191,39 +232,84 @@ class Extension extends ChangeNotifier {
     })..name = name;
   }
 
-  Future<void> runAction(rust.Action action, {rust.CancelToken? token}) async {
+  Future<EventResult?> runAction(
+    rust.Action action, {
+    rust.CancelToken? token,
+  }) async {
     switch (action) {
       case final rust.Action_OpenBrowser browse:
         logger.i('Opening browser for url ${action.url} for extension $data');
         await launchUrl(Uri.parse(browse.url));
       case final rust.Action_Popup popup:
-        await showDialog(
-          context: navigatorKey.currentContext!,
-          builder: (context) => ActionDialog(popup: popup, extension: this),
+        _trackView(
+          DialogRoute<void>(
+            context: navigatorKey.currentContext!,
+            builder: (context) => ActionDialog(popup: popup, extension: this),
+          ),
         );
+      case rust.Action_PopView():
+        _popMostRecentView();
       case final rust.Action_Nav nav:
-        GoRouter.of(navigatorKey.currentContext!).go(
-          '/custom',
-          extra: [
-            CustomUIViewData(
-              title: nav.title,
-              ui: nav.content,
-              extension: this,
-            ),
-          ],
+        _trackView(
+          PageRouteBuilder<void>(
+            transitionDuration: const Duration(milliseconds: 250),
+            reverseTransitionDuration: const Duration(milliseconds: 250),
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                CustomUiView(
+                  data: CustomUIViewData(
+                    title: nav.title,
+                    ui: nav.content,
+                    extension: this,
+                  ),
+                ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: CurveTween(
+                      curve: Curves.easeInOutCirc,
+                    ).animate(animation),
+                    child: child,
+                  );
+                },
+          ),
         );
       case final rust.Action_TriggerEvent triggerEvent:
-        await event(
-          event: rust.EventData.action(
+        final res = await event(
+          event: rust.EventData.trigger(
             event: triggerEvent.event,
             data: triggerEvent.data,
           ),
         );
+        return res;
       case final rust.Action_NavEntry navEntry:
         GoRouter.of(
           navigatorKey.currentContext!,
         ).push('/detail', extra: [navEntry.entry]);
     }
+  }
+
+  /// Pushes [route] (a popup or nav owned by this extension) onto the navigator
+  /// and tracks it so it can later be dismissed by [Action_PopView].
+  void _trackView(Route<dynamic> route) {
+    final navigator = Navigator.of(navigatorKey.currentContext!);
+    final handle = _ExtensionViewHandle(route: route, navigator: navigator);
+    _activeViews.add(handle);
+    navigator.push<void>(route).then((_) => _activeViews.remove(handle));
+  }
+
+  /// Pops the most recently opened view created by this extension, if any.
+  ///
+  /// Only views created by this extension are ever considered, so views owned
+  /// by the app or other extensions are never affected.
+  void _popMostRecentView() {
+    _activeViews.removeWhere((handle) => !handle.isActive);
+    if (_activeViews.isEmpty) {
+      logger.w(
+        'Action_PopView requested but extension $id has no open views; ignoring.',
+      );
+      return;
+    }
+    _activeViews.removeLast().dismiss();
   }
 
   Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
@@ -335,6 +421,10 @@ class Extension extends ChangeNotifier {
 
   @override
   void dispose() {
+    for (final handle in _activeViews) {
+      handle.dismiss();
+    }
+    _activeViews.clear();
     _proxy.dispose();
     super.dispose();
   }
