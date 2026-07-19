@@ -8,9 +8,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:flutter/foundation.dart';
 
 class AppLinksService {
-  static const String customScheme = (kDebugMode || kProfileMode)
-      ? 'diondev'
-      : 'dion'; //Technically this wouldnt work right when debugging on android/iOS since those would still use the production scheme, but if that is needed one can just change it manually in android/app/src/main/AndroidManifest.xml
+  static const String customScheme = 'dion';
 
   late final AppLinks _appLinks;
 
