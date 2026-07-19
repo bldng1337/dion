@@ -1,6 +1,6 @@
 import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
-import 'package:dionysos/service/extension.dart' hide TextStyle;
+import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets;
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/dialog.dart';

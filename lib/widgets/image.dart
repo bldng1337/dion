@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/cache.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart' hide Alignment,CrossAxisAlignment,MainAxisSize,StackFit;
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
@@ -19,93 +19,9 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-@immutable
-class DionNetworkImage extends ImageProvider<DionNetworkImage> {
-  const DionNetworkImage(
-    this.url, {
-    this.width,
-    this.height,
-    this.httpHeaders,
-    this.scale = 1.0,
-  });
-
-  final String url;
-
-  final double? width;
-  final double? height;
-  final Map<String, String>? httpHeaders;
-
-  /// The scale to place in the [ImageInfo] object of the image.
-  final double scale;
-
-  @override
-  Future<DionNetworkImage> obtainKey(ImageConfiguration configuration) {
-    return SynchronousFuture<DionNetworkImage>(this);
-  }
-
-  @override
-  ImageStreamCompleter loadImage(
-    DionNetworkImage key,
-    ImageDecoderCallback decode,
-  ) {
-    return MultiFrameImageStreamCompleter(
-      codec: _loadAsync(key, decode: decode),
-      scale: key.scale,
-      debugLabel: key.url,
-      informationCollector: () => <DiagnosticsNode>[
-        ErrorDescription('URL: $url'),
-      ],
-    );
-  }
-
-  Future<Codec> _loadAsync(
-    DionNetworkImage key, {
-    required Future<Codec> Function(ImmutableBuffer buffer) decode,
-  }) async {
-    assert(key == this);
-    if (url.startsWith('file://')) {
-      final filePath = url.substring('file://'.length);
-      return decode(await ImmutableBuffer.fromFilePath(filePath));
-    }
-    final cache = locate<CacheService>().imgcache;
-    final fileinfo = await cache
-        .getImageFile(
-          url,
-          headers: httpHeaders,
-          maxHeight: height?.toInt(),
-          maxWidth: width?.toInt(),
-        )
-        .where((e) => e is FileInfo)
-        .last;
-    final file = (fileinfo as FileInfo).file;
-    final int lengthInBytes = await file.length();
-    if (lengthInBytes == 0) {
-      // The file may become available later.
-      PaintingBinding.instance.imageCache.evict(key);
-      throw StateError('$file is empty and cannot be loaded as an image.');
-    }
-    return decode(await ImmutableBuffer.fromFilePath(file.path));
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (other.runtimeType != runtimeType) {
-      return false;
-    }
-    return other is DionNetworkImage &&
-        other.url == url &&
-        other.scale == scale &&
-        other.width == width &&
-        other.height == height &&
-        other.httpHeaders == httpHeaders;
-  }
-
-  @override
-  int get hashCode => Object.hash(url, scale, width, height, httpHeaders);
-
-  @override
-  String toString() =>
-      '${objectRuntimeType(this, 'DionNetworkImage')}("$url", scale: ${scale.toStringAsFixed(1)})';
+bool isSvgSource(String url) {
+  final path = url.split('?').first.split('#').first;
+  return path.toLowerCase().endsWith('.svg');
 }
 
 class DionImage extends StatefulWidget {
@@ -124,29 +40,6 @@ class DionImage extends StatefulWidget {
   final Color? color;
   final Alignment? alignment;
   final Widget Function(BuildContext context)? loadingBuilder;
-
-  static Future<void> preload(
-    String url, {
-    Map<String, String>? headers,
-  }) async {
-    if (url.startsWith('mihon:')) {
-      //We ignore mihon scheme urls
-      return;
-    }
-    if (isSvgSource(url)) {
-      // SVGs are not [ImageProvider]s, so just warm the cache.
-      final cache = locate<CacheService>().imgcache;
-      await cache
-          .getImageFile(url, headers: headers)
-          .where((e) => e is FileInfo)
-          .last;
-      return;
-    }
-    await precacheImage(
-      DionNetworkImage(url, httpHeaders: headers),
-      navigatorKey.currentContext!,
-    );
-  }
 
   const DionImage({
     super.key,
@@ -201,30 +94,122 @@ class DionImage extends StatefulWidget {
 
   @override
   _DionImageState createState() => _DionImageState();
+
+  static Future<void> preload(
+    String url, {
+    Map<String, String>? headers,
+  }) async {
+    if (url.startsWith('mihon:')) {
+      //We ignore mihon scheme urls
+      return;
+    }
+    if (isSvgSource(url)) {
+      // SVGs are not [ImageProvider]s, so just warm the cache.
+      final cache = locate<CacheService>().imgcache;
+      await cache
+          .getImageFile(url, headers: headers)
+          .where((e) => e is FileInfo)
+          .last;
+      return;
+    }
+    await precacheImage(
+      DionNetworkImage(url, httpHeaders: headers),
+      navigatorKey.currentContext!,
+    );
+  }
+}
+
+@immutable
+class DionNetworkImage extends ImageProvider<DionNetworkImage> {
+  final String url;
+
+  final double? width;
+
+  final double? height;
+  final Map<String, String>? httpHeaders;
+  /// The scale to place in the [ImageInfo] object of the image.
+  final double scale;
+
+  const DionNetworkImage(
+    this.url, {
+    this.width,
+    this.height,
+    this.httpHeaders,
+    this.scale = 1.0,
+  });
+
+  @override
+  int get hashCode => Object.hash(url, scale, width, height, httpHeaders);
+
+  @override
+  bool operator ==(Object other) {
+    if (other.runtimeType != runtimeType) {
+      return false;
+    }
+    return other is DionNetworkImage &&
+        other.url == url &&
+        other.scale == scale &&
+        other.width == width &&
+        other.height == height &&
+        other.httpHeaders == httpHeaders;
+  }
+
+  @override
+  ImageStreamCompleter loadImage(
+    DionNetworkImage key,
+    ImageDecoderCallback decode,
+  ) {
+    return MultiFrameImageStreamCompleter(
+      codec: _loadAsync(key, decode: decode),
+      scale: key.scale,
+      debugLabel: key.url,
+      informationCollector: () => <DiagnosticsNode>[
+        ErrorDescription('URL: $url'),
+      ],
+    );
+  }
+
+  @override
+  Future<DionNetworkImage> obtainKey(ImageConfiguration configuration) {
+    return SynchronousFuture<DionNetworkImage>(this);
+  }
+
+  @override
+  String toString() =>
+      '${objectRuntimeType(this, 'DionNetworkImage')}("$url", scale: ${scale.toStringAsFixed(1)})';
+
+  Future<Codec> _loadAsync(
+    DionNetworkImage key, {
+    required Future<Codec> Function(ImmutableBuffer buffer) decode,
+  }) async {
+    assert(key == this);
+    if (url.startsWith('file://')) {
+      final filePath = url.substring('file://'.length);
+      return decode(await ImmutableBuffer.fromFilePath(filePath));
+    }
+    final cache = locate<CacheService>().imgcache;
+    final fileinfo = await cache
+        .getImageFile(
+          url,
+          headers: httpHeaders,
+          maxHeight: height?.toInt(),
+          maxWidth: width?.toInt(),
+        )
+        .where((e) => e is FileInfo)
+        .last;
+    final file = (fileinfo as FileInfo).file;
+    final int lengthInBytes = await file.length();
+    if (lengthInBytes == 0) {
+      // The file may become available later.
+      PaintingBinding.instance.imageCache.evict(key);
+      throw StateError('$file is empty and cannot be loaded as an image.');
+    }
+    return decode(await ImmutableBuffer.fromFilePath(file.path));
+  }
 }
 
 class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
   Key? _imageKey;
-
-  Widget noImage(BuildContext context) {
-    return FittedBox(
-      fit: widget.boxFit ?? BoxFit.contain,
-      child:
-          widget.errorWidget ??
-          Icon(Icons.image, size: min(widget.width ?? 24, widget.height ?? 24)),
-    );
-  }
-
-  Widget getLoading(BuildContext context) {
-    if (widget.loadingBuilder != null) {
-      return widget.loadingBuilder!(context);
-    }
-    return Container(
-      color: Colors.red,
-      width: widget.width ?? widget.height ?? 24,
-      height: widget.height ?? widget.width ?? 24,
-    ).applyShimmer(highlightColor: widget.color);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -407,11 +392,26 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
       },
     );
   }
-}
 
-bool isSvgSource(String url) {
-  final path = url.split('?').first.split('#').first;
-  return path.toLowerCase().endsWith('.svg');
+  Widget getLoading(BuildContext context) {
+    if (widget.loadingBuilder != null) {
+      return widget.loadingBuilder!(context);
+    }
+    return Container(
+      color: Colors.red,
+      width: widget.width ?? widget.height ?? 24,
+      height: widget.height ?? widget.width ?? 24,
+    ).applyShimmer(highlightColor: widget.color);
+  }
+
+  Widget noImage(BuildContext context) {
+    return FittedBox(
+      fit: widget.boxFit ?? BoxFit.contain,
+      child:
+          widget.errorWidget ??
+          Icon(Icons.image, size: min(widget.width ?? 24, widget.height ?? 24)),
+    );
+  }
 }
 
 class _DionSvgImage extends StatefulWidget {
@@ -449,82 +449,6 @@ class _DionSvgImageState extends State<_DionSvgImage> {
   StackTrace? _stackTrace;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<Uint8List> _loadBytes() async {
-    final url = widget.url;
-    if (url.startsWith('file://')) {
-      final file = File(url.substring('file://'.length));
-      return file.readAsBytes();
-    }
-    final cache = locate<CacheService>().imgcache;
-    final fileinfo = await cache
-        .getImageFile(url, headers: widget.httpHeaders)
-        .where((e) => e is FileInfo)
-        .last;
-    return (fileinfo as FileInfo).file.readAsBytes();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _bytes = null;
-      _error = null;
-      _stackTrace = null;
-    });
-    try {
-      final bytes = await _loadBytes();
-      if (!mounted) return;
-      setState(() {
-        _bytes = bytes;
-      });
-    } catch (e, s) {
-      if (!mounted) return;
-      setState(() {
-        _error = e;
-        _stackTrace = s;
-      });
-    }
-  }
-
-  Widget _loading(BuildContext context) {
-    if (widget.loadingBuilder != null) {
-      return widget.loadingBuilder!(context);
-    }
-    return Container(
-      color: Colors.red,
-      width: widget.width ?? widget.height ?? 24,
-      height: widget.height ?? widget.width ?? 24,
-    ).applyShimmer(highlightColor: widget.color);
-  }
-
-  Widget _errorWidget(BuildContext context) {
-    if (widget.errorWidget != null) {
-      return widget.errorWidget!;
-    }
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: ErrorDisplay(
-        e: _error,
-        s: _stackTrace,
-        message: 'Failed to load image ${widget.url}',
-        actions: [
-          ErrorAction(
-            label: 'Try Again',
-            onTap: () async {
-              await locate<CacheService>().imgcache.removeFile(widget.url);
-              await _load();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     final Widget current;
     if (_error != null) {
@@ -560,5 +484,81 @@ class _DionSvgImageState extends State<_DionSvgImage> {
       },
       child: current,
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Widget _errorWidget(BuildContext context) {
+    if (widget.errorWidget != null) {
+      return widget.errorWidget!;
+    }
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: ErrorDisplay(
+        e: _error,
+        s: _stackTrace,
+        message: 'Failed to load image ${widget.url}',
+        actions: [
+          ErrorAction(
+            label: 'Try Again',
+            onTap: () async {
+              await locate<CacheService>().imgcache.removeFile(widget.url);
+              await _load();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _bytes = null;
+      _error = null;
+      _stackTrace = null;
+    });
+    try {
+      final bytes = await _loadBytes();
+      if (!mounted) return;
+      setState(() {
+        _bytes = bytes;
+      });
+    } catch (e, s) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _stackTrace = s;
+      });
+    }
+  }
+
+  Future<Uint8List> _loadBytes() async {
+    final url = widget.url;
+    if (url.startsWith('file://')) {
+      final file = File(url.substring('file://'.length));
+      return file.readAsBytes();
+    }
+    final cache = locate<CacheService>().imgcache;
+    final fileinfo = await cache
+        .getImageFile(url, headers: widget.httpHeaders)
+        .where((e) => e is FileInfo)
+        .last;
+    return (fileinfo as FileInfo).file.readAsBytes();
+  }
+
+  Widget _loading(BuildContext context) {
+    if (widget.loadingBuilder != null) {
+      return widget.loadingBuilder!(context);
+    }
+    return Container(
+      color: Colors.red,
+      width: widget.width ?? widget.height ?? 24,
+      height: widget.height ?? widget.width ?? 24,
+    ).applyShimmer(highlightColor: widget.color);
   }
 }

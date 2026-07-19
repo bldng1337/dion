@@ -8,7 +8,7 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit;
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/applinks.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit;
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';

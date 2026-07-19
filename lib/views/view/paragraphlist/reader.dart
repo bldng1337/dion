@@ -4,7 +4,7 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/extension.dart' hide TextStyle;
+import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit,ButtonType;
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';

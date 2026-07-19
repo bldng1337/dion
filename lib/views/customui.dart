@@ -7,19 +7,28 @@ import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart'
+    hide Alignment, EdgeInsets, StackFit, WrapAlignment, ButtonType;
+import 'package:dionysos/utils/custom_ui_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
+import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/container/card.dart';
+import 'package:dionysos/widgets/container/container.dart';
+import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
+import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
+import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart'
-    show Colors, Material, TextEditingController, TextField;
+    show Colors, Divider, Material, TextEditingController, TextField;
 import 'package:flutter/widgets.dart' hide Page;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:url_launcher/url_launcher.dart';
@@ -142,12 +151,17 @@ class CustomUIWidget extends StatelessWidget {
         leadingBadges: [
           CustomUIWidget(ui: card.top, element: element.child('card/top')),
         ],
+        onTap: card.onClick == null
+            ? null
+            : () => element.runInteraction(card.onClick),
       ),
       final CustomUI_Feed feed => CustomFeed(
         feed: feed,
         element: element.child('feed'),
       ),
       final CustomUI_Button button => DionTextbutton(
+        type: button.buttonType?.toFlutter??ButtonType.filled,
+        color: button.color.resolve(context),
         onPressed: () async {
           await element.runInteraction(button.onClick);
         },
@@ -166,6 +180,154 @@ class CustomUIWidget extends StatelessWidget {
         element: element.child('slot'),
       ),
       CustomUI_Spinner() => const Center(child: DionProgressBar()),
+      final CustomUI_Padding padding => Padding(
+        padding: padding.padding.toFlutter,
+        child: CustomUIWidget(
+          ui: padding.child,
+          element: element.child('padding'),
+        ),
+      ),
+      final CustomUI_Container container => DionContainer(
+        type: container.containerType.toFlutter,
+        color: container.color.resolve(context),
+        borderColor: container.borderColor.resolve(context),
+        width: container.width,
+        height: container.height,
+        alignment:
+            container.alignment.toFlutter ?? Alignment.center,
+        emphasized: container.emphasized ?? false,
+        child: Padding(
+          padding: container.padding.toFlutter ?? EdgeInsets.zero,
+          child: CustomUIWidget(
+            ui: container.child,
+            element: element.child('container'),
+          ),
+        ),
+      ),
+      final CustomUI_Clickable clickable => Clickable(
+        onTap: clickable.onClick == null
+            ? null
+            : () => element.runInteraction(clickable.onClick),
+        onLongTap: clickable.onLongClick == null
+            ? null
+            : () => element.runInteraction(clickable.onLongClick),
+        child: CustomUIWidget(
+          ui: clickable.child,
+          element: element.child('clickable'),
+        ),
+      ),
+      final CustomUI_Expanded expanded => Expanded(
+        flex: expanded.flex,
+        child: CustomUIWidget(
+          ui: expanded.child,
+          element: element.child('expanded'),
+        ),
+      ),
+      final CustomUI_SizedBox sizedBox => SizedBox(
+        width: sizedBox.width,
+        height: sizedBox.height,
+        child: sizedBox.child == null
+            ? null
+            : CustomUIWidget(
+                ui: sizedBox.child,
+                element: element.child('sizedbox'),
+              ),
+      ),
+      final CustomUI_Spacer spacer => Spacer(flex: spacer.flex),
+      final CustomUI_Wrap wrap => Wrap(
+        spacing: wrap.spacing ?? 0,
+        runSpacing: wrap.runSpacing ?? 0,
+        alignment: wrap.alignment.toFlutter ?? WrapAlignment.start,
+        children: wrap.children.indexed
+            .map(
+              (data) => CustomUIWidget(
+                ui: data.$2,
+                element: element.child('wrap/${data.$1}'),
+              ),
+            )
+            .toList(),
+      ),
+      final CustomUI_Center center => Center(
+        child: CustomUIWidget(
+          ui: center.child,
+          element: element.child('center'),
+        ),
+      ),
+      final CustomUI_Align align => Align(
+        alignment: align.alignment.toFlutter,
+        child: CustomUIWidget(
+          ui: align.child,
+          element: element.child('align'),
+        ),
+      ),
+      final CustomUI_Stack stack => Stack(
+        alignment: stack.alignment.toFlutter ?? AlignmentDirectional.center,
+        fit: stack.fit.toFlutter ?? StackFit.loose,
+        children: stack.children.indexed
+            .map(
+              (data) => CustomUIWidget(
+                ui: data.$2,
+                element: element.child('stack/${data.$1}'),
+              ),
+            )
+            .toList(),
+      ),
+      CustomUI_Divider() => const Divider(),
+      final CustomUI_ListTile listTile => DionListTile(
+        onTap: listTile.onClick == null
+            ? null
+            : () => element.runInteraction(listTile.onClick),
+        onLongTap: listTile.onLongClick == null
+            ? null
+            : () => element.runInteraction(listTile.onLongClick),
+        leading: listTile.leading == null
+            ? null
+            : CustomUIWidget(
+                ui: listTile.leading,
+                element: element.child('listtile/leading'),
+              ),
+        title: listTile.title == null
+            ? null
+            : CustomUIWidget(
+                ui: listTile.title,
+                element: element.child('listtile/title'),
+              ),
+        subtitle: listTile.subtitle == null
+            ? null
+            : CustomUIWidget(
+                ui: listTile.subtitle,
+                element: element.child('listtile/subtitle'),
+              ),
+        trailing: listTile.trailing == null
+            ? null
+            : CustomUIWidget(
+                ui: listTile.trailing,
+                element: element.child('listtile/trailing'),
+              ),
+      ),
+      final CustomUI_Badge badge => DionBadge(
+        color: badge.color.resolve(context),
+        child: CustomUIWidget(
+          ui: badge.child,
+          element: element.child('badge'),
+        ),
+      ),
+      final CustomUI_FoldableText foldable => Foldabletext(
+        foldable.text,
+        maxLines: foldable.maxLines,
+        style: foldable.style.toFlutter(),
+        animate: foldable.animate,
+      ),
+      final CustomUI_StarDisplay starDisplay => Stardisplay(
+        width: 14,
+        height: 14,
+        fill: starDisplay.fill,
+        maxstars: starDisplay.maxStars,
+      ),
+      final CustomUI_Dropdown dropdown => _CustomUIDropdown(
+        dropdown: dropdown,
+        element: element.child('dropdown'),
+      ),
     };
   }
 }
@@ -541,19 +703,8 @@ class _CustomUITextInputState extends State<_CustomUITextInput> {
     widget.element.runInteraction(_withValue(interaction, _controller.text));
   }
 
-  rust.Interaction _withValue(rust.Interaction interaction, String text) {
-    final encoded = jsonEncode(text);
-    return switch (interaction) {
-      final rust.Interaction_WriteKey w => rust.Interaction.writeKey(
-        key: w.key,
-        value: encoded,
-      ),
-      final rust.Interaction_Invoke i => rust.Interaction.invoke(
-        handler: i.handler,
-        payload: encoded,
-      ),
-    };
-  }
+  rust.Interaction _withValue(rust.Interaction interaction, String text) =>
+      interactionWithValue(interaction, text);
 
   void _onChange() {
     _debounce?.cancel();
@@ -582,4 +733,72 @@ class _CustomUITextInputState extends State<_CustomUITextInput> {
   final idx = key.indexOf(':');
   if (idx <= 0 || idx >= key.length - 1) return null;
   return (EntryId(uid: key.substring(0, idx)), key.substring(idx + 1));
+}
+
+rust.Interaction interactionWithValue(rust.Interaction interaction, String value) {
+  final encoded = jsonEncode(value);
+  return switch (interaction) {
+    final rust.Interaction_WriteKey w => rust.Interaction.writeKey(
+      key: w.key,
+      value: encoded,
+    ),
+    final rust.Interaction_Invoke i => rust.Interaction.invoke(
+      handler: i.handler,
+      payload: encoded,
+    ),
+  };
+}
+
+class _CustomUIDropdown extends StatefulWidget {
+  final CustomUI_Dropdown dropdown;
+  final CustomUIElement element;
+
+  const _CustomUIDropdown({required this.dropdown, required this.element});
+
+  @override
+  State<_CustomUIDropdown> createState() => _CustomUIDropdownState();
+}
+
+class _CustomUIDropdownState extends State<_CustomUIDropdown> {
+  late String? _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.dropdown.initialValue;
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomUIDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dropdown.initialValue != widget.dropdown.initialValue) {
+      _value = widget.dropdown.initialValue;
+    }
+  }
+
+  Future<void> _onChanged(String? value) async {
+    if (value == null) return;
+    setState(() => _value = value);
+    final interaction = widget.dropdown.onChange;
+    if (interaction == null) return;
+    await widget.element.runInteraction(
+      interactionWithValue(interaction, value),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.dropdown.items;
+    return DionDropdown<String>(
+      value: (_value == null || items.any((e) => e.value == _value))
+          ? _value
+          : null,
+      items: items
+          .map(
+            (e) => DionDropdownItem<String>(value: e.value, label: e.label),
+          )
+          .toList(),
+      onChanged: _onChanged,
+    );
+  }
 }

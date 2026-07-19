@@ -394,7 +394,7 @@ class Extension extends ChangeNotifier {
         );
 
         resEntry = mapRes.entry.copyWith(
-          ui: resEntry.ui??const CustomUI.column(children: []),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
+          ui: resEntry.ui??const CustomUI.column(children: [], scrollable: false),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
         );
         entryExtension.extensionSettings =
             mapRes.settings; //TODO: Think about possible race conditions here
@@ -442,7 +442,8 @@ class Extension extends ChangeNotifier {
       token: token,
     );
     e.entry = mapRes.entry.copyWith(
-      ui: e.entry.ui??const CustomUI.column(children: []),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
+      ui: e.entry.ui??
+      const CustomUI.column(children: [],scrollable: false),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
     );
     ext.extensionSettings =
         mapRes.settings; //TODO: Think about possible race conditions

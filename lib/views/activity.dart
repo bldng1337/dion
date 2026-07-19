@@ -6,7 +6,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit,ButtonType;
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
