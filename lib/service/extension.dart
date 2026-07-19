@@ -9,6 +9,7 @@ import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/main.dart';
+import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/extension.dart';
@@ -16,6 +17,7 @@ import 'package:dionysos/service/mock_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/toast.dart';
 import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/views/action_dialog.dart';
 import 'package:dionysos/views/custom_view.dart';
@@ -42,6 +44,46 @@ import 'package:url_launcher/url_launcher.dart';
 
 export 'package:rdion_runtime/rdion_runtime.dart'
     hide Account, Entry, EntryDetailed, Row, RustLib, Setting;
+
+extension on rust.EntryDetailed {
+  rust.EntryDetailed copyWith({
+    EntryId? id,
+    String? url,
+    List<String>? titles,
+    List<String>? author,
+    CustomUI? ui,
+    Map<String, String>? meta,
+    MediaType? mediaType,
+    ReleaseStatus? status,
+    String? description,
+    String? language,
+    Link? cover,
+    Link? poster,
+    List<Episode>? episodes,
+    List<String>? genres,
+    double? rating,
+    double? views,
+    int? length,
+  }) => rust.EntryDetailed(
+    id: id ?? this.id,
+    url: url ?? this.url,
+    titles: titles ?? this.titles,
+    author: author ?? this.author,
+    ui: ui ?? this.ui,
+    meta: meta ?? this.meta,
+    mediaType: mediaType ?? this.mediaType,
+    status: status ?? this.status,
+    description: description ?? this.description,
+    language: language ?? this.language,
+    cover: cover ?? this.cover,
+    poster: poster ?? this.poster,
+    episodes: episodes ?? this.episodes,
+    genres: genres ?? this.genres,
+    rating: rating ?? this.rating,
+    views: views ?? this.views,
+    length: length ?? this.length,
+  );
+}
 
 typedef CustomUIRow = rust.Row;
 
@@ -155,6 +197,10 @@ class Extension extends ChangeNotifier {
   /// extension's views, never those owned by the app or other extensions.
   final List<_ExtensionViewHandle> _activeViews = [];
 
+  final CustomUIStore uiStore = CustomUIStore();
+
+  final CustomUIChangeBus settingChanges = CustomUIChangeBus();
+
   Extension(
     this.data,
     this._proxy,
@@ -232,13 +278,10 @@ class Extension extends ChangeNotifier {
     })..name = name;
   }
 
-  Future<EventResult?> runAction(
-    rust.Action action, {
-    rust.CancelToken? token,
-  }) async {
+  Future<void> runAction(rust.Action action, {rust.CancelToken? token}) async {
     switch (action) {
       case final rust.Action_OpenBrowser browse:
-        logger.i('Opening browser for url ${action.url} for extension $data');
+        logger.i('Opening browser for url ${browse.url} for extension $data');
         await launchUrl(Uri.parse(browse.url));
       case final rust.Action_Popup popup:
         _trackView(
@@ -273,18 +316,12 @@ class Extension extends ChangeNotifier {
                 },
           ),
         );
-      case final rust.Action_TriggerEvent triggerEvent:
-        final res = await event(
-          event: rust.EventData.trigger(
-            event: triggerEvent.event,
-            data: triggerEvent.data,
-          ),
-        );
-        return res;
       case final rust.Action_NavEntry navEntry:
         GoRouter.of(
           navigatorKey.currentContext!,
         ).push('/detail', extra: [navEntry.entry]);
+      case final rust.Action_ShowToast toast:
+        showToast(toast.message, toast.kind);
     }
   }
 
@@ -355,9 +392,13 @@ class Extension extends ChangeNotifier {
           settings: entryExtension.extensionSettings,
           // token: token,
         );
-        resEntry = mapRes.entry;
+
+        resEntry = mapRes.entry.copyWith(
+          ui: resEntry.ui??const CustomUI.column(children: []),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
+        );
         entryExtension.extensionSettings =
             mapRes.settings; //TODO: Think about possible race conditions here
+        entryExtension.ui = mapRes.entry.ui;
       }
       e.entry = resEntry;
       e.extensionSettings =
@@ -400,9 +441,12 @@ class Extension extends ChangeNotifier {
       settings: ext.extensionSettings,
       token: token,
     );
-    e.entry = mapRes.entry;
+    e.entry = mapRes.entry.copyWith(
+      ui: e.entry.ui??const CustomUI.column(children: []),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
+    );
     ext.extensionSettings =
         mapRes.settings; //TODO: Think about possible race conditions
+    ext.ui=mapRes.entry.ui;
     return e;
   }
 
@@ -425,6 +469,8 @@ class Extension extends ChangeNotifier {
       handle.dismiss();
     }
     _activeViews.clear();
+    uiStore.dispose();
+    settingChanges.dispose();
     _proxy.dispose();
     super.dispose();
   }
@@ -728,6 +774,17 @@ class ExtensionService with ChangeNotifier {
             if (entry == null) {
               return;
             }
+            final busKey = '${entryId.uid}:$key';
+            // 1. The bound extension's per-entry settings map.
+            if (entry.boundExtensionId == data.id &&
+                entry.extensionSettings.containsKey(key)) {
+              entry.extensionSettings[key] = entry.extensionSettings[key]!
+                  .copyWith(value: value);
+              await entry.save();
+              getExtension(data.id).settingChanges.notify(busKey);
+              return;
+            }
+            // 2. An attached EntryProcessor extension's settings.
             final entryExt = entry.entryExtensions
                 .where((ext) => ext.extensionId == data.id)
                 .firstOrNull;
@@ -739,8 +796,10 @@ class ExtensionService with ChangeNotifier {
                 entryExt!.extension!,
               );
               await entry.save();
+              getExtension(data.id).settingChanges.notify(busKey);
               return;
             }
+            // 3. An attached SourceProcessor extension's settings.
             final sourceExts = entry.sourceExtensions
                 .where((ext) => ext.extensionId == data.id)
                 .firstOrNull
@@ -748,8 +807,12 @@ class ExtensionService with ChangeNotifier {
             if (sourceExts != null && sourceExts.containsKey(key)) {
               sourceExts[key] = sourceExts[key]!.copyWith(value: value);
               await entry.save();
+              getExtension(data.id).settingChanges.notify(busKey);
               return;
             }
+          },
+          storeSet: (key, value) {
+            return getExtension(data.id).uiStore.set(key, value);
           },
           loadDataSecure: (key) async {
             try {

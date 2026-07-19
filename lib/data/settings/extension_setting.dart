@@ -124,6 +124,7 @@ class ExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
   void onChange(T t) {
     _extension.setSetting(id: id, kind: kind, value: t.asSettingValue);
     super.onChange(t);
+    extension.settingChanges.notify(id);
   }
 }
 
@@ -145,6 +146,7 @@ class EntrySettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
   void onChange(T t) {
     _entry.setSetting(id, t.asSettingValue);
     super.onChange(t);
+    extension.settingChanges.notify('${_entry.id.uid}:$id');
   }
 }
 

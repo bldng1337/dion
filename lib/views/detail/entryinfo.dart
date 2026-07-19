@@ -9,6 +9,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
+import 'package:dionysos/service/extension.dart' show Extension, CustomUI;
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/custom_ui.dart';
 import 'package:dionysos/utils/file_utils.dart';
@@ -426,33 +427,81 @@ class EntryInfo extends StatelessWidget {
     ).paddingOnly(bottom: 24);
   }
 
+  Widget _buildCustomUIContainer(
+    BuildContext context, {
+    required CustomUI ui,
+    required Extension extension,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.theme.colorScheme.surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(
+          color: context.theme.colorScheme.onSurface.withValues(
+            alpha: 0.05,
+          ),
+          width: 0.5,
+        ),
+      ),
+      child: CustomUIWidget.fromUI(ui: ui, extension: extension),
+    ).paddingOnly(bottom: 20);
+  }
+
   Widget _buildCustomUISection(BuildContext context) {
     return Center(
       child: isEntryDetailed(
         context: context,
         entry: entry,
         isdetailed: (entry) {
-          if (entry.ui == null || entry.ui.isEmpty || entry.extension == null) {
-            return const SizedBox.shrink();
-          }
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: context.theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(3),
-              border: Border.all(
-                color: context.theme.colorScheme.onSurface.withValues(
-                  alpha: 0.05,
-                ),
-                width: 0.5,
+          final children = <Widget>[];
+          if (entry.ui != null &&
+              !entry.ui.isEmpty &&
+              entry.extension != null) {
+            children.add(
+              _buildCustomUIContainer(
+                context,
+                ui: entry.ui!,
+                extension: entry.extension!,
               ),
-            ),
-            child: CustomUIWidget.fromUI(
-              ui: entry.ui!,
-              extension: entry.extension!,
-            ),
-          ).paddingOnly(bottom: 20);
+            );
+          }
+          if (entry is EntrySaved) {
+            for (final ext in entry.entryExtensions) {
+              if (ext.ui == null ||
+                  ext.ui!.isEmpty ||
+                  ext.extension == null) {
+                continue;
+              }
+              children.add(
+                _buildCustomUIContainer(
+                  context,
+                  ui: ext.ui!,
+                  extension: ext.extension!,
+                ),
+              );
+            }
+            for (final ext in entry.sourceExtensions) {
+              if (ext.ui == null ||
+                  ext.ui!.isEmpty ||
+                  ext.extension == null) {
+                continue;
+              }
+              children.add(
+                _buildCustomUIContainer(
+                  context,
+                  ui: ext.ui!,
+                  extension: ext.extension!,
+                ),
+              );
+            }
+          }
+          if (children.isEmpty) return const SizedBox.shrink();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          );
         },
         shimmer: false,
       ),

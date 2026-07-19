@@ -1,126 +1,60 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/service/customui_store.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/log.dart';
-import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/card.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
-import 'package:flutter/material.dart' show Colors, Material;
+import 'package:flutter/material.dart'
+    show Colors, Material, TextEditingController, TextField;
 import 'package:flutter/widgets.dart' hide Page;
-import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:awesome_extensions/awesome_extensions_dart.dart';
-
-class Slot {
-  final Function(CustomUI) handler;
-  final String slotId;
-  Slot({required this.slotId, required this.handler});
-}
-
-class CustomUIContext {
-  final Map<String, Slot> _slotContentHandlers = {};
-  CustomUIContext();
-
-  void registerSlotContentHandler(String path, Slot slot) {
-    _slotContentHandlers[path] = slot;
-  }
-
-  void unregisterSlotContentHandler(String path) {
-    _slotContentHandlers.remove(path);
-  }
-
-  void updateSlotContent(String path, String id, CustomUI content) {
-    //TODO: A real tree would probably be faster but this is easier and should be fine for now
-    for (final slotentry in _slotContentHandlers.entries) {
-      if (slotentry.value.slotId == id) {
-        slotentry.value.handler(content);
-      }
-    }
-  }
-}
 
 class CustomUIElement {
   final String path;
   final Extension extension;
-  final CustomUIContext context;
-  CustomUIElement({
-    required this.path,
-    required this.extension,
-    required this.context,
-  });
-  CustomUIElement.init({required this.extension})
-    : path = '',
-      context = CustomUIContext();
-  CustomUIElement child(String childPath) {
-    return CustomUIElement(
-      extension: extension,
-      path: '$path/$childPath',
-      context: context,
-    );
-  }
+  const CustomUIElement({required this.path, required this.extension});
 
-  Future<void> runAction(UIAction action) async {
-    switch (action) {
-      case final UIAction_SwapContent _:
+  factory CustomUIElement.init({required Extension extension}) =>
+      CustomUIElement(path: '', extension: extension);
+
+  CustomUIElement child(String childPath) =>
+      CustomUIElement(extension: extension, path: '$path/$childPath');
+
+  CustomUIStore get uiStore => extension.uiStore;
+
+  Future<void> runInteraction(rust.Interaction? interaction) async {
+    if (interaction == null) return;
+    switch (interaction) {
+      case final rust.Interaction_WriteKey write:
+        await uiStore.set(write.key, write.value);
+      case final rust.Interaction_Invoke invoke:
         try {
-          if (action.placeholder != null) {
-            context.updateSlotContent(
-              path,
-              action.targetid,
-              action.placeholder!,
-            );
-          }
-          final res = await extension.event(
-            event: EventData.swapContent(
-              data: action.data,
-              event: action.event,
-              targetid: action.targetid,
+          await extension.event(
+            event: rust.EventData.invoke(
+              handler: invoke.handler,
+              payload: invoke.payload,
             ),
           );
-          if (res == null) {
-            return;
-          }
-          if (res is! EventResult_SwapContent) {
-            throw Exception('Invalid event result type: ${res.runtimeType}');
-          }
-          context.updateSlotContent(path, action.targetid, res.customui);
-        } catch (e, stack) {
+        } catch (e, st) {
           logger.e(
-            'Failed to swap content at $path',
+            'Trigger "${invoke.handler}" failed at $path',
             error: e,
-            stackTrace: stack,
-          );
-          //TODO: slot should be able to report errors
-        }
-      case final UIAction_Action action:
-        try {
-          final res=await extension.runAction(action.action);
-          switch(res){
-            case final EventResult_SwapContent _swap:
-            logger.w('Action at $path returned null result');
-            case final EventResult_DoAction doAction:
-              await runAction(UIAction.action(action: doAction.action));
-            case EventResult_Return():
-              return;
-            case EventResult_FeedUpdate():
-              logger.w('Unexpected feed update result from action at $path');
-            case null:
-              logger.w('Action at $path returned null result');
-          }
-        } catch (e, stack) {
-          logger.e(
-            'Failed to perform action at $path',
-            error: e,
-            stackTrace: stack,
+            stackTrace: st,
           );
         }
     }
@@ -214,12 +148,14 @@ class CustomUIWidget extends StatelessWidget {
         element: element.child('feed'),
       ),
       final CustomUI_Button button => DionTextbutton(
-        child: Text(button.label),
         onPressed: () async {
-          final action = button.onClick;
-          if (action == null) return;
-          await element.runAction(action);
+          await element.runInteraction(button.onClick);
         },
+        child: Text(button.label),
+      ),
+      final CustomUI_TextInput textInput => _CustomUITextInput(
+        data: textInput,
+        element: element.child('text'),
       ),
       final CustomUI_InlineSetting inlineSetting => CustomUISettingsView(
         data: inlineSetting,
@@ -228,7 +164,6 @@ class CustomUIWidget extends StatelessWidget {
       final CustomUI_Slot slot => CustomUISlot(
         data: slot,
         element: element.child('slot'),
-        onMountAction: slot.onMount,
       ),
       CustomUI_Spinner() => const Center(child: DionProgressBar()),
     };
@@ -248,109 +183,254 @@ class CustomUISettingsView extends StatefulWidget {
   State<CustomUISettingsView> createState() => _CustomUISettingsViewState();
 }
 
-class _CustomUISettingsViewState extends State<CustomUISettingsView>
-    with StateDisposeScopeMixin {
-  late final Setting<dynamic, DionRuntimeSettingMetaData<dynamic>>? setting;
+class _CustomUISettingsViewState extends State<CustomUISettingsView> {
+  Setting<dynamic, DionRuntimeSettingMetaData<dynamic>>? setting;
 
   @override
   void initState() {
+    super.initState();
     setting = widget.element.extension.settings[widget.data.settingKind]!
         .where((e) => e.metadata.id == widget.data.settingId)
         .firstOrNull;
-    if (setting != null) {
-      Observer(() {
-        if (widget.data.onCommit == null) return;
-        widget.element.runAction(widget.data.onCommit!);
-      }, setting!).disposedBy(scope);
-    }
-    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (setting == null) {
+    final s = setting;
+    if (s == null) {
       return Text('Setting ${widget.data.settingId} not found');
     }
-    return Material(child: DionRuntimeSettingView(setting: setting!));
+    return Material(child: DionRuntimeSettingView(setting: s));
   }
 }
 
 class CustomUISlot extends StatefulWidget {
   final CustomUIElement element;
   final CustomUI_Slot data;
-  final UIAction? onMountAction;
-  const CustomUISlot({
-    super.key,
-    required this.data,
-    required this.element,
-    this.onMountAction,
-  });
+  const CustomUISlot({super.key, required this.data, required this.element});
 
   @override
   State<CustomUISlot> createState() => _CustomUISlotState();
 }
 
 class _CustomUISlotState extends State<CustomUISlot> {
-  late CustomUI content;
+  late CustomUI _content;
+  _SlotError? _error;
+
+  final List<(String, Object)> _storeTokens = [];
+  final List<void Function()> _settingDisposers = [];
+
+  bool _reloadScheduled = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.onMountAction != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await widget.element.runAction(widget.onMountAction!);
-      });
-    }
-    content = widget.data.child;
-    widget.element.context.registerSlotContentHandler(
-      widget.element.path,
-      Slot(
-        slotId: widget.data.id,
-        handler: (CustomUI newContent) {
-          setState(() {
-            content = newContent;
-          });
-        },
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    widget.element.context.unregisterSlotContentHandler(widget.element.path);
-    super.dispose();
+    _content = widget.data.child;
+    _bindSubscriptions();
+    _fireLoadSlot();
   }
 
   @override
   void didUpdateWidget(covariant CustomUISlot oldWidget) {
-    if (oldWidget.data.child != widget.data.child) {
-      setState(() {
-        content = widget.data.child;
-      });
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data.subscriptions != widget.data.subscriptions ||
+        oldWidget.data.staticData != widget.data.staticData ||
+        oldWidget.data.handler != widget.data.handler) {
+      _unbindSubscriptions();
+      _error = null;
+      _content = widget.data.child;
+      _bindSubscriptions();
+      _fireLoadSlot();
     }
-    if (oldWidget.element.context != widget.element.context) {
-      oldWidget.element.context.unregisterSlotContentHandler(
-        oldWidget.element.path,
-      );
-      widget.element.context.registerSlotContentHandler(
-        widget.element.path,
-        Slot(
-          slotId: widget.data.id,
-          handler: (CustomUI newContent) {
-            setState(() {
-              content = newContent;
-            });
-          },
+  }
+
+  @override
+  void dispose() {
+    _unbindSubscriptions();
+    super.dispose();
+  }
+
+  void _bindSubscriptions() {
+    final ext = widget.element.extension;
+    for (final sub in widget.data.subscriptions) {
+      switch (sub.source) {
+        case rust.SubscriptionSource_Store():
+          _storeTokens.add((
+            sub.key,
+            ext.uiStore.subscribe(sub.key, _scheduleReload),
+          ));
+        case final rust.SubscriptionSource_Setting s:
+          final setting = ext.settings[s.kind]
+              ?.where((e) => e.metadata.id == sub.key)
+              .firstOrNull;
+          if (setting != null) {
+            setting.addListener(_scheduleReload);
+            _settingDisposers.add(
+              () => setting.removeListener(_scheduleReload),
+            );
+          } else {
+            // Fall back to the change bus so a Slot subscribed to a setting id
+            // that has no live Setting object still rebuilds when it changes.
+            final token = ext.settingChanges.subscribe(
+              sub.key,
+              _scheduleReload,
+            );
+            _settingDisposers.add(
+              () => ext.settingChanges.unsubscribe(sub.key, token),
+            );
+          }
+        case rust.SubscriptionSource_EntrySetting():
+          final token = ext.settingChanges.subscribe(sub.key, _scheduleReload);
+          _settingDisposers.add(
+            () => ext.settingChanges.unsubscribe(sub.key, token),
+          );
+      }
+    }
+  }
+
+  void _unbindSubscriptions() {
+    final ext = widget.element.extension;
+    for (final (key, token) in _storeTokens) {
+      ext.uiStore.unsubscribe(key, token);
+    }
+    _storeTokens.clear();
+    for (final disposer in _settingDisposers) {
+      disposer();
+    }
+    _settingDisposers.clear();
+    _reloadScheduled = false;
+  }
+
+  void _scheduleReload() {
+    if (_reloadScheduled) return;
+    _reloadScheduled = true;
+    // Defer to the next microtask so two keys changing in the same tick produce
+    // a single LoadSlot call with both updates visible.
+    scheduleMicrotask(() {
+      _reloadScheduled = false;
+      if (!mounted) return;
+      _fireLoadSlot();
+    });
+  }
+
+  Future<Map<String, SlotValue>> _collectValues() async {
+    final ext = widget.element.extension;
+    final values = <String, SlotValue>{};
+    for (final sub in widget.data.subscriptions) {
+      switch (sub.source) {
+        case rust.SubscriptionSource_Store():
+          final v = ext.uiStore.get(sub.key);
+          if (v != null) {
+            values[sub.stateKey] = SlotValue.store(key: sub.key, value: v);
+          }
+        case final rust.SubscriptionSource_Setting s:
+          final setting = ext.settings[s.kind]
+              ?.where((e) => e.metadata.id == sub.key)
+              .firstOrNull;
+          if (setting != null) {
+            final sv = switch (setting.value) {
+              final String s => rust.SettingValue_String(data: s),
+              final num n => rust.SettingValue_Number(data: n.toDouble()),
+              final bool b => rust.SettingValue_Boolean(data: b),
+              final List<String> l => rust.SettingValue_StringList(data: l),
+              _ => throw UnimplementedError(
+                'Unsupported setting value type: ${setting.value.runtimeType}',
+              ),
+            };
+            values[sub.stateKey] = SlotValue.setting(value: sv);
+          }
+        case rust.SubscriptionSource_EntrySetting():
+          final parsed = _parseEntrySettingKey(sub.key);
+
+          if (parsed != null) {
+            final entry = await locate<Database>().getSavedById(parsed.$1);
+            if (ext.data.id == entry?.boundExtensionId) {
+              final sv = entry?.extensionSettings[parsed.$2]?.value;
+              if (sv != null) {
+                values[sub.stateKey] = SlotValue.setting(value: sv);
+              }
+              continue;
+            }
+            final extid = ext.data.id;
+            final entryExts = entry?.entryExtensions
+                .where((ext) => ext.extensionId == extid)
+                .firstOrNull
+                ?.extensionSettings;
+            if (entryExts != null) {
+              final sv = entryExts[parsed.$2]?.value;
+              if (sv != null) {
+                values[sub.stateKey] = SlotValue.setting(value: sv);
+                ;
+              }
+              continue;
+            }
+            final sourceExts = entry?.sourceExtensions
+                .where((ext) => ext.extensionId == extid)
+                .firstOrNull
+                ?.extensionSettings;
+            if (sourceExts != null) {
+              final sv = sourceExts[parsed.$2]?.value;
+              if (sv != null) {
+                values[sub.stateKey] = SlotValue.setting(value: sv);
+                ;
+              }
+              continue;
+            }
+          }
+      }
+    }
+    return values;
+  }
+
+  Future<void> _fireLoadSlot() async {
+    try {
+      final values = await _collectValues();
+      if (!mounted) return;
+      final res = await widget.element.extension.event(
+        event: rust.EventData.loadSlot(
+          handler: widget.data.handler,
+          staticData: widget.data.staticData,
+          values: values,
         ),
       );
+      if (!mounted) return;
+      if (res is! rust.EventResult_SlotContent) {
+        throw Exception(
+          'Slot handler "${widget.data.handler}" returned '
+          '${res?.runtimeType ?? "null"}; expected SlotContent',
+        );
+      }
+      setState(() {
+        _content = res.customui;
+        _error = null;
+      });
+    } catch (e, st) {
+      logger.e(
+        'LoadSlot "${widget.data.handler}" failed at ${widget.element.path}',
+        error: e,
+        stackTrace: st,
+      );
+      if (!mounted) return;
+      setState(() {
+        _error = _SlotError(e, st);
+      });
     }
-    super.didUpdateWidget(oldWidget);
   }
 
   @override
   Widget build(BuildContext context) {
-    return CustomUIWidget(ui: content, element: widget.element.child('inner'));
+    final err = _error;
+    if (err != null) {
+      return ErrorDisplay(e: err.error, s: err.stackTrace);
+    }
+    return CustomUIWidget(ui: _content, element: widget.element.child('inner'));
   }
+}
+
+class _SlotError {
+  final Object error;
+  final StackTrace stackTrace;
+  _SlotError(this.error, this.stackTrace);
 }
 
 class CustomFeed extends StatefulWidget {
@@ -369,25 +449,20 @@ class _CustomFeedState extends State<CustomFeed> {
     controller = DataSourceController([
       PageAsyncSource((index) async {
         final res = await widget.element.extension.event(
-          event: EventData.feedUpdate(
+          event: rust.EventData.loadPage(
+            handler: widget.feed.handler,
             data: widget.feed.data,
-            event: widget.feed.event,
             page: index,
           ),
         );
-        if (res == null) {
-          return Page.empty();
+        if (res is! rust.EventResult_FeedPage) {
+          throw Exception(
+            'Feed handler "${widget.feed.handler}" returned '
+            '${res?.runtimeType ?? "null"}; expected FeedPage',
+          );
         }
-        if (res is! EventResult_FeedUpdate) {
-          throw Exception('Invalid event result type: ${res.runtimeType}');
-        }
-        if (res.hasnext == false){
-          return Page.last(res.customui.map((e) => (e, index)).toList());
-        }
-        if (res.length!=null && res.length! <= index) {
-          return Page.last(res.customui.map((e) => (e, index)).toList());
-        }
-        return Page.more(res.customui.map((e) => (e, index)).toList());
+        final items = res.items.map((e) => (e, index)).toList();
+        return res.hasMore ? Page.more(items) : Page.last(items);
       }),
     ]);
     controller.requestMore();
@@ -401,7 +476,7 @@ class _CustomFeedState extends State<CustomFeed> {
 
   @override
   void dispose() {
-    widget.element.context.unregisterSlotContentHandler(widget.element.path);
+    controller.dispose();
     super.dispose();
   }
 
@@ -409,7 +484,7 @@ class _CustomFeedState extends State<CustomFeed> {
   void didUpdateWidget(covariant CustomFeed oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.feed.data != widget.feed.data ||
-        oldWidget.feed.event != widget.feed.event) {
+        oldWidget.feed.handler != widget.feed.handler) {
       controller.dispose();
       initController();
     }
@@ -425,4 +500,86 @@ class _CustomFeedState extends State<CustomFeed> {
       ),
     );
   }
+}
+
+class _CustomUITextInput extends StatefulWidget {
+  final CustomUI_TextInput data;
+  final CustomUIElement element;
+  const _CustomUITextInput({required this.data, required this.element});
+
+  @override
+  State<_CustomUITextInput> createState() => _CustomUITextInputState();
+}
+
+class _CustomUITextInputState extends State<_CustomUITextInput> {
+  late final TextEditingController _controller;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.data.initial);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _fireChange() {
+    final interaction = widget.data.onChange;
+    if (interaction == null) return;
+    widget.element.runInteraction(_withValue(interaction, _controller.text));
+  }
+
+  void _fireCommit() {
+    _debounce?.cancel();
+    final interaction = widget.data.onCommit;
+    if (interaction == null) return;
+    widget.element.runInteraction(_withValue(interaction, _controller.text));
+  }
+
+  rust.Interaction _withValue(rust.Interaction interaction, String text) {
+    final encoded = jsonEncode(text);
+    return switch (interaction) {
+      final rust.Interaction_WriteKey w => rust.Interaction.writeKey(
+        key: w.key,
+        value: encoded,
+      ),
+      final rust.Interaction_Invoke i => rust.Interaction.invoke(
+        handler: i.handler,
+        payload: encoded,
+      ),
+    };
+  }
+
+  void _onChange() {
+    _debounce?.cancel();
+    final ms = widget.data.debounceMs ?? 0;
+    if (ms <= 0) {
+      _fireChange();
+      return;
+    }
+    _debounce = Timer(Duration(milliseconds: ms), _fireChange);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      child: TextField(
+        controller: _controller,
+        onChanged: (_) => _onChange(),
+        onSubmitted: (_) => _fireCommit(),
+        onTapOutside: (_) => _fireCommit(),
+      ),
+    );
+  }
+}
+
+(EntryId, String)? _parseEntrySettingKey(String key) {
+  final idx = key.indexOf(':');
+  if (idx <= 0 || idx >= key.length - 1) return null;
+  return (EntryId(uid: key.substring(0, idx)), key.substring(idx + 1));
 }

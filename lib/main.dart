@@ -11,6 +11,9 @@ import 'package:workmanager/workmanager.dart';
 // ignore: unreachable_from_main
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterError.onError = (details) {
@@ -35,6 +38,7 @@ void initApp({required RouterConfig<Object> route}) {
         DionThemeMode.material => MaterialApp.router(
           theme: getTheme(theme.brightness),
           routerConfig: route,
+          scaffoldMessengerKey: scaffoldMessengerKey,
         ),
         DionThemeMode.cupertino => CupertinoApp.router(
           theme: MaterialBasedCupertinoThemeData(

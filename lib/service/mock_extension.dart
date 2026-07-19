@@ -7,6 +7,7 @@ import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
@@ -68,6 +69,12 @@ class MockExtension with ChangeNotifier implements Extension {
 
   @override
   bool loading = false;
+
+  @override
+  final CustomUIStore uiStore = CustomUIStore();
+
+  @override
+  final CustomUIChangeBus settingChanges = CustomUIChangeBus();
 
   @override
   List<Account> get accounts => const [];
@@ -210,7 +217,7 @@ class MockExtension with ChangeNotifier implements Extension {
   }) async {}
 
   @override
-  Future<EventResult?> runAction(rust.Action action, {rust.CancelToken? token}) async {}
+  Future<void> runAction(rust.Action action, {rust.CancelToken? token}) async {}
 
   @override
   Future<EntrySaved> refreshEntryExtension(

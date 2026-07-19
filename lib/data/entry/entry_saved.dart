@@ -215,7 +215,8 @@ class EntrySavedSettings {
 class EntryExtension {
   final String extensionId;
   Map<String, rust.Setting> extensionSettings;
-  EntryExtension({required this.extensionId, required this.extensionSettings});
+  CustomUI? ui;
+  EntryExtension({required this.extensionId, required this.extensionSettings, this.ui});
 
   factory EntryExtension.fromJson(Map<String, dynamic> json) {
     return EntryExtension(
@@ -223,6 +224,7 @@ class EntryExtension {
       extensionSettings: (json['settings'] as Map<String, dynamic>).map(
         (key, value) => MapEntry(key, rust.JsonSetting.fromJson(value)),
       ),
+      ui: json['ui'] == null ? null : JsonCustomUI.fromJson(json['ui']),
     );
   }
 
@@ -235,6 +237,7 @@ class EntryExtension {
       'settings': extensionSettings.map(
         (key, value) => MapEntry(key, value.toJson()),
       ),
+      'ui': ui?.toJson(),
     };
   }
 }
