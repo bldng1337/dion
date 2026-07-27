@@ -67,7 +67,7 @@ class LanSyncService extends ChangeNotifier {
     }
 
     if (settings.sync.lan.enabled.value) {
-      await enable();
+      enable();
     }
     pairingStore.addListener(_onPairingChanged);
   }
