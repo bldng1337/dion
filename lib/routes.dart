@@ -24,6 +24,7 @@ import 'package:dionysos/views/settings/extension.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/views/settings/paragraph_reader.dart';
+import 'package:dionysos/views/settings/periodic_jobs.dart';
 import 'package:dionysos/views/settings/settings.dart';
 import 'package:dionysos/views/settings/storage.dart';
 import 'package:dionysos/views/settings/sync.dart';
@@ -211,6 +212,11 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
           path: '/tasks',
           pageBuilder: (context, state) =>
               getTransition(context, state, const ActiveTasksSettings()),
+        ),
+        GoRoute(
+          path: '/periodicjobs',
+          pageBuilder: (context, state) =>
+              getTransition(context, state, const PeriodicJobsSettings()),
         ),
         GoRoute(
           path: '/extension',

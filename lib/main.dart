@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/auto_refresh.dart';
+import 'package:dionysos/service/periodic_service.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
@@ -24,7 +24,7 @@ void main() async {
     );
   };
   if (!Platform.isWindows) {
-    await Workmanager().initialize(autoRefreshCallbackDispatcher);
+    await Workmanager().initialize(backgroundTaskDispatcher);
   }
   initApp(route: getRoutes());
 }

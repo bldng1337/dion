@@ -9,6 +9,7 @@ import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/service/lansync/lansync_service.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/notification.dart';
+import 'package:dionysos/service/periodic_service.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/task.dart';
@@ -120,15 +121,15 @@ class LoadingView extends StatelessWidget {
           },
         ),
         (
-          'AutoRefreshService',
+          'ExtensionUpdateService',
           () async {
-            await AutoRefreshService.ensureInitialized();
+            await ExtensionUpdateService.ensureInitialized();
           },
         ),
         (
-          'Setting up Extension Update Service',
+          'PeriodicService',
           () async {
-            await ExtensionUpdateService.ensureInitialized();
+            await PeriodicService.ensureInitialized();
           },
         ),
         (

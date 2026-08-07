@@ -55,7 +55,15 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     if (androidPlugin == null) return;
-    await androidPlugin.requestNotificationsPermission();
+    try {
+      await androidPlugin.requestNotificationsPermission();
+    } catch (e, stack) {
+      logger.w(
+        'Notification permission request skipped',
+        error: e,
+        stackTrace: stack,
+      );
+    }
   }
 
   Future<void> _createAndroidChannel() async {

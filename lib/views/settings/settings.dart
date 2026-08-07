@@ -227,6 +227,12 @@ class Settings extends StatelessWidget {
                 icon: Icons.playlist_play_outlined,
                 path: '/settings/tasks',
               ),
+              SettingNav(
+                title: 'Periodic Jobs',
+                subtitle: 'Scheduled background tasks',
+                icon: Icons.schedule_outlined,
+                path: '/settings/periodicjobs',
+              ),
             ],
           ),
           _SettingsSection(
