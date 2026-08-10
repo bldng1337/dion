@@ -134,7 +134,7 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
     // Update position
     var lastduration = Duration.zero;
     _streamSubs.add(player.stream.position.listen((event) {
-      if ((lastduration - event).inMilliseconds < 1000) {
+      if ((event - lastduration).inMilliseconds.abs() < 1000) {
         return;
       }
       lastduration = event;
