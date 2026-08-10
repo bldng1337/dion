@@ -69,24 +69,32 @@ class PeriodicService {
     }
   }
 
-  void _reschedule(PeriodicJob job) {
+  Future<void> _reschedule(PeriodicJob job) async {
     if (Platform.isWindows) return;
-    if (!job.enabledSetting.value) {
-      Workmanager().cancelByUniqueName(job.taskName);
-      logger.i('Cancelled periodic task ${job.taskName}');
-      return;
+    try {
+      if (!job.enabledSetting.value) {
+        await Workmanager().cancelByUniqueName(job.taskName);
+        logger.i('Cancelled periodic task ${job.taskName}');
+        return;
+      }
+      final intervalHours = job.intervalSetting.value;
+      await Workmanager().registerPeriodicTask(
+        job.taskName,
+        job.taskName,
+        frequency: Duration(hours: intervalHours),
+        constraints: Constraints(networkType: NetworkType.connected),
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      );
+      logger.i(
+        'Scheduled periodic task ${job.taskName} every $intervalHours hours',
+      );
+    } catch (e, stack) {
+      logger.e(
+        'Failed to reschedule periodic task ${job.taskName}',
+        error: e,
+        stackTrace: stack,
+      );
     }
-    final intervalHours = job.intervalSetting.value;
-    Workmanager().registerPeriodicTask(
-      job.taskName,
-      job.taskName,
-      frequency: Duration(hours: intervalHours),
-      constraints: Constraints(networkType: NetworkType.connected),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-    );
-    logger.i(
-      'Scheduled periodic task ${job.taskName} every $intervalHours hours',
-    );
   }
 
   Map<String, PeriodicJob> get jobs => Map.unmodifiable(_jobs);
