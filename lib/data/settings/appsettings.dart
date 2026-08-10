@@ -326,19 +326,19 @@ final settings = (
       )..addCollection(preferenceCollection),
       adaptivewidth: Setting(
         true,
-        const PreferenceBoolMetaData('paragraphreader.text.adaptivewidth'),
+        const PreferenceBoolMetaData('imagelistreader.adaptivewidth'),
       )..addCollection(preferenceCollection),
       width: Setting(
         70.0,
-        const PreferenceDoubleMetaData('paragraphreader.text.linewidth'),
+        const PreferenceDoubleMetaData('imagelistreader.width'),
       )..addCollection(preferenceCollection),
       music: Setting(
         true,
-        const PreferenceBoolMetaData('paragraphreader.text.music'),
+        const PreferenceBoolMetaData('imagelistreader.music'),
       )..addCollection(preferenceCollection),
       volume: Setting(
         50.0,
-        const PreferenceDoubleMetaData('paragraphreader.text.volume'),
+        const PreferenceDoubleMetaData('imagelistreader.volume'),
       )..addCollection(preferenceCollection),
       bindings: (
         nextChapter: Setting(
