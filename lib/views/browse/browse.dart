@@ -46,10 +46,11 @@ class _BrowseState extends State<Browse>
 
   @override
   Future<void> refresh() async {
+    datacontroller.dispose();
     setState(() {
       datacontroller = DataSourceController<Entry>(
         extensions.map((e) => e.browse()).toList(),
-      );
+      )..disposedBy(scope);
       datacontroller.requestMore();
     });
   }
