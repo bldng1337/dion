@@ -594,9 +594,9 @@ class Extension extends ChangeNotifier {
 
   Future<void> toggle() async {
     if (isenabled) {
-      disable();
+      await disable();
     } else {
-      enable();
+      await enable();
     }
   }
 
