@@ -267,6 +267,10 @@ class DownloadService {
             .exists()
             .then((value) {
               if (controller.isClosed) return;
+              // Cancel any previous watcher before (re)assigning so repeated
+              // status transitions don't leak native file-system watchers.
+              filewatcher?.cancel();
+              filewatcher = null;
               if (value) {
                 controller.add(const DownloadStatus(Status.downloaded));
                 filewatcher = path.watch(events: FileSystemEvent.delete).listen(
