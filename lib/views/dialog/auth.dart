@@ -264,6 +264,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
                     _error = 'Authorization code not found in callback';
                     _loading = false;
                   });
+                  return;
                 }
                 final response = await network.client.post(
                   authData.tokenUrl!,
