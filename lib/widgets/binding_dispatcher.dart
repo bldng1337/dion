@@ -31,6 +31,7 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
 
   Offset? _downGlobal;
   Offset? _downLocal;
+  Offset? _tapDownLocal;
   Size? _size;
 
   @override
@@ -118,12 +119,18 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
           onPointerCancel: (_) {
             _downGlobal = null;
             _downLocal = null;
+            _tapDownLocal = null;
           },
           child: GestureDetector(
             key: _gestureKey,
             behavior: HitTestBehavior.translucent,
-            onTap: () =>
-                _triggerGesture(TapGesture(1, zone: _zoneOf(_downLocal))),
+            onTapDown: (d) => _tapDownLocal = d.localPosition,
+            onTap: () {
+              _triggerGesture(
+                TapGesture(1, zone: _zoneOf(_tapDownLocal)),
+              );
+              _tapDownLocal = null;
+            },
             onDoubleTapDown: (d) => _downLocal = d.localPosition,
             onDoubleTap: () =>
                 _triggerGesture(TapGesture(2, zone: _zoneOf(_downLocal))),
