@@ -326,6 +326,7 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     });
     for (final url in repos) {
       try {
+        // We don't await here because we want to resolve all repos in parallel, and update the state as each one resolves.
         sourceExt.getRepo(url).then((repo) {
           if (!mounted) {
             return;
