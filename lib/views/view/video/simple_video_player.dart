@@ -66,6 +66,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     controller = VideoController(player);
     sourceObserver = Observer(() async {
       final res = await widget.source.cache.get(widget.source.episode);
+      if (!mounted) return;
       if (res.isFailure) {
         setState(() {
           exception = res.exceptionOrNull;
@@ -81,8 +82,11 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       });
       final prog = source.episode.data.progress?.split(':');
       Duration startduration = Duration.zero;
-      if (prog != null && !source.episode.data.finished) {
-        startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
+      if (prog != null &&
+          prog.length > 1 &&
+          !source.episode.data.finished) {
+        startduration =
+            Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
       }
       if (currentVideo!.sources.isEmpty) {
         setState(() {
@@ -99,7 +103,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         ),
       );
       await Future.delayed(const Duration(milliseconds: 100));
-      if (subtitles.isNotEmpty) {
+      if (!mounted) return;
+      if (subtitles.isNotEmpty &&
+          subtitleIndex.value >= 0 &&
+          subtitleIndex.value < subtitles.length) {
         final sub = subtitles[subtitleIndex.value];
         await player.setSubtitleTrack(
           SubtitleTrack.uri(sub.url.url, title: sub.title),
@@ -125,6 +132,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       () async {
         if (subtitleIndex.value == -1) {
           await player.setSubtitleTrack(SubtitleTrack.no());
+          return;
+        }
+        if (subtitleIndex.value < 0 ||
+            subtitleIndex.value >= subtitles.length) {
           return;
         }
         final sub = subtitles[subtitleIndex.value];
