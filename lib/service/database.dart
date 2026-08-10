@@ -372,7 +372,8 @@ WHERE
           .trim(),
       vars: {'start': time, 'end': end},
     );
-    return Duration(seconds: dbres as int);
+    if (dbres == null) return Duration.zero;
+    return Duration(seconds: (dbres as num).toInt());
   }
 
   Future<Map<DateTime, Duration>> getDailyActivityDurations({
