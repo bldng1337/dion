@@ -38,6 +38,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   late final Player player;
   late final VideoController controller;
   late final Observer sourceObserver;
+  final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   ValueNotifier<int> subtitleIndex = ValueNotifier(0);
   Source_Video? currentVideo;
   ValueNotifier<int> streamIndex = ValueNotifier(0);
@@ -119,7 +120,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       },
       streamIndex,
       callOnInit: false,
-    );
+    ).disposedBy(scope);
     Observer(
       () async {
         if (subtitleIndex.value == -1) {
@@ -133,7 +134,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       },
       subtitleIndex,
       callOnInit: false,
-    );
+    ).disposedBy(scope);
     locate<PlayerService>().setSession(
       await AudioPlayerHandler.create(
         widget.source,
@@ -158,31 +159,35 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     }, settings.videoSettings.speed).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
-    player.stream.completed.listen((event) {
-      if (!event) {
-        return;
-      }
-      if (!mounted) {
-        return;
-      }
-      widget.source.episode.goNext(widget.source);
-    });
-    player.stream.position.listen((event) {
-      if (!mounted) {
-        return;
-      }
-      SessionData.of(context)?.manager.keepSessionAlive();
-      final playlistindex = player.state.playlist.index;
-      widget.source.episode.data.progress =
-          '$playlistindex:${event.inMilliseconds}';
-      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
-          playlistindex / player.state.playlist.medias.length > 0.5) {
-        widget.source.cache.preload(widget.source.episode.next);
-      }
-      if (event.inSeconds % 5 == 0) {
-        SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-      }
-    });
+    playerStreamSubs.add(
+      player.stream.completed.listen((event) {
+        if (!event) {
+          return;
+        }
+        if (!mounted) {
+          return;
+        }
+        widget.source.episode.goNext(widget.source);
+      }),
+    );
+    playerStreamSubs.add(
+      player.stream.position.listen((event) {
+        if (!mounted) {
+          return;
+        }
+        SessionData.of(context)?.manager.keepSessionAlive();
+        final playlistindex = player.state.playlist.index;
+        widget.source.episode.data.progress =
+            '$playlistindex:${event.inMilliseconds}';
+        if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
+            playlistindex / player.state.playlist.medias.length > 0.5) {
+          widget.source.cache.preload(widget.source.episode.next);
+        }
+        if (event.inSeconds % 5 == 0) {
+          SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+        }
+      }),
+    );
   }
 
   @override
@@ -199,6 +204,9 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
 
   @override
   void dispose() {
+    for (final sub in playerStreamSubs) {
+      sub.cancel();
+    }
     widget.source.episode.save();
     player.dispose();
     super.dispose();
