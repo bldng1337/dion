@@ -38,6 +38,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
   late final Player player;
   late final Observer sourceObserver;
+  final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   Source_Audio? currentAudio;
   ValueNotifier<int> streamIndex = ValueNotifier(0);
   Object? exception;
@@ -57,6 +58,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         title: 'dion',
       ),
     );
+    _progressStream = _buildProgressStream(player);
     sourceObserver = Observer(
       () async {
         if (mounted) {
@@ -168,30 +170,34 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     ).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
 
-    player.stream.completed.listen((event) {
-      if (!event) {
-        return;
-      }
-      if (player.state.playlist.index <
-          player.state.playlist.medias.length - 1) {
-        return;
-      }
-      if (loading) return;
-      widget.source.episode.goNext(widget.source);
-    });
-    player.stream.position.listen((event) {
-      if (mounted == false) return;
-      if (loading) return;
-      SessionData.of(context)?.manager.keepSessionAlive();
-      widget.source.episode.data.progress = '${event.inMilliseconds}';
-      final secs = event.inSeconds;
-      if (secs != 0 && secs % 5 == 0) {
-        SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-      }
-      if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
-        widget.source.cache.preload(widget.source.episode.next);
-      }
-    });
+    playerStreamSubs.add(
+      player.stream.completed.listen((event) {
+        if (!event) {
+          return;
+        }
+        if (player.state.playlist.index <
+            player.state.playlist.medias.length - 1) {
+          return;
+        }
+        if (loading) return;
+        widget.source.episode.goNext(widget.source);
+      }),
+    );
+    playerStreamSubs.add(
+      player.stream.position.listen((event) {
+        if (mounted == false) return;
+        if (loading) return;
+        SessionData.of(context)?.manager.keepSessionAlive();
+        widget.source.episode.data.progress = '${event.inMilliseconds}';
+        final secs = event.inSeconds;
+        if (secs != 0 && secs % 5 == 0) {
+          SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+        }
+        if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
+          widget.source.cache.preload(widget.source.episode.next);
+        }
+      }),
+    );
   }
 
   @override
@@ -208,6 +214,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   @override
   void dispose() {
+    for (final sub in playerStreamSubs) {
+      sub.cancel();
+    }
+    _progressController?.close();
     super.dispose();
     widget.source.episode.save();
     player.dispose();
@@ -271,45 +281,46 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     return title;
   }
 
-  Stream<void> combineStreams(List<Stream<dynamic>> streams) {
-    late final StreamController<void> controller;
-    final subscriptions = <StreamSubscription<dynamic>>[];
+  Stream<void> _progressStream = const Stream<void>.empty();
+  StreamController<void>? _progressController;
 
-    Future<void> onCancel() async {
-      for (final subscription in subscriptions) {
-        await subscription.cancel();
-      }
-    }
-
-    void onListen() {
-      for (final stream in streams) {
-        subscriptions.add(
+  Stream<void> _buildProgressStream(Player p) {
+    final controller = StreamController<void>.broadcast();
+    _progressController = controller;
+    final subs = <StreamSubscription<dynamic>>[];
+    void addPeers() {
+      for (final stream in [
+        p.stream.duration,
+        p.stream.position,
+        p.stream.buffer,
+      ]) {
+        subs.add(
           stream.listen((event) {
-            controller.add(null);
+            if (!controller.isClosed) controller.add(null);
           }),
         );
       }
     }
 
-    void onPause() {
-      for (final subscription in subscriptions) {
-        subscription.pause();
+    void cancelAll() {
+      for (final s in subs) {
+        s.cancel();
       }
+      subs.clear();
     }
 
-    void onResume() {
-      for (final subscription in subscriptions) {
-        subscription.resume();
+    controller.onListen = addPeers;
+    controller.onCancel = cancelAll;
+    controller.onPause = () {
+      for (final s in subs) {
+        s.pause();
       }
-    }
-
-    controller = StreamController<void>(
-      onCancel: onCancel,
-      onListen: onListen,
-      onPause: onPause,
-      onResume: onResume,
-    );
-
+    };
+    controller.onResume = () {
+      for (final s in subs) {
+        s.resume();
+      }
+    };
     return controller.stream;
   }
 
@@ -404,11 +415,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     StreamBuilder(
-                      stream: combineStreams([
-                        player.stream.duration,
-                        player.stream.position,
-                        player.stream.buffer,
-                      ]),
+                      stream: _progressStream,
                       builder: (context, snapshot) {
                         return ProgressBar(
                           progress: player.state.position,
