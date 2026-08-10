@@ -136,7 +136,9 @@ class Account extends ChangeNotifier {
     if (result == null) {
       throw Exception('Authentication cancelled');
     }
-    data = rust.Account(
+    // Validate against a candidate before committing, so a failed validation
+    // does not clobber the previously working credentials in memory.
+    final candidate = rust.Account(
       auth: data.auth,
       domain: data.domain,
       cover: data.cover,
@@ -144,7 +146,7 @@ class Account extends ChangeNotifier {
       userName: data.userName,
     );
 
-    final res = await _proxy.validate(account: data);
+    final res = await _proxy.validate(account: candidate);
     if (res == null) {
       throw Exception('Invalid credentials');
     }
