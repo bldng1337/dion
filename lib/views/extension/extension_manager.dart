@@ -344,7 +344,7 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
 
   void _rebuildController() {
     final resolved = _resolved;
-    if (resolved == null || resolved.isEmpty || _updatesOnly) {
+    if (resolved.isEmpty || _updatesOnly) {
       _controller = null;
       return;
     }
