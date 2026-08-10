@@ -1040,6 +1040,7 @@ class ExtensionService with ChangeNotifier {
       final adapter = _adapters['mihon'];
       if (adapter != null) {
         await adapter.install(location);
+        return;
       }
     }
     logger.i('Installing extension from $location using all adapters');
