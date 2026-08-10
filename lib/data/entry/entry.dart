@@ -49,8 +49,11 @@ abstract class Entry {
           json['extensionid'] as String,
         );
     }
-    if (json['version'] != entrySerializeVersion.current) {
-      throw Exception('Unsupported entry version ${json['version']}');
+    final version = json['version'];
+    if (version is! int ||
+        version < entrySerializeVersion.minimum ||
+        version > entrySerializeVersion.current) {
+      throw Exception('Unsupported entry version $version');
     }
     return EntryImpl(
       rust.JsonEntry.fromJson(json['entry'] as Map<String, dynamic>),
