@@ -18,40 +18,49 @@ extension FutureOrExtension<T> on FutureOr<T> {
 class Completable<T> implements Completer<T> {
   Future<T>? _future;
   T? _value;
+  Object? _error;
+  StackTrace? _stackTrace;
   bool _complete = false;
 
   Completable();
 
   @override
   void complete([FutureOr<T>? value]) {
-    if (_future != null) {
+    if (_complete) {
       throw StateError('Future already completed');
     }
+    _complete = true;
     if (value is Future<T>) {
-      _future = value;
-      value.then((value) {
-        _value = value;
-        _complete = true;
+      _future = value.then((v) {
+        _value = v;
+        return v;
       });
       return;
     }
     _value = value;
     _future = Future.value(value);
-    _complete = true;
   }
 
   @override
   void completeError(Object error, [StackTrace? stackTrace]) {
-    if (_future != null) {
+    if (_complete) {
       throw StateError('Future already completed');
     }
-    //TODO: Maybe we should also provide a sync way to get the error
+    _complete = true;
+    _error = error;
+    _stackTrace = stackTrace;
     _future = Future.error(error, stackTrace);
     _value = null;
-    _complete = true;
   }
 
+  /// The resolved value, if completed successfully with a synchronous value.
+  /// Returns null if not yet completed, completed with an error, or
+  /// completed with a Future that has not yet resolved.
   T? get value => _value;
+
+  /// The error this completer was completed with, if any.
+  Object? get error => _error;
+  StackTrace? get stackTrace => _stackTrace;
 
   @override
   Future<T> get future => _future!;
