@@ -599,31 +599,36 @@ class RemoteExtensionTile extends StatelessWidget {
 }
 
 Future<void> showAddRepositoryDialog(BuildContext context) async {
-  final controller = TextEditingController();
-  final res = await showDialog<String>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Add Repository'),
-      content: TextField(
-        controller: controller,
-        // decoration: const InputDecoration(hintText: 'https://...'),
+  final scope = DisposeScope();
+  final controller = TextEditingController()..disposedBy(scope);
+  try {
+    final res = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Repository'),
+        content: TextField(
+          controller: controller,
+          // decoration: const InputDecoration(hintText: 'https://...'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Add'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, controller.text),
-          child: const Text('Add'),
-        ),
-      ],
-    ),
-  );
-  if (res != null && res.isNotEmpty) {
-    settings.extension.repositories.value = [
-      ...settings.extension.repositories.value,
-      res,
-    ];
+    );
+    if (res != null && res.isNotEmpty) {
+      settings.extension.repositories.value = [
+        ...settings.extension.repositories.value,
+        res,
+      ];
+    }
+  } finally {
+    await scope.dispose();
   }
 }

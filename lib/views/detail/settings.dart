@@ -6,6 +6,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit;
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
@@ -125,11 +126,18 @@ class _SettingsPopupState extends State<SettingsPopup>
       );
       return;
     }
-    await widget.entry.extension!.refreshEntryExtension(
+    final entrySourceExtension = widget.entry.extension;
+    if (entrySourceExtension == null) {
+      logger.w(
+        'Cannot refresh entry extension with id ${entryExtension.extensionId} because the entry extension was not found',
+      );
+      return;
+    }
+    await entrySourceExtension.refreshEntryExtension(
       widget.entry,
       entryExtension.extension!,
     );
-    setState(
+    safeSetState(
       () {},
     ); // We dont have anything direct here as the extension itself should update the settings, but we need to trigger a rebuild to show the updated settings
   }

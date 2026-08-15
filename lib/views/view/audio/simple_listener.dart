@@ -36,11 +36,11 @@ class SimpleAudioListener extends StatefulWidget {
 
 class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
-  late final Player player;
+  Player? player;
   late final Observer sourceObserver;
   final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   Source_Audio? currentAudio;
-  ValueNotifier<int> streamIndex = ValueNotifier(0);
+  final ValueNotifier<int> streamIndex = ValueNotifier(0);
   Object? exception;
   bool loading = false;
 
@@ -52,12 +52,13 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   }
 
   Future<void> initPlayer() async {
-    player = Player(
+    final player = Player(
       configuration: const PlayerConfiguration(
         logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
         title: 'dion',
       ),
     );
+    this.player = player;
     _progressStream = _buildProgressStream(player);
     sourceObserver = Observer(
       () async {
@@ -117,13 +118,15 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
     Observer(
       () async {
+        final audio = currentAudio;
+        if (audio == null) return;
         if (mounted) {
           setState(() {
             loading = true;
           });
         }
         final startduration = player.state.position;
-        final stream = currentAudio!.sources[getStreamIndex()];
+        final stream = audio.sources[getStreamIndex()];
         await player.open(
           Media(
             stream.url.url,
@@ -140,17 +143,21 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       streamIndex,
       callOnInit: false,
       callIndirectly: false,
-    );
+    ).disposedBy(scope);
 
     locate<PlayerService>().setSession(
       await AudioPlayerHandler.create(
         widget.source,
         player,
         gonext: () {
-          widget.source.episode.goNext(widget.source);
+          if (mounted) {
+            widget.source.episode.goNext(widget.source);
+          }
         },
         goprev: () {
-          widget.source.episode.goPrev(widget.source);
+          if (mounted) {
+            widget.source.episode.goPrev(widget.source);
+          }
         },
       )..disposedBy(scope),
     );
@@ -208,6 +215,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   @override
   void initState() {
+    streamIndex.disposedBy(scope);
     initPlayer();
     super.initState();
   }
@@ -218,18 +226,21 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       sub.cancel();
     }
     _progressController?.close();
-    super.dispose();
     widget.source.episode.save();
-    player.dispose();
+    player?.dispose();
+    player = null;
+    super.dispose();
   }
 
   Future<void> _playPause() async {
-    await player.playOrPause();
+    await player?.playOrPause();
     if (!mounted) return;
     SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
   }
 
   void _seekBy(int milliseconds) {
+    final player = this.player;
+    if (player == null) return;
     final target = player.state.position + Duration(milliseconds: milliseconds);
     final duration = player.state.duration;
     final clamped = target < Duration.zero
@@ -263,7 +274,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     }
   }
 
-  String getTitle() {
+  String getTitle(Player player) {
     if (player.state.playlist.medias.isEmpty ||
         player.state.playlist.medias.length <= player.state.playlist.index) {
       return widget.source.episode.name;
@@ -326,16 +337,17 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   @override
   Widget build(BuildContext context) {
-    if (currentAudio == null) {
-      return const NavScaff(
-        title: Text('Loading...'),
-        child: Center(child: DionProgressBar()),
-      );
-    }
+    final player = this.player;
     if (exception != null) {
       return NavScaff(
         title: Text('Error loading ${widget.source.episode.name}'),
         child: ErrorDisplay(e: exception),
+      );
+    }
+    if (currentAudio == null || player == null) {
+      return const NavScaff(
+        title: Text('Loading...'),
+        child: Center(child: DionProgressBar()),
       );
     }
     final epdata = widget.source.episode.data;
@@ -365,7 +377,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         stream: player.stream.playlist,
         builder: (context, snapshot) {
           if (!snapshot.hasData) return Text(widget.source.episode.name);
-          return Text(getTitle());
+          return Text(getTitle(player));
         },
       ),
       child: BindingDispatcher(

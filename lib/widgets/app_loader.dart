@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
@@ -30,12 +31,12 @@ class _AppLoaderState extends State<AppLoader> {
       if (error != null) {
         return;
       }
-      setState(() {
+      safeSetState(() {
         error = e;
         stack = cstack;
       });
     }
-    setState(() {
+    safeSetState(() {
       tasknames.remove(name);
     });
     if (tasknames.isEmpty && mounted && error == null) {

@@ -4,6 +4,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/applinks.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit;
 import 'package:dionysos/service/network.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
@@ -260,7 +261,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
                 final params = uri.queryParameters;
                 final code = params['code'];
                 if (code == null) {
-                  setState(() {
+                  safeSetState(() {
                     _error = 'Authorization code not found in callback';
                     _loading = false;
                   });
@@ -283,7 +284,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
                 final json = response.bodyToJson;
                 final token = json['access_token'] as String?;
                 if (token == null) {
-                  setState(() {
+                  safeSetState(() {
                     _error =
                         'Failed to obtain access token from token endpoint';
                     _loading = false;
@@ -329,7 +330,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
                   ),
                 );
               } else {
-                setState(() {
+                safeSetState(() {
                   _error = 'Failed to extract access token from callback';
                   _loading = false;
                 });
@@ -354,13 +355,13 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
       );
 
       if (!success) {
-        setState(() {
+        safeSetState(() {
           _error = 'Failed to launch OAuth URL';
           _loading = false;
         });
       }
     } catch (e) {
-      setState(() {
+      safeSetState(() {
         _error = 'OAuth error: $e';
         _loading = false;
       });
@@ -568,7 +569,7 @@ class _CookieAuthDialogState extends State<CookieAuthDialog> {
     WebUri? url,
   ) async {
     if (_processing || url == null || !_isLogonPage(url)) return;
-    setState(() {
+    safeSetState(() {
       _processing = true;
       _error = null;
     });
@@ -672,11 +673,11 @@ class _CookieAuthDialogState extends State<CookieAuthDialog> {
                             url: WebUri(_authData.loginpage),
                           ),
                           onProgressChanged: (controller, progress) =>
-                              setState(() => _progress = progress),
+                              safeSetState(() => _progress = progress),
                           onLoadStop: _onLoadStop,
                           onReceivedError: (controller, request, error) {
                             if (request.isForMainFrame == true) {
-                              setState(() => _error = error.description);
+                              safeSetState(() => _error = error.description);
                             }
                           },
                         ),

@@ -5,6 +5,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit,ButtonType;
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/binding_dispatcher.dart';
@@ -185,9 +186,9 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     Observer(() async {
       if (psettings.music.value) {
         await initPlayer();
-        setState(() {});
+        safeSetState();
       } else {
-        setState(() {
+        safeSetState(() {
           player?.dispose();
           player = null;
           locate<PlayerService>().clearSession();

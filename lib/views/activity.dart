@@ -21,6 +21,7 @@ import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moment_dart/moment_dart.dart';
 
@@ -358,7 +359,8 @@ class ActivityView extends StatefulWidget {
   State<ActivityView> createState() => _ActivityViewState();
 }
 
-class _ActivityViewState extends State<ActivityView> {
+class _ActivityViewState extends State<ActivityView>
+    with StateDisposeScopeMixin {
   late final DataSourceController<IRenderable> controller;
 
   Stream<IRenderable> getActionStream(int index) async* {
@@ -382,7 +384,7 @@ class _ActivityViewState extends State<ActivityView> {
   void initState() {
     controller = DataSourceController([
       SingleStreamSource((i) => getActionStream(i)),
-    ]);
+    ])..disposedBy(scope);
     super.initState();
   }
 

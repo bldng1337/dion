@@ -8,6 +8,7 @@ import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
@@ -87,11 +88,13 @@ class LibrarySettings extends StatelessWidget {
 
 void showUpdateDialog(BuildContext context, Category category) {
   final db = locate<Database>();
+  final scope = DisposeScope();
+  final controller = TextEditingController(text: category.name)
+    ..disposedBy(scope);
+  var categoryname = category.name;
   showDialog(
     context: context,
     builder: (context) {
-      var categoryname = category.name;
-      final controller = TextEditingController(text: categoryname);
       return DionDialog(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +131,7 @@ void showUpdateDialog(BuildContext context, Category category) {
         ).paddingAll(15),
       );
     },
-  );
+  ).whenComplete(() => scope.dispose());
 }
 
 void showEditCategoriesDialog(BuildContext context, EntrySaved entry) {
@@ -228,13 +231,11 @@ class _CategorySettingsState extends State<CategorySettings>
     super.initState();
     final db = locate<Database>();
     Observer(() async {
-      if (mounted) {
-        final categories = await db.getCategories();
-        categories.sort((a, b) => a.index.compareTo(b.index));
-        setState(() {
-          this.categories = categories;
-        });
-      }
+      final categories = await db.getCategories();
+      categories.sort((a, b) => a.index.compareTo(b.index));
+      safeSetState(() {
+        this.categories = categories;
+      });
     }, db.getListenable(DBEvent.categoryUpdated)).disposedBy(scope);
   }
 

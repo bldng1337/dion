@@ -445,11 +445,12 @@ class DataSourceController<T> extends ChangeNotifier {
   int index = 0;
   bool loading = false;
   bool finished = false;
+  late final StreamSubscription<List<Result<T>>> _streamSub;
   DataSourceController(this.sources) {
     for (final source in sources) {
       source.streamController = streamController;
     }
-    streamController.stream.listen(
+    _streamSub = streamController.stream.listen(
       (items) {
         this.items.addAll(items);
         notifyListeners();
@@ -484,8 +485,9 @@ class DataSourceController<T> extends ChangeNotifier {
 
   @override
   void dispose() {
-    super.dispose();
+    _streamSub.cancel();
     streamController.close();
+    super.dispose();
   }
 }
 

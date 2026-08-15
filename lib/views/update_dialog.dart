@@ -1,5 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
@@ -69,7 +70,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 await downloadUpdate(
                   widget.update,
                   onReceiveProgress: (progress, phase) {
-                    setState(() {
+                    safeSetState(() {
                       this.progress = progress ?? -1;
                       message = phase;
                     });

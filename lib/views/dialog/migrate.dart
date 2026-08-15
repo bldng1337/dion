@@ -109,6 +109,12 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
   }
 
   @override
+  void dispose() {
+    datacontroller?.dispose();
+    super.dispose();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final prefill = sourceEntry.title;

@@ -5,6 +5,7 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets;
 import 'package:dionysos/utils/media_type.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/views/settings/library.dart';
@@ -46,13 +47,20 @@ class _BrowseState extends State<Browse>
 
   @override
   Future<void> refresh() async {
+    if (!mounted) return;
     datacontroller.dispose();
     setState(() {
       datacontroller = DataSourceController<Entry>(
         extensions.map((e) => e.browse()).toList(),
-      )..disposedBy(scope);
+      );
       datacontroller.requestMore();
     });
+  }
+
+  @override
+  void dispose() {
+    datacontroller.dispose();
+    super.dispose();
   }
 
   @override
@@ -70,7 +78,7 @@ class _BrowseState extends State<Browse>
         .toList(growable: false);
     datacontroller = DataSourceController<Entry>(
       extensions.map((e) => e.browse()).toList(),
-    )..disposedBy(scope);
+    );
     super.initState();
   }
 
@@ -137,7 +145,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
             label: 'Load Details',
             onTap: () async {
               item = await item.toDetailed();
-              setState(() {});
+              safeSetState();
             },
           ),
         ContextMenuItem(
@@ -151,7 +159,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
             label: 'Add to Library',
             onTap: () async {
               item = await (await item.toDetailed()).toSaved();
-              setState(() {});
+              safeSetState();
             },
           ),
         if (item is EntrySaved)
@@ -159,7 +167,7 @@ class _EntryDisplayState extends State<EntryDisplay> {
             label: 'Remove from Library',
             onTap: () async {
               await (item as EntrySaved).delete();
-              setState(() {});
+              safeSetState();
             },
           ),
         if (item is EntrySaved)

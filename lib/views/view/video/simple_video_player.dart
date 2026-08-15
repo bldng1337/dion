@@ -35,13 +35,13 @@ class SimpleVideoPlayer extends StatefulWidget {
 
 class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     with StateDisposeScopeMixin {
-  late final Player player;
-  late final VideoController controller;
+  Player? player;
+  VideoController? controller;
   late final Observer sourceObserver;
   final List<StreamSubscription<dynamic>> playerStreamSubs = [];
-  ValueNotifier<int> subtitleIndex = ValueNotifier(0);
+  final ValueNotifier<int> subtitleIndex = ValueNotifier(0);
   Source_Video? currentVideo;
-  ValueNotifier<int> streamIndex = ValueNotifier(0);
+  final ValueNotifier<int> streamIndex = ValueNotifier(0);
   Object? exception;
 
   List<Subtitles> get subtitles {
@@ -57,12 +57,13 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   }
 
   Future<void> initPlayer() async {
-    player = Player(
+    final player = Player(
       configuration: const PlayerConfiguration(
         logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
         title: 'dion',
       ),
     );
+    this.player = player;
     controller = VideoController(player);
     sourceObserver = Observer(() async {
       final res = await widget.source.cache.get(widget.source.episode);
@@ -115,8 +116,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     }, widget.source)..disposedBy(scope);
     Observer(
       () async {
+        final video = currentVideo;
+        if (video == null) return;
         final startduration = player.state.position;
-        final stream = currentVideo!.sources[getStreamIndex()];
+        final stream = video.sources[getStreamIndex()];
         await player.open(
           Media(
             stream.url.url,
@@ -209,6 +212,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
 
   @override
   void initState() {
+    subtitleIndex.disposedBy(scope);
+    streamIndex.disposedBy(scope);
     initPlayer();
     super.initState();
   }
@@ -219,7 +224,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       sub.cancel();
     }
     widget.source.episode.save();
-    player.dispose();
+    player?.dispose();
+    player = null;
     super.dispose();
   }
 
@@ -416,6 +422,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   ];
 
   MaterialVideoControlsThemeData getPlayerTheme(bool isFullscreen) {
+    final player = this.player!;
     return MaterialVideoControlsThemeData(
       topButtonBar: isFullscreen ? getActions(isFullscreen) : [],
       bottomButtonBarMargin: const EdgeInsets.all(10),
@@ -470,16 +477,18 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
 
   @override
   Widget build(BuildContext context) {
-    if (currentVideo == null) {
-      return const NavScaff(
-        title: Text('Loading...'),
-        child: Center(child: DionProgressBar()),
-      );
-    }
+    final player = this.player;
+    final controller = this.controller;
     if (exception != null) {
       return NavScaff(
         title: Text('Error loading ${widget.source.episode.name}'),
         child: ErrorDisplay(e: exception),
+      );
+    }
+    if (currentVideo == null || player == null || controller == null) {
+      return const NavScaff(
+        title: Text('Loading...'),
+        child: Center(child: DionProgressBar()),
       );
     }
     return NavScaff(

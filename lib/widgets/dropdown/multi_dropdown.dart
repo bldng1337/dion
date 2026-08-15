@@ -5,6 +5,7 @@ import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class MultiDropdownItem<T> {
   final T value;
@@ -119,7 +120,8 @@ class DionMultiDropdown<T extends Object> extends StatefulWidget {
 }
 
 class _DionMultiDropdownState<T extends Object>
-    extends State<DionMultiDropdown<T>> {
+    extends State<DionMultiDropdown<T>>
+    with StateDisposeScopeMixin {
   late MultiDropdownController<T> controller;
   bool loading = false;
 
@@ -127,7 +129,7 @@ class _DionMultiDropdownState<T extends Object>
   void initState() {
     super.initState();
     if (widget.controller == null) {
-      controller = MultiDropdownController<T>();
+      controller = MultiDropdownController<T>()..disposedBy(scope);
     } else {
       controller = widget.controller!;
     }

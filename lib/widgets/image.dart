@@ -6,6 +6,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment,CrossAxisAlignment,MainAxisSize,StackFit;
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
@@ -357,7 +358,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                   await locate<CacheService>().imgcache.removeFile(
                     widget.imageUrl!,
                   );
-                  setState(() {
+                  safeSetState(() {
                     _imageKey = UniqueKey();
                   });
                 },
@@ -517,7 +518,7 @@ class _DionSvgImageState extends State<_DionSvgImage> {
   }
 
   Future<void> _load() async {
-    setState(() {
+    safeSetState(() {
       _bytes = null;
       _error = null;
       _stackTrace = null;

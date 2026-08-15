@@ -47,11 +47,18 @@ class _SearchState extends State<Search>
 
   Future<void> search(String query) async {
     datacontroller?.dispose();
-    datacontroller = DataSourceController<Entry>(
-      extensions.map((e) => e.search(query)).toList(),
-    );
+    setState(() {
+      datacontroller = DataSourceController<Entry>(
+        extensions.map((e) => e.search(query)).toList(),
+      );
+    });
     datacontroller!.requestMore();
-    // setState(() {});
+  }
+
+  @override
+  void dispose() {
+    datacontroller?.dispose();
+    super.dispose();
   }
 
   @override

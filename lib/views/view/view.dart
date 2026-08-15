@@ -1,6 +1,7 @@
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/views/view/audio/audio.dart';
 import 'package:dionysos/views/view/imagelist/image.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
@@ -53,18 +54,22 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
     if (extra is! List<Object?>) throw Exception('Invalid extra');
     if (supplier == null) {
       supplier = SourceSupplier(extra[0]! as EpisodePath)..disposedBy(scope);
-      Observer(() async {
-        final source = await supplier!.cache.get(supplier!.episode);
-        if (source.isSuccess) {
-          setState(() {
-            lastsource = source.getOrThrow;
-          });
-        } else {
-          setState(() {
-            error = source.exceptionOrNull;
-          });
-        }
-      }, supplier!, callIndirectly: false).disposedBy(scope);
+      Observer(
+        () async {
+          final source = await supplier!.cache.get(supplier!.episode);
+          if (source.isSuccess) {
+            safeSetState(() {
+              lastsource = source.getOrThrow;
+            });
+          } else {
+            safeSetState(() {
+              error = source.exceptionOrNull;
+            });
+          }
+        },
+        supplier!,
+        callIndirectly: false,
+      ).disposedBy(scope);
     }
   }
 
@@ -83,13 +88,9 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
     }
     return SourceSuplierData(
       supplier: supplier!,
-      child: Session(
-        source: supplier!,
-        child: buildWidget(context),
-      ),
+      child: Session(source: supplier!, child: buildWidget(context)),
     );
   }
-
 
   Widget buildWidget(BuildContext context) {
     if (error != null) {
@@ -109,13 +110,15 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       final Source_Epub _ => const NavScaff(
         title: Text('Not Supported'),
         child: ErrorDisplay(
-          message: 'Epub sources are not supported yet.', e: null,
+          message: 'Epub sources are not supported yet.',
+          e: null,
         ),
       ),
       final Source_Pdf _ => const NavScaff(
         title: Text('Not Supported'),
         child: ErrorDisplay(
-          message: 'Pdf sources are not supported yet.', e: null,
+          message: 'Pdf sources are not supported yet.',
+          e: null,
         ),
       ),
       final Source_Imagelist _ => const ImageListReader(),
