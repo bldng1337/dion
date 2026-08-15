@@ -186,6 +186,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOut,
     );
+    SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
   }
 
   void _jumpUp() {
@@ -200,6 +201,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOut,
     );
+    SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
   }
 
   void _toggleTts() {
@@ -207,6 +209,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
         ? listController.unobstructedVisibleRange?.$1
         : null;
     _tts?.togglePlayPause(fromParagraph: fromParagraph);
+    if (fromParagraph != null && fromParagraph != 0) {
+      widget.source.episode.data.progress = fromParagraph.toString();
+    }
+    SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
   }
 
   @override
@@ -440,7 +446,12 @@ class TtsPlayerBar extends StatelessWidget {
                         icon: const Icon(Icons.skip_previous, size: 22),
                         onPressed: loading
                             ? null
-                            : () => tts.skipToPreviousParagraph(),
+                            : () {
+                                tts.skipToPreviousParagraph();
+                                SessionData.of(
+                                  context,
+                                )?.manager.keepSessionAlive(saveToDb: true);
+                              },
                       ),
                       DionIconbutton(
                         tooltip: playing ? 'Pause' : 'Play',
@@ -465,6 +476,9 @@ class TtsPlayerBar extends StatelessWidget {
                                 } else {
                                   tts.resume();
                                 }
+                                SessionData.of(
+                                  context,
+                                )?.manager.keepSessionAlive(saveToDb: true);
                               },
                       ),
                       DionIconbutton(
@@ -472,12 +486,22 @@ class TtsPlayerBar extends StatelessWidget {
                         icon: const Icon(Icons.skip_next, size: 22),
                         onPressed: loading
                             ? null
-                            : () => tts.skipToNextParagraph(),
+                            : () {
+                                tts.skipToNextParagraph();
+                                SessionData.of(
+                                  context,
+                                )?.manager.keepSessionAlive(saveToDb: true);
+                              },
                       ),
                       DionIconbutton(
                         tooltip: 'Stop',
                         icon: const Icon(Icons.close, size: 22),
-                        onPressed: () => tts.stop(),
+                        onPressed: () {
+                          tts.stop();
+                          SessionData.of(
+                            context,
+                          )?.manager.keepSessionAlive(saveToDb: true);
+                        },
                       ),
                     ],
                   ),

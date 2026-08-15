@@ -127,6 +127,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             start: startduration,
           ),
         );
+        if (!mounted) return;
+        SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
       },
       streamIndex,
       callOnInit: false,
@@ -182,6 +184,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           return;
         }
         widget.source.episode.goNext(widget.source);
+      }),
+    );
+    playerStreamSubs.add(
+      player.stream.playing.listen((_) {
+        if (!mounted) return;
+        SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
       }),
     );
     playerStreamSubs.add(

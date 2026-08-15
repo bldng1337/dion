@@ -138,6 +138,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           setState(() {
             loading = false;
           });
+          SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
         }
       },
       streamIndex,
@@ -249,6 +250,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         ? duration
         : target;
     player.seek(clamped);
+    widget.source.episode.data.progress = '${clamped.inMilliseconds}';
+    SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
   }
 
   void _seekForward() => _seekBy(5000);
@@ -433,7 +436,14 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                           progress: player.state.position,
                           total: player.state.duration,
                           buffered: player.state.buffer,
-                          onSeek: (value) => player.seek(value),
+                          onSeek: (value) {
+                            player.seek(value);
+                            widget.source.episode.data.progress =
+                                '${value.inMilliseconds}';
+                            SessionData.of(
+                              context,
+                            )?.manager.keepSessionAlive(saveToDb: true);
+                          },
                         );
                       },
                     ),
@@ -453,14 +463,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                         ),
                         DionIconbutton(
                           icon: const Icon(Icons.navigate_before),
-                          onPressed: () {
-                            player.seek(
-                              Duration(
-                                milliseconds:
-                                    player.state.position.inMilliseconds - 5000,
-                              ),
-                            );
-                          },
+                          onPressed: _seekBackward,
                         ),
                         StreamBuilder(
                           stream: player.stream.playing,
@@ -483,14 +486,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                         ),
                         DionIconbutton(
                           icon: const Icon(Icons.navigate_next),
-                          onPressed: () {
-                            player.seek(
-                              Duration(
-                                milliseconds:
-                                    player.state.position.inMilliseconds + 5000,
-                              ),
-                            );
-                          },
+                          onPressed: _seekForward,
                         ),
                         DionIconbutton(
                           icon: const Icon(Icons.skip_next),

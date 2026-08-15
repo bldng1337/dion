@@ -256,6 +256,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOut,
     );
+    SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
   }
 
   void _jumpUp() {
@@ -268,6 +269,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOut,
     );
+    SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
   }
 
   Widget wrapScreen(BuildContext context, Widget child) {

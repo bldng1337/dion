@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/utils/debounce.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/widgets.dart';
@@ -46,18 +47,32 @@ class _SessionState extends State<Session> implements SessionManager {
   late ValueNotifier<EpisodeActivity> sessionNotifier;
   late Observer sourceObserver;
   DateTime lastKeepAlive = DateTime.now();
+  late final Debouncer saveDebouncer = Debouncer(
+    duration: const Duration(milliseconds: 750),
+    action: saveSession,
+  );
 
   @override
   void keepSessionAlive({bool saveToDb = false}) {
+    if (saveToDb) {
+      // Debounced so rapid actions (e.g. spamming play/pause or seeking) only hit the database once, after the last action.
+      saveDebouncer.run();
+    }
     if (DateTime.now().difference(lastKeepAlive) <
         const Duration(milliseconds: 1000)) {
       return;
     }
-    updateSession(saveToDb: saveToDb);
+    updateSession();
     lastKeepAlive = DateTime.now();
   }
 
-  Future<void> updateSession({bool saveToDb = false}) async {
+  Future<void> saveSession() async {
+    final db = locate<Database>();
+    await db.addActivity(session);
+    await widget.source.episode.save();
+  }
+
+  Future<void> updateSession() async {
     final db = locate<Database>();
     if (DateTime.now().difference(lastKeepAlive) > const Duration(minutes: 1)) {
       await db.addActivity(session);
@@ -79,9 +94,6 @@ class _SessionState extends State<Session> implements SessionManager {
       fromepisode: min(ep.episodenumber, session.fromepisode),
       duration: DateTime.now().difference(session.time),
     );
-    if (!saveToDb) return;
-    await db.addActivity(session);
-    await widget.source.episode.save();
   }
 
   @override
@@ -115,7 +127,10 @@ class _SessionState extends State<Session> implements SessionManager {
 
   @override
   void dispose() {
-    updateSession(saveToDb: true);
+    // Cancel any debounced save and persist immediately on teardown.
+    saveDebouncer.dispose();
+    updateSession();
+    saveSession();
     super.dispose();
   }
 
