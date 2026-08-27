@@ -1,6 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
-import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit,ButtonType;
+import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/dialog.dart';
@@ -205,4 +205,183 @@ Future<bool> requestPermissionFromUser({
     ),
   );
   return result ?? false;
+}
+
+class ExtensionInstallConsentDialog extends StatelessWidget {
+  final RemoteExtension extension;
+
+  const ExtensionInstallConsentDialog({super.key, required this.extension});
+
+  String _getPermissionTitle(Permission permission) {
+    return switch (permission) {
+      Permission_Storage() => 'Storage Access',
+      Permission_Network() => 'Network Access',
+      Permission_ActionPopup() => 'Action Popup',
+      Permission_ArbitraryNetwork() => 'Unrestricted Network Access',
+    };
+  }
+
+  IconData _getPermissionIcon(Permission permission) {
+    return switch (permission) {
+      Permission_Storage() => Icons.folder,
+      Permission_Network() => Icons.wifi,
+      Permission_ActionPopup() => Icons.web_asset,
+      Permission_ArbitraryNetwork() => Icons.public,
+    };
+  }
+
+  Widget _getPermissionDetails(BuildContext context, Permission permission) {
+    return switch (permission) {
+      Permission_Storage(:final path, :final write) => Text(
+        'Path: $path (${write ? 'Read & Write' : 'Read Only'})',
+        style: context.bodySmall,
+      ),
+      Permission_Network(:final domains) => Text(
+        'Domains: ${domains.join(', ')}',
+        style: context.bodySmall,
+      ),
+      Permission_ActionPopup() => Text(
+        'Can display action popups',
+        style: context.bodySmall,
+      ),
+      Permission_ArbitraryNetwork() => Text(
+        'Can access any network domain',
+        style: context.bodySmall?.copyWith(color: Colors.orange),
+      ),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DionAlertDialog(
+      title: Row(
+        children: [
+          const Icon(Icons.security, size: 24),
+          const SizedBox(width: 8),
+          Text('Permissions Requested', style: context.titleLarge),
+        ],
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DionContainer(
+              type: ContainerType.outlined,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: DionImage.fromLink(
+                      link: extension.cover,
+                      errorWidget: const Icon(Icons.extension),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          extension.name,
+                          style: context.titleMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'v${extension.version}',
+                          style: context.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ).paddingAll(12),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'This extension declares the following permissions. '
+              'They are granted on install and can be revoked later '
+              "in the extension's permission settings.",
+              style: context.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            ...extension.permissions!.map(
+              (permission) => DionContainer(
+                type: ContainerType.outlined,
+                child: Row(
+                  children: [
+                    Icon(
+                      _getPermissionIcon(permission),
+                      size: 20,
+                      color: context.theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getPermissionTitle(permission),
+                            style: context.bodyMedium,
+                          ),
+                          _getPermissionDetails(context, permission),
+                        ],
+                      ),
+                    ),
+                  ],
+                ).paddingAll(12),
+              ).paddingSymmetric(vertical: 4),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        DionTextbutton(
+          type: ButtonType.ghost,
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
+          child: const Text('Cancel'),
+        ),
+        DionTextbutton(
+          onPressed: () {
+            Navigator.of(context).pop(true);
+          },
+          child: const Text('Install'),
+        ),
+      ],
+    );
+  }
+}
+
+Future<bool> installExtensionWithConsent(
+  BuildContext context, {
+  required RemoteExtension extension,
+  Extension? installed,
+}) async {
+  final permissions = extension.permissions;
+  if (permissions == null || permissions.isEmpty) {
+    await extension.install();
+    return true;
+  }
+  if (installed != null &&
+      !await declaresNewPermissions(extension, installed)) {
+    await extension.install();
+    return true;
+  }
+  if (!context.mounted) {
+    return false;
+  }
+  final granted = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => ExtensionInstallConsentDialog(extension: extension),
+  );
+  if (granted != true) {
+    return false;
+  }
+  await extension.install(grantDeclaredPermissions: true);
+  return true;
 }

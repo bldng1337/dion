@@ -197,6 +197,9 @@ class MockExtension with ChangeNotifier implements Extension {
   Future<List<rust.Permission>> getPermissions() async => const [];
 
   @override
+  Future<bool> hasPermission(rust.Permission permission) async => true;
+
+  @override
   Future<void> removePermission(rust.Permission permission) async {}
 
   @override

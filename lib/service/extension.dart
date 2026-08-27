@@ -512,6 +512,10 @@ class Extension extends ChangeNotifier {
     return await _proxy.getPermissions();
   }
 
+  Future<bool> hasPermission(rust.Permission permission) async {
+    return await _proxy.hasPermission(permission: permission);
+  }
+
   Future<void> removePermission(rust.Permission permission) async {
     await _proxy.removePermission(permission: permission);
   }
@@ -700,8 +704,14 @@ class ExtensionAdapter with ChangeNotifier {
     return RemoteExtensionRepo(this, await adapter.getRepo(url: url));
   }
 
-  Future<void> install(String location) async {
+  Future<void> install(
+    String location, {
+    List<rust.Permission>? grantPermissions,
+  }) async {
     final ext = await adapter.install(location: location);
+    if (grantPermissions != null && grantPermissions.isNotEmpty) {
+      await ext.grantPermissions(permissions: grantPermissions);
+    }
     final db = await locateAsync<Database>();
     final newext = await Extension.fromProxy(ext, db);
     _extensions.removeWhere((e) => e.data.id == newext.data.id);
@@ -727,12 +737,28 @@ class RemoteExtension {
   rust.Link? get cover => data.cover;
   String get version => data.version;
   bool get compatible => data.compatible;
+  List<rust.Permission>? get permissions => data.permissions;
 
   RemoteExtension(this.adapter, this.data);
 
-  Future<void> install() async {
-    await adapter.install(data.remoteId);
+  Future<void> install({bool grantDeclaredPermissions = false}) async {
+    await adapter.install(
+      data.remoteId,
+      grantPermissions: grantDeclaredPermissions ? data.permissions : null,
+    );
   }
+}
+
+Future<bool> declaresNewPermissions(
+  RemoteExtension remote,
+  Extension inst,
+) async {
+  final declared = remote.permissions;
+  if (declared == null || declared.isEmpty) return false;
+  for (final permission in declared) {
+    if (!await inst.hasPermission(permission)) return true;
+  }
+  return false;
 }
 
 class RemoteExtensionRepo {

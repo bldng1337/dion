@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/periodic_service.dart';
-import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/version.dart';
@@ -47,6 +45,12 @@ class ExtensionUpdateJob extends PeriodicJob {
             if (installedIds.contains(remote.id)) {
               final inst = installed.firstWhere((e) => e.id == remote.id);
               if (parseVersion(remote.version) > inst.version) {
+                if (await declaresNewPermissions(remote, inst)) {
+                  logger.i(
+                    'Extension ${remote.id} ${remote.version} requires new permissions; skipping auto-update',
+                  );
+                  continue;
+                }
                 logger.i(
                   'Updating extension ${remote.id} from ${inst.version} to ${remote.version}',
                 );

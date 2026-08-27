@@ -9,6 +9,7 @@ import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/version.dart';
+import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
@@ -578,8 +579,12 @@ class RemoteExtensionTile extends StatelessWidget {
                   tooltip: 'Install',
                   icon: const Icon(Icons.download),
                   onPressed: () async {
-                    await extension.install();
-                    updateService.markUpdated(extension.id);
+                    if (await installExtensionWithConsent(
+                      context,
+                      extension: extension,
+                    )) {
+                      updateService.markUpdated(extension.id);
+                    }
                   },
                 )
               : canUpdate
@@ -587,8 +592,13 @@ class RemoteExtensionTile extends StatelessWidget {
                   tooltip: 'Update',
                   icon: const Icon(Icons.update),
                   onPressed: () async {
-                    await extension.install();
-                    updateService.markUpdated(extension.id);
+                    if (await installExtensionWithConsent(
+                      context,
+                      extension: extension,
+                      installed: installed,
+                    )) {
+                      updateService.markUpdated(extension.id);
+                    }
                   },
                 )
               : const Icon(Icons.check, color: Colors.green),
