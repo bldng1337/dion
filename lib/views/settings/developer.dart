@@ -29,9 +29,9 @@ class DebugTask extends Task {
       progress = i / max;
       status = 'Running $i';
       if (canceled) break;
-      await Future.delayed(const Duration(milliseconds: 20));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
-    if (Random().nextBool()) {
+    if (!canceled && Random().nextBool()) {
       throw Exception('Random Test Exception');
     }
   }
