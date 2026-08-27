@@ -13,13 +13,13 @@ class TaskCategory extends TreeNode<TaskCategory> {
   final String id;
   final TaskCategory? parent;
 
-  int? concurrency = 1;
+  int? concurrency;
 
   int _runningTasks = 0;
   final List<TaskCategory> _children = [];
   final List<Task> _tasks = [];
 
-  TaskCategory(this.name, this.id, this.parent);
+  TaskCategory(this.name, this.id, this.parent, {this.concurrency = 1});
 
   @override
   Iterable<TaskCategory> get children =>
@@ -44,10 +44,10 @@ class TaskCategory extends TreeNode<TaskCategory> {
 
   void enqueue(Task task) {
     if (task.category != null) {
-      throw StateError('Cannot enqueue a finished task');
+      throw StateError('Cannot enqueue an already enqueued task');
     }
     if (task.finished) {
-      throw StateError('Cannot enqueue a running task');
+      throw StateError('Cannot enqueue a finished task');
     }
     if (task.running) {
       throw StateError('Task is already running');
@@ -59,7 +59,7 @@ class TaskCategory extends TreeNode<TaskCategory> {
   }
 
   void _dequeue(Task task) {
-    _tasks.remove(task);
+    if (!_tasks.remove(task)) return; // already gone, nothing to prune
     var cat = this;
     while (cat.parent != null && cat.tasks.isEmpty) {
       cat.parent!._children.remove(cat);
@@ -77,6 +77,7 @@ abstract class Task extends ChangeNotifier {
 
   bool finished = false;
   bool running = false;
+  bool _cancelRequested = false;
   Object? error;
   Future<void>? task;
 
@@ -114,6 +115,7 @@ abstract class Task extends ChangeNotifier {
 
   void run() {
     if (running) return;
+    _cancelRequested = false;
     status = 'Starting';
     finished = false;
     running = true;
@@ -128,26 +130,42 @@ abstract class Task extends ChangeNotifier {
           category?._dequeue(this);
         })
         .catchError((e, stack) {
+          running = false;
+          if (_cancelRequested) {
+            // The failure is just the cancellation surfacing through onRun.
+            finished = true;
+            logger.d('Task "$name" was cancelled');
+            return null;
+          }
           error = e;
           finished = false;
-          running = false;
           onFailed(e);
           logger.e(e, stackTrace: stack is StackTrace ? stack : null);
           final mngr = locate<TaskManager>();
           mngr.update();
+          mngr.notifyListeners();
           notifyListeners();
         });
   }
 
   void cancel() {
-    if (!running) return;
+    if (!running || _cancelRequested) return;
+    _cancelRequested = true;
     onCancel().then((_) {
-      finished = false;
+      finished = true;
       running = false;
-      onFailed(null);
       notifyListeners();
       category?._dequeue(this);
     });
+  }
+
+  /// Removes a queued or failed task from its queue without running it.
+  void dismiss() {
+    if (running) return;
+    _cancelRequested = true; // ignore stragglers of a previous run
+    finished = true;
+    notifyListeners();
+    category?._dequeue(this);
   }
 
   Future<void> onRun();
@@ -156,7 +174,15 @@ abstract class Task extends ChangeNotifier {
 }
 
 class TaskManager extends ChangeNotifier {
-  final TaskCategory _root = TaskCategory('Tasks', 'root', null);
+  // The root must not cap concurrency: it would globally serialize every
+  // queue, since any single running task immediately saturates the root
+  // and stops the scheduler from starting anything else.
+  final TaskCategory _root = TaskCategory(
+    'Tasks',
+    'root',
+    null,
+    concurrency: null,
+  );
 
   TaskCategory get root => _root;
 
@@ -209,18 +235,20 @@ class TaskManager extends ChangeNotifier {
       if (cat.concurrency != null && cat._runningTasks >= cat.concurrency!) {
         return false;
       }
-      final task = cat.tasks
-          .where((e) => e.taskstatus == TaskStatus.idle)
-          .firstOrNull;
-      if (task != null) {
+      // Start as many tasks as the category (and its ancestors) have free
+      // slots for; a single pass used to leave queued siblings waiting even
+      // when slots were free.
+      while (cat.concurrency == null || cat._runningTasks < cat.concurrency!) {
+        final task = cat.tasks
+            .where((e) => e.taskstatus == TaskStatus.idle)
+            .firstOrNull;
+        if (task == null) break;
         task.run();
-        cat._runningTasks++;
-        TaskCategory? parent = cat.parent;
-        while (parent != null) {
-          parent._runningTasks++;
-          parent = parent.parent;
+        TaskCategory? c = cat;
+        while (c != null) {
+          c._runningTasks++;
+          c = c.parent;
         }
-        return cat.concurrency == null || cat._runningTasks < cat.concurrency!;
       }
       return true;
     });
