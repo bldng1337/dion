@@ -655,8 +655,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "01fa79d61489472a22188ba48caf89ca695432bb"
-      resolved-ref: "01fa79d61489472a22188ba48caf89ca695432bb"
+      ref: e78bdef4acbd9cb115d08615674e9d9f144c3809
+      resolved-ref: e78bdef4acbd9cb115d08615674e9d9f144c3809
       url: "https://github.com/bldng1337/flutter_surrealdb.git"
     source: git
     version: "0.0.1"
@@ -888,14 +888,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.9.0"
-  json_view:
-    dependency: transitive
-    description:
-      name: json_view
-      sha256: "905c69f9e69d1eab5406b87ab6c10c3706c04c70c6a4959621bd2b43c2d27374"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -1044,8 +1036,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "9c1bdf3368d18cc561f7994f55271b4b891aad95"
-      resolved-ref: "9c1bdf3368d18cc561f7994f55271b4b891aad95"
+      ref: afdf5132277d83a4821fa961958b65a6cc21d37d
+      resolved-ref: afdf5132277d83a4821fa961958b65a6cc21d37d
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"

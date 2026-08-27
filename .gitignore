@@ -41,3 +41,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local fixtures for integration_test/versioning_test.dart (not committed;
+# regenerate with: flutter test integration_test/versioning_test.dart --tags=writing)
+/.versioning_data/

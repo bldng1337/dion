@@ -63,10 +63,10 @@ DEFINE TABLE IF NOT EXISTS activity;
 DEFINE TABLE IF NOT EXISTS extension;
       ''');
     final dataclass = await db.setDataClassAdapter();
-    dataclass.registerDataClass(Category.fromJson);
-    dataclass.registerDataClass(EntrySaved.fromJson);
-    dataclass.registerDataClass(Activity.fromJson);
-    dataclass.registerDataClass(ExtensionMetaData.fromJson);
+    dataclass.registerDataClass(categoryTable, Category.fromJson);
+    dataclass.registerDataClass(entryTable, EntrySaved.fromJson);
+    dataclass.registerDataClass(activityTable, Activity.fromJson);
+    dataclass.registerDataClass(extensionTable, ExtensionMetaData.fromJson);
     await db.setCrdtAdapter(
       tablesToSync: const {
         SyncTable(

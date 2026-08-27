@@ -26,7 +26,7 @@ class EpisodeActivity extends Activity {
       entry: Entry.fromJson(json['entry'] as Map<String, dynamic>),
       extensionid: json['extensionid'] as String,
       duration: Duration(seconds: json['duration'] as int),
-      time: json['time'] as DateTime,
+      time: Activity.parseTime(json['time']),
       id: json['aid'] as String,
     );
   }

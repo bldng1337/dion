@@ -51,7 +51,7 @@ typedef PairingPrompt =
 ///   user previously accepted.
 /// - `POST /getSyncData`, `/getSyncPointData`, `/pull`, `/push`,
 ///   `/querySyncData`        mTLS-protected: the caller must present a paired
-///   client certificate; requests are delegated to metis's [SyncHttpServer].
+///   client certificate; requests are delegated to metis's [SyncHttpHandler].
 class LanSyncServer {
   final DeviceIdentity _identity;
   final PairingStore _pairingStore;
@@ -189,7 +189,7 @@ class LanSyncServer {
         }, version: dionSyncProtocolVersion);
         return;
       }
-      final metisServer = SyncHttpServer(repo: _syncRepo);
+      final metisServer = SyncHttpHandler(repo: _syncRepo);
       await metisServer.handle(req, path);
       return;
     }

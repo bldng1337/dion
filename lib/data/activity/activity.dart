@@ -8,15 +8,18 @@ class Activity with DBConstClass {
 
   const Activity(this.time, this.id);
 
+  static DateTime parseTime(Object? value) {
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.parse(value);
+    throw ArgumentError.value(value, 'time', 'not a datetime or ISO string');
+  }
+
   factory Activity.fromJson(Map<String, dynamic> json) {
     switch (json['type']) {
       case 'episode':
         return EpisodeActivity.fromJson(json);
       default:
-        return Activity(
-          DateTime.parse(json['time'] as String),
-          json['aid'] as String,
-        );
+        return Activity(parseTime(json['time']), json['aid'] as String);
     }
   }
 

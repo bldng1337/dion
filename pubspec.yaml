@@ -76,7 +76,7 @@ dependencies:
   metis:
     git:
       url: https://github.com/bldng1337/metis.git
-      ref: 9c1bdf3368d18cc561f7994f55271b4b891aad95
+      ref: afdf5132277d83a4821fa961958b65a6cc21d37d
   rdion_runtime:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
