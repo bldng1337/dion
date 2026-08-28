@@ -182,6 +182,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
             ),
           ),
           DionIconbutton(
+            tooltip: 'Delete Quote',
             icon: const Icon(Icons.delete_outline, size: 18),
             onPressed: () => _deleteQuote(episodeIndex, quote),
           ),

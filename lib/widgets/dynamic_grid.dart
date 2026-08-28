@@ -560,8 +560,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
         final boundedHeight = constraints.maxHeight.isFinite;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize:
-              boundedHeight ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisSize: boundedHeight ? MainAxisSize.max : MainAxisSize.min,
           children: [
             if (widget.showDataSources)
               Container(
@@ -589,11 +588,15 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (e.isfinished)
-                                  const Icon(Icons.close, size: 20)
-                                      .paddingAll(2),
+                                  const Icon(
+                                    Icons.close,
+                                    size: 20,
+                                  ).paddingAll(2),
                                 if (!e.isfinished && !e.requesting)
-                                  const Icon(Icons.check, size: 20)
-                                      .paddingAll(2),
+                                  const Icon(
+                                    Icons.check,
+                                    size: 20,
+                                  ).paddingAll(2),
                                 if (e.requesting)
                                   SizedBox(
                                     width: 20,
@@ -616,49 +619,68 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
             ListenableBuilder(
               listenable: widget.controller,
               builder: (context, child) {
-                final grid = GridView.builder(
-                  padding: EdgeInsets.zero,
-                  controller: controller,
-                  gridDelegate:
-                      const SliverGridDelegateWithMaxCrossAxisExtent(
-                    childAspectRatio: 0.69,
-                    maxCrossAxisExtent: 220,
-                  ),
-                  itemCount:
-                      widget.controller.items.length +
-                      (widget.controller.finished ? 0 : 1),
-                  itemBuilder: (context, index) {
-                    if (index == widget.controller.items.length) {
-                      if (!widget.controller.loading) {
-                        return DionTextbutton(
-                          child: const Text('Load More'),
-                          onPressed: () {
-                            widget.controller.requestMore();
-                          },
-                        );
-                      }
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    return widget.controller.items[index].fold(
-                      onSuccess: (item) => widget.itemBuilder(context, item),
-                      onFailure: (e, stacktrace) {
-                        if (widget.errorBuilder == null) {
-                          return ErrorDisplay(e: e, s: stacktrace);
+                // Give loading and empty states a visible (and announced)
+                // placeholder instead of a silently blank area.
+                Widget content;
+                if (widget.controller.finished &&
+                    widget.controller.items.isEmpty) {
+                  content = Center(
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        'No results found',
+                        style: context.textTheme.bodyLarge,
+                      ),
+                    ),
+                  );
+                } else if (widget.controller.items.isEmpty &&
+                    widget.controller.loading) {
+                  content = const Center(child: CircularProgressIndicator());
+                } else {
+                  content = GridView.builder(
+                    padding: EdgeInsets.zero,
+                    controller: controller,
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          childAspectRatio: 0.69,
+                          maxCrossAxisExtent: 220,
+                        ),
+                    itemCount:
+                        widget.controller.items.length +
+                        (widget.controller.finished ? 0 : 1),
+                    itemBuilder: (context, index) {
+                      if (index == widget.controller.items.length) {
+                        if (!widget.controller.loading) {
+                          return DionTextbutton(
+                            child: const Text('Load More'),
+                            onPressed: () {
+                              widget.controller.requestMore();
+                            },
+                          );
                         }
-                        return widget.errorBuilder!(context, e, stacktrace);
-                      },
-                    );
-                  },
-                ).paddingAll(0);
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      return widget.controller.items[index].fold(
+                        onSuccess: (item) => widget.itemBuilder(context, item),
+                        onFailure: (e, stacktrace) {
+                          if (widget.errorBuilder == null) {
+                            return ErrorDisplay(e: e, s: stacktrace);
+                          }
+                          return widget.errorBuilder!(context, e, stacktrace);
+                        },
+                      );
+                    },
+                  ).paddingAll(0);
+                }
                 if (boundedHeight) {
-                  return grid.expanded();
+                  return content.expanded();
                 }
                 // When height is unbounded (e.g. inside a
                 // SingleChildScrollView), Expanded cannot be used. Give the
                 // grid a bounded height so it can still scroll and paginate.
                 return SizedBox(
                   height: MediaQuery.sizeOf(context).height,
-                  child: grid,
+                  child: content,
                 );
               },
             ),
@@ -741,6 +763,22 @@ class _DynamicListState<T> extends State<DynamicList<T>>
       controller: controller,
       slivers: [
         if (widget.header != null) SliverToBoxAdapter(child: widget.header),
+        if (widget.controller.finished && widget.controller.items.isEmpty)
+          SliverToBoxAdapter(
+            child: Center(
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  'No results found',
+                  style: context.textTheme.bodyLarge,
+                ),
+              ).paddingAll(16),
+            ),
+          )
+        else if (widget.controller.items.isEmpty && widget.controller.loading)
+          const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          ),
         if (widget.showDataSources)
           SliverToBoxAdapter(
             child: SizedBox(
@@ -877,70 +915,84 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
     loadMore();
     return Column(
       children: [
-        if (widget.showDataSources)
-          SizedBox(
-            height: 40,
-            child: ListView(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              children: [
-                ...widget.controller.sources.map(
-                  (e) => DionBadge(
-                    color: e.name.color,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (e.isfinished)
-                          const Icon(Icons.close, size: 20).paddingAll(2),
-                        if (!e.isfinished && !e.requesting)
-                          const Icon(Icons.check, size: 20).paddingAll(2),
-                        if (e.requesting)
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: const CircularProgressIndicator(
-                              color: Colors.white70,
-                              strokeWidth: 2,
-                            ).paddingAll(2),
-                          ),
-                        Text(e.name).paddingAll(2),
-                      ],
-                    ),
-                  ).paddingHorizontal(4),
-                ),
-              ],
-            ),
-          ).paddingAll(5),
-        ListView.builder(
-          padding: EdgeInsets.zero,
-          controller: controller,
-          itemCount:
-              widget.controller.items.length +
-              (widget.controller.finished ? 0 : 1),
-          itemBuilder: (context, index) {
-            if (index == widget.controller.items.length) {
-              if (!widget.controller.loading) {
-                return DionTextbutton(
-                  child: const Text('Load More'),
-                  onPressed: () {
-                    widget.controller.requestMore();
-                  },
-                );
-              }
-              return const Center(child: CircularProgressIndicator());
-            }
-            return widget.controller.items[index].fold(
-              onSuccess: (item) => widget.itemBuilder(context, item),
-              onFailure: (e, stacktrace) {
-                if (widget.errorBuilder == null) {
-                  return ErrorDisplay(e: e, s: stacktrace);
+        if (widget.controller.finished && widget.controller.items.isEmpty)
+          Center(
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                'No results found',
+                style: context.textTheme.bodyLarge,
+              ),
+            ).paddingAll(16),
+          )
+        else if (widget.controller.items.isEmpty && widget.controller.loading)
+          const Center(child: CircularProgressIndicator())
+        else ...[
+          if (widget.showDataSources)
+            SizedBox(
+              height: 40,
+              child: ListView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                children: [
+                  ...widget.controller.sources.map(
+                    (e) => DionBadge(
+                      color: e.name.color,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (e.isfinished)
+                            const Icon(Icons.close, size: 20).paddingAll(2),
+                          if (!e.isfinished && !e.requesting)
+                            const Icon(Icons.check, size: 20).paddingAll(2),
+                          if (e.requesting)
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white70,
+                                strokeWidth: 2,
+                              ).paddingAll(2),
+                            ),
+                          Text(e.name).paddingAll(2),
+                        ],
+                      ),
+                    ).paddingHorizontal(4),
+                  ),
+                ],
+              ),
+            ).paddingAll(5),
+          ListView.builder(
+            padding: EdgeInsets.zero,
+            controller: controller,
+            itemCount:
+                widget.controller.items.length +
+                (widget.controller.finished ? 0 : 1),
+            itemBuilder: (context, index) {
+              if (index == widget.controller.items.length) {
+                if (!widget.controller.loading) {
+                  return DionTextbutton(
+                    child: const Text('Load More'),
+                    onPressed: () {
+                      widget.controller.requestMore();
+                    },
+                  );
                 }
-                return widget.errorBuilder!(context, e, stacktrace);
-              },
-            );
-          },
-        ).paddingAll(10).expanded(),
+                return const Center(child: CircularProgressIndicator());
+              }
+              return widget.controller.items[index].fold(
+                onSuccess: (item) => widget.itemBuilder(context, item),
+                onFailure: (e, stacktrace) {
+                  if (widget.errorBuilder == null) {
+                    return ErrorDisplay(e: e, s: stacktrace);
+                  }
+                  return widget.errorBuilder!(context, e, stacktrace);
+                },
+              );
+            },
+          ).paddingAll(10).expanded(),
+        ],
       ],
     );
   }

@@ -357,6 +357,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     return NavScaff(
       actions: [
         DionIconbutton(
+          tooltip: epdata.bookmark ? 'Remove Bookmark' : 'Add Bookmark',
           icon: Icon(epdata.bookmark ? Icons.bookmark : Icons.bookmark_border),
           onPressed: () async {
             epdata.bookmark = !epdata.bookmark;
@@ -367,11 +368,13 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           },
         ),
         DionIconbutton(
+          tooltip: 'Open in Browser',
           icon: const Icon(Icons.open_in_browser),
           onPressed: () =>
               launchUrl(Uri.parse(widget.source.episode.episode.url)),
         ),
         DionIconbutton(
+          tooltip: 'Settings',
           icon: const Icon(Icons.settings),
           onPressed: () => context.push('/settings/audiolistener'),
         ),
@@ -432,18 +435,25 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                     StreamBuilder(
                       stream: _progressStream,
                       builder: (context, snapshot) {
-                        return ProgressBar(
-                          progress: player.state.position,
-                          total: player.state.duration,
-                          buffered: player.state.buffer,
-                          onSeek: (value) {
-                            player.seek(value);
-                            widget.source.episode.data.progress =
-                                '${value.inMilliseconds}';
-                            SessionData.of(
-                              context,
-                            )?.manager.keepSessionAlive(saveToDb: true);
-                          },
+                        return Semantics(
+                          label: 'Playback position',
+                          value:
+                              '${player.state.position.inMinutes}:${(player.state.position.inSeconds % 60).toString().padLeft(2, '0')}'
+                              ' of '
+                              '${player.state.duration.inMinutes}:${(player.state.duration.inSeconds % 60).toString().padLeft(2, '0')}',
+                          child: ProgressBar(
+                            progress: player.state.position,
+                            total: player.state.duration,
+                            buffered: player.state.buffer,
+                            onSeek: (value) {
+                              player.seek(value);
+                              widget.source.episode.data.progress =
+                                  '${value.inMilliseconds}';
+                              SessionData.of(
+                                context,
+                              )?.manager.keepSessionAlive(saveToDb: true);
+                            },
+                          ),
                         );
                       },
                     ),
@@ -451,6 +461,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         DionIconbutton(
+                          tooltip: 'Previous Chapter',
                           icon: const Icon(Icons.skip_previous),
                           onPressed: () {
                             if (player.state.playlist.index == 0) {
@@ -462,6 +473,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                           },
                         ),
                         DionIconbutton(
+                          tooltip: 'Seek Backward',
                           icon: const Icon(Icons.navigate_before),
                           onPressed: _seekBackward,
                         ),
@@ -472,6 +484,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                             final data = snapshot.data ?? player.state.playing;
                             final icon = data ? Icons.pause : Icons.play_arrow;
                             return DionIconbutton(
+                              tooltip: data ? 'Pause' : 'Play',
                               icon: Icon(icon),
                               onPressed: () async {
                                 await player.playOrPause();
@@ -485,10 +498,12 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                           },
                         ),
                         DionIconbutton(
+                          tooltip: 'Seek Forward',
                           icon: const Icon(Icons.navigate_next),
                           onPressed: _seekForward,
                         ),
                         DionIconbutton(
+                          tooltip: 'Next Chapter',
                           icon: const Icon(Icons.skip_next),
                           onPressed: () {
                             if (player.state.playlist.index ==

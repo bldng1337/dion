@@ -191,7 +191,11 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
         destination: homedestinations,
         title: const Text('Library'),
         actions: [
-          DionIconbutton(icon: const Icon(Icons.close), onPressed: _exitSearch),
+          DionIconbutton(
+            tooltip: 'Close Search',
+            icon: const Icon(Icons.close),
+            onPressed: _exitSearch,
+          ),
         ],
         child: Column(
           children: [
@@ -227,12 +231,14 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
       title: const Text('Library'),
       actions: [
         DionIconbutton(
+          tooltip: filtersActive ? 'Filters (active)' : 'Filters',
           icon: Icon(
             filtersActive ? Icons.filter_alt : Icons.filter_alt_outlined,
           ),
           onPressed: _openFilters,
         ),
         DionIconbutton(
+          tooltip: 'Search',
           icon: const Icon(Icons.search),
           onPressed: _toggleSearch,
         ),
@@ -258,6 +264,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
             ),
         ],
         trailing: DionIconbutton(
+          tooltip: 'Add Category',
           icon: const Icon(Icons.add),
           onPressed: () {
             showAddCategoryDialog(context, categories.length);

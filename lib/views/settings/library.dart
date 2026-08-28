@@ -362,6 +362,7 @@ class _CategoryTile extends StatelessWidget {
             ),
           ),
           DionIconbutton(
+            tooltip: 'Edit Category',
             onPressed: onEdit,
             icon: Icon(
               Icons.edit_outlined,
@@ -370,6 +371,7 @@ class _CategoryTile extends StatelessWidget {
             ),
           ),
           DionIconbutton(
+            tooltip: 'Delete Category',
             onPressed: onDelete,
             icon: const Icon(
               Icons.delete_outline,

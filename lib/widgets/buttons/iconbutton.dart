@@ -16,6 +16,8 @@ class DionIconbutton extends StatelessWidget {
   ButtonStyle _getButtonStyle(BuildContext context) {
     return ButtonStyle(
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      // Keep the tappable area at an accessible size even for small icons.
+      minimumSize: const WidgetStatePropertyAll(Size(40, 40)),
       overlayColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.pressed)) {
           return context.theme.colorScheme.primary.withValues(alpha: 0.07);
@@ -42,6 +44,7 @@ class DionIconbutton extends StatelessWidget {
         loading: IconButton(
           style: _getButtonStyle(context),
           onPressed: null,
+          tooltip: tooltip,
           icon: Stack(
             alignment: Alignment.center,
             children: [
@@ -62,10 +65,19 @@ class DionIconbutton extends StatelessWidget {
           style: _getButtonStyle(context),
         ),
       ),
-      DionThemeMode.cupertino => CupertinoButton(
-        onPressed: onPressed,
-        child: icon ?? const Icon(Icons.question_mark),
-      ),
+      DionThemeMode.cupertino => _buildCupertino(context),
     };
+  }
+
+  Widget _buildCupertino(BuildContext context) {
+    final button = CupertinoButton(
+      onPressed: onPressed,
+      child: icon ?? const Icon(Icons.question_mark),
+    );
+    // CupertinoButton has no tooltip support, so provide the accessible
+    // label via a Tooltip wrapper.
+    final label = tooltip;
+    if (label == null) return button;
+    return Tooltip(message: label, child: button);
   }
 }

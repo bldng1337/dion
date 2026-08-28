@@ -277,6 +277,7 @@ class _LogItem extends StatelessWidget {
                     ),
                     const Spacer(),
                     DionIconbutton(
+                      tooltip: 'Copy Log Entry',
                       icon: const Icon(Icons.copy, size: 14),
                       onPressed: () async {
                         await Clipboard.setData(

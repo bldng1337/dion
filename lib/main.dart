@@ -36,11 +36,13 @@ void initApp({required RouterConfig<Object> route}) {
       theme: theme,
       child: switch (theme.mode) {
         DionThemeMode.material => MaterialApp.router(
+          title: 'dion',
           theme: getTheme(theme.brightness),
           routerConfig: route,
           scaffoldMessengerKey: scaffoldMessengerKey,
         ),
         DionThemeMode.cupertino => CupertinoApp.router(
+          title: 'dion',
           theme: MaterialBasedCupertinoThemeData(
             materialTheme: getTheme(theme.brightness),
           ),

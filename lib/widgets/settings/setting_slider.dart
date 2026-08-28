@@ -62,14 +62,19 @@ class SettingSlider<T extends num> extends StatelessWidget {
               onChanged: (p0) => setState(() => local = p0),
               onChangeEnd: (p0) => setting.value = p0,
               step: step,
+              semanticFormatter: _formatValue,
             ),
           ),
         );
 
-        if (description != null) {
-          return Tooltip(message: description, child: tile);
-        }
-        return tile;
+        // Merge the tile into one semantics node so the slider is announced
+        // together with its name (e.g. "Text Size, slider, 24") instead of
+        // the texts floating up into the surrounding section.
+        return MergeSemantics(
+          child: description != null
+              ? Tooltip(message: description, child: tile)
+              : tile,
+        );
       },
     );
   }
@@ -114,18 +119,22 @@ class _SettingSliderTile extends StatelessWidget {
                   style: DionTypography.titleSmall(context.textPrimary),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DionSpacing.sm,
-                  vertical: DionSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: DionColors.primary.withValues(alpha: 0.1),
-                  borderRadius: DionRadius.small,
-                ),
-                child: Text(
-                  valueLabel,
-                  style: DionTypography.labelMedium(DionColors.primary),
+              // The slider already announces its value, so the visual badge
+              // is excluded to avoid reading it twice.
+              ExcludeSemantics(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DionSpacing.sm,
+                    vertical: DionSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: DionColors.primary.withValues(alpha: 0.1),
+                    borderRadius: DionRadius.small,
+                  ),
+                  child: Text(
+                    valueLabel,
+                    style: DionTypography.labelMedium(DionColors.primary),
+                  ),
                 ),
               ),
             ],

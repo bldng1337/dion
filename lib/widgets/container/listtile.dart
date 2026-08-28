@@ -35,22 +35,27 @@ class DionListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (context.diontheme.mode) {
-      DionThemeMode.material => ListTile(
-        enabled: !(disabled ?? false),
-        selected: selected ?? false,
-        selectedTileColor: context.theme.highlightColor.withAlpha(20),
-        onLongPress: onLongTap,
-        onTap: onTap,
-        textColor: textColor,
-        isThreeLine: isThreeLine,
-        dense: isDense,
-        visualDensity: visualDensity,
-        title: title,
-        subtitle: subtitle,
-        leading: leading,
-        trailing: trailing,
-        minVerticalPadding: 4,
-        minLeadingWidth: 40,
+      // The transparency Material gives the tile its own ink surface so
+      // ripples stay visible inside decorated group containers.
+      DionThemeMode.material => Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          enabled: !(disabled ?? false),
+          selected: selected ?? false,
+          selectedTileColor: context.theme.highlightColor.withAlpha(20),
+          onLongPress: onLongTap,
+          onTap: onTap,
+          textColor: textColor,
+          isThreeLine: isThreeLine,
+          dense: isDense,
+          visualDensity: visualDensity,
+          title: title,
+          subtitle: subtitle,
+          leading: leading,
+          trailing: trailing,
+          minVerticalPadding: 4,
+          minLeadingWidth: 40,
+        ),
       ),
       DionThemeMode.cupertino => CupertinoListTile(
         onTap: onTap,

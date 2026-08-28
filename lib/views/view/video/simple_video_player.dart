@@ -261,6 +261,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   List<Widget> getActions(bool isFullscreen) => [
     if (isFullscreen) ...[
       DionIconbutton(
+        tooltip: 'Back',
         onPressed: () {
           exitFullscreen(context);
           GoRouter.of(context).pop();
@@ -284,6 +285,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     ],
     StatefulBuilder(
       builder: (context, setState) => DionIconbutton(
+        tooltip:
+            widget.source.episode.data.bookmark
+                ? 'Remove Bookmark'
+                : 'Add Bookmark',
         icon: Icon(
           widget.source.episode.data.bookmark
               ? Icons.bookmark
@@ -301,6 +306,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       ),
     ),
     DionIconbutton(
+      tooltip: 'Open in Browser',
       icon: Icon(
         Icons.open_in_browser,
         color: isFullscreen ? Colors.white : null,
@@ -308,6 +314,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       onPressed: () => launchUrl(Uri.parse(widget.source.episode.episode.url)),
     ),
     DionIconbutton(
+      tooltip: 'Settings',
       icon: Icon(Icons.settings, color: isFullscreen ? Colors.white : null),
       onPressed: () => GoRouter.of(context).push('/settings/videoplayer'),
     ),
@@ -444,6 +451,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       primaryButtonBar: [
         if (widget.source.episode.hasprev)
           DionIconbutton(
+            tooltip: 'Previous Episode',
             icon: const Icon(
               Icons.skip_previous,
               size: 35,
@@ -458,6 +466,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         StreamBuilder(
           stream: player.stream.playing,
           builder: (context, snapshot) => DionIconbutton(
+            tooltip:
+                (snapshot.data ?? player.state.playing) ? 'Pause' : 'Play',
             icon: Icon(
               snapshot.data ?? player.state.playing
                   ? Icons.pause
@@ -472,6 +482,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         ).paddingAll(25.0),
         if (widget.source.episode.hasnext)
           DionIconbutton(
+            tooltip: 'Next Episode',
             icon: const Icon(Icons.skip_next, size: 35, color: Colors.white),
             onPressed: () {
               widget.source.episode.goNext(widget.source);

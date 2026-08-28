@@ -266,6 +266,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                       floating: true,
                       title: DionTextScroll(widget.source.name),
                       leading: DionIconbutton(
+                        tooltip: 'Back',
                         icon: const Icon(Icons.arrow_back),
                         onPressed: () {
                           context.pop();
@@ -288,6 +289,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                             },
                           ),
                         DionIconbutton(
+                          tooltip:
+                              epdata.bookmark
+                                  ? 'Remove Bookmark'
+                                  : 'Add Bookmark',
                           icon: Icon(
                             epdata.bookmark
                                 ? Icons.bookmark
@@ -296,12 +301,14 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                           onPressed: _toggleBookmark,
                         ),
                         DionIconbutton(
+                          tooltip: 'Open in Browser',
                           icon: const Icon(Icons.open_in_browser),
                           onPressed: () => launchUrl(
                             Uri.parse(widget.source.episode.episode.url),
                           ),
                         ),
                         DionIconbutton(
+                          tooltip: 'Settings',
                           icon: const Icon(Icons.settings),
                           onPressed: () =>
                               context.push('/settings/paragraphreader'),
@@ -506,14 +513,19 @@ class TtsPlayerBar extends StatelessWidget {
                     ],
                   ),
                   if (!loading)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(DionRadius.xs),
-                      child: LinearProgressIndicator(
-                        value: progress.clamp(0.0, 1.0),
-                        minHeight: 3,
-                        color: theme.colorScheme.primary,
-                        backgroundColor: theme.colorScheme.primary.withValues(
-                          alpha: 0.15,
+                    Semantics(
+                      label: 'Read aloud progress',
+                      value:
+                          '${(progress.clamp(0.0, 1.0) * 100).round()} percent',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(DionRadius.xs),
+                        child: LinearProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          minHeight: 3,
+                          color: theme.colorScheme.primary,
+                          backgroundColor: theme.colorScheme.primary.withValues(
+                            alpha: 0.15,
+                          ),
                         ),
                       ),
                     ),

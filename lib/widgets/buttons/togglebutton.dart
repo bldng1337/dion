@@ -25,6 +25,8 @@ class Togglebutton extends StatelessWidget {
   ButtonStyle _getButtonStyle(BuildContext context) {
     return ButtonStyle(
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      // Keep the tappable area at an accessible size even for small icons.
+      minimumSize: const WidgetStatePropertyAll(Size(40, 40)),
       shape: WidgetStateProperty.all(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
       ),
@@ -54,6 +56,7 @@ class Togglebutton extends StatelessWidget {
           style: _getButtonStyle(context),
           onPressed: null,
           tooltip: tooltip,
+          isSelected: selected,
           icon: Icon(
             Icons.check_box_outline_blank,
             color: context.theme.disabledColor,
@@ -67,14 +70,22 @@ class Togglebutton extends StatelessWidget {
               : null,
           style: _getButtonStyle(context),
           tooltip: tooltip,
+          isSelected: selected,
           icon: selected
               ? selectedIcon ?? const Icon(Icons.check_box, size: 20)
               : icon ?? const Icon(Icons.check_box_outline_blank, size: 20),
         ),
       ),
-      DionThemeMode.cupertino => CupertinoButton(
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
+      DionThemeMode.cupertino => _buildCupertino(context),
+    };
+  }
+
+  Widget _buildCupertino(BuildContext context) {
+    final button = CupertinoButton(
+      onPressed: onPressed,
+      padding: EdgeInsets.zero,
+      child: Semantics(
+        toggled: selected,
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(
@@ -97,6 +108,11 @@ class Togglebutton extends StatelessWidget {
           ),
         ),
       ),
-    };
+    );
+    // CupertinoButton has no tooltip support, so provide the accessible
+    // label via a Tooltip wrapper.
+    final label = tooltip;
+    if (label == null) return button;
+    return Tooltip(message: label, child: button);
   }
 }

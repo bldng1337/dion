@@ -114,9 +114,13 @@ class DionTextbutton extends StatelessWidget {
         ),
         builder: (context, _, setFuture) => TextButton(
           style: _getStyle(context),
-          onPressed: () {
-            setFuture(onPressed?.call());
-          },
+          // Keep the button disabled (also in the semantics tree) when there
+          // is no callback instead of wrapping the null call in a closure.
+          onPressed: onPressed == null
+              ? null
+              : () {
+                  setFuture(onPressed?.call());
+                },
           onLongPress: onLongPress == null
               ? null
               : () {

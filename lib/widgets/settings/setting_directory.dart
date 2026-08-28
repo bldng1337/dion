@@ -62,6 +62,7 @@ class SettingDirectory extends StatelessWidget {
               ),
               const SizedBox(width: DionSpacing.md),
               DionIconbutton(
+                tooltip: 'Choose Directory',
                 onPressed: () async {
                   final value = await getDirectoryPath();
                   if (value == null) return;

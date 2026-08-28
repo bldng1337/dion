@@ -209,6 +209,7 @@ class EntryInfo extends StatelessWidget {
                 Row(
                   children: [
                     if (entry.rating != null) ...[
+                      // Announces "Rating x of 5" on its own.
                       Stardisplay(
                         width: 14,
                         height: 14,
@@ -218,11 +219,15 @@ class EntryInfo extends StatelessWidget {
                           alpha: 0.15,
                         ),
                       ).paddingOnly(right: 6),
-                      Text(
-                        (entry.rating! * 5).toStringAsFixed(1),
-                        style: context.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.2,
+                      // Duplicates the star rating, so it is excluded to
+                      // avoid reading it twice.
+                      ExcludeSemantics(
+                        child: Text(
+                          (entry.rating! * 5).toStringAsFixed(1),
+                          style: context.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
+                          ),
                         ),
                       ).paddingOnly(right: 4),
                       if (entry.views != null) ...[
@@ -237,20 +242,28 @@ class EntryInfo extends StatelessWidget {
                       ],
                     ],
                     if (entry.views != null) ...[
-                      Icon(
-                        Icons.visibility_outlined,
-                        size: 13,
-                        color: context.theme.colorScheme.onSurface.withValues(
-                          alpha: 0.4,
-                        ),
-                      ).paddingOnly(right: 4),
-                      Text(
-                        NumberFormat.compact().format(entry.views),
-                        style: context.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: context.theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
-                          ),
+                      Semantics(
+                        label:
+                            '${NumberFormat.compact().format(entry.views)} views',
+                        excludeSemantics: true,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.visibility_outlined,
+                              size: 13,
+                              color: context.theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.4),
+                            ).paddingOnly(right: 4),
+                            Text(
+                              NumberFormat.compact().format(entry.views),
+                              style: context.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: context.theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -435,13 +448,12 @@ class EntryInfo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: context.theme.colorScheme.surfaceContainerHighest
-            .withValues(alpha: 0.3),
+        color: context.theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.3,
+        ),
         borderRadius: BorderRadius.circular(3),
         border: Border.all(
-          color: context.theme.colorScheme.onSurface.withValues(
-            alpha: 0.05,
-          ),
+          color: context.theme.colorScheme.onSurface.withValues(alpha: 0.05),
           width: 0.5,
         ),
       ),
@@ -469,9 +481,7 @@ class EntryInfo extends StatelessWidget {
           }
           if (entry is EntrySaved) {
             for (final ext in entry.entryExtensions) {
-              if (ext.ui == null ||
-                  ext.ui!.isEmpty ||
-                  ext.extension == null) {
+              if (ext.ui == null || ext.ui!.isEmpty || ext.extension == null) {
                 continue;
               }
               children.add(
@@ -483,9 +493,7 @@ class EntryInfo extends StatelessWidget {
               );
             }
             for (final ext in entry.sourceExtensions) {
-              if (ext.ui == null ||
-                  ext.ui!.isEmpty ||
-                  ext.extension == null) {
+              if (ext.ui == null || ext.ui!.isEmpty || ext.extension == null) {
                 continue;
               }
               children.add(
@@ -805,6 +813,7 @@ class _CategoryChooserDialogState extends State<_CategoryChooserDialog> {
                     ),
                     const SizedBox(width: 8),
                     DionIconbutton(
+                      tooltip: 'Add Category',
                       icon: const Icon(Icons.add),
                       onPressed: _addCategory,
                     ),

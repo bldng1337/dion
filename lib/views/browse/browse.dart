@@ -101,6 +101,7 @@ class _BrowseState extends State<Browse>
             onSubmitted: (s) => context.go('/search/$s'),
             actions: [
               DionIconbutton(
+                tooltip: 'Search Settings',
                 icon: const Icon(Icons.settings),
                 onPressed: () {
                   showSettingPopup(context, this);
@@ -275,6 +276,9 @@ class _SettingsPopupState extends State<SettingsPopup>
               for (final MediaType mediatype in e.data.mediaType)
                 Icon(mediatype.icon),
               DionIconbutton(
+                tooltip: e.searchEnabled
+                    ? 'Exclude from Search'
+                    : 'Include in Search',
                 icon: Icon(
                   e.searchEnabled
                       ? Icons.check_box

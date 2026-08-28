@@ -59,45 +59,50 @@ class _SettingToggleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onChanged,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DionSpacing.lg,
-            vertical: DionSpacing.md,
-          ),
-          child: Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 20, color: context.textSecondary),
-                const SizedBox(width: DionSpacing.md),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: DionTypography.titleSmall(context.textPrimary),
-                    ),
-                    if (description != null) ...[
-                      const SizedBox(height: 2),
+    // Merge the row into one semantics node so the toggle is announced
+    // together with its name (e.g. "Show Title, ..., toggled") instead of
+    // the texts floating up into the surrounding section.
+    return MergeSemantics(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onChanged,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DionSpacing.lg,
+              vertical: DionSpacing.md,
+            ),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 20, color: context.textSecondary),
+                  const SizedBox(width: DionSpacing.md),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        description!,
-                        style: DionTypography.bodySmall(context.textTertiary),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        title,
+                        style: DionTypography.titleSmall(context.textPrimary),
                       ),
+                      if (description != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          description!,
+                          style: DionTypography.bodySmall(context.textTertiary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: DionSpacing.md),
-              Togglebutton(selected: value, onPressed: onChanged),
-            ],
+                const SizedBox(width: DionSpacing.md),
+                Togglebutton(selected: value, onPressed: onChanged),
+              ],
+            ),
           ),
         ),
       ),

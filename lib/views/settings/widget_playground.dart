@@ -67,6 +67,7 @@ class WidgetPlayground extends StatelessWidget {
                 children: [
                   DionIconbutton(
                     onPressed: () {},
+                    tooltip: 'Favorite',
                     icon: const Icon(Icons.favorite),
                   ),
                   DionIconbutton(
@@ -74,9 +75,13 @@ class WidgetPlayground extends StatelessWidget {
                     icon: const Icon(Icons.bookmark),
                     tooltip: 'Bookmark',
                   ),
-                  const DionIconbutton(icon: Icon(Icons.delete)),
+                  const DionIconbutton(
+                    icon: Icon(Icons.delete),
+                    tooltip: 'Delete',
+                  ),
                   DionIconbutton(
                     onPressed: () => Future.delayed(const Duration(seconds: 2)),
+                    tooltip: 'Upload',
                     icon: const Icon(Icons.cloud_upload),
                   ),
                 ],

@@ -54,7 +54,16 @@ class DionDropdown<T> extends StatelessWidget {
         }).toList();
       },
       items: items
-          .map((e) => DropdownMenuItem<T>(value: e.value, child: e.labelWidget))
+          .map(
+            (e) => DropdownMenuItem<T>(
+              value: e.value,
+              // Mark the currently selected entry so screen readers announce
+              // which menu item is active.
+              child: e.value == value
+                  ? Semantics(selected: true, child: e.labelWidget)
+                  : e.labelWidget,
+            ),
+          )
           .toList(),
       onChanged: onChanged,
     );

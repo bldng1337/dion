@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:awesome_extensions/awesome_extensions_dart.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/source.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse/browse.dart';
@@ -57,41 +58,66 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
     GoRoute(
       path: '/',
       pageBuilder: (context, state) =>
-          getTransition(context, state, const LoadingView()),
+          getTransition(context, state, const LoadingView(), title: 'Loading'),
     ),
     GoRoute(
       path: '/browse',
       pageBuilder: (context, state) =>
-          getTransition(context, state, const Browse()),
+          getTransition(context, state, const Browse(), title: 'Browse'),
     ),
     GoRoute(
       path: '/activity',
-      pageBuilder: (context, state) =>
-          getTransition(context, state, const ActivityView()),
-    ),
-    GoRoute(
-      path: '/manage',
-      pageBuilder: (context, state) =>
-          getTransition(context, state, const ExtensionManager()),
-    ),
-    GoRoute(
-      path: '/search/:query',
-      pageBuilder: (context, state) =>
-          getTransition(context, state, const Search()),
-    ),
-    GoRoute(
-      path: '/extension/:id',
-      pageBuilder: (context, state) =>
-          getTransition(context, state, const ExtensionView()),
-    ),
-    GoRoute(
-      path: '/view',
       pageBuilder: (context, state) => getTransition(
         context,
         state,
-        const ViewSource(),
-        transition: Transition.fade,
+        const ActivityView(),
+        title: 'Activity',
       ),
+    ),
+    GoRoute(
+      path: '/manage',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const ExtensionManager(),
+        title: 'Extensions',
+      ),
+    ),
+    GoRoute(
+      path: '/search/:query',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const Search(),
+        title: 'Search ${state.pathParameters['query'] ?? ''}'.trim(),
+      ),
+    ),
+    GoRoute(
+      path: '/extension/:id',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const ExtensionView(),
+        title: 'Extension',
+      ),
+    ),
+    GoRoute(
+      path: '/view',
+      pageBuilder: (context, state) {
+        // Announce the episode/chapter name to screen readers instead of a
+        // generic page label. The reader is opened with [EpisodePath] extra.
+        final extra = state.extra;
+        final episodePath = extra is List<Object?> && extra.first is EpisodePath
+            ? extra.first! as EpisodePath
+            : null;
+        return getTransition(
+          context,
+          state,
+          const ViewSource(),
+          transition: Transition.fade,
+          title: episodePath?.name ?? 'Viewer',
+        );
+      },
     ),
     GoRoute(
       path: 'custom',
@@ -100,6 +126,7 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         state,
         const CustomUiView(),
         transition: Transition.fade,
+        title: 'Viewer',
       ),
     ),
     GoRoute(
@@ -109,6 +136,7 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         state,
         const Detail(),
         transition: Transition.fade,
+        title: 'Details',
       ),
     ),
     GoRoute(
@@ -120,6 +148,7 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
           entry: (state.extra! as List<Object?>)[0]! as EntrySaved,
         ),
         transition: Transition.fade,
+        title: 'Saved Quotes',
       ),
     ),
     GoRoute(
@@ -129,17 +158,22 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         state,
         const MigrateEntryPage(),
         transition: Transition.fade,
+        title: 'Migrate',
       ),
     ),
     GoRoute(
       path: '/library',
       pageBuilder: (context, state) =>
-          getTransition(context, state, const Library()),
+          getTransition(context, state, const Library(), title: 'Library'),
     ),
     GoRoute(
       path: '/dev',
-      pageBuilder: (context, state) =>
-          getTransition(context, state, const DeveloperSettings()),
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const DeveloperSettings(),
+        title: 'Developer',
+      ),
       routes: [
         GoRoute(
           path: '/logs',
@@ -161,7 +195,7 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
     GoRoute(
       path: '/settings',
       pageBuilder: (context, state) =>
-          getTransition(context, state, const Settings()),
+          getTransition(context, state, const Settings(), title: 'Settings'),
       routes: [
         GoRoute(
           path: '/update',
@@ -205,8 +239,12 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         ),
         GoRoute(
           path: '/library',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const LibrarySettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const LibrarySettings(),
+            title: 'Library',
+          ),
         ),
         GoRoute(
           path: '/tasks',
@@ -238,20 +276,36 @@ Page getTransition(
   GoRouterState state,
   Widget child, {
   Transition transition = Transition.none,
-}) => switch (transition) {
-  Transition.fade => CustomTransitionPage(
-    key: state.pageKey,
-    transitionDuration: 250.milliseconds,
-    child: child,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      return FadeTransition(
-        opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-        child: child,
-      );
-    },
-  ),
-  Transition.none => NoTransitionPage<void>(key: state.pageKey, child: child),
-};
+  String? title,
+}) {
+  // Announce the page name to screen readers when the route is shown.
+  final effectiveChild = title == null
+      ? child
+      : Semantics(
+          scopesRoute: true,
+          namesRoute: true,
+          explicitChildNodes: true,
+          label: title,
+          child: child,
+        );
+  return switch (transition) {
+    Transition.fade => CustomTransitionPage(
+      key: state.pageKey,
+      transitionDuration: 250.milliseconds,
+      child: effectiveChild,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+          child: child,
+        );
+      },
+    ),
+    Transition.none => NoTransitionPage<void>(
+      key: state.pageKey,
+      child: effectiveChild,
+    ),
+  };
+}
 
 class MyExtraCodec extends Codec<Object?, Object?> {
   /// Create a codec.

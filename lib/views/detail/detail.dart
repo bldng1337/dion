@@ -340,6 +340,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         ),
       if (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
         DionIconbutton(
+          tooltip: 'Entry Settings',
           onPressed: () {
             showSettingPopup(context, entry! as EntrySaved);
           },
@@ -347,6 +348,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         ),
       if (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
         DionIconbutton(
+          tooltip: 'Refresh',
           onPressed: () async {
             try {
               if (tok.isDisposed) {
@@ -387,6 +389,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         ),
       if (entry is EntryDetailed)
         DionIconbutton(
+          tooltip: 'Open in Browser',
           onPressed: () {
             try {
               launchUrl(Uri.parse(entry!.url));
@@ -405,6 +408,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       floatingActionButton:
           (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
           ? ActionButton(
+              tooltip: 'Continue',
               onPressed: () async {
                 EpisodePath(
                   entry! as EntryDetailed,
@@ -484,6 +488,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           borderRadius: BorderRadius.circular(3),
         ),
         child: DionIconbutton(
+          tooltip: 'Back',
           icon: const Icon(Icons.arrow_back, size: 18),
           onPressed: () {
             Navigator.pop(context);

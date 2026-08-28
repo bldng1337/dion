@@ -52,6 +52,7 @@ class DionSlider<T extends num> extends StatelessWidget {
   final void Function(T)? onChanged;
   final void Function(T)? onChangeEnd;
   final void Function(T)? onChangeStart;
+  final String Function(T value)? semanticFormatter;
   const DionSlider({
     super.key,
     required this.value,
@@ -61,6 +62,7 @@ class DionSlider<T extends num> extends StatelessWidget {
     this.onChangeEnd,
     this.onChangeStart,
     this.step,
+    this.semanticFormatter,
   });
 
   T convert(num value) => switch (T) {
@@ -84,7 +86,8 @@ class DionSlider<T extends num> extends StatelessWidget {
         data: SliderTheme.of(context).copyWith(
           trackHeight: 2,
           thumbShape: const SquareSliderThumbShape(),
-          overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+          // Default overlay radius (24) keeps an accessible touch target.
+          overlayShape: const RoundSliderOverlayShape(),
           trackShape: const RoundedRectSliderTrackShape(),
           activeTrackColor: theme.colorScheme.primary,
           inactiveTrackColor: theme.colorScheme.onSurface.withValues(
@@ -103,6 +106,9 @@ class DionSlider<T extends num> extends StatelessWidget {
           min: min.toDouble(),
           max: max.toDouble(),
           divisions: divisions,
+          semanticFormatterCallback: semanticFormatter == null
+              ? null
+              : (val) => semanticFormatter!(convert(val)),
           onChanged: onChanged != null
               ? (val) => onChanged!(convert(val))
               : null,

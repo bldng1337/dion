@@ -4,7 +4,15 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:country_flags/country_flags.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ContainerType,
+        CrossAxisAlignment,
+        MainAxisAlignment,
+        MainAxisSize,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -36,13 +44,17 @@ class Card extends StatelessWidget {
     return Stack(
       alignment: Alignment.bottomLeft,
       children: [
-        DionImage(
-          imageUrl: imageUrl,
-          httpHeaders: httpHeaders,
-          width: width,
-          height: height,
-          errorWidget: Icon(Icons.image, size: min(width, height)),
-          boxFit: BoxFit.cover,
+        // The cover is decorative on a card: the card itself is announced
+        // with its title, so the image is excluded from the semantics tree.
+        ExcludeSemantics(
+          child: DionImage(
+            imageUrl: imageUrl,
+            httpHeaders: httpHeaders,
+            width: width,
+            height: height,
+            errorWidget: Icon(Icons.image, size: min(width, height)),
+            boxFit: BoxFit.cover,
+          ),
         ),
         Positioned(
           bottom: -1,
@@ -77,7 +89,8 @@ class Card extends StatelessWidget {
                             (e) => IntrinsicWidth(
                               child: DionContainer(
                                 type: ContainerType.filled,
-                                color: context.theme.colorScheme.surfaceContainer,
+                                color:
+                                    context.theme.colorScheme.surfaceContainer,
                                 child: e.paddingAll(3),
                               ).paddingAll(3),
                             ),
@@ -93,7 +106,8 @@ class Card extends StatelessWidget {
                             (e) => IntrinsicWidth(
                               child: DionContainer(
                                 type: ContainerType.filled,
-                                color: context.theme.colorScheme.surfaceContainer,
+                                color:
+                                    context.theme.colorScheme.surfaceContainer,
                                 child: e.paddingAll(3),
                               ).paddingAll(3),
                             ),
@@ -165,13 +179,17 @@ class EntryCard extends StatelessWidget {
             style: context.textTheme.labelSmall,
             textAlign: TextAlign.center,
           ),
-        Icon(switch (entry.mediaType) {
-          MediaType.audio => Icons.music_note,
-          MediaType.video => Icons.videocam,
-          MediaType.book => Icons.menu_book,
-          MediaType.comic => Icons.image,
-          MediaType.unknown => Icons.help,
-        }, size: 15),
+        Icon(
+          switch (entry.mediaType) {
+            MediaType.audio => Icons.music_note,
+            MediaType.video => Icons.videocam,
+            MediaType.book => Icons.menu_book,
+            MediaType.comic => Icons.image,
+            MediaType.unknown => Icons.help,
+          },
+          size: 15,
+          semanticLabel: entry.mediaType.name,
+        ),
       ],
       trailingBadges: [
         if (entry is EntrySaved &&
@@ -190,7 +208,14 @@ class EntryCard extends StatelessWidget {
               width: 15,
             ),
           },
-        DionImage(imageUrl: entry.extension?.data.icon, width: 15, height: 15),
+        // Source icon is decorative noise inside the already-labelled card.
+        ExcludeSemantics(
+          child: DionImage(
+            imageUrl: entry.extension?.data.icon,
+            width: 15,
+            height: 15,
+          ),
+        ),
       ],
       bottom: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,20 +231,26 @@ class EntryCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (entry.views != null)
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.remove_red_eye,
-                        size: 13,
-                        color: Colors.white70,
-                      ).paddingOnly(right: 2),
-                      Text(
-                        NumberFormat.compact().format(entry.views),
-                        style: context.textTheme.bodySmall?.copyWith(
+                  Semantics(
+                    label:
+                        '${NumberFormat.compact().format(entry.views)} views',
+                    excludeSemantics: true,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.remove_red_eye,
+                          size: 13,
                           color: Colors.white70,
+                        ).paddingOnly(right: 2),
+                        Text(
+                          NumberFormat.compact().format(entry.views),
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: Colors.white70,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
               ],
             ).paddingOnly(left: 5, right: 5),

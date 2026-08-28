@@ -41,6 +41,7 @@ class DionImage extends StatefulWidget {
   final Color? color;
   final Alignment? alignment;
   final Widget Function(BuildContext context)? loadingBuilder;
+  final String? semanticLabel;
 
   const DionImage({
     super.key,
@@ -58,6 +59,7 @@ class DionImage extends StatefulWidget {
     this.borderRadius,
     this.hasPopup = false,
     this.onTap,
+    this.semanticLabel,
   }) : assert(
          (hasPopup ^ (onTap != null)) || (hasPopup == false && onTap == null),
        );
@@ -76,6 +78,7 @@ class DionImage extends StatefulWidget {
     Color? color,
     Alignment? alignment,
     Widget Function(BuildContext context)? loadingBuilder,
+    String? semanticLabel,
   }) => DionImage(
     imageUrl: link?.url,
     httpHeaders: link?.header,
@@ -91,6 +94,7 @@ class DionImage extends StatefulWidget {
     color: color,
     alignment: alignment,
     loadingBuilder: loadingBuilder,
+    semanticLabel: semanticLabel,
   );
 
   @override
@@ -248,12 +252,14 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           DionIconbutton(
+                            tooltip: 'Close',
                             onPressed: () {
                               Navigator.pop(context);
                             },
                             icon: const Icon(Icons.close),
                           ),
                           DionIconbutton(
+                            tooltip: 'Share Image',
                             onPressed: () async {
                               final cache = locate<CacheService>().imgcache;
                               final fileinfo = await cache
@@ -269,6 +275,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                             icon: const Icon(Icons.share),
                           ),
                           DionIconbutton(
+                            tooltip: 'Open in Browser',
                             onPressed: () async {
                               await launchUrl(Uri.parse(widget.imageUrl!));
                             },
@@ -317,6 +324,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         errorWidget: widget.errorWidget,
         loadingBuilder: widget.loadingBuilder,
         shouldAnimate: widget.shouldAnimate,
+        semanticLabel: widget.semanticLabel,
       );
     }
     return Image(
@@ -327,6 +335,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         height: height,
         httpHeaders: widget.httpHeaders,
       ),
+      semanticLabel: widget.semanticLabel,
       filterQuality: widget.filterQuality ?? FilterQuality.high,
       width: width,
       height: height,
@@ -426,6 +435,7 @@ class _DionSvgImage extends StatefulWidget {
   final Widget? errorWidget;
   final Widget Function(BuildContext context)? loadingBuilder;
   final bool shouldAnimate;
+  final String? semanticLabel;
 
   const _DionSvgImage({
     required this.url,
@@ -438,6 +448,7 @@ class _DionSvgImage extends StatefulWidget {
     this.errorWidget,
     this.loadingBuilder,
     this.shouldAnimate = true,
+    this.semanticLabel,
   });
 
   @override
@@ -451,7 +462,7 @@ class _DionSvgImageState extends State<_DionSvgImage> {
 
   @override
   Widget build(BuildContext context) {
-    final Widget current;
+    Widget current;
     if (_error != null) {
       current = _errorWidget(context);
     } else if (_bytes == null) {
@@ -467,6 +478,13 @@ class _DionSvgImageState extends State<_DionSvgImage> {
             ? null
             : ColorFilter.mode(widget.color!, BlendMode.srcIn),
       );
+      if (widget.semanticLabel != null) {
+        current = Semantics(
+          label: widget.semanticLabel,
+          image: true,
+          child: current,
+        );
+      }
     }
     if (!widget.shouldAnimate) {
       return current;

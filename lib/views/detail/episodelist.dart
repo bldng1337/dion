@@ -127,14 +127,15 @@ class EpisodeTile extends StatelessWidget {
 
   Widget buildDownload(BuildContext context) {
     return SizedBox(
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       child: StreamBuilder(
         stream: locate<DownloadService>().getStatus(episodepath),
         builder: (context, snapshot) {
           return switch (snapshot.data?.status) {
             Status.nodownload => DionContainer(
               child: DionIconbutton(
+                tooltip: 'Download Episode',
                 icon: const Icon(Icons.download_outlined, size: 18),
                 onPressed: () async {
                   await locate<DownloadService>().download([episodepath]);
@@ -167,6 +168,7 @@ class EpisodeTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: DionIconbutton(
+                        tooltip: 'Clear Download Error',
                         icon: Icon(
                           Icons.error_outline,
                           size: 18,
@@ -193,6 +195,7 @@ class EpisodeTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(3),
               ),
               child: DionIconbutton(
+                tooltip: 'Delete Download',
                 icon: Icon(
                   Icons.check,
                   size: 18,
@@ -304,6 +307,7 @@ class EpisodeTile extends StatelessWidget {
                             Icons.bookmark,
                             size: 14,
                             color: context.theme.colorScheme.primary,
+                            semanticLabel: 'Bookmarked',
                           ).paddingOnly(right: 2),
                       ],
                     ).paddingOnly(top: 6),

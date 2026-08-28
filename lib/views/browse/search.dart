@@ -101,6 +101,7 @@ class _SearchState extends State<Search>
             },
             actions: [
               DionIconbutton(
+                tooltip: 'Search Settings',
                 icon: const Icon(Icons.settings),
                 onPressed: () {
                   showSettingPopup(context, this);

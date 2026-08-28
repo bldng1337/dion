@@ -72,6 +72,10 @@ class _InfiniteParagraphListReaderState
       ),
       actions: [
         DionIconbutton(
+          tooltip:
+              widget.supplier.episode.data.bookmark
+                  ? 'Remove Bookmark'
+                  : 'Add Bookmark',
           icon: Icon(
             widget.supplier.episode.data.bookmark
                 ? Icons.bookmark
@@ -87,11 +91,13 @@ class _InfiniteParagraphListReaderState
           },
         ),
         DionIconbutton(
+          tooltip: 'Open in Browser',
           icon: const Icon(Icons.open_in_browser),
           onPressed: () =>
               launchUrl(Uri.parse(widget.supplier.episode.episode.url)),
         ),
         DionIconbutton(
+          tooltip: 'Settings',
           icon: const Icon(Icons.settings),
           onPressed: () => context.push('/settings/paragraphreader'),
         ),

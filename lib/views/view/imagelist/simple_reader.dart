@@ -344,6 +344,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                         fit: StackFit.passthrough,
                         children: [
                           DionIconbutton(
+                            tooltip:
+                                (snapshot.data ?? false) ? 'Pause' : 'Play',
                             icon: Icon(
                               (snapshot.data ?? false)
                                   ? Icons.pause
@@ -384,6 +386,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                       ),
                     ),
                   DionIconbutton(
+                    tooltip:
+                        epdata.bookmark ? 'Remove Bookmark' : 'Add Bookmark',
                     icon: Icon(
                       epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
                     ),
@@ -396,11 +400,13 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                     },
                   ),
                   DionIconbutton(
+                    tooltip: 'Open in Browser',
                     icon: const Icon(Icons.open_in_browser),
                     onPressed: () =>
                         launchUrl(Uri.parse(widget.source.episode.episode.url)),
                   ),
                   DionIconbutton(
+                    tooltip: 'Settings',
                     icon: const Icon(Icons.settings),
                     onPressed: () => context.push('/settings/imagelistreader'),
                   ),

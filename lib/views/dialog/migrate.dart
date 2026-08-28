@@ -184,6 +184,7 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
       title: const Text('Migrate'),
       actions: [
         DionIconbutton(
+          tooltip: 'Close',
           icon: const Icon(Icons.close),
           onPressed: () => context.pop<EntrySaved?>(),
         ),

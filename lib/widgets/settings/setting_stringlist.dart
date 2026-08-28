@@ -107,6 +107,7 @@ class _SettingStringListState extends State<SettingStringList> {
                     ),
                     const SizedBox(width: DionSpacing.sm),
                     DionIconbutton(
+                      tooltip: 'Remove Entry',
                       icon: Icon(
                         Icons.close,
                         size: 16,
@@ -133,6 +134,7 @@ class _SettingStringListState extends State<SettingStringList> {
                 ),
                 const SizedBox(width: DionSpacing.sm),
                 DionIconbutton(
+                  tooltip: 'Add Entry',
                   icon: const Icon(Icons.add, color: DionColors.primary),
                   onPressed: _addEntryFromController,
                 ),

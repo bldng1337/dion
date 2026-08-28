@@ -543,6 +543,7 @@ class _SettingsPopupState extends State<SettingsPopup>
             mainAxisSize: MainAxisSize.min,
             children: [
               DionIconbutton(
+                tooltip: 'Remove Extension',
                 icon: Icon(
                   Icons.delete_outline,
                   color: context.theme.colorScheme.error,
@@ -550,6 +551,7 @@ class _SettingsPopupState extends State<SettingsPopup>
                 onPressed: () => _removeEntryExtension(index),
               ),
               DionIconbutton(
+                tooltip: 'Refresh Extension',
                 icon: const Icon(Icons.refresh),
                 onPressed: () => _refreshEntryExtension(index),
               ),
@@ -605,6 +607,7 @@ class _SettingsPopupState extends State<SettingsPopup>
                 )
               : null,
           trailing: DionIconbutton(
+            tooltip: 'Remove Extension',
             icon: Icon(
               Icons.delete_outline,
               color: context.theme.colorScheme.error,
@@ -667,6 +670,7 @@ class _SettingsPopupState extends State<SettingsPopup>
             ),
             const SizedBox(width: 8),
             DionIconbutton(
+              tooltip: 'Add Extension',
               icon: const Icon(Icons.add),
               onPressed: selectedExtension != null
                   ? () {

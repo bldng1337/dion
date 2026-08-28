@@ -8,6 +8,7 @@ class Stardisplay extends StatelessWidget {
   final Color color;
   final Color bgcolor;
   final int maxstars;
+  final String? semanticLabel;
 
   const Stardisplay({
     super.key,
@@ -18,6 +19,7 @@ class Stardisplay extends StatelessWidget {
     this.maxstars = 5,
     this.bgcolor = Colors.grey,
     this.color = Colors.white,
+    this.semanticLabel,
   });
 
   @override
@@ -25,19 +27,22 @@ class Stardisplay extends StatelessWidget {
     if (fill >= 1) {
       return const SizedBox.shrink();
     }
-    return ShaderMask(
-      blendMode: BlendMode.srcATop,
-      shaderCallback: (Rect rect) {
-        return LinearGradient(
-          stops: [0, fill, fill],
-          colors: [color, color, color.withValues(alpha: 0)],
-        ).createShader(rect);
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(
-          5,
-          (index) => Icon(icon, size: width, color: bgcolor),
+    return Semantics(
+      label: semanticLabel ?? 'Rating ${(fill * maxstars).toStringAsFixed(1)} of $maxstars',
+      child: ShaderMask(
+        blendMode: BlendMode.srcATop,
+        shaderCallback: (Rect rect) {
+          return LinearGradient(
+            stops: [0, fill, fill],
+            colors: [color, color, color.withValues(alpha: 0)],
+          ).createShader(rect);
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(
+            5,
+            (index) => Icon(icon, size: width, color: bgcolor),
+          ),
         ),
       ),
     );
