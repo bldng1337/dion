@@ -6,6 +6,7 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit,ButtonType;
 import 'package:dionysos/service/player.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/session.dart';
@@ -37,7 +38,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     with StateDisposeScopeMixin {
   Player? player;
   VideoController? controller;
-  late final Observer sourceObserver;
+  Observer? sourceObserver;
   final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   final ValueNotifier<int> subtitleIndex = ValueNotifier(0);
   Source_Video? currentVideo;
@@ -57,6 +58,23 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   }
 
   Future<void> initPlayer() async {
+    try {
+      await _setupPlayer();
+    } catch (e, s) {
+      logger.e(
+        'Failed to initialize video player',
+        error: e,
+        stackTrace: s,
+      );
+      if (mounted) {
+        setState(() {
+          exception = e;
+        });
+      }
+    }
+  }
+
+  Future<void> _setupPlayer() async {
     final player = Player(
       configuration: const PlayerConfiguration(
         logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
@@ -215,7 +233,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    sourceObserver.swapListener(widget.source);
+    sourceObserver?.swapListener(widget.source);
   }
 
   @override

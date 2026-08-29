@@ -37,7 +37,7 @@ class SimpleAudioListener extends StatefulWidget {
 class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
   Player? player;
-  late final Observer sourceObserver;
+  Observer? sourceObserver;
   final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   Source_Audio? currentAudio;
   final ValueNotifier<int> streamIndex = ValueNotifier(0);
@@ -52,6 +52,23 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   }
 
   Future<void> initPlayer() async {
+    try {
+      await _setupPlayer();
+    } catch (e, s) {
+      logger.e(
+        'Failed to initialize audio player',
+        error: e,
+        stackTrace: s,
+      );
+      if (mounted) {
+        setState(() {
+          exception = e;
+        });
+      }
+    }
+  }
+
+  Future<void> _setupPlayer() async {
     final player = Player(
       configuration: const PlayerConfiguration(
         logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
@@ -211,7 +228,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    sourceObserver.swapListener(widget.source);
+    sourceObserver?.swapListener(widget.source);
   }
 
   @override
