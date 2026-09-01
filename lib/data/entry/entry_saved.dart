@@ -9,6 +9,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/metis.dart';
@@ -242,7 +243,9 @@ class EntryExtension {
   }
 }
 
-class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
+class EntrySaved
+    with DBConstClass, DBModifiableClass, DBLiveClass
+    implements EntryDetailed {
   @override
   String boundExtensionId;
   rust.EntryDetailed entry;
@@ -389,6 +392,60 @@ class EntrySaved with DBConstClass, DBModifiableClass implements EntryDetailed {
 
   Future<void> delete() async {
     await locate<Database>().removeEntry(this);
+  }
+
+  @override
+  void onDBChange(DBChange change) {
+    unawaited(_onDBChange(change));
+  }
+
+  Future<void> _onDBChange(DBChange change) async {
+    try {
+      if (change.deleted) {
+        locate<Database>().notifyListeners([DBEvent.entryAddedOrRemoved]);
+        return;
+      }
+      final json = await _rowWithPatch(change.patch);
+      final fresh = await EntrySaved.fromJson(json);
+      boundExtensionId = fresh.boundExtensionId;
+      entry = fresh.entry;
+      categories = fresh.categories;
+      extensionSettings = fresh.extensionSettings;
+      savedSettings = fresh.savedSettings;
+      _episodedata = fresh._episodedata;
+      episode = fresh.episode;
+      entryExtensions = fresh.entryExtensions;
+      sourceExtensions = fresh.sourceExtensions;
+      locate<Database>().notifyListeners([DBEvent.entryUpdated]);
+    } catch (e, stack) {
+      logger.e(
+        'Failed to apply live database change to $dbId',
+        error: e,
+        stackTrace: stack,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> _rowWithPatch(
+    List<Map<String, dynamic>> patch,
+  ) async {
+    final json = await toDBJson();
+    // The patch addresses the full row; toJson omits the id.
+    json['id'] = dbId;
+    try {
+      _applyJsonPatch(json, patch);
+    } catch (e) {
+      logger.w(
+        'Patch failed for live change on $dbId, re-reading row',
+        error: e,
+      );
+      final row = await locate<Database>().db.select(dbId);
+      if (row is! Map) {
+        throw StateError('Row $dbId vanished during live change: $row');
+      }
+      return Map<String, dynamic>.from(row);
+    }
+    return json;
   }
 
   Future<void> onEntryActivity(
@@ -565,4 +622,72 @@ Iterable<DBRecord> fromDynamic(Iterable<dynamic> list) {
   return list.map(
     (e) => e is DBRecord ? e : DBRecord.fromJson(e as Map<String, dynamic>),
   );
+}
+
+void _applyJsonPatch(Map<String, dynamic> doc, List<Map<String, dynamic>> ops) {
+  for (final op in ops) {
+    final path = op['path'];
+    if (path is! String) {
+      throw StateError('Patch op without a path: $op');
+    }
+    final tokens = _jsonPointerTokens(path);
+    if (tokens.isEmpty) {
+      throw StateError('Unsupported root patch path: $path');
+    }
+    final parent = _resolvePointer(doc, tokens.sublist(0, tokens.length - 1));
+    final key = tokens.last;
+    final value = op['value'];
+    switch (op['op']) {
+      case 'add' || 'replace':
+        if (parent is List) {
+          final index = key == '-' ? parent.length : int.parse(key);
+          if (index > parent.length) {
+            throw StateError('Patch index $index out of bounds: $path');
+          }
+          if (op['op'] == 'add' && index == parent.length) {
+            parent.add(value);
+          } else {
+            parent[index] = value;
+          }
+        } else if (parent is Map) {
+          parent[key] = value;
+        } else {
+          throw StateError('Cannot patch into ${parent.runtimeType}: $path');
+        }
+      case 'remove':
+        if (parent is List) {
+          parent.removeAt(int.parse(key));
+        } else if (parent is Map) {
+          parent.remove(key);
+        } else {
+          throw StateError('Cannot patch into ${parent.runtimeType}: $path');
+        }
+      default:
+        throw StateError('Unsupported patch op: ${op['op']}');
+    }
+  }
+}
+
+List<String> _jsonPointerTokens(String pointer) => pointer
+    .split('/')
+    .skip(1)
+    .map((t) => t.replaceAll('~1', '/').replaceAll('~0', '~'))
+    .toList();
+
+dynamic _resolvePointer(dynamic doc, List<String> tokens) {
+  var current = doc;
+  for (final token in tokens) {
+    if (current is List) {
+      current = current[int.parse(token)];
+    } else if (current is Map) {
+      final next = current[token];
+      if (next == null) {
+        throw StateError('Patch path leads through missing key "$token"');
+      }
+      current = next;
+    } else {
+      throw StateError('Cannot descend into ${current.runtimeType}');
+    }
+  }
+  return current;
 }

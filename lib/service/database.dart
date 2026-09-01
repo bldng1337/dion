@@ -24,6 +24,8 @@ const categoryTable = DBTable('category');
 const activityTable = DBTable('activity');
 const extensionTable = DBTable('extension');
 
+const dbShareTag = 'dionysos-main-db';
+
 enum DBEvent {
   entryUpdated,
   entryAddedOrRemoved,
@@ -147,6 +149,7 @@ DEFINE TABLE IF NOT EXISTS extension;
       final dir = await locateAsync<DirectoryProvider>();
       currentdb = await AdapterSurrealDB.connect(
         'surrealkv://${dir.databasepath.absolute.path}',
+        shareTag: dbShareTag,
       );
     }
     await initDB(currentdb);
