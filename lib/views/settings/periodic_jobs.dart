@@ -111,15 +111,18 @@ class _JobRow extends StatelessWidget {
     return 'Every $hours hour${hours == 1 ? '' : 's'}';
   }
 
-  String _lastRun() {
+  String _lastRun(JobError? lastError) {
     final last = service.lastRun(job);
     if (last == null) return 'Never run';
-    return 'Last run: ${last.formatrelative()}';
+    final relative = last.formatrelative();
+    if (lastError != null) return 'Last run failed: $relative';
+    return 'Last run: $relative';
   }
 
   @override
   Widget build(BuildContext context) {
     final enabled = job.enabledSetting.value;
+    final lastError = service.lastError(job);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: DionSpacing.lg,
@@ -130,7 +133,11 @@ class _JobRow extends StatelessWidget {
           Icon(
             Icons.schedule_outlined,
             size: 20,
-            color: enabled ? context.textSecondary : context.theme.disabledColor,
+            color: lastError != null
+                ? context.theme.colorScheme.error
+                : enabled
+                    ? context.textSecondary
+                    : context.theme.disabledColor,
           ),
           const SizedBox(width: DionSpacing.md),
           Expanded(
@@ -147,10 +154,21 @@ class _JobRow extends StatelessWidget {
                   [
                     _schedule,
                     if (!enabled) 'Disabled',
-                    _lastRun(),
+                    _lastRun(lastError),
                   ].join(' • '),
                   style: DionTypography.bodySmall(context.textTertiary),
                 ),
+                if (lastError != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    lastError.message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: DionTypography.bodySmall(
+                      context.theme.colorScheme.error,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

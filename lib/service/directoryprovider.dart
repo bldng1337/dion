@@ -11,6 +11,7 @@ class DirectoryProvider {
   final Directory databasepath;
   final Directory temppath;
   final Directory downloadspath;
+  final Directory logspath;
 
   const DirectoryProvider({
     required this.basepath,
@@ -18,6 +19,7 @@ class DirectoryProvider {
     required this.databasepath,
     required this.temppath,
     required this.downloadspath,
+    required this.logspath,
   });
 
   static Future<void> ensureInitialized() async {
@@ -38,6 +40,7 @@ class DirectoryProvider {
       );
     }
 
+    final logspath = await basepath.sub('logs').create(recursive: true);
     register<DirectoryProvider>(
       DirectoryProvider(
         basepath: basepath,
@@ -45,8 +48,12 @@ class DirectoryProvider {
         extensionpath: await basepath.sub('extension').create(recursive: true),
         databasepath: await basepath.sub('database').create(recursive: true),
         downloadspath: await basepath.sub('downloads').create(recursive: true),
+        logspath: logspath,
       ),
     );
+    // Runs in the main and the background isolate alike, pointing both at
+    // the same log files.
+    await LogStore.instance.init(logspath);
   }
 
   Future<void> clear() async {
@@ -54,5 +61,6 @@ class DirectoryProvider {
     await extensionpath.delete(recursive: true);
     await databasepath.delete(recursive: true);
     await temppath.delete(recursive: true);
+    await logspath.delete(recursive: true);
   }
 }

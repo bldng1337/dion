@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dionysos/data/settings/settings.dart';
@@ -14,6 +15,23 @@ import 'package:dionysos/utils/string.dart';
 import 'package:workmanager/workmanager.dart';
 
 String lastRunKey(String taskName) => '$taskName.lastrun';
+String lastErrorKey(String taskName) => '$taskName.lasterror';
+
+/// Outcome of the last failed run of a [PeriodicJob], persisted so failures
+/// from the background isolate surface in the running app.
+class JobError {
+  final DateTime time;
+  final String message;
+
+  const JobError({required this.time, required this.message});
+
+  factory JobError.fromJson(Map<String, dynamic> json) => JobError(
+        time: DateTime.parse(json['time'] as String),
+        message: json['message'] as String? ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {'time': time.toIso8601String(), 'message': message};
+}
 
 abstract class PeriodicJob {
   String get taskName;
@@ -28,13 +46,21 @@ abstract class PeriodicJob {
   Future<bool> runAndRecord() async {
     try {
       await run();
-      await locate<PreferenceService>().setString(
+      final preferences = locate<PreferenceService>();
+      await preferences.setString(
         lastRunKey(taskName),
         DateTime.now().toIso8601String(),
       );
+      await preferences.remove(lastErrorKey(taskName));
       return true;
     } catch (e, stack) {
       logger.e('PeriodicJob $taskName failed', error: e, stackTrace: stack);
+      await locate<PreferenceService>().setString(
+        lastErrorKey(taskName),
+        jsonEncode(
+          JobError(time: DateTime.now(), message: e.toString()).toJson(),
+        ),
+      );
       return false;
     }
   }
@@ -104,6 +130,17 @@ class PeriodicService {
     if (raw == null) return null;
     return DateTime.tryParse(raw);
   }
+
+  JobError? lastError(PeriodicJob job) {
+    final raw =
+        locate<PreferenceService>().getString(lastErrorKey(job.taskName));
+    if (raw == null) return null;
+    try {
+      return JobError.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 
@@ -127,6 +164,9 @@ Future<bool> seedBackgroundDependencies() async {
 
 @pragma('vm:entry-point')
 void backgroundTaskDispatcher() {
+  // Tag everything logged from here on as background-origin so the log view
+  // can distinguish periodic job output from main-isolate logs.
+  LogStore.instance.source = kLogSourceBackground;
   Workmanager().executeTask((task, inputData) async {
     logger.i('Background task dispatched: $task');
 

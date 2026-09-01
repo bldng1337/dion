@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
@@ -7,12 +6,13 @@ import 'package:dionysos/utils/platform.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
+import 'package:logger/logger.dart' show Level;
 import 'package:path_provider/path_provider.dart';
 
 class LogView extends StatefulWidget {
@@ -32,6 +32,18 @@ class _LogViewState extends State<LogView> {
     Level.fatal,
   };
 
+  bool _backgroundOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!LogStore.instance.isReady) {
+      LogStore.instance.ready.whenComplete(() {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
   void _toggleLevel(Level level) {
     setState(() {
       if (_selectedLevels.contains(level)) {
@@ -46,34 +58,18 @@ class _LogViewState extends State<LogView> {
     return _selectedLevels.contains(level);
   }
 
-  List<OutputEvent> get _filteredLogs {
-    return logBuffer.buffer
-        .where((element) => _selectedLevels.contains(element.origin.level))
+  List<LogRecord> get _filteredLogs {
+    return LogStore.instance.records
+        .where(
+          (record) =>
+              _selectedLevels.contains(record.level) &&
+              (!_backgroundOnly || record.source != kLogSourceMain),
+        )
         .toList();
   }
 
-  String _formatLogs(List<OutputEvent> logs) {
-    final buffer = StringBuffer();
-    // Export in chronological order (oldest first)
-    for (final element in logs) {
-      final time = element.origin.time.toIso8601String();
-      final level = element.origin.level.name.toUpperCase();
-      buffer.writeln('[$time] [$level]');
-      buffer.writeln(element.lines.join('\n'));
-      if (element.origin.error != null) {
-        buffer.writeln('Error: ${element.origin.error}');
-      }
-      if (element.origin.stackTrace != null) {
-        buffer.writeln('Stack trace:');
-        buffer.writeln(element.origin.stackTrace);
-      }
-      buffer.writeln('---');
-    }
-    return buffer.toString();
-  }
-
-  Future<void> _exportLogs() async {
-    final content = _formatLogs(_filteredLogs);
+  Future<void> _exportLogs(List<LogRecord> logs) async {
+    final content = formatLogRecords(logs);
     final fileName =
         'dion-logs-${DateTime.now().toIso8601String().replaceAll(':', '-')}.txt';
     if (getPlatform() == CPlatform.ios || getPlatform() == CPlatform.android) {
@@ -92,6 +88,7 @@ class _LogViewState extends State<LogView> {
 
   @override
   Widget build(BuildContext context) {
+    final store = LogStore.instance;
     return NavScaff(
       child: Column(
         children: [
@@ -150,51 +147,70 @@ class _LogViewState extends State<LogView> {
                     });
                   },
                 ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Background'),
+                  selected: _backgroundOnly,
+                  onSelected: (selected) {
+                    setState(() {
+                      _backgroundOnly = selected;
+                    });
+                  },
+                ),
                 const SizedBox(width: 16),
                 TextButton.icon(
                   onPressed: () {
-                    logBuffer.clear();
+                    store.clear();
                   },
                   icon: const Icon(Icons.delete_outline, size: 18),
                   label: const Text('Clear'),
                 ),
                 TextButton.icon(
-                  onPressed: _filteredLogs.isEmpty ? null : _exportLogs,
-                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  onPressed: _filteredLogs.isEmpty ? null : () => _exportLogs(_filteredLogs),
+                  icon: const Icon(Icons.filter_alt_outlined, size: 18),
                   label: const Text('Export'),
+                ),
+                TextButton.icon(
+                  onPressed: store.records.isEmpty
+                      ? null
+                      : () => _exportLogs(store.records),
+                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  label: const Text('Export All'),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: ListenableBuilder(
-              listenable: logBuffer,
-              builder: (context, child) {
-                final filteredLogs = _filteredLogs;
+            child: !store.isReady
+                ? const Center(child: DionProgressBar(size: 24))
+                : ListenableBuilder(
+                    listenable: store,
+                    builder: (context, child) {
+                      final filteredLogs = _filteredLogs;
 
-                if (filteredLogs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No logs found',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  );
-                }
+                      if (filteredLogs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No logs found',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: filteredLogs.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    // Show newest first
-                    final element =
-                        filteredLogs[filteredLogs.length - 1 - index];
-                    return _LogItem(element: element);
-                  },
-                );
-              },
-            ),
+                      return ListView.separated(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: filteredLogs.length,
+                        separatorBuilder: (context, index) =>
+                            const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          // Show newest first
+                          final record =
+                              filteredLogs[filteredLogs.length - 1 - index];
+                          return _LogItem(record: record);
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -202,10 +218,19 @@ class _LogViewState extends State<LogView> {
   }
 }
 
-class _LogItem extends StatelessWidget {
-  final OutputEvent element;
+class _LogItem extends StatefulWidget {
+  final LogRecord record;
 
-  const _LogItem({required this.element});
+  const _LogItem({required this.record});
+
+  @override
+  State<_LogItem> createState() => _LogItemState();
+}
+
+class _LogItemState extends State<_LogItem> {
+  bool _stackExpanded = false;
+
+  LogRecord get record => widget.record;
 
   Color _getColor(Level level) {
     return switch (level) {
@@ -230,8 +255,9 @@ class _LogItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getColor(element.origin.level);
-    final time = element.origin.time.formatrelative();
+    final color = _getColor(record.level);
+    final time = record.time.formatrelative();
+    final isBackground = record.source != kLogSourceMain;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -239,7 +265,7 @@ class _LogItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            _getIcon(element.origin.level),
+            _getIcon(record.level),
             color: color,
             size: 20,
           ).paddingOnly(top: 2, right: 8),
@@ -259,7 +285,7 @@ class _LogItem extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        element.origin.level.name.toUpperCase(),
+                        record.level.name.toUpperCase(),
                         style: TextStyle(
                           color: color,
                           fontSize: 10,
@@ -267,6 +293,27 @@ class _LogItem extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (isBackground) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'BG',
+                          style: TextStyle(
+                            color: Colors.deepPurple,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(width: 8),
                     Text(
                       time,
@@ -281,36 +328,71 @@ class _LogItem extends StatelessWidget {
                       icon: const Icon(Icons.copy, size: 14),
                       onPressed: () async {
                         await Clipboard.setData(
-                          ClipboardData(text: element.lines.join('\n')),
+                          ClipboardData(text: formatLogRecord(record)),
                         );
                       },
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                if (element.origin.message != 'FlutterError')
-                  _buildMessage(context),
-                if (element.origin.error != null)
+                if (record.message != 'FlutterError')
+                  Text(record.message, style: context.bodyMedium),
+                if (record.error != null)
                   Text(
-                    element.origin.error.toString(),
+                    record.error!,
                     style: const TextStyle(color: Colors.redAccent),
                   ).paddingOnly(top: 4),
-                if (element.origin.stackTrace != null)
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: context.theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      element.origin.stackTrace.toString(),
-                      maxLines: 5,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 10,
+                if (record.stackTrace != null)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _stackExpanded = !_stackExpanded;
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: context
+                            .theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _stackExpanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                                size: 14,
+                                color: context.theme.hintColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _stackExpanded
+                                    ? 'Stack trace'
+                                    : 'Stack trace (tap to expand)',
+                                style: TextStyle(
+                                  color: context.theme.hintColor,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            record.stackTrace!,
+                            maxLines: _stackExpanded ? null : 5,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -320,17 +402,5 @@ class _LogItem extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Widget _buildMessage(BuildContext context) {
-    final message = element.origin.message;
-    if (message is String) {
-      return Text(message, style: context.bodyMedium);
-    }
-    try {
-      return Text(jsonEncode(message), style: context.bodyMedium);
-    } catch (_) {
-      return Text(message.toString(), style: context.bodyMedium);
-    }
   }
 }
