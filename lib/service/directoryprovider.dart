@@ -57,10 +57,16 @@ class DirectoryProvider {
   }
 
   Future<void> clear() async {
+    final children = [extensionpath, databasepath, downloadspath, logspath];
+    for (final dir in children) {
+      try {
+        if (await dir.exists()) {
+          await dir.delete(recursive: true);
+        }
+      } catch (e, stack) {
+        logger.e('Failed to delete $dir while clearing data', error: e, stackTrace: stack);
+      }
+    }
     await basepath.delete(recursive: true);
-    await extensionpath.delete(recursive: true);
-    await databasepath.delete(recursive: true);
-    await temppath.delete(recursive: true);
-    await logspath.delete(recursive: true);
   }
 }
