@@ -163,22 +163,28 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       callIndirectly: false,
     ).disposedBy(scope);
 
-    locate<PlayerService>().setSession(
-      await AudioPlayerHandler.create(
-        widget.source,
-        player,
-        gonext: () {
-          if (mounted) {
-            widget.source.episode.goNext(widget.source);
-          }
-        },
-        goprev: () {
-          if (mounted) {
-            widget.source.episode.goPrev(widget.source);
-          }
-        },
-      )..disposedBy(scope),
+    final handler = await AudioPlayerHandler.create(
+      widget.source,
+      player,
+      gonext: () {
+        if (mounted) {
+          widget.source.episode.goNext(widget.source);
+        }
+      },
+      goprev: () {
+        if (mounted) {
+          widget.source.episode.goPrev(widget.source);
+        }
+      },
     );
+    if (!mounted) {
+      // The view was disposed while the handler was created; dispose it so
+      // its source listener and stream subscriptions do not leak
+      // (disposedBy would throw on the already-disposed scope).
+      await handler.dispose();
+      return;
+    }
+    locate<PlayerService>().setSession(handler..disposedBy(scope));
     Observer(
       () {
         player.setVolume(settings.audioBookSettings.volume.value);
@@ -194,10 +200,14 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
       callIndirectly: false,
     ).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
+    if (!mounted) return;
 
     playerStreamSubs.add(
       player.stream.completed.listen((event) {
         if (!event) {
+          return;
+        }
+        if (!mounted) {
           return;
         }
         if (player.state.playlist.index <

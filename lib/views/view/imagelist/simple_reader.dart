@@ -90,18 +90,30 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
         logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
       ),
     );
-    locate<PlayerService>().setSession(
-      await AudioPlayerHandler.create(
-        widget.supplier,
-        player!,
-        gonext: () {
+    final handler = await AudioPlayerHandler.create(
+      widget.supplier,
+      player!,
+      gonext: () {
+        if (mounted) {
           widget.source.episode.goNext(widget.supplier);
-        },
-        goprev: () {
+        }
+      },
+      goprev: () {
+        if (mounted) {
           widget.source.episode.goPrev(widget.supplier);
-        },
-      )..disposedBy(scope),
+        }
+      },
     );
+    if (!mounted) {
+      // The reader was closed while the handler was created; dispose the
+      // handler (detaching its source listener) and the player instead of
+      // registering them (disposedBy would throw on the disposed scope).
+      await handler.dispose();
+      await player!.dispose();
+      player = null;
+      return;
+    }
+    locate<PlayerService>().setSession(handler..disposedBy(scope));
     player!.setPlaylistMode(PlaylistMode.loop);
     player!.setVolume(psettings.volume.value);
     play();
