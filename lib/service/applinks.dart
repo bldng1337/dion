@@ -14,8 +14,31 @@ class AppLinksService {
 
   Uri? initialLink;
 
-  Stream<Uri> get linkStream => _linkController.stream;
+  Uri? _pendingLink;
+
   final _linkController = StreamController<Uri>.broadcast();
+
+  Stream<Uri> get linkStream {
+    late final StreamController<Uri> controller;
+    StreamSubscription<Uri>? subscription;
+    controller = StreamController<Uri>(
+      onListen: () {
+        final pending = _pendingLink;
+        _pendingLink = null;
+        if (pending != null) {
+          controller.add(pending);
+        }
+        subscription = _linkController.stream.listen(
+          controller.add,
+          onError: controller.addError,
+        );
+      },
+      onPause: () => subscription?.pause(),
+      onResume: () => subscription?.resume(),
+      onCancel: () => subscription?.cancel(),
+    );
+    return controller.stream;
+  }
 
   Future<void> Function(Uri)? onLinkReceived;
 
@@ -35,7 +58,7 @@ class AppLinksService {
       initialLink = await _appLinks.getInitialLink();
       if (initialLink != null) {
         logger.i('Received initial link: $initialLink');
-        _handleLink(initialLink!);
+        _pendingLink = initialLink;
       }
     } catch (e, stack) {
       logger.e('Failed to get initial link', error: e, stackTrace: stack);
