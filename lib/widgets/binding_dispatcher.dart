@@ -1,5 +1,6 @@
 import 'package:dionysos/data/settings/binding.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -29,9 +30,19 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
 
   static const double _swipeMinDistance = 64;
 
-  Offset? _downGlobal;
+  // Drag recognizers ignore mouse pointers by default; swipes were
+  // previously raw Listener events, so keep mouse working.
+  static const Set<PointerDeviceKind> _dragDevices = {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.trackpad,
+  };
+
   Offset? _downLocal;
   Offset? _tapDownLocal;
+  Offset? _dragStartLocal;
+  Offset? _dragLocal;
   Size? _size;
 
   @override
@@ -46,8 +57,21 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
     super.dispose();
   }
 
+  bool _isTypingContext() {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    if (focusContext.widget is EditableText) return true;
+    return focusContext.findAncestorStateOfType<EditableTextState>() != null;
+  }
+
   bool _handleKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
+    // Only act while this dispatcher's route is the topmost one; shortcuts
+    // must not fire while a dialog or a pushed settings page overlays the
+    // player, and must not hijack keys while the user is typing.
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return false;
+    if (_isTypingContext()) return false;
     for (final action in widget.actions) {
       for (final binding in action.setting.value) {
         if (binding is KeyBind && binding.matchesKey(event.logicalKey)) {
@@ -89,23 +113,32 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
     return false;
   }
 
-  void _onPointerDown(PointerDownEvent event) {
+  void _onDragStart(DragStartDetails details) {
     final box = _gestureKey.currentContext?.findRenderObject() as RenderBox?;
     _size = box?.size ?? Size.zero;
-    _downGlobal = event.position;
-    _downLocal = event.localPosition;
+    _dragStartLocal = details.localPosition;
+    _dragLocal = details.localPosition;
   }
 
-  void _onPointerUp(PointerUpEvent event) {
-    final down = _downGlobal;
-    if (down == null) return;
-    final delta = event.position - down;
+  void _onDragUpdate(DragUpdateDetails details) {
+    _dragLocal = details.localPosition;
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    final start = _dragStartLocal;
+    final current = _dragLocal;
+    _dragStartLocal = null;
+    _dragLocal = null;
+    if (start == null || current == null) return;
+    final delta = current - start;
     if (delta.distance >= _swipeMinDistance) {
-      final direction = _classifySwipe(delta);
-      _triggerGesture(SwipeGesture(direction, zone: _zoneOf(_downLocal)));
+      _triggerGesture(SwipeGesture(_classifySwipe(delta), zone: _zoneOf(start)));
     }
-    _downGlobal = null;
-    _downLocal = null;
+  }
+
+  void _onDragCancel() {
+    _dragStartLocal = null;
+    _dragLocal = null;
   }
 
   @override
@@ -113,16 +146,46 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
     return ListenableBuilder(
       listenable: Listenable.merge(widget.actions.map((a) => a.setting)),
       builder: (context, _) {
-        return Listener(
-          onPointerDown: _onPointerDown,
-          onPointerUp: _onPointerUp,
-          onPointerCancel: (_) {
-            _downGlobal = null;
-            _downLocal = null;
-            _tapDownLocal = null;
+        // Swipes are detected with arena-based drag recognizers instead of
+        // raw Listener events so that a scrollable which consumes the drag
+        // (inner recognizers win the arena) does not also trigger a page
+        // jump - touching a scroll list used to scroll *and* swipe.
+        return RawGestureDetector(
+          key: _gestureKey,
+          behavior: HitTestBehavior.translucent,
+          gestures: {
+            VerticalDragGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<
+                  VerticalDragGestureRecognizer
+                >(
+                  () => VerticalDragGestureRecognizer(
+                    supportedDevices: _dragDevices,
+                  ),
+                  (instance) {
+                    instance
+                      ..onStart = _onDragStart
+                      ..onUpdate = _onDragUpdate
+                      ..onEnd = _onDragEnd
+                      ..onCancel = _onDragCancel;
+                  },
+                ),
+            HorizontalDragGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<
+                  HorizontalDragGestureRecognizer
+                >(
+                  () => HorizontalDragGestureRecognizer(
+                    supportedDevices: _dragDevices,
+                  ),
+                  (instance) {
+                    instance
+                      ..onStart = _onDragStart
+                      ..onUpdate = _onDragUpdate
+                      ..onEnd = _onDragEnd
+                      ..onCancel = _onDragCancel;
+                  },
+                ),
           },
           child: GestureDetector(
-            key: _gestureKey,
             behavior: HitTestBehavior.translucent,
             onTapDown: (d) => _tapDownLocal = d.localPosition,
             onTap: () {
