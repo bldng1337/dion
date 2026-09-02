@@ -227,7 +227,7 @@ DEFINE TABLE IF NOT EXISTS extension;
 
   Stream<EntrySaved> getEntries(int page, int limit) {
     return _getEntriesSQL(
-      'SELECT * FROM type::table(\$entry) LIMIT \$limit START \$offset*\$limit FETCH categories',
+      'SELECT * FROM type::table(\$entry) ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
       {'limit': limit, 'offset': page, 'entry': entryTable.tb},
     );
   }
@@ -239,12 +239,12 @@ DEFINE TABLE IF NOT EXISTS extension;
   ) {
     if (category == null) {
       return _getEntriesSQL(
-        'SELECT * FROM type::table(\$entry) WHERE count(categories) = 0 LIMIT \$limit START \$offset*\$limit FETCH categories',
+        'SELECT * FROM type::table(\$entry) WHERE count(categories) = 0 ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
         {'limit': limit, 'offset': page, 'entry': entryTable.tb},
       );
     }
     return _getEntriesSQL(
-      'SELECT * FROM type::table(\$entry) WHERE categories CONTAINS \$category LIMIT \$limit START \$offset*\$limit FETCH categories',
+      'SELECT * FROM type::table(\$entry) WHERE categories CONTAINS \$category ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
       {
         'limit': limit,
         'offset': page,
@@ -259,6 +259,7 @@ DEFINE TABLE IF NOT EXISTS extension;
       'SELECT * FROM type::table(\$entry) WHERE '
       'array::any(entry.titles, |\$t| string::contains(string::lowercase(\$t), \$query)) OR '
       '(entry.author != NONE AND array::any(entry.author, |\$a| string::contains(string::lowercase(\$a), \$query))) '
+      'ORDER BY id '
       'LIMIT \$limit START \$offset*\$limit FETCH categories',
       {
         'entry': entryTable.tb,
@@ -279,7 +280,9 @@ DEFINE TABLE IF NOT EXISTS extension;
     final (where, vars) = _buildEntryWhere(scope, filters);
     final projection = sort.toProjection();
     final selectClause = projection == null ? '*' : '*, ${projection.select}';
-    final orderClause = projection == null ? '' : ' ${projection.orderBy}';
+    final orderClause = projection == null
+        ? ' ORDER BY id'
+        : ' ${projection.orderBy}, id';
     return _getEntriesSQL(
       'SELECT $selectClause FROM type::table(\$entry)$where$orderClause '
       'LIMIT \$limit START \$offset*\$limit FETCH categories',
