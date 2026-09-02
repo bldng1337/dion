@@ -21,7 +21,8 @@ class LoadingEntry<T> extends CacheValue<T> {
 
   Future<Result<T>> get future => value.future;
 
-  bool get isComplete => value.isCompleted;
+
+  bool get isComplete => value.isResolved && value.error == null;
 
   Result<T>? get result => value.value;
 

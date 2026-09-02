@@ -21,6 +21,7 @@ class Completable<T> implements Completer<T> {
   Object? _error;
   StackTrace? _stackTrace;
   bool _complete = false;
+  bool _resolved = false;
 
   Completable();
 
@@ -31,13 +32,23 @@ class Completable<T> implements Completer<T> {
     }
     _complete = true;
     if (value is Future<T>) {
-      _future = value.then((v) {
-        _value = v;
-        return v;
-      });
+      _future = value.then(
+        (v) {
+          _value = v;
+          _resolved = true;
+          return v;
+        },
+        onError: (Object e, StackTrace s) {
+          _error = e;
+          _stackTrace = s;
+          _resolved = true;
+          throw e;
+        },
+      );
       return;
     }
     _value = value;
+    _resolved = true;
     _future = Future.value(value);
   }
 
@@ -47,6 +58,7 @@ class Completable<T> implements Completer<T> {
       throw StateError('Future already completed');
     }
     _complete = true;
+    _resolved = true;
     _error = error;
     _stackTrace = stackTrace;
     _future = Future.error(error, stackTrace);
@@ -67,6 +79,7 @@ class Completable<T> implements Completer<T> {
 
   @override
   bool get isCompleted => _complete;
+  bool get isResolved => _resolved;
 }
 
 class LoadingBuilder<T> extends StatelessWidget {
