@@ -45,6 +45,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   final ValueNotifier<int> streamIndex = ValueNotifier(0);
   Object? exception;
 
+  bool loading = true;
+
   List<Subtitles> get subtitles {
     if (currentVideo == null) return [];
     return currentVideo!.sub;
@@ -84,6 +86,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     this.player = player;
     controller = VideoController(player);
     sourceObserver = Observer(() async {
+      loading = true;
       final res = await widget.source.cache.get(widget.source.episode);
       if (!mounted) return;
       if (res.isFailure) {
@@ -121,6 +124,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           start: startduration,
         ),
       );
+      loading = false;
       await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
       if (subtitles.isNotEmpty &&
@@ -131,11 +135,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           SubtitleTrack.uri(sub.url.url, title: sub.title),
         );
       }
-    }, widget.source)..disposedBy(scope);
+    }, widget.source, callIndirectly: false)..disposedBy(scope);
     Observer(
       () async {
         final video = currentVideo;
         if (video == null) return;
+        loading = true;
         final startduration = player.state.position;
         final stream = video.sources[getStreamIndex()];
         await player.open(
@@ -145,11 +150,13 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             start: startduration,
           ),
         );
+        loading = false;
         if (!mounted) return;
         SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
       },
       streamIndex,
       callOnInit: false,
+      callIndirectly: false,
     ).disposedBy(scope);
     Observer(
       () async {
@@ -169,22 +176,28 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       subtitleIndex,
       callOnInit: false,
     ).disposedBy(scope);
-    locate<PlayerService>().setSession(
-      await AudioPlayerHandler.create(
-        widget.source,
-        player,
-        gonext: () {
-          if (mounted) {
-            widget.source.episode.goNext(widget.source);
-          }
-        },
-        goprev: () {
-          if (mounted) {
-            widget.source.episode.goPrev(widget.source);
-          }
-        },
-      )..disposedBy(scope),
+    final handler = await AudioPlayerHandler.create(
+      widget.source,
+      player,
+      gonext: () {
+        if (mounted) {
+          widget.source.episode.goNext(widget.source);
+        }
+      },
+      goprev: () {
+        if (mounted) {
+          widget.source.episode.goPrev(widget.source);
+        }
+      },
     );
+    if (!mounted) {
+      // The view was disposed while the handler was being created;
+      // disposing it detaches its listener from the long-lived source
+      // supplier instead of leaking it (disposedBy would throw here).
+      await handler.dispose();
+      return;
+    }
+    locate<PlayerService>().setSession(handler..disposedBy(scope));
     Observer(() {
       player.setVolume(settings.videoSettings.volume.value);
     }, settings.videoSettings.volume).disposedBy(scope);
@@ -192,6 +205,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       player.setRate(settings.videoSettings.speed.value);
     }, settings.videoSettings.speed).disposedBy(scope);
     await player.setPlaylistMode(PlaylistMode.none);
+    if (!mounted) return;
 
     playerStreamSubs.add(
       player.stream.completed.listen((event) {
@@ -215,12 +229,14 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         if (!mounted) {
           return;
         }
+        if (loading) return;
         SessionData.of(context)?.manager.keepSessionAlive();
         final playlistindex = player.state.playlist.index;
         widget.source.episode.data.progress =
             '$playlistindex:${event.inMilliseconds}';
-        if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5 &&
-            playlistindex / player.state.playlist.medias.length > 0.5) {
+        final duration = player.state.duration;
+        if (duration > Duration.zero &&
+            event.inMilliseconds / duration.inMilliseconds > 0.5) {
           widget.source.cache.preload(widget.source.episode.next);
         }
         if (event.inSeconds % 5 == 0) {
@@ -552,9 +568,11 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           ),
         ],
         child: Center(
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.width * 9.0 / 16.0,
+          // Size to the largest 16:9 box that fits the available area; a
+          // fixed width-derived height overflows (clipping the controls) in
+          // wide, short desktop windows.
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
             child: MaterialVideoControlsTheme(
               normal: getPlayerTheme(false),
               fullscreen: getPlayerTheme(true),
