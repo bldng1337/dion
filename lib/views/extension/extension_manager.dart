@@ -315,6 +315,12 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     _resolveRepos();
   }
 
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
   Future<void> _resolveRepos() async {
     final repos = settings.extension.repositories.value;
     final sourceExt = locate<src.ExtensionService>();
@@ -326,32 +332,34 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
       _rebuildController();
     });
     for (final url in repos) {
-      try {
-        // We don't await here because we want to resolve all repos in parallel, and update the state as each one resolves.
-        sourceExt.getRepo(url).then((repo) {
-          if (!mounted) {
-            return;
-          }
-          setState(() {
-            _resolved.add(_ResolvedRepo(url, repo));
-            _rebuildController();
-          });
-        });
-      } catch (e) {
-        logger.e('Failed to load repo $url', error: e);
+      resolveRepo(sourceExt, url);
+    }
+  }
+
+  Future<void> resolveRepo(src.ExtensionService sourceExt, String url) async {
+    try {
+      final repo = await sourceExt.getRepo(url);
+      if (!mounted) {
+        return;
       }
+      setState(() {
+        _resolved.add(_ResolvedRepo(url, repo));
+        _rebuildController();
+      });
+    } catch (e, stack) {
+      logger.e('Failed to load repo $url', error: e, stackTrace: stack);
     }
   }
 
   void _rebuildController() {
+    _controller?.dispose();
+    _controller = null;
     final resolved = _resolved;
     if (resolved.isEmpty || _updatesOnly) {
-      _controller = null;
       return;
     }
     final effective = effectiveRepos(resolved);
     if (effective.isEmpty) {
-      _controller = null;
       return;
     }
     final sources = effective.map((r) {
