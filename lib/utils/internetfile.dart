@@ -115,8 +115,12 @@ class InternetFile {
       await file.writeAsString('#EXTM3U\n${newplaylist.join('\n')}');
     } catch (e, stack) {
       logger.e('Failed to download m3u8', error: e, stackTrace: stack);
-      await file.delete();
-      await contentdir.delete(recursive: true);
+      if (await file.exists()) {
+        await file.delete();
+      }
+      if (await contentdir.exists()) {
+        await contentdir.delete(recursive: true);
+      }
       rethrow;
     }
     return file;
