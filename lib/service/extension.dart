@@ -28,6 +28,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart' show DialogRoute, showDialog;
 import 'package:flutter/widgets.dart'
     show
+        BuildContext,
         ChangeNotifier,
         CurveTween,
         Curves,
@@ -259,6 +260,7 @@ class Extension extends ChangeNotifier {
 
   DataSource<Entry> browse({rust.CancelToken? token}) {
     final db = locate<Database>();
+    var fetched = 0;
     return PageAsyncSource((page) async {
       final res = await _proxy.browse(page: page, token: token);
       final entries = await Future.wait(
@@ -270,10 +272,11 @@ class Extension extends ChangeNotifier {
           return entry;
         }).toList(),
       );
-      if (res.length != null && res.length! >= page) {
+      fetched += entries.length;
+      if (res.hasnext != null && !res.hasnext!) {
         return Page.last(entries);
       }
-      if (res.hasnext != null && !res.hasnext!) {
+      if (res.length != null && fetched >= res.length!) {
         return Page.last(entries);
       }
       return Page.more(entries);
@@ -286,15 +289,19 @@ class Extension extends ChangeNotifier {
         logger.i('Opening browser for url ${browse.url} for extension $data');
         await launchUrl(Uri.parse(browse.url));
       case final rust.Action_Popup popup:
+        final navContext = _navigatorContextOrNull();
+        if (navContext == null) return;
         _trackView(
           DialogRoute<void>(
-            context: navigatorKey.currentContext!,
+            context: navContext,
             builder: (context) => ActionDialog(popup: popup, extension: this),
           ),
         );
       case rust.Action_PopView():
         _popMostRecentView();
       case final rust.Action_Nav nav:
+        final navContext = _navigatorContextOrNull();
+        if (navContext == null) return;
         _trackView(
           PageRouteBuilder<void>(
             transitionDuration: const Duration(milliseconds: 250),
@@ -319,18 +326,31 @@ class Extension extends ChangeNotifier {
           ),
         );
       case final rust.Action_NavEntry navEntry:
-        GoRouter.of(
-          navigatorKey.currentContext!,
-        ).push('/detail', extra: [navEntry.entry]);
+        final navContext = _navigatorContextOrNull();
+        if (navContext == null) return;
+        GoRouter.of(navContext).push('/detail', extra: [navEntry.entry]);
       case final rust.Action_ShowToast toast:
         showToast(toast.message, toast.kind);
     }
   }
 
+  BuildContext? _navigatorContextOrNull() {
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      logger.w(
+        'Extension action ignored: no navigator context (app not ready or '
+        'running in the background)',
+      );
+    }
+    return context;
+  }
+
   /// Pushes [route] (a popup or nav owned by this extension) onto the navigator
   /// and tracks it so it can later be dismissed by [Action_PopView].
   void _trackView(Route<dynamic> route) {
-    final navigator = Navigator.of(navigatorKey.currentContext!);
+    final navContext = _navigatorContextOrNull();
+    if (navContext == null) return;
+    final navigator = Navigator.of(navContext);
     final handle = _ExtensionViewHandle(route: route, navigator: navigator);
     _activeViews.add(handle);
     navigator.push<void>(route).then((_) => _activeViews.remove(handle));
@@ -522,6 +542,7 @@ class Extension extends ChangeNotifier {
 
   DataSource<Entry> search(String filter, {rust.CancelToken? token}) {
     final db = locate<Database>();
+    var fetched = 0;
     return PageAsyncSource((page) async {
       final res = await _proxy.search(page: page, filter: filter, token: token);
       final entries = await Future.wait(
@@ -533,10 +554,12 @@ class Extension extends ChangeNotifier {
           return entry;
         }).toList(),
       );
-      if (res.length != null && res.length! >= page) {
+      fetched += entries.length;
+      // See browse(): res.length is the total item count, not a page count.
+      if (res.hasnext != null && !res.hasnext!) {
         return Page.last(entries);
       }
-      if (res.hasnext != null && !res.hasnext!) {
+      if (res.length != null && fetched >= res.length!) {
         return Page.last(entries);
       }
       return Page.more(entries);
@@ -675,25 +698,60 @@ class ExtensionAdapter with ChangeNotifier {
   final _extensions = <Extension>[];
   final rust.ProxyAdapter adapter;
   final String name;
+  bool _reloading = false;
   ExtensionAdapter(this.name, this.adapter);
 
   Future<void> reload() async {
-    _extensions.clear();
-    final exts = await adapter.getExtensions();
-    final db = await locateAsync<Database>();
-    _extensions.addAll(
-      await Future.wait(exts.map((e) => Extension.fromProxy(e, db))),
-    );
+    if (_reloading) {
+      // Overlapping reloads (or a reload racing install) would interleave
+      // the clear/addAll below and produce duplicate entries.
+      return;
+    }
+    _reloading = true;
+    try {
+      final exts = await adapter.getExtensions();
+      final db = await locateAsync<Database>();
+      // Build the full new list before swapping so one broken extension
+      // neither wipes the currently working ones nor aborts startup.
+      final loaded = <Extension>[];
+      for (final e in exts) {
+        try {
+          loaded.add(await Extension.fromProxy(e, db));
+        } catch (err, stack) {
+          logger.e(
+            'Failed to load extension; skipping it',
+            error: err,
+            stackTrace: stack,
+          );
+        }
+      }
+      final old = List<Extension>.of(_extensions);
+      _extensions
+        ..clear()
+        ..addAll(loaded);
+      // Replaced instances are abandoned proxies; dispose them so their ui
+      // store watchdogs, change buses and native handles do not leak.
+      for (final ext in old) {
+        if (!loaded.contains(ext)) {
+          ext.dispose();
+        }
+      }
+    } finally {
+      _reloading = false;
+    }
   }
 
   DataSource<RemoteExtension> getRepoDataSource(rust.ExtensionRepo repo) {
+    var fetched = 0;
     return PageAsyncSource((page) async {
       final res = await adapter.browseRepo(repo: repo, page: page);
       final data = res.content.map((e) => RemoteExtension(this, e)).toList();
-      if (res.length != null && res.length! >= page) {
+      fetched += data.length;
+      // See Extension.browse(): res.length is the total item count.
+      if (res.hasnext != null && !res.hasnext!) {
         return Page.last(data);
       }
-      if (res.hasnext != null && !res.hasnext!) {
+      if (res.length != null && fetched >= res.length!) {
         return Page.last(data);
       }
       return Page.more(data);
@@ -714,14 +772,19 @@ class ExtensionAdapter with ChangeNotifier {
     }
     final db = await locateAsync<Database>();
     final newext = await Extension.fromProxy(ext, db);
-    _extensions.removeWhere((e) => e.data.id == newext.data.id);
+    final old = _extensions
+        .where((e) => e.data.id == newext.data.id)
+        .firstOrNull;
+    _extensions.remove(old);
     _extensions.add(newext);
+    old?.dispose();
     notifyListeners();
   }
 
   Future<void> uninstall(Extension ext) async {
     await adapter.uninstall(ext: ext._proxy);
     _extensions.remove(ext);
+    ext.dispose();
     notifyListeners();
   }
 }
@@ -810,7 +873,7 @@ class ExtensionService with ChangeNotifier {
               entry.extensionSettings[key] = entry.extensionSettings[key]!
                   .copyWith(value: value);
               await entry.save();
-              getExtension(data.id).settingChanges.notify(busKey);
+              _notifySettingChange(data.id, busKey);
               return;
             }
             // 2. An attached EntryProcessor extension's settings.
@@ -820,12 +883,24 @@ class ExtensionService with ChangeNotifier {
             final entryExts = entryExt?.extensionSettings;
             if (entryExts != null && entryExts.containsKey(key)) {
               entryExts[key] = entryExts[key]!.copyWith(value: value);
-              entry.extension?.refreshEntryExtension(
-                entry,
-                entryExt!.extension!,
-              );
+              // Await (and contain) the refresh before saving so the
+              // refreshed state is what gets persisted; unawaited, it raced
+              // the save below and its errors surfaced unhandled across the
+              // FFI boundary.
+              try {
+                await entry.extension?.refreshEntryExtension(
+                  entry,
+                  entryExt!.extension!,
+                );
+              } catch (e, stack) {
+                logger.e(
+                  'Failed to refresh entry extension after setting change',
+                  error: e,
+                  stackTrace: stack,
+                );
+              }
               await entry.save();
-              getExtension(data.id).settingChanges.notify(busKey);
+              _notifySettingChange(data.id, busKey);
               return;
             }
             // 3. An attached SourceProcessor extension's settings.
@@ -836,12 +911,19 @@ class ExtensionService with ChangeNotifier {
             if (sourceExts != null && sourceExts.containsKey(key)) {
               sourceExts[key] = sourceExts[key]!.copyWith(value: value);
               await entry.save();
-              getExtension(data.id).settingChanges.notify(busKey);
+              _notifySettingChange(data.id, busKey);
               return;
             }
           },
           storeSet: (key, value) {
-            return getExtension(data.id).uiStore.set(key, value);
+            final ext = tryGetExtension(data.id);
+            if (ext == null) {
+              logger.w(
+                'Extension ${data.id} not found; dropping store set for $key',
+              );
+              return Future.value();
+            }
+            return ext.uiStore.set(key, value);
           },
           loadDataSecure: (key) async {
             try {
@@ -893,7 +975,14 @@ class ExtensionService with ChangeNotifier {
             }
           },
           doAction: (rust.Action action) async {
-            await getExtension(data.id).runAction(action);
+            final ext = tryGetExtension(data.id);
+            if (ext == null) {
+              logger.w(
+                'Extension ${data.id} not found; dropping action $action',
+              );
+              return;
+            }
+            await ext.runAction(action);
           },
           requestPermission:
               (rust.Permission permission, String? message) async {
@@ -982,6 +1071,17 @@ class ExtensionService with ChangeNotifier {
       throw ExtensionNotFoundException(id);
     }
     return ext;
+  }
+
+  void _notifySettingChange(String extensionId, String busKey) {
+    final ext = tryGetExtension(extensionId);
+    if (ext == null) {
+      logger.w(
+        'Extension $extensionId not found; dropping setting change for $busKey',
+      );
+      return;
+    }
+    ext.settingChanges.notify(busKey);
   }
 
   Iterable<Extension> getExtensions({bool Function(Extension e)? extfilter}) {
