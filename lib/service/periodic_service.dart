@@ -109,7 +109,7 @@ class PeriodicService {
         job.taskName,
         frequency: Duration(hours: intervalHours),
         constraints: Constraints(networkType: NetworkType.connected),
-        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
       );
       logger.i(
         'Scheduled periodic task ${job.taskName} every $intervalHours hours',
