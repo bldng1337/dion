@@ -740,6 +740,14 @@ class _DynamicListState<T> extends State<DynamicList<T>>
     controllerObserver.swapListener(widget.controller);
   }
 
+  @override
+  void didUpdateWidget(DynamicList<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      controllerObserver.swapListener(widget.controller);
+    }
+  }
+
   Future<void> loadMore() async {
     while (shouldrequest) {
       await widget.controller.requestMore();
@@ -892,6 +900,14 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
   void didChangeDependencies() {
     super.didChangeDependencies();
     controllerObserver.swapListener(widget.controller);
+  }
+
+  @override
+  void didUpdateWidget(DynamicListSeperated<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      controllerObserver.swapListener(widget.controller);
+    }
   }
 
   Future<void> loadMore() async {

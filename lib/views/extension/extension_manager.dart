@@ -8,6 +8,7 @@ import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/toast.dart';
 import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -28,6 +29,7 @@ import 'package:flutter/material.dart'
         DropdownMenuItem,
         FilterChip,
         Icons,
+        InputDecoration,
         TextButton,
         TextField,
         showDialog;
@@ -301,6 +303,12 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     with StateDisposeScopeMixin {
   List<_ResolvedRepo> _resolved = [];
 
+  final Set<String> _failedRepos = {};
+
+  int _pendingRepos = 0;
+
+  int _resolveGeneration = 0;
+
   String? _selectedRepoUrl;
 
   String? _selectedSourceType;
@@ -309,14 +317,20 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
 
   DataSourceController<src.RemoteExtension>? _controller;
 
+  void _onRepositoriesChanged() {
+    _resolveRepos();
+  }
+
   @override
   void initState() {
     super.initState();
+    settings.extension.repositories.addListener(_onRepositoriesChanged);
     _resolveRepos();
   }
 
   @override
   void dispose() {
+    settings.extension.repositories.removeListener(_onRepositoriesChanged);
     _controller?.dispose();
     super.dispose();
   }
@@ -324,30 +338,45 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
   Future<void> _resolveRepos() async {
     final repos = settings.extension.repositories.value;
     final sourceExt = locate<src.ExtensionService>();
+    final generation = ++_resolveGeneration;
     setState(() {
       _resolved = [];
-      if (_selectedRepoUrl != null) {
+      _failedRepos.clear();
+      _pendingRepos = repos.length;
+      if (_selectedRepoUrl != null && !repos.contains(_selectedRepoUrl)) {
         _selectedRepoUrl = null;
       }
       _rebuildController();
     });
     for (final url in repos) {
-      resolveRepo(sourceExt, url);
+      resolveRepo(sourceExt, url, generation);
     }
   }
 
-  Future<void> resolveRepo(src.ExtensionService sourceExt, String url) async {
+  Future<void> resolveRepo(
+    src.ExtensionService sourceExt,
+    String url,
+    int generation,
+  ) async {
     try {
       final repo = await sourceExt.getRepo(url);
-      if (!mounted) {
+      if (!mounted || generation != _resolveGeneration) {
         return;
       }
       setState(() {
         _resolved.add(_ResolvedRepo(url, repo));
+        _pendingRepos--;
         _rebuildController();
       });
     } catch (e, stack) {
       logger.e('Failed to load repo $url', error: e, stackTrace: stack);
+      if (!mounted || generation != _resolveGeneration) {
+        return;
+      }
+      setState(() {
+        _failedRepos.add(url);
+        _pendingRepos--;
+      });
     }
   }
 
@@ -394,12 +423,9 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
             const Text('No repositories configured'),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () async {
-                await showAddRepositoryDialog(context);
-                if (mounted) {
-                  _resolveRepos();
-                }
-              },
+              // The repositories listener on this state re-resolves when the
+              // dialog adds a repo, so nothing else is needed here.
+              onPressed: () => showAddRepositoryDialog(context),
               child: const Text('Add Repository'),
             ),
           ],
@@ -409,6 +435,22 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
 
     final resolved = _resolved;
     if (resolved.isEmpty) {
+      if (_pendingRepos == 0 && _failedRepos.isNotEmpty) {
+        return Center(
+          child: ErrorDisplay(
+            e: Exception(
+              'Failed to load repositories: ${_failedRepos.join(', ')}',
+            ),
+            logError: false,
+            actions: [
+              ErrorAction(
+                label: 'Retry',
+                onTap: _resolveRepos,
+              ),
+            ],
+          ),
+        );
+      }
       return const Center(child: DionProgressBar());
     }
 
@@ -616,37 +658,65 @@ class RemoteExtensionTile extends StatelessWidget {
   }
 }
 
-Future<void> showAddRepositoryDialog(BuildContext context) async {
-  final scope = DisposeScope();
-  final controller = TextEditingController()..disposedBy(scope);
-  try {
-    final res = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Repository'),
-        content: TextField(
-          controller: controller,
-          // decoration: const InputDecoration(hintText: 'https://...'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-    if (res != null && res.isNotEmpty) {
-      settings.extension.repositories.value = [
-        ...settings.extension.repositories.value,
-        res,
-      ];
-    }
-  } finally {
-    await scope.dispose();
+class _AddRepositoryDialog extends StatefulWidget {
+  const _AddRepositoryDialog();
+
+  @override
+  State<_AddRepositoryDialog> createState() => _AddRepositoryDialogState();
+}
+
+class _AddRepositoryDialogState extends State<_AddRepositoryDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    // Disposing here (instead of right after showDialog returns) is what
+    // keeps the dialog's exit animation from touching a dead controller.
+    _controller.dispose();
+    super.dispose();
   }
+
+  void _submit() {
+    Navigator.pop(context, _controller.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add Repository'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'https://...'),
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _controller.text.trim().isEmpty ? null : _submit,
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
+
+Future<void> showAddRepositoryDialog(BuildContext context) async {
+  final res = await showDialog<String>(
+    context: context,
+    builder: (context) => const _AddRepositoryDialog(),
+  );
+  if (res == null || res.isEmpty) {
+    return;
+  }
+  final repos = settings.extension.repositories.value;
+  if (repos.contains(res)) {
+    showToast('Repository already added', src.ToastKind.warning);
+    return;
+  }
+  settings.extension.repositories.value = [...repos, res];
 }
