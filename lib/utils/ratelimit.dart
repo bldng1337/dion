@@ -14,11 +14,13 @@ class LeakyBucketRatelimit implements Ratelimit {
   LeakyBucketRatelimit(this._bucketsize, this._refilltime)
     : _bucket = _bucketsize;
 
-  factory LeakyBucketRatelimit.fromRate(int persecond, {int bucketsize = 10}) =>
-      LeakyBucketRatelimit(
-        bucketsize,
-        Duration(seconds: (bucketsize / persecond).round()),
-      );
+  factory LeakyBucketRatelimit.fromRate(int persecond, {int bucketsize = 10}) {
+    final refillMillis = max(1, (bucketsize * 1000 / persecond).round());
+    return LeakyBucketRatelimit(
+      bucketsize,
+      Duration(milliseconds: refillMillis),
+    );
+  }
 
   @override
   bool tryAcquire() {
@@ -29,7 +31,7 @@ class LeakyBucketRatelimit implements Ratelimit {
     );
     if (refill.floor() > 0) {
       _bucket = min(refill.floor() + _bucket, _bucketsize);
-      _lastrefill = DateTime.now().add(
+      _lastrefill = DateTime.now().subtract(
         Duration(
           milliseconds: ((refill - refill.floorToDouble()) / fillrate).floor(),
         ),
