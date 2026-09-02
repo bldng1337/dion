@@ -109,15 +109,12 @@ Future<void> notify(Update update, {bool force = false}) async {
         return;
       }
       final version = await getVersion();
-      final versiondiff = (
-        (update.version.major - version.major).abs().sign,
-        (update.version.minor - version.minor).abs().sign,
-        (update.version.patch - version.patch).abs().sign,
-      );
-      if (!settings.update.patch.value && versiondiff == (0, 0, 1)) {
+      final majorDiff = (update.version.major - version.major).abs().sign;
+      final minorDiff = (update.version.minor - version.minor).abs().sign;
+      if (!settings.update.patch.value && (majorDiff, minorDiff) == (0, 0)) {
         return;
       }
-      if (!settings.update.minor.value && versiondiff == (0, 1, 0)) {
+      if (!settings.update.minor.value && majorDiff == 0) {
         return;
       }
     }
