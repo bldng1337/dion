@@ -45,6 +45,11 @@ class DownloadTask extends Task {
     await download.ratelimit.acquire();
     final dir = DownloadService._getDownloadPath(ep);
     await dir.create(recursive: true);
+    // Written before any content so an interrupted download can be told
+    // apart from a finished one by the finished flag flipping to true.
+    await dir
+        .getFile('index.json')
+        .writeAsString(jsonEncode({'version': downloadVersion, 'finished': false}));
     await handleMetadata(dir);
 
     status = 'Fetching Source';
@@ -71,8 +76,8 @@ class DownloadTask extends Task {
           rhttpToken: rhttpToken,
         );
         progress = null;
-        index['filetype'] = 'epub';
-        index['filename'] = filename;
+        index['type'] = 'epub';
+        index['filename'] = filename.filename;
       case final Source_Pdf data:
         status = 'Downloading PDF';
         final filename = await InternetFile.streamToFile(
@@ -83,8 +88,8 @@ class DownloadTask extends Task {
           rhttpToken: rhttpToken,
         );
         progress = null;
-        index['filetype'] = 'pdf';
-        index['filename'] = filename;
+        index['type'] = 'pdf';
+        index['filename'] = filename.filename;
       case final Source_Imagelist data:
         status = 'Downloading Images';
         index['type'] = 'imagelist';
@@ -170,6 +175,7 @@ class DownloadTask extends Task {
           index['playlist'] = file.filename;
         }
     }
+    index['finished'] = true;
     await dir.getFile('index.json').writeAsString(jsonEncode(index));
   }
 
@@ -177,7 +183,12 @@ class DownloadTask extends Task {
   void onFailed(Object? error) {
     final dir = DownloadService._getDownloadPath(ep);
     if (dir.existsSync()) {
-      dir.delete(recursive: true);
+      dir.delete(recursive: true).then(
+        (_) {},
+        onError: (Object e) {
+          logger.e('Failed to delete partial download', error: e);
+        },
+      );
     }
   }
 
@@ -186,6 +197,17 @@ class DownloadTask extends Task {
     token.cancel();
     token.dispose();
     rhttpToken.cancel();
+    // Task.run deliberately skips onFailed when a task is cancelled, so the
+    // partial download directory has to be removed here; otherwise it would
+    // be mistaken for a finished download.
+    final dir = DownloadService._getDownloadPath(ep);
+    if (dir.existsSync()) {
+      try {
+        await dir.delete(recursive: true);
+      } catch (e) {
+        logger.e('Failed to delete cancelled download', error: e);
+      }
+    }
   }
 }
 
@@ -255,6 +277,11 @@ class DownloadService {
       categoryids: ['download', ep.extensionid],
     );
     StreamSubscription<FileSystemEvent>? filewatcher;
+    // Cancelling the subscription does not close the controller, so
+    // controller.isClosed is never true; track cancellation explicitly so
+    // the async exists() check below does not install a watcher nobody
+    // will ever cancel.
+    var cancelled = false;
     final controller = StreamController<DownloadStatus>();
     controller.onListen = () {
       final sub = stream.listen((task) {
@@ -266,7 +293,7 @@ class DownloadService {
         path
             .exists()
             .then((value) {
-              if (controller.isClosed) return;
+              if (cancelled) return;
               // Cancel any previous watcher before (re)assigning so repeated
               // status transitions don't leak native file-system watchers.
               filewatcher?.cancel();
@@ -288,8 +315,10 @@ class DownloadService {
       });
 
       controller.onCancel = () {
+        cancelled = true;
         sub.cancel();
         filewatcher?.cancel();
+        filewatcher = null;
       };
     };
     return controller.stream;
@@ -297,14 +326,25 @@ class DownloadService {
 
   Future<bool> isDownloaded(EpisodePath ep) async {
     final path = _getDownloadPath(ep);
-    return await path.exists();
+    if (!await path.exists()) {
+      return false;
+    }
+    try {
+      final index = jsonDecode(await path.getFile('index.json').readAsString());
+      // Downloads written before the finished flag existed never set it, so
+      // only an explicit false (interrupted download) disqualifies.
+      return index is Map && index['finished'] != false;
+    } catch (e) {
+      logger.e('Error reading download index', error: e);
+      return false;
+    }
   }
 
   Future<Source?> getDownloaded(EpisodePath ep) async {
     final path = _getDownloadPath(ep);
     if (await path.exists()) {
       final index = jsonDecode(await path.getFile('index.json').readAsString());
-      if (index['version'] != downloadVersion) {
+      if (index['version'] != downloadVersion || index['finished'] == false) {
         return null;
       }
       switch (index['type']) {
