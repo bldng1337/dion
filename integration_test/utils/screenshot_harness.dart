@@ -86,6 +86,7 @@ Future<void> bootstrapScreenshots() async {
       databasepath: await tempBase.sub('database').create(recursive: true),
       temppath: await tempBase.sub('temp').create(recursive: true),
       downloadspath: await tempBase.sub('downloads').create(recursive: true),
+      logspath: await tempBase.sub('logs').create(recursive: true),
     ),
   );
 
