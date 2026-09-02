@@ -168,6 +168,9 @@ class CustomUIChangeBus implements Disposable {
     if (token is _Token) {
       b.listeners.remove(token);
     }
+    if (b.listeners.isEmpty) {
+      _broadcasters.remove(key);
+    }
   }
 
   @override
