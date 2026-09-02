@@ -31,12 +31,12 @@ class _SearchState extends State<Search>
 
   @override
   void didChangeDependencies() {
+    super.didChangeDependencies();
     final query = GoRouterState.of(context).pathParameters['query'] ?? '';
     if (query == (lastquery ?? '')) return;
     lastquery = query;
     search(query);
     controller.text = query;
-    super.didChangeDependencies();
   }
 
   @override
@@ -109,11 +109,18 @@ class _SearchState extends State<Search>
               ),
             ],
           ).paddingAll(5),
-          DynamicGrid<Entry>(
-            itemBuilder: (BuildContext context, item) =>
-                EntryDisplay(entry: item),
-            controller: datacontroller!,
-          ).expanded(),
+          if (datacontroller == null)
+            // No active query (e.g. /search/ opened without a term); the
+            // grid below would otherwise crash on the null controller.
+            const Center(
+              child: Text('Type something to search'),
+            ).expanded()
+          else
+            DynamicGrid<Entry>(
+              itemBuilder: (BuildContext context, item) =>
+                  EntryDisplay(entry: item),
+              controller: datacontroller!,
+            ).expanded(),
         ],
       ),
     );
