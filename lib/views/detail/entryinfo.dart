@@ -587,12 +587,30 @@ Widget isEntryDetailed({
   );
 }
 
-class ChapterInfo extends StatelessWidget {
+class ChapterInfo extends StatefulWidget {
   final EntryDetailed entry;
 
   const ChapterInfo({super.key, required this.entry});
 
+  @override
+  State<ChapterInfo> createState() => _ChapterInfoState();
+}
+
+class _ChapterInfoState extends State<ChapterInfo> {
+  late Future<_DownloadInfoData> _downloadInfo = _calculateDownloadInfo();
+
+  @override
+  void didUpdateWidget(covariant ChapterInfo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.entry != widget.entry) {
+      setState(() {
+        _downloadInfo = _calculateDownloadInfo();
+      });
+    }
+  }
+
   Future<_DownloadInfoData> _calculateDownloadInfo() async {
+    final entry = widget.entry;
     final downloadService = locate<DownloadService>();
     int downloadedCount = 0;
 
@@ -619,7 +637,7 @@ class ChapterInfo extends StatelessWidget {
 
   Widget buildChapterCount(BuildContext context) {
     return Text(
-      '${entry.episodes.length} ${entry.mediaType.getEpisodeNames(entry.episodes.length)}',
+      '${widget.entry.episodes.length} ${widget.entry.mediaType.getEpisodeNames(widget.entry.episodes.length)}',
       style: context.labelMedium?.copyWith(
         fontWeight: FontWeight.w500,
         letterSpacing: 1.0,
@@ -630,11 +648,12 @@ class ChapterInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final entry = widget.entry;
     if (entry is! EntrySaved) {
       return buildChapterCount(context);
     }
     return FutureBuilder<_DownloadInfoData>(
-      future: _calculateDownloadInfo(),
+      future: _downloadInfo,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.downloadedCount == 0) {
           return buildChapterCount(context);
