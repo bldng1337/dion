@@ -352,16 +352,6 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
     controller.onListen = addPeers;
     controller.onCancel = cancelAll;
-    controller.onPause = () {
-      for (final s in subs) {
-        s.pause();
-      }
-    };
-    controller.onResume = () {
-      for (final s in subs) {
-        s.resume();
-      }
-    };
     return controller.stream;
   }
 
