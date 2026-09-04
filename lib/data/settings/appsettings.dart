@@ -292,7 +292,7 @@ final settings = (
     lastnotified: Setting(
       Version.none,
       const VersionMetaData('update.lastnotified'),
-    ),
+    )..addCollection(preferenceCollection),
     lastnotifiednightly: Setting(
       '',
       const PreferenceStringMetaData('update.lastnotifiednightly'),

@@ -4,6 +4,7 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/network.dart';
+import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/build_info.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/internetfile.dart';
@@ -279,6 +280,7 @@ Future<CheckResult> checkVersion({bool force = false}) async {
   }
   try {
     logger.i('Checking for updates');
+    await locateAsync<PreferenceService>();
     final isNightlyChannel =
         settings.update.channel.value == UpdateChannel.nightly;
     final update = isNightlyChannel
