@@ -41,14 +41,16 @@ class Service {
   }
 
   T locate<T>() {
-    // final service = _services[T];
-    // if (service == null) {
-    //   throw Exception('Service not found');
-    // }
-    // if (service is ServiceWaiter) {
-    //   throw Exception('Service not found');
-    // }
-    return _services[T] as T;
+    final service = _services[T];
+    if (service == null) {
+      throw StateError('Service $T is not registered');
+    }
+    if (service is ServiceWaiter) {
+      throw StateError(
+        'Service $T is still initializing; use locateAsync<$T>() instead',
+      );
+    }
+    return service as T;
   }
 
   Future<T> locateAsync<T>() async {
