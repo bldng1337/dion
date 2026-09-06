@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:app_links/app_links.dart';
+import 'package:dionysos/main.dart';
 import 'package:dionysos/utils/app_links_helper.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -54,6 +55,11 @@ class AppLinksService {
   }
 
   Future<void> init() async {
+    onLinkReceived = (uri) async {
+      final path = uri.path.isEmpty ? '/' : uri.path;
+      logger.i('Navigating to $path from deep link $uri');
+      appRouter?.go(path);
+    };
     try {
       initialLink = await _appLinks.getInitialLink();
       if (initialLink != null) {

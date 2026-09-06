@@ -6,6 +6,7 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:workmanager/workmanager.dart';
 
 // ignore: unreachable_from_main
@@ -13,6 +14,8 @@ GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+
+GoRouter? appRouter;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +29,9 @@ void main() async {
   if (!Platform.isWindows) {
     await Workmanager().initialize(backgroundTaskDispatcher);
   }
-  initApp(route: getRoutes());
+  final route = getRoutes();
+  appRouter = route;
+  initApp(route: route);
 }
 
 void initApp({required RouterConfig<Object> route}) {
