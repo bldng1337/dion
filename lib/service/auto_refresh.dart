@@ -42,8 +42,10 @@ class AutoRefreshJob extends PeriodicJob {
       final pageEntries = await db.getEntries(page, _pageSize).toList();
       if (pageEntries.length < _pageSize) break;
       final candidates = pageEntries.where((entry) {
-        return entry.status == rust.ReleaseStatus.releasing &&
-            entry.latestEpisode == entry.totalEpisodes;
+        final caughtUp = entry.latestEpisode == entry.totalEpisodes;
+        return caughtUp &&
+            (entry.status == rust.ReleaseStatus.releasing ||
+                entry.status == rust.ReleaseStatus.unknown);
       }).toList();
 
       logger.i('Found ${candidates.length} entries to check for updates');
