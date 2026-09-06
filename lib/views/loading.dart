@@ -1,5 +1,4 @@
 import 'package:dionysos/service/applinks.dart';
-import 'package:dionysos/service/auto_refresh.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';

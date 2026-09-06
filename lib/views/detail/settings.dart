@@ -4,7 +4,7 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/extension.dart' hide TextStyle,ContainerType,CrossAxisAlignment,MainAxisAlignment,MainAxisSize,TextStyle,WrapAlignment,EdgeInsets,Alignment,StackFit;
+import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';

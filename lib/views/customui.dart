@@ -8,7 +8,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart'
-    hide Alignment, EdgeInsets, StackFit, WrapAlignment, ButtonType;
+    hide Alignment, ButtonType, EdgeInsets, StackFit, WrapAlignment;
 import 'package:dionysos/utils/custom_ui_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -522,7 +522,6 @@ class _CustomUISlotState extends State<CustomUISlot> {
               final sv = entryExts[parsed.$2]?.value;
               if (sv != null) {
                 values[sub.stateKey] = SlotValue.setting(value: sv);
-                ;
               }
               continue;
             }
@@ -534,7 +533,6 @@ class _CustomUISlotState extends State<CustomUISlot> {
               final sv = sourceExts[parsed.$2]?.value;
               if (sv != null) {
                 values[sub.stateKey] = SlotValue.setting(value: sv);
-                ;
               }
               continue;
             }

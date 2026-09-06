@@ -16,7 +16,7 @@ extension FutureOrExtension<T> on FutureOr<T> {
 }
 
 class Completable<T> implements Completer<T> {
-  Future<T>? _future;
+  late Future<T>? _future;
   T? _value;
   Object? _error;
   StackTrace? _stackTrace;

@@ -1,3 +1,8 @@
+// This service is wired up from widget build methods and their closures
+// (loading.dart's init task list and the periodic jobs settings view), which
+// `unreachable_from_main` does not traverse, so it reports every member here
+// as unreachable even though all of them are used.
+// ignore_for_file: unreachable_from_main
 import 'dart:convert';
 import 'dart:io';
 
@@ -72,7 +77,6 @@ final Map<String, PeriodicJob> _jobs = {
 };
 
 class PeriodicService {
-  // ignore: unreachable_from_main
   static Future<void> ensureInitialized() async {
     final service = PeriodicService();
     await service.init();

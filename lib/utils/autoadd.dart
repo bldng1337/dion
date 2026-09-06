@@ -1,6 +1,5 @@
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
-import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/log.dart';

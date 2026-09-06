@@ -18,7 +18,6 @@ class AboutSettings extends StatefulWidget {
 
 class _AboutSettingsState extends State<AboutSettings> {
   String? _versionString;
-  String? _commit;
   bool _checking = false;
 
   @override
@@ -32,9 +31,6 @@ class _AboutSettingsState extends State<AboutSettings> {
     if (!mounted) return;
     setState(() {
       _versionString = version.toString();
-      // Prefer the build-injected commit (nightly builds); it is absent on
-      // release builds, where it stays null and the row is hidden.
-      _commit = BuildInfo.commit.isNotEmpty ? BuildInfo.commit : null;
     });
   }
 
@@ -230,38 +226,6 @@ class _ChannelBadge extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Text(label, style: DionTypography.labelSmall(color)),
-    );
-  }
-}
-
-/// A label/value row grouped inside a [SettingTitle] section.
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DionSpacing.lg,
-        vertical: DionSpacing.md,
-      ),
-      child: Row(
-        children: [
-          Text(label, style: DionTypography.bodyMedium(context.textSecondary)),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: DionTypography.titleSmall(context.textPrimary),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
