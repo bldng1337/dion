@@ -6,6 +6,7 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/autoadd.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
@@ -23,8 +24,11 @@ abstract class EntryDetailed extends Entry {
 
   rust.EntryDetailed get toRust;
 
-  FutureOr<EntrySaved> toSaved();
-  Future<EntrySaved> toSavedWithCategories(List<Category> categories);
+  FutureOr<EntrySaved> toSaved({bool applyRules = true});
+  Future<EntrySaved> toSavedWithCategories(
+    List<Category> categories, {
+    bool applyRules = true,
+  });
   FutureOr<EntryDetailed> refresh({CancelToken? token});
 
   static EntryDetailed fromSaved(EntrySaved saved) {
@@ -101,7 +105,7 @@ class EntryDetailedImpl implements EntryDetailed {
   }
 
   @override
-  Future<EntrySaved> toSaved() async {
+  Future<EntrySaved> toSaved({bool applyRules = true}) async {
     final saved = EntrySaved(
       entry: entry,
       categories: [],
@@ -111,12 +115,18 @@ class EntryDetailedImpl implements EntryDetailed {
       savedSettings: EntrySavedSettings.defaultSettings(),
       extensionSettings: extensionSettings,
     );
+    if (applyRules) {
+      await attachAutoAddExtensions(saved);
+    }
     await locate<Database>().addEntry(saved);
     return saved;
   }
 
   @override
-  Future<EntrySaved> toSavedWithCategories(List<Category> categories) async {
+  Future<EntrySaved> toSavedWithCategories(
+    List<Category> categories, {
+    bool applyRules = true,
+  }) async {
     final saved = EntrySaved(
       entry: entry,
       categories: categories,
@@ -126,6 +136,9 @@ class EntryDetailedImpl implements EntryDetailed {
       savedSettings: EntrySavedSettings.defaultSettings(),
       extensionSettings: extensionSettings,
     );
+    if (applyRules) {
+      await attachAutoAddExtensions(saved);
+    }
     await locate<Database>().addEntry(saved);
     return saved;
   }
@@ -141,6 +154,11 @@ class EntryDetailedImpl implements EntryDetailed {
 
   @override
   DBRecord get dbId => constructEntryDBRecord(id, boundExtensionId);
+
+  /// Makes instances JSON-encodable: go_router reports the pushed `extra`
+  /// (e.g. `['/detail', extra: [this]]`) through a JSON method channel.
+  /// The content is never decoded back.
+  Map<String, dynamic> toJson() => toEntryJson();
 
   @override
   Map<String, dynamic> toEntryJson() {

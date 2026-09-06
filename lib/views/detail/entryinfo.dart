@@ -1,40 +1,36 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
-import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
-import 'package:dionysos/service/extension.dart' show Extension, CustomUI;
+import 'package:dionysos/service/extension.dart'
+    show CustomUI, Extension, ExtensionService;
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/custom_ui.dart';
 import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/views/customui.dart';
+import 'package:dionysos/views/detail/library_picker.dart';
 import 'package:dionysos/widgets/bounds.dart';
-import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 
-import 'package:dionysos/widgets/dialog.dart';
-import 'package:dionysos/widgets/dion_textbox.dart';
-import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
-import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
-import 'package:flutter/material.dart'
-    show Colors, FontWeight, Icons, showDialog;
+import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 class EntryInfo extends StatelessWidget {
   final Entry entry;
@@ -325,79 +321,7 @@ class EntryInfo extends StatelessWidget {
   }
 
   Widget _buildLibraryButton(BuildContext context) {
-    final isInLibrary = entry is EntrySaved;
-    final isEnabled = entry is EntryDetailed;
-    return SizedBox(
-      width: double.infinity,
-      child: DionTextbutton(
-        type: isInLibrary ? ButtonType.elevated : ButtonType.filled,
-        onPressed: isEnabled
-            ? () async {
-                if (entry is EntrySaved) {
-                  final entryDetailed = await (entry as EntrySaved)
-                      .toDetailed();
-                  await (entry as EntrySaved).delete();
-                  if (context.mounted) {
-                    context.replace('/detail', extra: [entryDetailed]);
-                  }
-                } else if (entry is EntryDetailed) {
-                  final saved = await (entry as EntryDetailed).toSaved();
-                  if (context.mounted) {
-                    context.replace('/detail', extra: [saved]);
-                  }
-                }
-              }
-            : null,
-        onLongPress: isEnabled ? () => _showCategoriesDialog(context) : null,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isInLibrary ? Icons.check_circle : Icons.add_circle_outline,
-              size: 18,
-            ).paddingOnly(right: 8),
-            Text(
-              isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY',
-              style: context.labelMedium?.copyWith(
-                letterSpacing: 0.8,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).paddingOnly(bottom: 28);
-  }
-
-  Future<void> _showCategoriesDialog(BuildContext context) async {
-    final initialCategories = entry is EntrySaved
-        ? (entry as EntrySaved).categories
-        : const <Category>[];
-    final result = await showDialog<List<Category>>(
-      context: context,
-      builder: (context) =>
-          _CategoryChooserDialog(initialCategories: initialCategories),
-    );
-    if (result == null) return;
-    if (!context.mounted) return;
-
-    if (entry is EntrySaved) {
-      // Already in library: just update the categories.
-      final saved = entry as EntrySaved;
-      saved.categories = result;
-      await saved.save();
-      if (context.mounted) {
-        context.replace('/detail', extra: [saved]);
-      }
-    } else if (entry is EntryDetailed) {
-      // Not yet in library: add it with the chosen categories.
-      final saved = await (entry as EntryDetailed).toSavedWithCategories(
-        result,
-      );
-      if (context.mounted) {
-        context.replace('/detail', extra: [saved]);
-      }
-    }
+    return _LibraryButton(entry: entry);
   }
 
   Widget _buildDescriptionSection(BuildContext context) {
@@ -723,146 +647,193 @@ class _DownloadInfoData {
   _DownloadInfoData({required this.downloadedCount, required this.totalSize});
 }
 
-class _CategoryChooserDialog extends StatefulWidget {
-  final List<Category> initialCategories;
-
-  const _CategoryChooserDialog({required this.initialCategories});
+class _LibraryButton extends StatefulWidget {
+  final Entry entry;
+  const _LibraryButton({required this.entry});
 
   @override
-  State<_CategoryChooserDialog> createState() => _CategoryChooserDialogState();
+  State<_LibraryButton> createState() => _LibraryButtonState();
 }
 
-class _CategoryChooserDialogState extends State<_CategoryChooserDialog> {
-  late MultiDropdownController<Category> _controller;
-  bool _loading = true;
-  final _newCategoryController = TextEditingController();
+class _LibraryButtonState extends State<_LibraryButton> {
+  final GlobalKey _buttonKey = GlobalKey();
+  OverlayEntry? _pickerEntry;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = MultiDropdownController<Category>();
-    _loadCategories();
+  bool get _isInLibrary => widget.entry is EntrySaved;
+  bool get _isEnabled => widget.entry is EntryDetailed;
+
+  void _showPicker() {
+    if (_pickerEntry != null || !_isEnabled) return;
+    final entry = widget.entry as EntryDetailed;
+    // Measure the button's rect relative to the overlay the picker will be
+    // inserted into; the picker positions itself statically from this rect.
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final buttonBox =
+        _buttonKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlayBox = overlay.context.findRenderObject()! as RenderBox;
+    final anchor = buttonBox == null
+        ? Rect.zero
+        : Rect.fromPoints(
+            buttonBox.localToGlobal(Offset.zero, ancestor: overlayBox),
+            buttonBox.localToGlobal(
+              buttonBox.size.bottomRight(Offset.zero),
+              ancestor: overlayBox,
+            ),
+          );
+    late final OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => LibrarySaveSheet(
+        anchor: anchor,
+        entry: entry,
+        onDismiss: _removePicker,
+        onCommit: (result) {
+          _removePicker();
+          _applyPickerResult(result);
+        },
+      ),
+    );
+    setState(() {
+      _pickerEntry = overlayEntry;
+    });
+    overlay.insert(overlayEntry);
   }
 
-  @override
-  void dispose() {
-    _newCategoryController.dispose();
-    super.dispose();
+  void _removePicker() {
+    _pickerEntry?.remove();
+    _pickerEntry = null;
   }
 
-  Future<void> _loadCategories() async {
-    final categories = await locate<Database>().getCategories();
-    _controller.setItems(
-      categories.map((e) => MultiDropdownItem(label: e.name, value: e)),
-    );
-    _controller.selectWhere(
-      (item) => widget.initialCategories.contains(item.value),
-    );
-    if (mounted) {
-      setState(() => _loading = false);
+  Future<void> _applyPickerResult(LibraryPickerResult result) async {
+    final entry = widget.entry;
+    if (entry is EntrySaved) {
+      await _applyToSaved(entry, result);
+    } else if (entry is EntryDetailed) {
+      await _saveNew(entry, result);
     }
   }
 
-  Future<void> _addCategory() async {
-    final name = _newCategoryController.text.trim();
-    if (name.isEmpty) return;
-    final db = locate<Database>();
-    final categories = await db.getCategories();
-    final category = Category.construct(name, categories.length);
-    await db.updateCategory(category);
-    _controller.add(
-      MultiDropdownItem.active(label: category.name, value: category),
+  Future<void> _applyToSaved(
+    EntrySaved entry,
+    LibraryPickerResult result,
+  ) async {
+    entry.entryExtensions = _diffExtensions(
+      entry.entryExtensions,
+      result.entryExtensionIds,
     );
-    _newCategoryController.clear();
+    entry.sourceExtensions = _diffExtensions(
+      entry.sourceExtensions,
+      result.sourceExtensionIds,
+    );
+    entry.categories = result.categories;
+    await entry.save();
     if (mounted) {
-      setState(() {});
+      context.replace('/detail', extra: [entry]);
     }
+  }
+
+  Future<void> _saveNew(EntryDetailed entry, LibraryPickerResult result) async {
+    // The picker's ticks are the explicit decision, so auto-add rules are not
+    // applied on top of them here (they already pre-ticked the defaults).
+    final saved = await entry.toSavedWithCategories(
+      result.categories,
+      applyRules: false,
+    );
+    await _attachTicked(saved, result.entryExtensionIds, result);
+    saved.sourceExtensions = _diffExtensions(
+      const [],
+      result.sourceExtensionIds,
+    );
+    await saved.save();
+    if (mounted) {
+      context.replace('/detail', extra: [saved]);
+    }
+  }
+
+  Future<void> _attachTicked(
+    EntrySaved entry,
+    Set<String> ids,
+    LibraryPickerResult result,
+  ) async {
+    for (final id in ids) {
+      final ext = locate<ExtensionService>().tryGetExtension(id);
+      if (ext == null) continue;
+      entry.entryExtensions = [
+        ...entry.entryExtensions,
+        EntryExtension(extensionId: id, extensionSettings: {}),
+      ];
+      if (ext.getExtensionTypeOrNull<rust.ExtensionType_EntryProcessor>() !=
+          null) {
+        try {
+          await entry.extension?.refreshEntryExtension(entry, ext);
+        } catch (e) {
+          logger.w(
+            'Failed to refresh newly added entry extension $id',
+            error: e,
+          );
+        }
+      }
+    }
+  }
+
+  List<EntryExtension> _diffExtensions(
+    List<EntryExtension> current,
+    Set<String> wantedIds,
+  ) {
+    return [
+      ...current.where((e) => wantedIds.contains(e.extensionId)),
+      for (final id in wantedIds)
+        if (!current.any((e) => e.extensionId == id))
+          EntryExtension(extensionId: id, extensionSettings: {}),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    return DionDialog(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return GestureDetector(
+      onSecondaryTapUp: _isEnabled ? (details) => _showPicker() : null,
+      child: SizedBox(
+        key: _buttonKey,
+        width: double.infinity,
+        child: DionTextbutton(
+          type: _isInLibrary ? ButtonType.elevated : ButtonType.filled,
+          onPressed: _isEnabled
+              ? () async {
+                  final router = GoRouter.of(context);
+                  if (widget.entry is EntrySaved) {
+                    final entryDetailed = await (widget.entry as EntrySaved)
+                        .toDetailed();
+                    await (widget.entry as EntrySaved).delete();
+                    if (mounted) {
+                      router.replace('/detail', extra: [entryDetailed]);
+                    }
+                  } else if (widget.entry is EntryDetailed) {
+                    final saved = await (widget.entry as EntryDetailed)
+                        .toSaved();
+                    if (mounted) {
+                      router.replace('/detail', extra: [saved]);
+                    }
+                  }
+                }
+              : null,
+          onLongPress: _isEnabled ? _showPicker : null,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Icon(
+                _isInLibrary ? Icons.check_circle : Icons.add_circle_outline,
+                size: 18,
+              ).paddingOnly(right: 8),
               Text(
-                'Categories',
-                style: context.titleMedium?.copyWith(
+                _isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY',
+                style: context.labelMedium?.copyWith(
+                  letterSpacing: 0.8,
                   fontWeight: FontWeight.w600,
                 ),
-              ).paddingOnly(bottom: 4),
-              Text(
-                'Pick the categories to add this entry to.',
-                style: context.bodySmall?.copyWith(
-                  color: context.theme.colorScheme.onSurface.withValues(
-                    alpha: 0.55,
-                  ),
-                ),
-              ).paddingOnly(bottom: 16),
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: DionProgressBar()),
-                )
-              else ...[
-                DionMultiDropdown(
-                  controller: _controller,
-                  defaultItem: Text(
-                    'Choose categories',
-                    style: context.bodyMedium?.copyWith(
-                      color: context.theme.colorScheme.onSurface.withValues(
-                        alpha: 0.5,
-                      ),
-                    ),
-                  ),
-                ).paddingOnly(bottom: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DionTextbox(
-                        controller: _newCategoryController,
-                        hintText: 'New category',
-                        onSubmitted: (_) => _addCategory(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    DionIconbutton(
-                      tooltip: 'Add Category',
-                      icon: const Icon(Icons.add),
-                      onPressed: _addCategory,
-                    ),
-                  ],
-                ).paddingOnly(bottom: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    DionTextbutton(
-                      type: ButtonType.ghost,
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ).paddingOnly(right: 8),
-                    DionTextbutton(
-                      onPressed: () {
-                        final selection = _controller.selected
-                            .where((e) => e.selected)
-                            .map((e) => e.value)
-                            .toList();
-                        Navigator.pop(context, selection);
-                      },
-                      child: const Text('Save'),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ],
           ),
         ),
       ),
-    );
+    ).paddingOnly(bottom: 28);
   }
 }

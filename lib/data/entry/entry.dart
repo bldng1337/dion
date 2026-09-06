@@ -118,4 +118,6 @@ class EntryImpl implements Entry {
       'entry': _entry.toJson(),
     };
   }
+
+  Map<String, dynamic> toJson() => toEntryJson();
 }

@@ -368,12 +368,16 @@ class EntrySaved
   }
 
   @override
-  FutureOr<EntrySaved> toSaved() {
+  FutureOr<EntrySaved> toSaved({bool applyRules = true}) {
     return this;
   }
 
   @override
-  Future<EntrySaved> toSavedWithCategories(List<Category> categories) async {
+  Future<EntrySaved> toSavedWithCategories(
+    List<Category> categories, {
+    bool applyRules = true,
+  }) async {
+    // Already saved: rule application only happens on the initial save.
     this.categories = categories;
     await save();
     return this;
