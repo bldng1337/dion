@@ -14,6 +14,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/mock_extension.dart';
+import 'package:dionysos/service/mock_tracker_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -1040,6 +1041,10 @@ class ExtensionService with ChangeNotifier {
     final mock = MockExtension();
     mock.addListener(notifyListeners);
     _mockExtensions.add(mock);
+    if (_mockExtensions.any((e) => e.id == MockTrackerExtension.mockId)) return;
+    final tracker = MockTrackerExtension();
+    tracker.addListener(notifyListeners);
+    _mockExtensions.add(tracker);
   }
 
   Future<void> _registerAdapter(
@@ -1206,7 +1211,9 @@ class ExtensionService with ChangeNotifier {
 
   ExtensionAdapter? getAdapterForExtension(Extension ext) {
     return _adapters.values
-        .where((adapter) => adapter._extensions.contains(ext))
+        .where(
+          (adapter) => adapter._extensions.any((e) => identical(e, ext)),
+        )
         .firstOrNull;
   }
 
