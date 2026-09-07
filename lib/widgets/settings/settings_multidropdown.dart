@@ -1,6 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/settings.dart';
-import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -59,17 +59,22 @@ class _SettingsMultiDropdownState<T extends Object>
   Widget build(BuildContext context) {
     final tile = ListenableBuilder(
       listenable: widget.setting,
-      builder: (context, child) => SettingTileWrapper(
-        child: DionListTile(
-          leading: widget.icon != null ? Icon(widget.icon) : null,
-          trailing: DionMultiDropdown<T>(
+      builder: (context, child) => Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.md,
+        ),
+        child: SettingRow(
+          icon: widget.icon,
+          title: widget.title,
+          titleStyle: context.titleMedium,
+          control: DionMultiDropdown<T>(
             defaultItem: const Text('Select'),
             onSelectionChange: (values) {
               widget.setting.value = values;
             },
             controller: controller,
           ),
-          title: Text(widget.title, style: context.titleMedium),
         ),
       ),
     );

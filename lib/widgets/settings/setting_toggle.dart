@@ -1,6 +1,7 @@
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/buttons/togglebutton.dart';
+import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 
 /// A toggle setting row with a clean, minimal design.
@@ -72,36 +73,11 @@ class _SettingToggleTile extends StatelessWidget {
               horizontal: DionSpacing.lg,
               vertical: DionSpacing.md,
             ),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 20, color: context.textSecondary),
-                  const SizedBox(width: DionSpacing.md),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        style: DionTypography.titleSmall(context.textPrimary),
-                      ),
-                      if (description != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          description!,
-                          style: DionTypography.bodySmall(context.textTertiary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: DionSpacing.md),
-                Togglebutton(selected: value, onPressed: onChanged),
-              ],
+            child: SettingRow(
+              icon: icon,
+              title: title,
+              subtitle: description,
+              control: Togglebutton(selected: value, onPressed: onChanged),
             ),
           ),
         ),

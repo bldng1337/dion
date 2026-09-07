@@ -38,7 +38,6 @@ class DionSpacing {
   );
 }
 
-
 class DionRadius {
   DionRadius._();
 
@@ -69,6 +68,13 @@ class DionDuration {
   static const Duration page = Duration(milliseconds: 400);
 }
 
+class DionBreakpoints {
+  DionBreakpoints._();
+
+  /// Below this content width, setting tiles stack their label above their
+  /// control instead of placing them side by side.
+  static const double compact = 400;
+}
 
 class DionColors {
   DionColors._();
@@ -99,7 +105,6 @@ class DionColors {
   static const Color error = Color(0xFFE53935);
   static const Color info = Color(0xFF2196F3);
 }
-
 
 class DionTypography {
   DionTypography._();

@@ -1,6 +1,7 @@
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
+import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:flutter/material.dart';
 
 /// A dropdown setting with a clean, minimal design.
@@ -92,36 +93,15 @@ class _SettingDropdownTile<T> extends StatelessWidget {
           horizontal: DionSpacing.lg,
           vertical: DionSpacing.md,
         ),
-        child: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20, color: context.textSecondary),
-              const SizedBox(width: DionSpacing.md),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: DionTypography.titleSmall(context.textPrimary),
-                  ),
-                  if (description != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      description!,
-                      style: DionTypography.bodySmall(context.textTertiary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: DionSpacing.md),
-            DionDropdown<T>(items: items, value: value, onChanged: onChanged),
-          ],
+        child: SettingRow(
+          icon: icon,
+          title: title,
+          subtitle: description,
+          control: DionDropdown<T>(
+            items: items,
+            value: value,
+            onChanged: onChanged,
+          ),
         ),
       ),
     );
