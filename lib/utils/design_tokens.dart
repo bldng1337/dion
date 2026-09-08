@@ -68,12 +68,31 @@ class DionDuration {
   static const Duration page = Duration(milliseconds: 400);
 }
 
+/// Width thresholds shared by every responsive layout decision in the app.
+///
+/// [medium] and [expanded] are window widths and follow the Material 3 window
+/// size classes (compact < 600 <= medium < 840 <= expanded), so every screen
+/// changes layout at the same widths. Read them through [isCompactWindow] and
+/// [isExpandedWindow] on [BuildContext] rather than comparing `context.width`
+/// by hand, so the comparison direction cannot drift between call sites.
+///
+/// [compactContent] is not a window width: components such as setting rows
+/// can be embedded in a dialog or side panel narrower than the window, so it
+/// must be compared against the component's own `LayoutBuilder` constraints.
 class DionBreakpoints {
   DionBreakpoints._();
 
   /// Below this content width, setting tiles stack their label above their
   /// control instead of placing them side by side.
-  static const double compact = 400;
+  static const double compactContent = 400;
+
+  /// Windows narrower than this are phone-sized (compact); from here on they
+  /// are tablet-sized (medium): larger covers, two-line titles, taller headers.
+  static const double medium = 600;
+
+  /// From this window width on the layout is desktop-sized (expanded):
+  /// navigation moves to a rail and panels are placed side by side.
+  static const double expanded = 840;
 }
 
 class DionColors {
@@ -214,4 +233,12 @@ extension DionDesignContext on BuildContext {
       isDarkMode ? DionColors.dividerDark : DionColors.divider;
   Color get borderColor =>
       isDarkMode ? DionColors.borderDark : DionColors.borderLight;
+
+  /// Phone-sized window, narrower than [DionBreakpoints.medium].
+  bool get isCompactWindow =>
+      MediaQuery.sizeOf(this).width < DionBreakpoints.medium;
+
+  /// Desktop-sized window, at least [DionBreakpoints.expanded] wide.
+  bool get isExpandedWindow =>
+      MediaQuery.sizeOf(this).width >= DionBreakpoints.expanded;
 }

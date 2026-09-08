@@ -69,7 +69,7 @@ class SettingRow extends StatelessWidget {
     this.titleStyle,
     this.subtitle,
     required this.control,
-    this.compactWidth = DionBreakpoints.compact,
+    this.compactWidth = DionBreakpoints.compactContent,
   });
 
   @override

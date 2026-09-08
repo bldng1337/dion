@@ -11,6 +11,7 @@ import 'package:dionysos/service/extension.dart'
     show CustomUI, Extension, ExtensionService;
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/custom_ui.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/media_type.dart';
@@ -65,7 +66,7 @@ class EntryInfo extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final isWide = context.width > 700;
+    final isWide = !context.isCompactWindow;
     final coverSize = isWide ? 180.0 : 100.0;
 
     return Row(

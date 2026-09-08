@@ -5,6 +5,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/service/task.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
@@ -212,20 +213,12 @@ class EpisodeTile extends StatelessWidget {
     );
   }
 
-  double get height {
-    if (episodepath.episode.cover == null) {
-      return 70.0;
-    }
-    final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    final isWide = view.physicalSize.width / view.devicePixelRatio >= 600;
-    return isWide ? 110.0 : 80.0;
-  }
-
   @override
   Widget build(BuildContext context) {
     final epdata = episodepath.data;
-    final isWide = context.width >= 600;
+    final isWide = !context.isCompactWindow;
     final hasCover = episodepath.episode.cover != null;
+    final height = hasCover ? (isWide ? 110.0 : 80.0) : 70.0;
     return Clickable(
       onLongTap: disabled ? null : onSelect,
       onTap: selection

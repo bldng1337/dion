@@ -10,6 +10,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/utils/cancel_token.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
@@ -500,7 +501,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   Widget _buildHeader(BuildContext context, List<Widget> actions) {
     return SliverAppBar(
-      expandedHeight: context.width > 600 ? 420 : 210,
+      expandedHeight: context.isCompactWindow ? 210 : 420,
       pinned: true,
       surfaceTintColor: Colors.transparent,
       actions: [_buildActionsContainer(context, actions)],

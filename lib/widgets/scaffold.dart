@@ -540,7 +540,7 @@ class NavScaff extends StatelessWidget {
       (element) =>
           GoRouterState.of(context).fullPath?.startsWith(element.path) ?? false,
     );
-    if (!context.showNavbar && destination.length > 1) {
+    if (!context.isExpandedWindow && destination.length > 1) {
       return bottomNavBar(context, index);
     }
     return switch (context.diontheme.mode) {

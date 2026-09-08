@@ -8,6 +8,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/utils/async.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
@@ -293,31 +294,31 @@ class _ActivityMetadata extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final compact = context.isCompactWindow;
     return Wrap(
-      spacing: width < 500 ? 4 : 12,
+      spacing: compact ? 4 : 12,
       runSpacing: 4,
       children: [
         _buildMetaItem(
           context,
           Icons.timer_outlined,
           activity.duration.formatrelative(
-            form: width < 500 ? Abbreviation.full : Abbreviation.none,
+            form: compact ? Abbreviation.full : Abbreviation.none,
           ),
-          width,
+          compact,
         ),
         _buildMetaItem(
           context,
           Icons.extension_outlined,
           extensionName ?? 'Extension not found',
-          width,
+          compact,
           color: extensionName == null ? Colors.redAccent : null,
         ),
         _buildMetaItem(
           context,
           Icons.access_time,
           activity.time.formatrelative(),
-          width,
+          compact,
         ),
       ],
     );
@@ -327,7 +328,7 @@ class _ActivityMetadata extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String text,
-    double width, {
+    bool compact, {
     Color? color,
   }) {
     return Row(
@@ -337,7 +338,7 @@ class _ActivityMetadata extends StatelessWidget {
           icon,
           size: 13,
           color: color ?? context.theme.colorScheme.onSurface.withValues(alpha: 0.45),
-        ).paddingOnly(right: width < 500 ? 2.5 : 4),
+        ).paddingOnly(right: compact ? 2.5 : 4),
         Text(
           text,
           style: context.labelSmall?.copyWith(
@@ -426,7 +427,7 @@ class _ActivitySummaryState extends State<ActivitySummary> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = context.showNavbar;
+    final isDesktop = context.isExpandedWindow;
     return LoadingBuilder<(Map<DateTime, Duration>, List<EntryDuration>)>(
       future: _future,
       builder: (context, data) {

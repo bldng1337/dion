@@ -33,9 +33,9 @@ final Directory screenshotsDir = Directory(
 /// up via this key to rasterize the current frame in-process.
 final GlobalKey screenshotBoundaryKey = GlobalKey();
 
-/// Form factors captured by the harness. [width] relative to the
-/// `awesome_extensions` `showNavbar` breakpoint (width > 800) decides whether
-/// the app renders the desktop NavigationRail or the mobile bottom bar.
+/// Form factors captured by the harness. [width] relative to
+/// `DionBreakpoints.expanded` decides whether the app renders the desktop
+/// NavigationRail or the mobile bottom bar.
 class FormFactor {
   final String name;
   final double width;
