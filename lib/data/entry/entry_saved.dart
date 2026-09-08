@@ -261,6 +261,8 @@ class EntrySaved
   List<EntryExtension> entryExtensions;
   List<EntryExtension> sourceExtensions;
 
+  DateTime? lastRefreshed;
+
   @override
   rust.EntryDetailed get toRust => entry;
 
@@ -274,6 +276,7 @@ class EntrySaved
     required this.extensionSettings,
     this.entryExtensions = const [],
     this.sourceExtensions = const [],
+    this.lastRefreshed,
   }) : _episodedata = episodedata;
 
   List<EpisodeData> get episodedata => _episodedata;
@@ -386,6 +389,7 @@ class EntrySaved
   @override
   FutureOr<EntryDetailed> refresh({CancelToken? token}) async {
     await locate<ExtensionService>().detail(this, token: token);
+    lastRefreshed = DateTime.now();
     await save();
     return this;
   }
@@ -420,6 +424,7 @@ class EntrySaved
       episode = fresh.episode;
       entryExtensions = fresh.entryExtensions;
       sourceExtensions = fresh.sourceExtensions;
+      lastRefreshed = fresh.lastRefreshed;
       locate<Database>().notifyListeners([DBEvent.entryUpdated]);
     } catch (e, stack) {
       logger.e(
@@ -477,6 +482,7 @@ class EntrySaved
       'entryExtensions': entryExtensions.map((e) => e.toJson()).toList(),
       'sourceExtensions': sourceExtensions.map((e) => e.toJson()).toList(),
       'savedSettings': savedSettings.toJson(),
+      'lastRefreshed': lastRefreshed?.toIso8601String(),
       'extensionSettings': extensionSettings.map((key, value) {
         return MapEntry(key, value.toJson());
       }),
@@ -587,6 +593,7 @@ class EntrySaved
               ?.map((e) => EntryExtension.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      lastRefreshed: DateTime.tryParse(json['lastRefreshed'] as String? ?? ''),
     );
   }
 

@@ -598,6 +598,7 @@ List<EntrySaved> get savedEntrySamples => [
     sourceExtensions: [
       EntryExtension(extensionId: 'source.ext.a', extensionSettings: {}),
     ],
+    lastRefreshed: DateTime.utc(2026, 4, 5, 6, 7, 8),
   ),
 ];
 

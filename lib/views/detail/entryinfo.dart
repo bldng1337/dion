@@ -19,6 +19,7 @@ import 'package:dionysos/utils/placeholder.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/string.dart';
+import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/detail/library_picker.dart';
 import 'package:dionysos/widgets/bounds.dart';
@@ -560,14 +561,21 @@ class _ChapterInfoState extends State<ChapterInfo> {
     );
   }
 
-  Widget buildChapterCount(BuildContext context) {
+  Widget _metaText(BuildContext context, String text) {
     return Text(
-      '${widget.entry.episodes.length} ${widget.entry.mediaType.getEpisodeNames(widget.entry.episodes.length)}',
+      text,
       style: context.labelMedium?.copyWith(
         fontWeight: FontWeight.w500,
         letterSpacing: 1.0,
         color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
       ),
+    );
+  }
+
+  Widget buildChapterCount(BuildContext context) {
+    return _metaText(
+      context,
+      '${widget.entry.episodes.length} ${widget.entry.mediaType.getEpisodeNames(widget.entry.episodes.length)}',
     );
   }
 
@@ -580,60 +588,42 @@ class _ChapterInfoState extends State<ChapterInfo> {
     return FutureBuilder<_DownloadInfoData>(
       future: _downloadInfo,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.downloadedCount == 0) {
-          return buildChapterCount(context);
-        }
-
-        final data = snapshot.data!;
-        final sizeString = formatBytes(data.totalSize);
-
-        return Row(
-          children: [
-            buildChapterCount(context),
-            const SizedBox(width: 8),
-            Text(
-              '•',
-              style: context.labelMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(
-                  alpha: 0.8,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
+        final data = snapshot.data;
+        final hasDownloads = data != null && data.downloadedCount > 0;
+        final parts = <Widget>[
+          buildChapterCount(context),
+          if (hasDownloads)
+            _metaText(
+              context,
               '${data.downloadedCount} ${entry.mediaType.getEpisodeNames(data.downloadedCount)} downloaded',
-              style: context.labelMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(
-                  alpha: 0.8,
-                ),
-              ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              '•',
-              style: context.labelMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(
-                  alpha: 0.8,
-                ),
-              ),
+          if (hasDownloads) _metaText(context, formatBytes(data.totalSize)),
+          if (entry.lastRefreshed != null)
+            _metaText(
+              context,
+              'Refreshed ${entry.lastRefreshed!.formatrelative()}',
             ),
-            const SizedBox(width: 8),
-            Text(
-              sizeString,
-              style: context.labelMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.0,
-                color: context.theme.colorScheme.onSurface.withValues(
-                  alpha: 0.8,
+        ];
+        // Wrap instead of Row so the metadata line folds onto a second line on
+        // narrow windows instead of overflowing; each bullet stays glued to
+        // its text.
+        return Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final (index, part) in parts.indexed)
+              if (index == 0)
+                part
+              else
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _metaText(context, '•'),
+                    const SizedBox(width: 8),
+                    part,
+                  ],
                 ),
-              ),
-            ),
           ],
         );
       },
