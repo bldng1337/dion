@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
@@ -884,24 +885,25 @@ class ExtensionService with ChangeNotifier {
             final entryExts = entryExt?.extensionSettings;
             if (entryExts != null && entryExts.containsKey(key)) {
               entryExts[key] = entryExts[key]!.copyWith(value: value);
-              // Await (and contain) the refresh before saving so the
-              // refreshed state is what gets persisted; unawaited, it raced
-              // the save below and its errors surfaced unhandled across the
-              // FFI boundary.
-              try {
-                await entry.extension?.refreshEntryExtension(
-                  entry,
-                  entryExt!.extension!,
-                );
-              } catch (e, stack) {
-                logger.e(
-                  'Failed to refresh entry extension after setting change',
-                  error: e,
-                  stackTrace: stack,
-                );
-              }
               await entry.save();
               _notifySettingChange(data.id, busKey);
+              unawaited(
+                () async {
+                  try {
+                    await entry.extension?.refreshEntryExtension(
+                      entry,
+                      entryExt!.extension!,
+                    );
+                    await entry.save();
+                  } catch (e, stack) {
+                    logger.e(
+                      'Failed to refresh entry extension after setting change',
+                      error: e,
+                      stackTrace: stack,
+                    );
+                  }
+                }(),
+              );
               return;
             }
             // 3. An attached SourceProcessor extension's settings.
