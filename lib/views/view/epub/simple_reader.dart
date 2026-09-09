@@ -15,6 +15,7 @@ import 'package:dionysos/service/extension.dart'
         WrapAlignment;
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/source_file.dart';
@@ -58,7 +59,7 @@ class _SimpleEpubReaderState extends State<SimpleEpubReader>
     final saved = epdata.finished ? null : epdata.progress;
     final file = await resolveSourceFile(widget.sourcedata.link);
     final bytes = await file.readAsBytes();
-    if (Uri.parse(widget.sourcedata.link.url).scheme != 'file') {
+    if (!isFileUrl(widget.sourcedata.link.url)) {
       // The book is fully in memory now, the temporary download is dead weight.
       unawaited(deleteResolvedSource(widget.sourcedata.link, file));
     }

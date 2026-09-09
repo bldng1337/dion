@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/internetfile.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,9 +11,8 @@ import 'package:uuid/v4.dart';
 /// the temporary directory so readers can open them lazily from disk (e.g.
 /// PDFium random access) instead of buffering the whole file in memory.
 Future<File> resolveSourceFile(Link link) async {
-  final uri = Uri.parse(link.url);
-  if (uri.scheme == 'file') {
-    return File.fromUri(uri);
+  if (isFileUrl(link.url)) {
+    return fileFromUrl(link.url);
   }
   final dir = await getTemporaryDirectory();
   final file = InternetFile.fromURI(
@@ -27,7 +27,7 @@ Future<File> resolveSourceFile(Link link) async {
 /// viewer still holding the file open) are ignored; the OS cleans up the
 /// temporary directory eventually.
 Future<void> deleteResolvedSource(Link link, File file) async {
-  if (Uri.parse(link.url).scheme == 'file') return;
+  if (isFileUrl(link.url)) return;
   try {
     if (await file.exists()) {
       await file.delete();

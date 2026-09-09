@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 
@@ -6,6 +5,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment,CrossAxisAlignment,MainAxisSize,StackFit;
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
@@ -188,9 +188,8 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
     required Future<Codec> Function(ImmutableBuffer buffer) decode,
   }) async {
     assert(key == this);
-    if (url.startsWith('file://')) {
-      final filePath = url.substring('file://'.length);
-      return decode(await ImmutableBuffer.fromFilePath(filePath));
+    if (isFileUrl(url)) {
+      return decode(await ImmutableBuffer.fromFilePath(fileFromUrl(url).path));
     }
     final cache = locate<CacheService>().imgcache;
     final fileinfo = await cache
@@ -558,9 +557,8 @@ class _DionSvgImageState extends State<_DionSvgImage> {
 
   Future<Uint8List> _loadBytes() async {
     final url = widget.url;
-    if (url.startsWith('file://')) {
-      final file = File(url.substring('file://'.length));
-      return file.readAsBytes();
+    if (isFileUrl(url)) {
+      return fileFromUrl(url).readAsBytes();
     }
     final cache = locate<CacheService>().imgcache;
     final fileinfo = await cache
