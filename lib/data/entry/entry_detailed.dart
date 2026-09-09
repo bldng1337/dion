@@ -108,6 +108,7 @@ class EntryDetailedImpl implements EntryDetailed {
   Future<EntrySaved> toSaved({bool applyRules = true}) async {
     final saved = EntrySaved(
       entry: entry,
+      original: entry,
       categories: [],
       episodedata: [],
       boundExtensionId: boundExtensionId,
@@ -129,6 +130,7 @@ class EntryDetailedImpl implements EntryDetailed {
   }) async {
     final saved = EntrySaved(
       entry: entry,
+      original: entry,
       categories: categories,
       episodedata: [],
       boundExtensionId: boundExtensionId,

@@ -9,6 +9,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
@@ -210,6 +211,29 @@ class MockTrackerExtension with ChangeNotifier implements Extension {
     Extension extension, {
     rust.CancelToken? token,
   }) async => e;
+
+  @override
+  Future<rust.EntryDetailedResult> mapEntry(
+    rust.EntryDetailed entry,
+    Map<String, rust.Setting> settings, {
+    rust.CancelToken? token,
+  }) async => rust.EntryDetailedResult(entry: entry, settings: settings);
+
+  @override
+  Future<void> remapEntry(
+    EntrySaved e, {
+    String? only,
+    bool runMissing = true,
+    rust.CancelToken? token,
+  }) => remapSavedEntry(e, only: only, runMissing: runMissing, token: token);
+
+  @override
+  Future<void> recomposeEntry(EntrySaved e) {
+    return locate<ExtensionService>().withEntryLock(
+      e,
+      () => remapSavedEntry(e, runMissing: false),
+    );
+  }
 
   @override
   T getExtensionType<T extends rust.ExtensionType>() {

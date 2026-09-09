@@ -9,6 +9,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:flutter/widgets.dart' show ChangeNotifier;
@@ -138,13 +139,24 @@ class MockExtension with ChangeNotifier implements Extension {
   }
 
   @override
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) {
+  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
     if (e.boundExtensionId != id) {
       throw Exception(
         'Extension mismatch: expected $id, got ${e.boundExtensionId}',
       );
     }
-    return Future.value(_buildDetailed(e));
+    final detailed = _buildDetailed(e);
+    if (e is EntrySaved) {
+      // Same contract as the real extension: refresh replaces the source
+      // entry and re-folds the entry extension chain over it.
+      await locate<ExtensionService>().withEntryLock(e, () async {
+        e.original = detailed.toRust;
+        e.generation++;
+        await remapSavedEntry(e, token: token);
+      });
+      return e;
+    }
+    return detailed;
   }
 
   @override
@@ -227,7 +239,35 @@ class MockExtension with ChangeNotifier implements Extension {
     EntrySaved e,
     Extension extension, {
     rust.CancelToken? token,
-  }) async => e;
+  }) {
+    return locate<ExtensionService>().withEntryLock(
+      e,
+      () => remapSavedEntry(e, only: extension.id, token: token),
+    ).then((_) => e);
+  }
+
+  @override
+  Future<rust.EntryDetailedResult> mapEntry(
+    rust.EntryDetailed entry,
+    Map<String, rust.Setting> settings, {
+    rust.CancelToken? token,
+  }) async => rust.EntryDetailedResult(entry: entry, settings: settings);
+
+  @override
+  Future<void> remapEntry(
+    EntrySaved e, {
+    String? only,
+    bool runMissing = true,
+    rust.CancelToken? token,
+  }) => remapSavedEntry(e, only: only, runMissing: runMissing, token: token);
+
+  @override
+  Future<void> recomposeEntry(EntrySaved e) {
+    return locate<ExtensionService>().withEntryLock(
+      e,
+      () => remapSavedEntry(e, runMissing: false),
+    );
+  }
 
   @override
   T getExtensionType<T extends rust.ExtensionType>() {

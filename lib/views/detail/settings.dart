@@ -100,22 +100,53 @@ class _SettingsPopupState extends State<SettingsPopup>
         .toList();
   }
 
-  void _addEntryExtension(Extension extension) {
-    setState(() {
-      widget.entry.entryExtensions = [
-        ...widget.entry.entryExtensions,
-        EntryExtension(extensionId: extension.id, extensionSettings: {}),
-      ];
-    });
+  Future<void> _addEntryExtension(Extension extension) async {
+    widget.entry.entryExtensions = [
+      ...widget.entry.entryExtensions,
+      EntryExtension(extensionId: extension.id, extensionSettings: {}),
+    ];
+    setState(() {});
+    // Run the newly attached extension; cached patches of the others are
+    // reused instead of re-running them on top of their own output.
+    try {
+      await widget.entry.extension?.refreshEntryExtension(
+        widget.entry,
+        extension,
+      );
+      await widget.entry.save();
+    } catch (e, stack) {
+      logger.w(
+        'Failed to run added entry extension ${extension.id}',
+        error: e,
+        stackTrace: stack,
+      );
+    }
+    safeSetState(() {});
   }
 
-  void _removeEntryExtension(int index) {
-    setState(() {
-      widget.entry.entryExtensions = [
-        ...widget.entry.entryExtensions.sublist(0, index),
-        ...widget.entry.entryExtensions.sublist(index + 1),
-      ];
-    });
+  Future<void> _removeEntryExtension(int index) async {
+    final removed = widget.entry.entryExtensions[index];
+    widget.entry.entryExtensions = [
+      ...widget.entry.entryExtensions.sublist(0, index),
+      ...widget.entry.entryExtensions.sublist(index + 1),
+    ];
+    setState(() {});
+    // Drop the removed extension's changes from the mapped entry without
+    // re-running the remaining ones.
+    try {
+      await widget.entry.extension?.recomposeEntry(widget.entry);
+      removed
+        ..patch = null
+        ..ui = null;
+      await widget.entry.save();
+    } catch (e, stack) {
+      logger.w(
+        'Failed to recompose entry after removing ${removed.extensionId}',
+        error: e,
+        stackTrace: stack,
+      );
+    }
+    safeSetState(() {});
   }
 
   Future<void> _refreshEntryExtension(int index) async {

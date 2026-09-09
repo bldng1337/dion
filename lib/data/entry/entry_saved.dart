@@ -9,6 +9,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/utils/json_patch.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/adapter/dataclass.dart';
@@ -216,8 +217,19 @@ class EntrySavedSettings {
 class EntryExtension {
   final String extensionId;
   Map<String, rust.Setting> extensionSettings;
+
   CustomUI? ui;
-  EntryExtension({required this.extensionId, required this.extensionSettings, this.ui});
+
+  List<Map<String, dynamic>>? patch;
+  int? patchGeneration;
+
+  EntryExtension({
+    required this.extensionId,
+    required this.extensionSettings,
+    this.ui,
+    this.patch,
+    this.patchGeneration,
+  });
 
   factory EntryExtension.fromJson(Map<String, dynamic> json) {
     return EntryExtension(
@@ -226,6 +238,10 @@ class EntryExtension {
         (key, value) => MapEntry(key, rust.JsonSetting.fromJson(value)),
       ),
       ui: json['ui'] == null ? null : JsonCustomUI.fromJson(json['ui']),
+      patch: (json['patch'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+      patchGeneration: json['patchGeneration'] as int?,
     );
   }
 
@@ -239,6 +255,9 @@ class EntryExtension {
         (key, value) => MapEntry(key, value.toJson()),
       ),
       'ui': ui?.toJson(),
+      if (patch != null)
+        'patch': patch!.map((op) => Map<String, dynamic>.from(op)).toList(),
+      if (patchGeneration != null) 'patchGeneration': patchGeneration,
     };
   }
 }
@@ -248,7 +267,12 @@ class EntrySaved
     implements EntryDetailed {
   @override
   String boundExtensionId;
+
+  rust.EntryDetailed original;
+
   rust.EntryDetailed entry;
+
+  int generation;
 
   List<Category> categories;
   @override
@@ -268,6 +292,8 @@ class EntrySaved
 
   EntrySaved({
     required this.entry,
+    required this.original,
+    this.generation = 0,
     required this.categories,
     required List<EpisodeData> episodedata,
     required this.boundExtensionId,
@@ -350,7 +376,7 @@ class EntrySaved
   @override
   int? get length => entry.length;
   @override
-  CustomUI? get ui => entry.ui;
+  CustomUI? get ui => original.ui;
   @override
   rust.ReleaseStatus get status => entry.status;
   @override
@@ -417,6 +443,8 @@ class EntrySaved
       final fresh = await EntrySaved.fromJson(json);
       boundExtensionId = fresh.boundExtensionId;
       entry = fresh.entry;
+      original = fresh.original;
+      generation = fresh.generation;
       categories = fresh.categories;
       extensionSettings = fresh.extensionSettings;
       savedSettings = fresh.savedSettings;
@@ -442,7 +470,7 @@ class EntrySaved
     // The patch addresses the full row; toJson omits the id.
     json['id'] = dbId;
     try {
-      _applyJsonPatch(json, patch);
+      applyJsonPatch(json, patch);
     } catch (e) {
       logger.w(
         'Patch failed for live change on $dbId, re-reading row',
@@ -475,6 +503,8 @@ class EntrySaved
     return {
       'version': entrySerializeVersion.current,
       'entry': entry.toJson(),
+      'original': original.toJson(),
+      'generation': generation,
       'extensionid': boundExtensionId,
       'episodedata': episodedata,
       'episode': episode,
@@ -511,45 +541,49 @@ class EntrySaved
   static Future<EntrySaved> fromJson(Map<String, dynamic> json) async {
     switch (json['version']) {
       case 1:
-        return EntrySaved(
-          entry: rust.EntryDetailed(
-            id: EntryId(uid: json['entry']['id'] as String),
-            url: json['entry']['url'] as String,
-            author: (json['entry']['author'] as List<dynamic>?)?.cast(),
-            cover: Link(
-              url: json['entry']['cover'] as String,
-              header: (json['entry']['coverHeader'] as Map<String, dynamic>?)
-                  ?.cast(),
-            ),
-            genres: (json['entry']['genres'] as List<dynamic>?)?.cast(),
-            length: json['entry']['length'] as int?,
-            meta: (json['entry']['meta'] as Map<String, dynamic>?)?.cast(),
-            rating: json['entry']['rating'] as double?,
-            views: json['entry']['views'] as double?,
-            titles: [json['entry']['title'] as String],
-            mediaType: JsonMediaType.fromJson(json['entry']['mediaType']),
-            status: JsonReleaseStatus.fromJson(json['entry']['status']),
-            description: json['entry']['description'] as String,
-            language: json['entry']['language'] as String,
-            episodes: (json['entry']['episodes'] as List<dynamic>)
-                .map(
-                  (ep) => Episode(
-                    id: EpisodeId(uid: ep['id'] as String),
-                    name: ep['name'] as String,
-                    url: ep['url'] as String,
-                    cover: ep['cover'] != null
-                        ? Link(
-                            url: ep['cover'] as String,
-                            header: (ep['coverheader'] as Map<String, dynamic>?)
-                                ?.cast(),
-                          )
-                        : null,
-                    description: ep['description'] as String?,
-                    timestamp: ep['timestamp'] as String?,
-                  ),
-                )
-                .toList(),
+        final entry = rust.EntryDetailed(
+          id: EntryId(uid: json['entry']['id'] as String),
+          url: json['entry']['url'] as String,
+          author: (json['entry']['author'] as List<dynamic>?)?.cast(),
+          cover: Link(
+            url: json['entry']['cover'] as String,
+            header: (json['entry']['coverHeader'] as Map<String, dynamic>?)
+                ?.cast(),
           ),
+          genres: (json['entry']['genres'] as List<dynamic>?)?.cast(),
+          length: json['entry']['length'] as int?,
+          meta: (json['entry']['meta'] as Map<String, dynamic>?)?.cast(),
+          rating: json['entry']['rating'] as double?,
+          views: json['entry']['views'] as double?,
+          titles: [json['entry']['title'] as String],
+          mediaType: JsonMediaType.fromJson(json['entry']['mediaType']),
+          status: JsonReleaseStatus.fromJson(json['entry']['status']),
+          description: json['entry']['description'] as String,
+          language: json['entry']['language'] as String,
+          episodes: (json['entry']['episodes'] as List<dynamic>)
+              .map(
+                (ep) => Episode(
+                  id: EpisodeId(uid: ep['id'] as String),
+                  name: ep['name'] as String,
+                  url: ep['url'] as String,
+                  cover: ep['cover'] != null
+                      ? Link(
+                          url: ep['cover'] as String,
+                          header: (ep['coverheader'] as Map<String, dynamic>?)
+                              ?.cast(),
+                        )
+                      : null,
+                  description: ep['description'] as String?,
+                  timestamp: ep['timestamp'] as String?,
+                ),
+              )
+              .toList(),
+        );
+        return EntrySaved(
+          entry: entry,
+          // No separate source entry existed back then; the folded entry is
+          // the best available refresh input until the next refresh.
+          original: entry,
           categories: await handleCategories(json['categories']),
           episodedata:
               (json['episodedata'] as List<dynamic>?)
@@ -562,10 +596,20 @@ class EntrySaved
           extensionSettings: {},
         );
     }
+    final entry = rust.JsonEntryDetailed.fromJson(
+      json['entry'] as Map<String, dynamic>,
+    );
     return EntrySaved(
-      entry: rust.JsonEntryDetailed.fromJson(
-        json['entry'] as Map<String, dynamic>,
-      ),
+      entry: entry,
+      // Rows written before the original/final split only stored the folded
+      // entry; it doubles as the original until the next refresh.
+      original:
+          json['original'] == null
+          ? entry
+          : rust.JsonEntryDetailed.fromJson(
+              json['original'] as Map<String, dynamic>,
+            ),
+      generation: (json['generation'] as int?) ?? 0,
       categories: await handleCategories(json['categories']),
       episodedata:
           (json['episodedata'] as List<dynamic>?)
@@ -633,72 +677,4 @@ Iterable<DBRecord> fromDynamic(Iterable<dynamic> list) {
   return list.map(
     (e) => e is DBRecord ? e : DBRecord.fromJson(e as Map<String, dynamic>),
   );
-}
-
-void _applyJsonPatch(Map<String, dynamic> doc, List<Map<String, dynamic>> ops) {
-  for (final op in ops) {
-    final path = op['path'];
-    if (path is! String) {
-      throw StateError('Patch op without a path: $op');
-    }
-    final tokens = _jsonPointerTokens(path);
-    if (tokens.isEmpty) {
-      throw StateError('Unsupported root patch path: $path');
-    }
-    final parent = _resolvePointer(doc, tokens.sublist(0, tokens.length - 1));
-    final key = tokens.last;
-    final value = op['value'];
-    switch (op['op']) {
-      case 'add' || 'replace':
-        if (parent is List) {
-          final index = key == '-' ? parent.length : int.parse(key);
-          if (index > parent.length) {
-            throw StateError('Patch index $index out of bounds: $path');
-          }
-          if (op['op'] == 'add' && index == parent.length) {
-            parent.add(value);
-          } else {
-            parent[index] = value;
-          }
-        } else if (parent is Map) {
-          parent[key] = value;
-        } else {
-          throw StateError('Cannot patch into ${parent.runtimeType}: $path');
-        }
-      case 'remove':
-        if (parent is List) {
-          parent.removeAt(int.parse(key));
-        } else if (parent is Map) {
-          parent.remove(key);
-        } else {
-          throw StateError('Cannot patch into ${parent.runtimeType}: $path');
-        }
-      default:
-        throw StateError('Unsupported patch op: ${op['op']}');
-    }
-  }
-}
-
-List<String> _jsonPointerTokens(String pointer) => pointer
-    .split('/')
-    .skip(1)
-    .map((t) => t.replaceAll('~1', '/').replaceAll('~0', '~'))
-    .toList();
-
-dynamic _resolvePointer(dynamic doc, List<String> tokens) {
-  var current = doc;
-  for (final token in tokens) {
-    if (current is List) {
-      current = current[int.parse(token)];
-    } else if (current is Map) {
-      final next = current[token];
-      if (next == null) {
-        throw StateError('Patch path leads through missing key "$token"');
-      }
-      current = next;
-    } else {
-      throw StateError('Cannot descend into ${current.runtimeType}');
-    }
-  }
-  return current;
 }

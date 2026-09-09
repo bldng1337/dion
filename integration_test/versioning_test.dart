@@ -548,6 +548,16 @@ List<EntrySaved> get savedEntrySamples => [
       language: 'en',
       episodes: [],
     ),
+    original: const rust.EntryDetailed(
+      id: rust.EntryId(uid: 'saved-minimal'),
+      url: 'https://example.com/saved-minimal',
+      titles: ['Saved Minimal'],
+      mediaType: rust.MediaType.book,
+      status: rust.ReleaseStatus.complete,
+      description: 'minimal saved entry',
+      language: 'en',
+      episodes: [],
+    ),
     categories: [_categories.first],
     savedSettings: EntrySavedSettings(deleteOnFinish: true, downloadNextEpisodes: 2),
     boundExtensionId: _boundExtensionId,
@@ -561,6 +571,7 @@ List<EntrySaved> get savedEntrySamples => [
   // Everything populated, including quotes/images and per-entry extensions.
   EntrySaved(
     entry: comprehensiveDetailed,
+    original: comprehensiveDetailed,
     categories: _categories,
     savedSettings: EntrySavedSettings(
       reverse: true,

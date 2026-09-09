@@ -17,6 +17,8 @@ import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/mock_extension.dart';
 import 'package:dionysos/service/mock_tracker_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/json_patch.dart';
+import 'package:dionysos/utils/keyed_mutex.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/toast.dart';
@@ -47,48 +49,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 export 'package:rdion_runtime/rdion_runtime.dart'
     hide Account, Entry, EntryDetailed, Row, RustLib, Setting;
-
-extension on rust.EntryDetailed {
-  rust.EntryDetailed copyWith({
-    EntryId? id,
-    String? url,
-    List<String>? titles,
-    List<String>? author,
-    CustomUI? ui,
-    Map<String, String>? meta,
-    MediaType? mediaType,
-    ReleaseStatus? status,
-    String? description,
-    String? language,
-    Link? cover,
-    Link? poster,
-    List<Episode>? episodes,
-    List<String>? genres,
-    double? rating,
-    double? views,
-    int? length,
-  }) => rust.EntryDetailed(
-    id: id ?? this.id,
-    url: url ?? this.url,
-    titles: titles ?? this.titles,
-    author: author ?? this.author,
-    ui: ui ?? this.ui,
-    meta: meta ?? this.meta,
-    mediaType: mediaType ?? this.mediaType,
-    status: status ?? this.status,
-    description: description ?? this.description,
-    language: language ?? this.language,
-    cover: cover ?? this.cover,
-    poster: poster ?? this.poster,
-    episodes: episodes ?? this.episodes,
-    genres: genres ?? this.genres,
-    rating: rating ?? this.rating,
-    views: views ?? this.views,
-    length: length ?? this.length,
-  );
-}
-
-typedef CustomUIRow = rust.Row;
 
 extension on rust.Source {
   rust.SourceType get type {
@@ -379,57 +339,60 @@ class Extension extends ChangeNotifier {
         'Extension mismatch: expected $id, got ${e.boundExtensionId}',
       );
     }
-    final res = switch (e) {
-      final EntrySaved saved => await _proxy.detail(
-        entryid: saved.id,
-        // token: token,
-        settings: saved.extensionSettings,
-      ),
-      final EntryDetailed detail => await _proxy.detail(
-        entryid: detail.id,
-        // token: token,
-        settings: detail.extensionSettings,
-      ),
-      final Entry entry => await _proxy.detail(
-        entryid: entry.id,
-        // token: token,
-        settings: {},
-      ),
-    };
-    if (e is EntrySaved) {
-      var resEntry = res.entry;
-      for (final entryExtension in e.entryExtensions) {
-        final extension = entryExtension.extension;
-        if (extension == null) {
-          continue;
-        }
-        final processor = extension
-            .getExtensionTypeOrNull<rust.ExtensionType_EntryProcessor>();
-        if (!(extension.isenabled && processor != null)) {
-          continue;
-        }
-        if (!processor.triggerMapEntry) {
-          continue;
-        }
-        final mapRes = await extension._proxy.mapEntry(
-          entry: resEntry,
-          settings: entryExtension.extensionSettings,
+    switch (e) {
+      // Saved entries refresh from the source entry the bound extension itself
+      // produced, not from the extension-mapped one, then re-fold the entry
+      // extension chain over the fresh original.
+      case final EntrySaved saved:
+        await locate<ExtensionService>().withEntryLock(saved, () async {
+          final refreshRes = await _proxy.refresh(
+            entry: saved.original,
+            settings: saved.extensionSettings,
+            // token: token,
+          );
+          saved.original = refreshRes.entry;
+          saved.generation++;
+          saved.extensionSettings = refreshRes.settings;
+          await remapEntry(saved, token: token);
+        });
+        return saved;
+      case final EntryDetailed detail:
+        final res = await _proxy.detail(
+          entryid: detail.id,
           // token: token,
+          settings: detail.extensionSettings,
         );
-
-        resEntry = mapRes.entry.copyWith(
-          ui: resEntry.ui??const CustomUI.column(children: [], scrollable: false),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
+        return EntryDetailedImpl(res.entry, id, res.settings);
+      default:
+        final res = await _proxy.detail(
+          entryid: e.id,
+          // token: token,
+          settings: {},
         );
-        entryExtension.extensionSettings =
-            mapRes.settings; //TODO: Think about possible race conditions here
-        entryExtension.ui = mapRes.entry.ui;
-      }
-      e.entry = resEntry;
-      e.extensionSettings =
-          res.settings; //TODO: Think about possible race conditions here
-      return e;
+        return EntryDetailedImpl(res.entry, id, res.settings);
     }
-    return EntryDetailedImpl(res.entry, id, res.settings);
+  }
+
+  Future<rust.EntryDetailedResult> mapEntry(
+    rust.EntryDetailed entry,
+    Map<String, rust.Setting> settings, {
+    rust.CancelToken? token,
+  }) {
+    return _proxy.mapEntry(entry: entry, settings: settings, token: token);
+  }
+
+  Future<void> remapEntry(
+    EntrySaved e, {
+    String? only,
+    bool runMissing = true,
+    rust.CancelToken? token,
+  }) => remapSavedEntry(e, only: only, runMissing: runMissing, token: token);
+
+  Future<void> recomposeEntry(EntrySaved e) {
+    return locate<ExtensionService>().withEntryLock(
+      e,
+      () => remapSavedEntry(e, runMissing: false),
+    );
   }
 
   Future<EntrySaved> refreshEntryExtension(
@@ -460,18 +423,10 @@ class Extension extends ChangeNotifier {
       );
       return e;
     }
-    final mapRes = await extension._proxy.mapEntry(
-      entry: e.entry,
-      settings: ext.extensionSettings,
-      token: token,
+    await locate<ExtensionService>().withEntryLock(
+      e,
+      () => remapEntry(e, only: extension.id, token: token),
     );
-    e.entry = mapRes.entry.copyWith(
-      ui: e.entry.ui??
-      const CustomUI.column(children: [],scrollable: false),// Preserve the original UI from the detail call so the main ui belongs to the extension that owns the entry, not the processor that mapped it
-    );
-    ext.extensionSettings =
-        mapRes.settings; //TODO: Think about possible race conditions
-    ext.ui=mapRes.entry.ui;
     return e;
   }
 
@@ -696,6 +651,79 @@ class ExtensionNotFoundException implements Exception {
   }
 }
 
+Future<void> remapSavedEntry(
+  EntrySaved e, {
+  String? only,
+  bool runMissing = true,
+  rust.CancelToken? token,
+}) async {
+  // The fold carries no ui: the source ui lives in original, each
+  // extension's ui is stored on its EntryExtension.
+  final doc = e.original.toJson() as Map<String, dynamic>..remove('ui');
+  for (final entryExtension in e.entryExtensions) {
+    final extension = entryExtension.extension;
+    final processor = extension?.getExtensionTypeOrNull<
+        rust.ExtensionType_EntryProcessor>();
+    if (!(extension != null && extension.isenabled && processor != null)) {
+      entryExtension
+        ..patch = null
+        ..ui = null;
+      continue;
+    }
+    if (!processor.triggerMapEntry) {
+      entryExtension
+        ..patch = null
+        ..ui = null;
+      continue;
+    }
+    var applied = false;
+    if (entryExtension.extensionId != only &&
+        entryExtension.patch != null &&
+        entryExtension.patchGeneration == e.generation) {
+      try {
+        applyJsonPatch(doc, entryExtension.patch!);
+        applied = true;
+      } catch (err, stack) {
+        // Positional patch no longer fits the document (e.g. an extension
+        // earlier in the chain changed): drop it and re-run below.
+        logger.w(
+          'Cached patch of ${entryExtension.extensionId} no longer applies '
+          'to ${e.id.uid}; re-running the extension',
+          error: err,
+          stackTrace: stack,
+        );
+        entryExtension.patch = null;
+      }
+    }
+    if (applied) {
+      continue;
+    }
+    if (!runMissing) {
+      continue;
+    }
+    // The map input always arrives with the ui cleared, so whatever the
+    // extension returns as ui is attributable to it alone.
+    final input = rust.JsonEntryDetailed.fromJson(
+      Map<String, dynamic>.from(doc),
+    );
+    final mapRes = await extension.mapEntry(
+      input,
+      entryExtension.extensionSettings,
+      token: token,
+    );
+    entryExtension.extensionSettings = mapRes.settings;
+    entryExtension.ui = mapRes.entry.ui;
+    final resultDoc = mapRes.entry.toJson() as Map<String, dynamic>
+      ..remove('ui');
+    entryExtension.patch = diffJson(doc, resultDoc);
+    entryExtension.patchGeneration = e.generation;
+    doc
+      ..clear()
+      ..addAll(resultDoc);
+  }
+  e.entry = rust.JsonEntryDetailed.fromJson(doc);
+}
+
 class ExtensionAdapter with ChangeNotifier {
   final _extensions = <Extension>[];
   final rust.ProxyAdapter adapter;
@@ -849,7 +877,12 @@ class ExtensionService with ChangeNotifier {
   // Inbuilt debug/test mock extensions. Present only in debug builds (see
   // [init]); survives [reload] so it is never wiped by adapter refreshes.
   final List<Extension> _mockExtensions = [];
+  final KeyedMutex _entryLocks = KeyedMutex();
   bool loading = false;
+
+  Future<T> withEntryLock<T>(EntrySaved entry, Future<T> Function() action) {
+    return _entryLocks.run(entry.dbId.toString(), action);
+  }
 
   Future<rust.ManagerClient> getClient(String adapter) async {
     final dir = await locateAsync<DirectoryProvider>();

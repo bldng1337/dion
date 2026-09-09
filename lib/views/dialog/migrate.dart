@@ -37,6 +37,11 @@ Future<EntrySaved> migrateEntry(EntrySaved source, Entry target) async {
   final db = locate<Database>();
   final migrated = EntrySaved(
     entry: detailed.toRust,
+    original: detailed.toRust,
+    // The carried-over entry extensions' patches were computed against the
+    // old entry's original; bumping the generation invalidates them so they
+    // re-run against the new source on the next refresh.
+    generation: source.generation + 1,
     boundExtensionId: detailed.boundExtensionId,
     extensionSettings: detailed.extensionSettings,
     categories: source.categories,
