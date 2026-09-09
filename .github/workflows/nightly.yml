@@ -155,6 +155,10 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
 
+      - name: Enable Developer Mode (symlinks for pdfrx native assets)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /v AllowDevelopmentWithoutDevLicense /t REG_DWORD /d 1 /f
       - name: Build Windows (${{ matrix.build_mode }})
         if: matrix.os == 'windows-latest'
         shell: bash

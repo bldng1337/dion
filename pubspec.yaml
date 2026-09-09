@@ -6,8 +6,9 @@ publish_to: none
 version: 2.0.0-beta.61
 
 environment:
-  sdk: ">=3.8.0 <4.0.0"
-  flutter: ">=3.32.0"
+  # pdfrx 2.6 requires recent toolchains (native assets).
+  sdk: ">=3.13.0 <4.0.0"
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
@@ -23,7 +24,7 @@ dependencies:
   timeago: ^3.7.0
   pub_semver: ^2.1.4
   uuid: ^4.5.1
-  archive: ^4.0.7
+  archive: ^4.0.9
   logger: ^2.4.0
   rhttp: ^0.13.0
   path: ^1.9.0
@@ -83,9 +84,24 @@ dependencies:
       path: dart/rdion_runtime/
       ref: 233f7b723cf961028727fe5448bb4c19d9eebd5b
 
-  # pdfx: ^2.8.0
+  epub_view: ^3.3.0
+  pdfrx: ^2.6.1
   flutter_inappwebview: ^6.1.5
   # feedback: ^3.1.0
+
+dependency_overrides:
+  # epub_view -> epubx: the published epubx 4.0.0 predates image 4 support
+  # and pins archive ^3. Upstream dev branch (unreleased 4.0.1) fixes
+  # image 4; its read path (decodeBytes/files/name/content) is compatible
+  # with archive 4, which pdfrx needs. flutter_html 3.0.0 uses html's
+  # query_selector internals, which html 0.15.6 dropped.
+  epubx:
+    git:
+      url: https://github.com/rbcprolabs/epubx.dart
+      ref: 1c0347b20c9123866bff760f8571ec50fefb037d # dev; image-4 fix, unreleased
+  archive: ^4.2.0
+  image: ^4.0.17
+  html: 0.15.5
 
 dev_dependencies:
   flutter_test:

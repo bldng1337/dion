@@ -3,11 +3,12 @@ import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/views/view/audio/audio.dart';
+import 'package:dionysos/views/view/epub/epub.dart';
 import 'package:dionysos/views/view/imagelist/image.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
+import 'package:dionysos/views/view/pdf/pdf.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/video/video.dart';
-import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/widgets.dart';
@@ -33,7 +34,6 @@ class SourceSuplierData extends InheritedWidget {
     return supplier != oldWidget.supplier;
   }
 }
-
 
 class ViewSource extends StatefulWidget {
   const ViewSource({super.key});
@@ -107,20 +107,8 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
     }
     return switch (lastsource!.source) {
       final Source_Paragraphlist _ => const ParagraphListReader(),
-      final Source_Epub _ => const NavScaff(
-        title: Text('Not Supported'),
-        child: ErrorDisplay(
-          message: 'Epub sources are not supported yet.',
-          e: null,
-        ),
-      ),
-      final Source_Pdf _ => const NavScaff(
-        title: Text('Not Supported'),
-        child: ErrorDisplay(
-          message: 'Pdf sources are not supported yet.',
-          e: null,
-        ),
-      ),
+      final Source_Epub _ => const EpubReader(),
+      final Source_Pdf _ => const PdfReader(),
       final Source_Imagelist _ => const ImageListReader(),
       final Source_Video _ => const VideoPlayer(),
       final Source_Audio _ => const AudioListener(),

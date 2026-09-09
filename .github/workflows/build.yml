@@ -147,6 +147,10 @@ jobs:
         shell: bash
         run: flutter build ios --flavor flavor1 --${{ matrix.build_mode }} --no-codesign --verbose
 
+      - name: Enable Developer Mode (symlinks for pdfrx native assets)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /v AllowDevelopmentWithoutDevLicense /t REG_DWORD /d 1 /f
       - name: Build Windows (${{ matrix.build_mode }})
         if: matrix.os == 'windows-latest'
         shell: bash
