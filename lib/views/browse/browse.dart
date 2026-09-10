@@ -88,6 +88,15 @@ class _BrowseState extends State<Browse>
     return NavScaff(
       title: const Text('Browse'),
       destination: homedestinations,
+      actions: [
+        DionIconbutton(
+          tooltip: 'Search Settings',
+          icon: const Icon(Icons.settings),
+          onPressed: () {
+            showSettingPopup(context);
+          },
+        ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -100,15 +109,6 @@ class _BrowseState extends State<Browse>
               TextStyle(color: Colors.grey),
             ),
             onSubmitted: (s) => context.go('/search/$s'),
-            actions: [
-              DionIconbutton(
-                tooltip: 'Search Settings',
-                icon: const Icon(Icons.settings),
-                onPressed: () {
-                  showSettingPopup(context);
-                },
-              ),
-            ],
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) =>

@@ -85,6 +85,15 @@ class _SearchState extends State<Search>
     return NavScaff(
       title: const Text('Search'),
       destination: homedestinations,
+      actions: [
+        DionIconbutton(
+          tooltip: 'Search Settings',
+          icon: const Icon(Icons.settings),
+          onPressed: () {
+            showSettingPopup(context);
+          },
+        ),
+      ],
       child: Column(
         children: [
           DionSearchbar(
@@ -102,15 +111,6 @@ class _SearchState extends State<Search>
               }
               context.go('/search/$s');
             },
-            actions: [
-              DionIconbutton(
-                tooltip: 'Search Settings',
-                icon: const Icon(Icons.settings),
-                onPressed: () {
-                  showSettingPopup(context);
-                },
-              ),
-            ],
           ).paddingAll(5),
           if (datacontroller == null)
             // No active query (e.g. /search/ opened without a term); the
