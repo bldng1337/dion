@@ -10,6 +10,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/task.dart';
@@ -86,6 +87,7 @@ Future<void> bootstrapScreenshots() async {
       databasepath: await tempBase.sub('database').create(recursive: true),
       temppath: await tempBase.sub('temp').create(recursive: true),
       downloadspath: await tempBase.sub('downloads').create(recursive: true),
+      imagepath: await tempBase.sub('images').create(recursive: true),
       logspath: await tempBase.sub('logs').create(recursive: true),
     ),
   );
@@ -106,6 +108,9 @@ Future<void> bootstrapScreenshots() async {
   // init normally and network covers load from placehold.co.
   await NetworkService.ensureInitialized();
   await CacheService.ensureInitialized();
+  // Entry saves push covers into the permanent image store (locate'd from
+  // Database.addEntry), so the store must be registered here as well.
+  await ImageStoreService.ensureInitialized();
 
   // EpisodeTile subscribes to a DownloadService status stream per episode, so
   // the real service is required (the mocktail mock returns null and throws).

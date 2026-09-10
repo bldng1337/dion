@@ -178,6 +178,20 @@ enum ReaderMode { paginated, infinite }
 enum UpdateChannel { stable, beta, nightly }
 
 final settings = (
+  autoDownload: (
+    entryCovers: Setting(
+      true,
+      const PreferenceBoolMetaData('autodownload.entrycovers'),
+    )..addCollection(preferenceCollection),
+    quoteImages: Setting(
+      true,
+      const PreferenceBoolMetaData('autodownload.quoteimages'),
+    )..addCollection(preferenceCollection),
+    extensionIcons: Setting(
+      true,
+      const PreferenceBoolMetaData('autodownload.extensionicons'),
+    )..addCollection(preferenceCollection),
+  ),
   extension: (
     repositories: Setting(
       <String>[],

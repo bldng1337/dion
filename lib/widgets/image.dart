@@ -5,6 +5,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment,CrossAxisAlignment,MainAxisSize,StackFit;
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
@@ -108,7 +109,12 @@ class DionImage extends StatefulWidget {
       //We ignore mihon scheme urls
       return;
     }
+    final store = ImageStoreService.maybeStored(url);
     if (isSvgSource(url)) {
+      if (store != null) {
+        // Stored SVGs load from disk in [_DionSvgImage]; nothing to warm.
+        return;
+      }
       // SVGs are not [ImageProvider]s, so just warm the cache.
       final cache = locate<CacheService>().imgcache;
       await cache
@@ -191,6 +197,12 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
     if (isFileUrl(url)) {
       return decode(await ImmutableBuffer.fromFilePath(fileFromUrl(url).path));
     }
+    // Permanent store wins over the expiring cache so saved images keep
+    // working offline without a second network download.
+    final stored = ImageStoreService.maybeStored(url);
+    if (stored != null) {
+      return decode(await ImmutableBuffer.fromFilePath(stored.path));
+    }
     final cache = locate<CacheService>().imgcache;
     final fileinfo = await cache
         .getImageFile(
@@ -260,15 +272,19 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                           DionIconbutton(
                             tooltip: 'Share Image',
                             onPressed: () async {
-                              final cache = locate<CacheService>().imgcache;
-                              final fileinfo = await cache
-                                  .getImageFile(
-                                    widget.imageUrl!,
-                                    headers: widget.httpHeaders,
-                                  )
-                                  .where((e) => e is FileInfo)
-                                  .last;
-                              final file = (fileinfo as FileInfo).file;
+                              final stored = ImageStoreService.maybeStored(
+                                widget.imageUrl!,
+                              );
+                              final file = stored ??
+                                  (await locate<CacheService>()
+                                      .imgcache
+                                      .getImageFile(
+                                        widget.imageUrl!,
+                                        headers: widget.httpHeaders,
+                                      )
+                                      .where((e) => e is FileInfo)
+                                      .last as FileInfo)
+                                      .file;
                               file.share();
                             },
                             icon: const Icon(Icons.share),
@@ -559,6 +575,10 @@ class _DionSvgImageState extends State<_DionSvgImage> {
     final url = widget.url;
     if (isFileUrl(url)) {
       return fileFromUrl(url).readAsBytes();
+    }
+    final stored = ImageStoreService.maybeStored(url);
+    if (stored != null) {
+      return stored.readAsBytes();
     }
     final cache = locate<CacheService>().imgcache;
     final fileinfo = await cache

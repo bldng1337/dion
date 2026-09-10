@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async/async.dart';
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/activity/entry_duration.dart';
@@ -10,6 +12,7 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/change.dart';
 import 'package:dionysos/utils/log.dart';
@@ -541,6 +544,9 @@ ORDER BY total DESC
   Future<void> removeEntry(EntrySaved entry) async {
     await adapter.delete(entry);
     notifyListeners([DBEvent.entryAddedOrRemoved]);
+    if (has<ImageStoreService>()) {
+      locate<ImageStoreService>().forgetEntry(entry);
+    }
     final download = locate<DownloadService>();
     try {
       await download.deleteEntry(entry);
@@ -557,11 +563,21 @@ ORDER BY total DESC
   Future<void> addEntry(EntrySaved entry) async {
     await adapter.save(entry);
     notifyListeners([DBEvent.entryAddedOrRemoved]);
+    storeEntryImages(entry);
   }
 
   Future<void> updateEntry(EntrySaved entry) async {
     await adapter.save(entry);
     notifyListeners([DBEvent.entryUpdated]);
+    storeEntryImages(entry);
+  }
+
+  void storeEntryImages(EntrySaved entry) {
+    if (!has<ImageStoreService>()) return;
+    final store = locate<ImageStoreService>();
+    unawaited(store.storeLink(ImageStoreKind.entryCover, entry.cover));
+    unawaited(store.storeLink(ImageStoreKind.entryCover, entry.poster));
+    store.noteEntryImages(entry);
   }
 
   Future<void> clear() async {
@@ -569,6 +585,9 @@ ORDER BY total DESC
     await db.query('DELETE activity');
     await db.query('DELETE category');
     await db.query('DELETE extension');
+    if (has<ImageStoreService>()) {
+      locate<ImageStoreService>().schedulePrune();
+    }
   }
 
   Future<void> merge(String path) async {

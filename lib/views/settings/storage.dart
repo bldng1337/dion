@@ -20,6 +20,7 @@ import 'package:dionysos/widgets/buttons/loadable.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
+import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -190,6 +191,28 @@ class Storage extends StatelessWidget {
             ],
           ),
           SettingTitle(
+            title: 'Auto-Download',
+            subtitle:
+                'Keep permanent copies of images in case sources go down',
+            children: [
+              SettingToggle(
+                title: 'Entry Covers & Posters',
+                description: 'Stored when an entry is saved to the library',
+                setting: settings.autoDownload.entryCovers,
+              ),
+              SettingToggle(
+                title: 'Quote Images',
+                description: 'Stored when an image is saved as a quote',
+                setting: settings.autoDownload.quoteImages,
+              ),
+              SettingToggle(
+                title: 'Extension Icons',
+                description: 'Stored when an extension is installed',
+                setting: settings.autoDownload.extensionIcons,
+              ),
+            ],
+          ),
+          SettingTitle(
             title: 'Clear Data',
             subtitle: 'Remove stored data',
             children: [
@@ -229,18 +252,26 @@ class Storage extends StatelessWidget {
 class StorageStats {
   final int downloadsCount;
   final int downloadsSize;
+  final int imageStoreCount;
+  final int imageStoreSize;
   final int cacheSize;
   final int databaseSize;
   final int extensionsSize;
   const StorageStats({
     required this.downloadsCount,
     required this.downloadsSize,
+    required this.imageStoreCount,
+    required this.imageStoreSize,
     required this.cacheSize,
     required this.databaseSize,
     required this.extensionsSize,
   });
   int get totalUsed =>
-      downloadsSize + cacheSize + databaseSize + extensionsSize;
+      downloadsSize +
+      imageStoreSize +
+      cacheSize +
+      databaseSize +
+      extensionsSize;
 }
 
 class _StorageAction extends StatelessWidget {
@@ -469,6 +500,14 @@ class _StorageStatsSection extends StatelessWidget {
             ),
             SizedBox(height: DionSpacing.md),
             _StorageCard(
+              icon: Icons.collections_outlined,
+              title: 'Stored Images',
+              subtitle: 'Automatically kept covers, quotes and icons',
+              value: '...',
+              color: DionColors.primary,
+            ),
+            SizedBox(height: DionSpacing.md),
+            _StorageCard(
               icon: Icons.image_outlined,
               title: 'Image Cache',
               subtitle: 'Cached images and thumbnails',
@@ -494,54 +533,66 @@ class _StorageStatsSection extends StatelessWidget {
           ],
         ),
       ),
-      builder: (context, value) => Padding(
-        padding: const EdgeInsets.all(DionSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _StorageCard(
-              icon: Icons.storage_outlined,
-              title: 'Total Storage Used',
-              subtitle: '',
-              value: formatBytes(value.totalUsed),
-              color: DionColors.primary,
-            ),
-            const SizedBox(height: DionSpacing.md),
-            _StorageCard(
-              icon: Icons.download_outlined,
-              title: 'Downloads',
-              subtitle:
-                  '${value.downloadsCount} episode${value.downloadsCount == 1 ? '' : 's'}',
-              value: formatBytes(value.downloadsSize),
-              color: DionColors.primary,
-            ),
-            const SizedBox(height: DionSpacing.md),
-            _StorageCard(
-              icon: Icons.image_outlined,
-              title: 'Image Cache',
-              subtitle: 'Cached images and thumbnails',
-              value: formatBytes(value.cacheSize),
-              color: DionColors.primary,
-            ),
-            const SizedBox(height: DionSpacing.md),
-            _StorageCard(
-              icon: Icons.storage,
-              title: 'Database',
-              subtitle: 'Library and settings data',
-              value: formatBytes(value.databaseSize),
-              color: DionColors.primary,
-            ),
-            const SizedBox(height: DionSpacing.md),
-            _StorageCard(
-              icon: Icons.extension_outlined,
-              title: 'Extensions',
-              subtitle: 'Installed extensions and their data',
-              value: formatBytes(value.extensionsSize),
-              color: DionColors.primary,
-            ),
-          ],
-        ),
-      ),
+      builder: (context, value) {
+        final imageStoreCount = value.imageStoreCount;
+        return Padding(
+          padding: const EdgeInsets.all(DionSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _StorageCard(
+                icon: Icons.storage_outlined,
+                title: 'Total Storage Used',
+                subtitle: '',
+                value: formatBytes(value.totalUsed),
+                color: DionColors.primary,
+              ),
+              const SizedBox(height: DionSpacing.md),
+              _StorageCard(
+                icon: Icons.download_outlined,
+                title: 'Downloads',
+                subtitle:
+                    '${value.downloadsCount} episode${value.downloadsCount == 1 ? '' : 's'}',
+                value: formatBytes(value.downloadsSize),
+                color: DionColors.primary,
+              ),
+              const SizedBox(height: DionSpacing.md),
+              _StorageCard(
+                icon: Icons.collections_outlined,
+                title: 'Stored Images',
+                subtitle:
+                    '$imageStoreCount image${imageStoreCount == 1 ? '' : 's'} automatically kept',
+                value: formatBytes(value.imageStoreSize),
+                color: DionColors.primary,
+              ),
+              const SizedBox(height: DionSpacing.md),
+              _StorageCard(
+                icon: Icons.image_outlined,
+                title: 'Image Cache',
+                subtitle: 'Cached images and thumbnails',
+                value: formatBytes(value.cacheSize),
+                color: DionColors.primary,
+              ),
+              const SizedBox(height: DionSpacing.md),
+              _StorageCard(
+                icon: Icons.storage,
+                title: 'Database',
+                subtitle: 'Library and settings data',
+                value: formatBytes(value.databaseSize),
+                color: DionColors.primary,
+              ),
+              const SizedBox(height: DionSpacing.md),
+              _StorageCard(
+                icon: Icons.extension_outlined,
+                title: 'Extensions',
+                subtitle: 'Installed extensions and their data',
+                value: formatBytes(value.extensionsSize),
+                color: DionColors.primary,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -584,6 +635,22 @@ class _StorageStatsSection extends StatelessWidget {
       logger.w('Failed to calculate cache size', error: e);
     }
 
+    int imageStoreCount = 0;
+    int imageStoreSize = 0;
+    try {
+      final imageDir = dirProvider.imagepath;
+      if (await imageDir.exists()) {
+        imageStoreSize = await getDirectorySize(imageDir);
+        await for (final entity in imageDir.list()) {
+          if (entity is File) {
+            imageStoreCount++;
+          }
+        }
+      }
+    } catch (e) {
+      logger.w('Failed to calculate stored images stats', error: e);
+    }
+
     int databaseSize = 0;
     try {
       final databaseDir = dirProvider.databasepath;
@@ -607,6 +674,8 @@ class _StorageStatsSection extends StatelessWidget {
     return StorageStats(
       downloadsCount: downloadsCount,
       downloadsSize: downloadsSize,
+      imageStoreCount: imageStoreCount,
+      imageStoreSize: imageStoreSize,
       cacheSize: cacheSize,
       databaseSize: databaseSize,
       extensionsSize: extensionsSize,

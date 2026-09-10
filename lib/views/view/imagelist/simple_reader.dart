@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
@@ -476,6 +479,13 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
               ),
             );
             await ep.save();
+            // Keep a permanent copy; the expiring image cache would lose it.
+            unawaited(
+              locate<ImageStoreService>().storeLink(
+                ImageStoreKind.quoteImage,
+                image,
+              ),
+            );
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

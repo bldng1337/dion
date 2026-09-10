@@ -11,6 +11,7 @@ class DirectoryProvider {
   final Directory databasepath;
   final Directory temppath;
   final Directory downloadspath;
+  final Directory imagepath;
   final Directory logspath;
 
   const DirectoryProvider({
@@ -19,6 +20,7 @@ class DirectoryProvider {
     required this.databasepath,
     required this.temppath,
     required this.downloadspath,
+    required this.imagepath,
     required this.logspath,
   });
 
@@ -48,6 +50,7 @@ class DirectoryProvider {
         extensionpath: await basepath.sub('extension').create(recursive: true),
         databasepath: await basepath.sub('database').create(recursive: true),
         downloadspath: await basepath.sub('downloads').create(recursive: true),
+        imagepath: await basepath.sub('images').create(recursive: true),
         logspath: logspath,
       ),
     );
@@ -57,7 +60,13 @@ class DirectoryProvider {
   }
 
   Future<void> clear() async {
-    final children = [extensionpath, databasepath, downloadspath, logspath];
+    final children = [
+      extensionpath,
+      databasepath,
+      downloadspath,
+      imagepath,
+      logspath,
+    ];
     for (final dir in children) {
       try {
         if (await dir.exists()) {

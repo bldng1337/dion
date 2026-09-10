@@ -14,6 +14,7 @@ import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/mock_extension.dart';
 import 'package:dionysos/service/mock_tracker_extension.dart';
 import 'package:dionysos/utils/file_utils.dart';
@@ -731,6 +732,24 @@ class ExtensionAdapter with ChangeNotifier {
   bool _reloading = false;
   ExtensionAdapter(this.name, this.adapter);
 
+  void storeIcon(Extension ext) {
+    final icon = ext.data.icon;
+    unawaited(
+      () async {
+        try {
+          final store = await locateAsync<ImageStoreService>();
+          await store.store(ImageStoreKind.extensionIcon, icon);
+        } catch (e, stack) {
+          logger.w(
+            'Failed to store icon of extension ${ext.id}',
+            error: e,
+            stackTrace: stack,
+          );
+        }
+      }(),
+    );
+  }
+
   Future<void> reload() async {
     if (_reloading) {
       // Overlapping reloads (or a reload racing install) would interleave
@@ -746,7 +765,9 @@ class ExtensionAdapter with ChangeNotifier {
       final loaded = <Extension>[];
       for (final e in exts) {
         try {
-          loaded.add(await Extension.fromProxy(e, db));
+          final extension = await Extension.fromProxy(e, db);
+          loaded.add(extension);
+          storeIcon(extension);
         } catch (err, stack) {
           logger.e(
             'Failed to load extension; skipping it',
@@ -809,6 +830,11 @@ class ExtensionAdapter with ChangeNotifier {
     _extensions.add(newext);
     old?.dispose();
     notifyListeners();
+    storeIcon(newext);
+    // An update replaced the previous icon url; collect its stored file.
+    if (has<ImageStoreService>()) {
+      locate<ImageStoreService>().schedulePrune();
+    }
   }
 
   Future<void> uninstall(Extension ext) async {
@@ -816,6 +842,9 @@ class ExtensionAdapter with ChangeNotifier {
     _extensions.remove(ext);
     ext.dispose();
     notifyListeners();
+    if (has<ImageStoreService>()) {
+      locate<ImageStoreService>().schedulePrune();
+    }
   }
 }
 

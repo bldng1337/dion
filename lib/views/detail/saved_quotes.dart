@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -34,6 +37,27 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
       widget.entry.episodedata.any(
         (e) => e.quotes.isNotEmpty || e.images.isNotEmpty,
       );
+
+  @override
+  void initState() {
+    super.initState();
+    _backfillStoredImages();
+  }
+
+  void _backfillStoredImages() {
+    final store = locate<ImageStoreService>();
+    for (final data in widget.entry.episodedata) {
+      for (final image in data.images) {
+        unawaited(
+          store.store(
+            ImageStoreKind.quoteImage,
+            image.url,
+            headers: image.headers,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _deleteQuote(int episodeIndex, SavedQuote quote) async {
     setState(() {

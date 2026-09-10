@@ -5,6 +5,7 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/extension_updates.dart';
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/lansync/lansync_service.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/notification.dart';
@@ -87,6 +88,12 @@ class LoadingView extends StatelessWidget {
           'CacheService',
           () async {
             await CacheService.ensureInitialized();
+          },
+        ),
+        (
+          'ImageStoreService',
+          () async {
+            await ImageStoreService.ensureInitialized();
           },
         ),
         (
