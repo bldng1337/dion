@@ -150,6 +150,7 @@ class _SettingFontTile extends StatelessWidget {
               )
               .toList(),
           value: value,
+          isExpanded: true,
           onChanged: onChanged,
         ),
       ),

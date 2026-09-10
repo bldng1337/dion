@@ -100,6 +100,7 @@ class _SettingDropdownTile<T> extends StatelessWidget {
           control: DionDropdown<T>(
             items: items,
             value: value,
+            isExpanded: true,
             onChanged: onChanged,
           ),
         ),

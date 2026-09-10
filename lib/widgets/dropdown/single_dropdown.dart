@@ -27,11 +27,18 @@ class DionDropdown<T> extends StatelessWidget {
   final List<DionDropdownItem<T>> items;
   final T? value;
   final void Function(T?)? onChanged;
+
+  /// Fill the available width instead of sizing to the widest menu item.
+  /// Without it DropdownButton measures every item at unbounded width, so a
+  /// long label overflows narrow containers (rows, dialogs).
+  /// Must stay off in intrinsically-sized contexts (Wrap, unbounded rows).
+  final bool isExpanded;
   const DionDropdown({
     super.key,
     required this.items,
     this.value,
     this.onChanged,
+    this.isExpanded = false,
   });
 
   @override
@@ -42,6 +49,7 @@ class DionDropdown<T> extends StatelessWidget {
       'Selected value must exist in items list',
     );
     return DropdownButton<T>(
+      isExpanded: isExpanded,
       value: value,
       selectedItemBuilder: (context) {
         return items.map((e) {

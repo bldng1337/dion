@@ -85,7 +85,7 @@ class _SettingsPopupState extends State<SettingsPopup>
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 480, maxHeight: 560),
+      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 560),
       child: Padding(
         padding: const EdgeInsets.all(DionSpacing.lg),
         child: Column(
