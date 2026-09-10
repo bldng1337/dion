@@ -222,8 +222,14 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     final tts = _tts;
     return NavScaff(
       showNavbar: false,
-      child: BindingDispatcher(
-        actions: [
+      child: ListenableBuilder(
+        listenable: psettings.text.selectable,
+        builder: (context, _) => BindingDispatcher(
+          // Mouse drags must go to the SelectionArea when text is
+          // selectable, otherwise the swipe recognizers win the gesture
+          // arena and drag selection never starts.
+          mouseDrags: !psettings.text.selectable.value,
+          actions: [
           BindingAction(
             setting:
                 settings.readerSettings.paragraphreader.bindings.nextChapter,
@@ -366,6 +372,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           ),
         ),
       ),
+        ),
     );
   }
 

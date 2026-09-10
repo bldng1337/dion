@@ -102,15 +102,21 @@ class _InfiniteParagraphListReaderState
           onPressed: () => context.push('/settings/paragraphreader'),
         ),
       ],
-      child: BindingDispatcher(
-        actions: [
-          BindingAction(
-            setting:
-                settings.readerSettings.paragraphreader.bindings.toggleBookmark,
-            onTrigger: _toggleBookmark,
-          ),
-        ],
-        child: ScrollConfiguration(
+      child: ListenableBuilder(
+        listenable: psettings.text.selectable,
+        builder: (context, _) => BindingDispatcher(
+          // Mouse drags must go to the SelectionArea when text is
+          // selectable, otherwise the swipe recognizers win the gesture
+          // arena and drag selection never starts.
+          mouseDrags: !psettings.text.selectable.value,
+          actions: [
+            BindingAction(
+              setting:
+                  settings.readerSettings.paragraphreader.bindings.toggleBookmark,
+              onTrigger: _toggleBookmark,
+            ),
+          ],
+          child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: HugeListView(
           firstShown: (value) {
@@ -165,6 +171,7 @@ class _InfiniteParagraphListReaderState
         ),
         ),
       ),
+        ),
     );
   }
 }

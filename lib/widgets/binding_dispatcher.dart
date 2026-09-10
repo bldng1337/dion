@@ -15,10 +15,19 @@ class BindingDispatcher extends StatefulWidget {
   final List<BindingAction> actions;
   final Widget child;
 
+  /// Whether mouse pointers can trigger swipe bindings.
+  ///
+  /// Must be disabled when the child contains a SelectionArea: mouse-drag
+  /// text selection goes through the gesture arena, and the swipe
+  /// recognizers here have a smaller slop than the selection pan
+  /// recognizer, so they would always win and selection would never start.
+  final bool mouseDrags;
+
   const BindingDispatcher({
     super.key,
     required this.actions,
     required this.child,
+    this.mouseDrags = true,
   });
 
   @override
@@ -31,7 +40,8 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
   static const double _swipeMinDistance = 64;
 
   // Drag recognizers ignore mouse pointers by default; swipes were
-  // previously raw Listener events, so keep mouse working.
+  // previously raw Listener events, so keep mouse working (unless
+  // [BindingDispatcher.mouseDrags] opts out for selectable text).
   static const Set<PointerDeviceKind> _dragDevices = {
     PointerDeviceKind.touch,
     PointerDeviceKind.mouse,
@@ -150,6 +160,9 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
         // raw Listener events so that a scrollable which consumes the drag
         // (inner recognizers win the arena) does not also trigger a page
         // jump - touching a scroll list used to scroll *and* swipe.
+        final dragDevices = widget.mouseDrags
+            ? _dragDevices
+            : _dragDevices.where((d) => d != PointerDeviceKind.mouse).toSet();
         return RawGestureDetector(
           key: _gestureKey,
           behavior: HitTestBehavior.translucent,
@@ -159,10 +172,14 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
                   VerticalDragGestureRecognizer
                 >(
                   () => VerticalDragGestureRecognizer(
-                    supportedDevices: _dragDevices,
+                    supportedDevices: dragDevices,
                   ),
                   (instance) {
+                    // supportedDevices is re-applied here on every build so
+                    // a mouseDrags flip takes effect without recreating the
+                    // recognizer.
                     instance
+                      ..supportedDevices = dragDevices
                       ..onStart = _onDragStart
                       ..onUpdate = _onDragUpdate
                       ..onEnd = _onDragEnd
@@ -174,10 +191,11 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
                   HorizontalDragGestureRecognizer
                 >(
                   () => HorizontalDragGestureRecognizer(
-                    supportedDevices: _dragDevices,
+                    supportedDevices: dragDevices,
                   ),
                   (instance) {
                     instance
+                      ..supportedDevices = dragDevices
                       ..onStart = _onDragStart
                       ..onUpdate = _onDragUpdate
                       ..onEnd = _onDragEnd
