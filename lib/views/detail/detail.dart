@@ -8,7 +8,17 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
@@ -52,6 +62,8 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   List<ContextMenuItem> get contextItems => [
     ContextMenuItem(
       label: 'Bookmark',
+      icon: Icons.bookmark_border,
+      section: 'Actions',
       onTap: () async {
         final entry = this.entry;
         if (entry is! EntrySaved) return;
@@ -70,6 +82,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     ),
     ContextMenuItem(
       label: 'Remove Bookmark',
+      icon: Icons.bookmark_remove,
       onTap: () async {
         final entry = this.entry;
         if (entry is! EntrySaved) return;
@@ -88,6 +101,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     ),
     ContextMenuItem(
       label: 'Mark as finished',
+      icon: Icons.task_alt,
       onTap: () async {
         final entry = this.entry;
         if (entry is! EntrySaved) return;
@@ -106,6 +120,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     ),
     ContextMenuItem(
       label: 'Mark as unfinished',
+      icon: Icons.circle_outlined,
       onTap: () async {
         final entry = this.entry;
         if (entry is! EntrySaved) return;
@@ -126,6 +141,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     ),
     ContextMenuItem(
       label: 'Download',
+      icon: Icons.download_outlined,
       onTap: () async {
         final download = locate<DownloadService>();
         await download.download([
@@ -141,6 +157,8 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     ),
     ContextMenuItem(
       label: 'Delete Download',
+      icon: Icons.delete_outline,
+      isDestructive: true,
       onTap: () async {
         final download = locate<DownloadService>();
         await download.deleteEpisodes([
@@ -157,6 +175,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     if (selected.length == 1 || (selected.isEmpty && hovered != null))
       ContextMenuItem(
         label: 'Open in Browser',
+        icon: Icons.open_in_browser,
         onTap: () async {
           if (selected.isEmpty) {
             if (hovered == null) return;
@@ -172,6 +191,8 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       ),
     ContextMenuItem(
       label: 'Select to this episode',
+      icon: Icons.playlist_add_check,
+      section: 'Selection',
       onTap: () async {
         final index =
             max(selected.fold(-1, (a, b) => max(a, b)), hovered ?? -1) + 1;
@@ -184,6 +205,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     if (entry is EntrySaved)
       ContextMenuItem(
         label: 'Select finished episodes',
+        icon: Icons.done_all,
         onTap: () async {
           final entry = this.entry;
           if (entry is! EntrySaved) return;
@@ -200,6 +222,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     if (entry is EntrySaved)
       ContextMenuItem(
         label: 'Select unfinished episodes',
+        icon: Icons.remove_done,
         onTap: () async {
           final entry = this.entry;
           if (entry is! EntrySaved) return;
@@ -215,6 +238,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       ),
     ContextMenuItem(
       label: 'Select All',
+      icon: Icons.select_all,
       onTap: () async {
         final entry = this.entry;
         if (entry is! EntryDetailed) return;
@@ -226,6 +250,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     if (selected.isNotEmpty)
       ContextMenuItem(
         label: 'Clear Selection',
+        icon: Icons.clear_all,
         onTap: () async {
           selected.clear();
           setState(() {});
@@ -424,6 +449,7 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           : null,
       child: ContextMenu(
         selectionActive: selected.isNotEmpty,
+        selectionCount: selected.length,
         active: entry is EntrySaved,
         contextItems: contextItems,
         child: CustomScrollView(

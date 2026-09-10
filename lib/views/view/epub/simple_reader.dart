@@ -20,7 +20,7 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/source_file.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/dialog.dart';
+import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -120,65 +120,61 @@ class _SimpleEpubReaderState extends State<SimpleEpubReader>
   void _showTableOfContents() {
     final controller = _controller;
     if (controller == null) return;
-    showDialog(
+    showDionPanel(
       context: context,
       builder: (dialogContext) {
-        return DionDialog(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 560),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    DionSpacing.lg,
-                    DionSpacing.lg,
-                    DionSpacing.sm,
-                    DionSpacing.md,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Table of Contents',
-                          style: DionTypography.titleMedium(
-                            context.textPrimary,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        tooltip: 'Close',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => Navigator.of(dialogContext).pop(),
-                      ),
-                    ],
-                  ),
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420, maxHeight: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  DionSpacing.lg,
+                  DionSpacing.lg,
+                  DionSpacing.sm,
+                  DionSpacing.md,
                 ),
-                const Divider(height: 1),
-                Flexible(
-                  child: EpubViewTableOfContents(
-                    controller: controller,
-                    itemBuilder: (context, index, chapter, itemCount) {
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: DionSpacing.lg,
-                        ),
-                        title: Text(
-                          chapter.title?.trim() ?? '',
-                          style: DionTypography.bodyMedium(context.textPrimary),
-                        ),
-                        onTap: () {
-                          controller.scrollTo(index: chapter.startIndex);
-                          Navigator.of(dialogContext).pop();
-                        },
-                      );
-                    },
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Table of Contents',
+                        style: DionTypography.titleMedium(context.textPrimary),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      tooltip: 'Close',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: EpubViewTableOfContents(
+                  controller: controller,
+                  itemBuilder: (context, index, chapter, itemCount) {
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: DionSpacing.lg,
+                      ),
+                      title: Text(
+                        chapter.title?.trim() ?? '',
+                        style: DionTypography.bodyMedium(context.textPrimary),
+                      ),
+                      onTap: () {
+                        controller.scrollTo(index: chapter.startIndex);
+                        Navigator.of(dialogContext).pop();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         );
       },

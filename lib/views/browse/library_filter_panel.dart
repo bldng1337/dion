@@ -1,9 +1,17 @@
 import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
-import 'package:dionysos/service/extension.dart' hide ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
-import 'package:dionysos/widgets/dialog.dart';
+import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:flutter/material.dart';
 
@@ -14,15 +22,13 @@ void showLibraryFilterPanel(
   required ValueChanged<LibraryFilters> onFiltersChanged,
   required ValueChanged<LibrarySort> onSortChanged,
 }) {
-  showDialog(
+  showDionPanel(
     context: context,
-    builder: (_) => DionDialog(
-      child: _LibraryFilterPanel(
-        initialFilters: filters,
-        initialSort: sort,
-        onFiltersChanged: onFiltersChanged,
-        onSortChanged: onSortChanged,
-      ),
+    builder: (_) => _LibraryFilterPanel(
+      initialFilters: filters,
+      initialSort: sort,
+      onFiltersChanged: onFiltersChanged,
+      onSortChanged: onSortChanged,
     ),
   );
 }

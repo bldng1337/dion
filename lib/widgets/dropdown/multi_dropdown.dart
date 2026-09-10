@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
@@ -160,6 +162,44 @@ class _DionMultiDropdownState<T extends Object>
     );
   }
 
+  void _openSheet(
+    BuildContext context,
+    Function(FutureOr<void> future) setFuture, // ignore: avoid_futureor_void
+  ) {
+    showDionDrawer(
+      context: context,
+      builder: (sheetContext) => ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) => ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(bottom: DionSpacing.sm),
+            children: [
+              for (final (index, item) in controller.items.indexed)
+                _MultiDropdownSheetRow<T>(
+                  item: item,
+                  onTap: () {
+                    controller.toggleIndex(index);
+                    setFuture(
+                      widget.onSelectionChange?.call(
+                        controller.selected
+                            .where((e) => e.selected)
+                            .map((e) => e.value)
+                            .toList(),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final builder = widget.buildItem ?? _buildItem;
@@ -208,6 +248,10 @@ class _DionMultiDropdownState<T extends Object>
               ],
             ),
             onPressed: () {
+              if (isMobilePlatform) {
+                _openSheet(context, setFuture);
+                return;
+              }
               if (menucontroller.isOpen) {
                 menucontroller.close();
               } else {
@@ -215,6 +259,50 @@ class _DionMultiDropdownState<T extends Object>
               }
             },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MultiDropdownSheetRow<T extends Object> extends StatelessWidget {
+  const _MultiDropdownSheetRow({required this.item, required this.onTap});
+
+  final MultiDropdownItem<T> item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.md,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: DefaultTextStyle(
+                style: DionTypography.bodyLarge(
+                  item.selected
+                      ? context.theme.colorScheme.primary
+                      : context.textPrimary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                child: item.widget,
+              ),
+            ),
+            const SizedBox(width: DionSpacing.md),
+            Icon(
+              item.selected ? Icons.check_circle : Icons.circle_outlined,
+              size: 20,
+              color: item.selected
+                  ? context.theme.colorScheme.primary
+                  : context.theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+          ],
         ),
       ),
     );

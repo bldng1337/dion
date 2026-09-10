@@ -12,10 +12,10 @@ import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/dialog.dart';
+import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
-import 'package:flutter/material.dart' show Divider, Icons, InkWell, showDialog;
+import 'package:flutter/material.dart' show Divider, Icons, InkWell;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
@@ -36,10 +36,7 @@ void registerBrowseFeed(BrowseInterface feed) => _activeFeeds.add(feed);
 void unregisterBrowseFeed(BrowseInterface feed) => _activeFeeds.remove(feed);
 
 void showSettingPopup(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => const DionDialog(child: SettingsPopup()),
-  );
+  showDionPanel(context: context, builder: (context) => const SettingsPopup());
 }
 
 class SettingsPopup extends StatefulWidget {

@@ -3,7 +3,7 @@ import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/theme.dart';
-import 'package:dionysos/widgets/dialog.dart';
+import 'package:dionysos/widgets/drawer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -37,7 +37,10 @@ class _JobIndicator extends StatelessWidget {
   }
 
   void _showJobListPopup(BuildContext context) {
-    showDialog(context: context, builder: (context) => const _JobListPopup());
+    showDionPanel(
+      context: context,
+      builder: (context) => const _JobListPopup(),
+    );
   }
 
   @override
@@ -194,105 +197,103 @@ class _JobListPopup extends StatelessWidget {
             ? '$runningCount running · ${tasks.length} total'
             : '${tasks.length} queued';
 
-        return DionDialog(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 560),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420, maxHeight: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  DionSpacing.lg,
+                  DionSpacing.lg,
+                  DionSpacing.sm,
+                  DionSpacing.md,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.checklist_rounded,
+                        size: 20,
+                        color: accent,
+                      ),
+                    ),
+                    const SizedBox(width: DionSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Tasks',
+                            style: DionTypography.titleMedium(
+                              context.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            style: DionTypography.bodySmall(
+                              context.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      tooltip: 'Close',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasRunning)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     DionSpacing.lg,
+                    0,
                     DionSpacing.lg,
-                    DionSpacing.sm,
                     DionSpacing.md,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.checklist_rounded,
-                          size: 20,
-                          color: accent,
-                        ),
-                      ),
-                      const SizedBox(width: DionSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Tasks',
-                              style: DionTypography.titleMedium(
-                                context.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              subtitle,
-                              style: DionTypography.bodySmall(
-                                context.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        tooltip: 'Close',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
-                  ),
-                ),
-                if (hasRunning)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      DionSpacing.lg,
-                      0,
-                      DionSpacing.lg,
-                      DionSpacing.md,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: DionRadius.small,
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 4,
-                        color: accent,
-                        backgroundColor: accent.withValues(alpha: 0.15),
-                      ),
+                  child: ClipRRect(
+                    borderRadius: DionRadius.small,
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                      color: accent,
+                      backgroundColor: accent.withValues(alpha: 0.15),
                     ),
                   ),
-                const Divider(height: 1),
-                Flexible(
-                  child: tasks.isEmpty
-                      ? const _JobEmptyState()
-                      : ListView.separated(
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: DionSpacing.sm,
-                          ),
-                          itemCount: tasks.length,
-                          separatorBuilder: (context, index) => Divider(
-                            height: 1,
-                            indent: DionSpacing.lg,
-                            endIndent: DionSpacing.lg,
-                            color: context.dionDivider,
-                          ),
-                          itemBuilder: (context, index) =>
-                              _TaskListItem(task: tasks[index]),
-                        ),
                 ),
-              ],
-            ),
+              const Divider(height: 1),
+              Flexible(
+                child: tasks.isEmpty
+                    ? const _JobEmptyState()
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: DionSpacing.sm,
+                        ),
+                        itemCount: tasks.length,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1,
+                          indent: DionSpacing.lg,
+                          endIndent: DionSpacing.lg,
+                          color: context.dionDivider,
+                        ),
+                        itemBuilder: (context, index) =>
+                            _TaskListItem(task: tasks[index]),
+                      ),
+              ),
+            ],
           ),
         );
       },
@@ -554,9 +555,8 @@ class NavScaff extends StatelessWidget {
                 LayoutBuilder(
                   builder: (context, constraint) {
                     return ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(
-                        context,
-                      ).copyWith(scrollbars: false),
+                      behavior: ScrollConfiguration.of(context)
+                          .copyWith(scrollbars: false),
                       child: SingleChildScrollView(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(

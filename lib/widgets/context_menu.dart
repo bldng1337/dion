@@ -1,11 +1,23 @@
-import 'package:dionysos/widgets/buttons/textbutton.dart';
-import 'package:flutter/foundation.dart';
+import 'package:dionysos/widgets/drawer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class ContextMenuItem {
   final String label;
+  final IconData? icon;
   final Future<void> Function()? onTap;
-  const ContextMenuItem({required this.label, this.onTap});
+
+  /// Section header rendered above this item in drawer menus, grouping
+  /// related actions (e.g. actions vs selection modifiers).
+  final String? section;
+  final bool isDestructive;
+  const ContextMenuItem({
+    required this.label,
+    this.onTap,
+    this.icon,
+    this.section,
+    this.isDestructive = false,
+  });
 }
 
 class ContextMenu extends StatefulWidget {
@@ -14,9 +26,14 @@ class ContextMenu extends StatefulWidget {
     required this.contextItems,
     this.active = true,
     this.selectionActive = false,
+    this.selectionCount,
   });
   final bool selectionActive;
   final bool active;
+
+  /// Number of currently selected items, shown as the title of the mobile
+  /// selection drawer.
+  final int? selectionCount;
   final List<ContextMenuItem> contextItems;
 
   final Widget child;
@@ -25,11 +42,15 @@ class ContextMenu extends StatefulWidget {
   State<ContextMenu> createState() => ContextMenuState();
 }
 
-class ContextMenuState extends State<ContextMenu> {
+class ContextMenuState extends State<ContextMenu> with StateDisposeScopeMixin {
   Offset? _longPressOffset;
 
   late final ContextMenuController _contextMenuController;
   PersistentBottomSheetController? _bottomSheetController;
+
+  /// Bumped on every widget update so the open selection drawer re-reads
+  /// [widget.contextItems]; labels and count depend on the current selection.
+  late final ValueNotifier<int> _selectionRevision;
 
   @override
   void initState() {
@@ -38,6 +59,7 @@ class ContextMenuState extends State<ContextMenu> {
         if (mounted) setState(() {});
       },
     );
+    _selectionRevision = ValueNotifier<int>(0)..disposedBy(scope);
     super.initState();
   }
 
@@ -45,69 +67,65 @@ class ContextMenuState extends State<ContextMenu> {
   void didUpdateWidget(covariant ContextMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.selectionActive) {
-      Future.microtask(() {
-        _bottomSheetController?.close();
-        _bottomSheetController = null;
-      });
-    } else if (_drawerEnabled && _bottomSheetController == null) {
-      Future.microtask(() {
-        if (!mounted) return;
-        _bottomSheetController = Scaffold.of(context).showBottomSheet(
-          (BuildContext context) => SizedBox(
-            height: 75,
-            child: ListView(
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              children: widget.contextItems
-                  .map(
-                    (e) => DionTextbutton(
-                      onPressed: e.onTap != null
-                          ? () async {
-                              await e.onTap!();
-                              _bottomSheetController?.close();
-                              _bottomSheetController = null;
-                            }
-                          : null,
-                      child: Text(e.label),
-                    ),
-                  )
-                  .toList(),
+      _closeSelectionDrawer();
+    } else if (isMobilePlatform) {
+      if (_bottomSheetController == null) {
+        _openSelectionDrawer();
+      } else {
+        // Notifying during didUpdateWidget would mark the sheet's builder
+        // dirty mid-build; defer until the current build finished.
+        Future.microtask(() {
+          if (mounted) _selectionRevision.value++;
+        });
+      }
+    }
+  }
+
+  void _openSelectionDrawer() {
+    Future.microtask(() {
+      if (!mounted || _bottomSheetController != null) return;
+      final controller = Scaffold.of(context).showBottomSheet(
+        (sheetContext) => ValueListenableBuilder<int>(
+          valueListenable: _selectionRevision,
+          builder: (context, _, _) => DionDrawer(
+            title: widget.selectionCount == null
+                ? null
+                : Text('${widget.selectionCount} selected'),
+            child: DionDrawerMenu(
+              items: [
+                for (final item in widget.contextItems)
+                  DionDrawerItem(
+                    label: Text(item.label),
+                    icon: item.icon,
+                    onTap: item.onTap,
+                    section: item.section,
+                    isDestructive: item.isDestructive,
+                  ),
+              ],
+              // Selection stays active after most actions; the drawer closes
+              // itself once the selection is cleared.
+              closeOnTap: false,
             ),
           ),
-        );
+        ),
+        constraints: const BoxConstraints(maxWidth: 640),
+      );
+      _bottomSheetController = controller;
+      controller.closed.then((_) {
+        if (mounted && identical(_bottomSheetController, controller)) {
+          setState(() {
+            _bottomSheetController = null;
+          });
+        }
       });
-    }
+    });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
-  static bool get _drawerEnabled {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-      case TargetPlatform.iOS:
-        return true;
-      case TargetPlatform.macOS:
-      case TargetPlatform.fuchsia:
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-        return false;
-    }
-  }
-
-  static bool get _longPressEnabled {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-      case TargetPlatform.iOS:
-        return true;
-      case TargetPlatform.macOS:
-      case TargetPlatform.fuchsia:
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-        return false;
-    }
+  void _closeSelectionDrawer() {
+    final controller = _bottomSheetController;
+    if (controller == null) return;
+    _bottomSheetController = null;
+    Future.microtask(() => controller.close());
   }
 
   void _onSecondaryTapUp(TapUpDetails details) {
@@ -132,6 +150,22 @@ class ContextMenuState extends State<ContextMenu> {
   }
 
   void _show(Offset position) {
+    if (isMobilePlatform) {
+      showDionMenuDrawer(
+        context: context,
+        items: [
+          for (final item in widget.contextItems)
+            DionDrawerItem(
+              label: Text(item.label),
+              icon: item.icon,
+              onTap: item.onTap,
+              section: item.section,
+              isDestructive: item.isDestructive,
+            ),
+        ],
+      );
+      return;
+    }
     _contextMenuController.show(
       context: context,
       contextMenuBuilder: (BuildContext context) {
@@ -173,8 +207,8 @@ class ContextMenuState extends State<ContextMenu> {
       behavior: HitTestBehavior.translucent,
       onSecondaryTapUp: _onSecondaryTapUp,
       onTap: _onTap,
-      onLongPress: _longPressEnabled ? _onLongPress : null,
-      onLongPressStart: _longPressEnabled ? _onLongPressStart : null,
+      onLongPress: isMobilePlatform ? _onLongPress : null,
+      onLongPressStart: isMobilePlatform ? _onLongPressStart : null,
       child: AbsorbPointer(
         absorbing: _contextMenuController.isShown,
         child: widget.child,

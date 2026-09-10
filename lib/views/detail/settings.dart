@@ -4,28 +4,38 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
-import 'package:dionysos/widgets/dialog.dart';
+import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/material.dart' show FontWeight, Icons, showDialog;
+import 'package:flutter/material.dart' show FontWeight, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 void showSettingPopup(BuildContext context, EntrySaved entry) {
-  showDialog(
+  showDionPanel(
     context: context,
-    builder: (context) => DionDialog(child: SettingsPopup(entry: entry)),
+    builder: (context) => SettingsPopup(entry: entry),
   );
 }
 
@@ -168,9 +178,7 @@ class _SettingsPopupState extends State<SettingsPopup>
       widget.entry,
       entryExtension.extension!,
     );
-    safeSetState(
-      () {},
-    ); // We dont have anything direct here as the extension itself should update the settings, but we need to trigger a rebuild to show the updated settings
+    safeSetState(() {}); // We dont have anything direct here as the extension itself should update the settings, but we need to trigger a rebuild to show the updated settings
   }
 
   void _addSourceExtension(Extension extension) {
