@@ -133,31 +133,83 @@ class _ExtensionManagerState extends State<ExtensionManager> {
         DionIconbutton(
           tooltip: 'Install from File',
           onPressed: () async {
+            const XTypeGroup typeGroup = XTypeGroup(
+              label: 'Extensions',
+              extensions: <String>['js', 'apk'],
+            );
+            final List<XFile> files;
             try {
+              files = await openFiles(
+                acceptedTypeGroups: <XTypeGroup>[typeGroup],
+              );
+            } catch (e, stack) {
+              logger.e(
+                'Failed to open extension file picker',
+                error: e,
+                stackTrace: stack,
+              );
+              return;
+            }
+            if (files.isEmpty) {
+              return;
+            }
+            if (mounted) {
               setState(() {
                 loading = true;
               });
-              const XTypeGroup typeGroup = XTypeGroup(
-                label: 'Extensions',
-                extensions: <String>['js', 'apk'],
-              );
-              final List<XFile> files = await openFiles(
-                acceptedTypeGroups: <XTypeGroup>[typeGroup],
-              );
-              for (final xfile in files) {
-                final file = File(xfile.path);
-                await sourceExt.install(file.fileURL);
+            }
+            final updateService = locate<ExtensionUpdateService>();
+            var installedCount = 0;
+            var updatedCount = 0;
+            final failedFiles = <String>[];
+            for (final xfile in files) {
+              final known = sourceExt.getExtensions().toSet();
+              try {
+                await sourceExt.install(File(xfile.path).fileURL);
+                final added = sourceExt
+                    .getExtensions()
+                    .where((e) => !known.contains(e))
+                    .toList();
+                // Installing over an existing extension swaps the instance
+                // but keeps its id, so an id that was already present means
+                // the file updated that extension instead of adding one.
+                final newExt = added.isEmpty ? null : added.first;
+                final isUpdate =
+                    newExt != null &&
+                    known.any((e) => e.data.id == newExt.data.id);
+                if (isUpdate) {
+                  updatedCount++;
+                } else {
+                  installedCount++;
+                }
+                final pending = newExt == null
+                    ? null
+                    : updateService.updates.value[newExt.data.id];
+                if (newExt != null &&
+                    pending != null &&
+                    parseVersion(pending.version) <= newExt.version) {
+                  updateService.markUpdated(newExt.data.id);
+                }
+              } catch (e, stack) {
+                logger.e(
+                  'Failed to install extension from ${xfile.path}',
+                  error: e,
+                  stackTrace: stack,
+                );
+                failedFiles.add(xfile.name);
               }
-            } catch (e, stack) {
-              logger.e(e, stackTrace: stack);
-              error = e;
             }
-            if (!mounted) {
-              return;
+            if (mounted) {
+              setState(() {
+                loading = false;
+              });
             }
-            setState(() {
-              loading = false;
-            });
+            _showFileInstallToast(
+              fileNames: files.map((f) => f.name).toList(),
+              installedCount: installedCount,
+              updatedCount: updatedCount,
+              failedFiles: failedFiles,
+            );
           },
           icon: const Icon(Icons.install_desktop),
         ),
@@ -442,12 +494,7 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
               'Failed to load repositories: ${_failedRepos.join(', ')}',
             ),
             logError: false,
-            actions: [
-              ErrorAction(
-                label: 'Retry',
-                onTap: _resolveRepos,
-              ),
-            ],
+            actions: [ErrorAction(label: 'Retry', onTap: _resolveRepos)],
           ),
         );
       }
@@ -703,6 +750,51 @@ class _AddRepositoryDialogState extends State<_AddRepositoryDialog> {
       ],
     );
   }
+}
+
+void _showFileInstallToast({
+  required List<String> fileNames,
+  required int installedCount,
+  required int updatedCount,
+  required List<String> failedFiles,
+}) {
+  final fileCount = fileNames.length;
+  if (failedFiles.isEmpty) {
+    if (fileCount == 1) {
+      showToast(
+        updatedCount > 0
+            ? "Updated extension from '${fileNames.single}'"
+            : "Installed extension from '${fileNames.single}'",
+        src.ToastKind.success,
+      );
+      return;
+    }
+    final parts = <String>[
+      if (installedCount > 0)
+        'installed $installedCount extension${installedCount == 1 ? '' : 's'}',
+      if (updatedCount > 0)
+        'updated $updatedCount extension${updatedCount == 1 ? '' : 's'}',
+    ];
+    showToast('Successfully ${parts.join(' and ')}', src.ToastKind.success);
+    return;
+  }
+  final failureMessage = failedFiles.length == 1
+      ? "Failed to install '${failedFiles.single}'"
+      : 'Failed to install ${failedFiles.length} extensions';
+  if (installedCount + updatedCount == 0) {
+    showToast(failureMessage, src.ToastKind.error);
+    return;
+  }
+  final parts = <String>[
+    if (installedCount > 0)
+      'Installed $installedCount extension${installedCount == 1 ? '' : 's'}',
+    if (updatedCount > 0)
+      'updated $updatedCount extension${updatedCount == 1 ? '' : 's'}',
+  ];
+  showToast(
+    '${parts.join(' and ')}, but ${failureMessage.replaceFirst('Failed', 'failed')}',
+    src.ToastKind.warning,
+  );
 }
 
 Future<void> showAddRepositoryDialog(BuildContext context) async {
