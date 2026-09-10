@@ -105,6 +105,8 @@ class DionMultiDropdown<T extends Object> extends StatefulWidget {
     VoidCallback onTap,
   )?
   buildItem;
+  final ButtonType buttonType;
+  final Widget? trailing;
 
   const DionMultiDropdown({
     super.key,
@@ -113,6 +115,8 @@ class DionMultiDropdown<T extends Object> extends StatefulWidget {
     this.onSelectionChange,
     this.controller,
     this.buildItem,
+    this.buttonType = ButtonType.filled,
+    this.trailing,
   });
 
   @override
@@ -188,6 +192,7 @@ class _DionMultiDropdownState<T extends Object>
               )
               .toList(),
           builder: (context, menucontroller, child) => DionTextbutton(
+            type: widget.buttonType,
             child: Row(
               children: [
                 if (widget.defaultItem != null &&
@@ -196,6 +201,10 @@ class _DionMultiDropdownState<T extends Object>
                 ...controller.items
                     .where((e) => e.selected)
                     .map((e) => e.widget.paddingAll(10)),
+                if (widget.trailing != null) ...[
+                  const Spacer(),
+                  widget.trailing!,
+                ],
               ],
             ),
             onPressed: () {

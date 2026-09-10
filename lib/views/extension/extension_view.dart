@@ -1,12 +1,14 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment,ContainerType,CrossAxisAlignment,EdgeInsets,MainAxisAlignment,MainAxisSize,StackFit,TextStyle,WrapAlignment;
+import 'package:dionysos/service/extension.dart' hide Alignment,ButtonType,ContainerType,CrossAxisAlignment,EdgeInsets,MainAxisAlignment,MainAxisSize,StackFit,TextStyle,WrapAlignment;
 import 'package:dionysos/utils/autoadd.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/toast.dart';
 import 'package:dionysos/views/extension/account_view.dart';
 import 'package:dionysos/views/extension/permission_view.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
@@ -273,45 +275,49 @@ class _AutoAddSectionState extends State<AutoAddSection>
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('Auto-Add', style: context.titleMedium),
-              const SizedBox(width: 8),
-              DionBadge(
-                child: Text(
-                  'Entry Extensions',
-                  style: context.bodySmall,
-                ),
-              ),
-            ],
-          ).paddingOnly(bottom: 4),
-          Text(
-            'Automatically add ${widget.extension.name} when saving entries '
-            'from the selected sources. Leave empty to never add it '
-            'automatically.',
-            style: context.bodySmall?.copyWith(
-              color: context.theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ).paddingOnly(bottom: 8),
-          DionMultiDropdown<String>(
-            controller: _controller,
-            defaultItem: Text(
-              'Never add automatically',
-              style: context.bodyMedium?.copyWith(
-                color: context.theme.colorScheme.onSurface.withValues(
-                  alpha: 0.5,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Auto-Add',
+              style: context.titleMedium?.copyWith(
+                color: context.theme.colorScheme.primary,
               ),
             ),
-            onSelectionChange: _onSelectionChange,
+            const SizedBox(width: DionSpacing.sm),
+            DionBadge(
+              child: Text('Entry Extensions', style: context.bodySmall),
+            ),
+          ],
+        ).paddingSymmetric(horizontal: DionSpacing.lg, vertical: DionSpacing.sm),
+        Text(
+          'Automatically add ${widget.extension.name} when saving entries '
+          'from the selected sources. Leave empty to never add it '
+          'automatically.',
+          style: context.bodySmall?.copyWith(
+            color: context.theme.colorScheme.onSurfaceVariant,
           ),
-        ],
-      ),
+        )
+            .paddingSymmetric(horizontal: DionSpacing.lg)
+            .paddingOnly(bottom: DionSpacing.sm),
+        DionMultiDropdown<String>(
+          controller: _controller,
+          buttonType: ButtonType.elevated,
+          trailing: Icon(
+            Icons.arrow_drop_down,
+            color: context.theme.colorScheme.onSurfaceVariant,
+          ),
+          defaultItem: Text(
+            'Never add automatically',
+            style: context.bodyMedium?.copyWith(
+              color: context.theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          onSelectionChange: _onSelectionChange,
+        ).paddingSymmetric(horizontal: DionSpacing.lg, vertical: DionSpacing.xs),
+      ],
     );
   }
 }
