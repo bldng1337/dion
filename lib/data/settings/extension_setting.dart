@@ -77,6 +77,11 @@ abstract class DionRuntimeSettingMetaData<T>
 
   Extension get extension => locate<ExtensionService>().getExtension(extId);
 
+  /// Null when the owning extension is not installed, e.g. after it was
+  /// uninstalled while an entry still references it.
+  Extension? get extensionOrNull =>
+      locate<ExtensionService>().tryGetExtension(extId);
+
   // Setting MetaData
 
   final String label;
