@@ -23,6 +23,7 @@ import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 const archiveVersion = 2;
@@ -141,6 +142,20 @@ class Storage extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
         children: [
+          SettingTitle(
+            title: 'Downloads',
+            subtitle: 'Review and free up downloaded episodes',
+            children: [
+              _StorageAction(
+                title: 'Manage Downloads',
+                description: 'See downloaded episodes and their disk usage',
+                icon: Icons.download_outlined,
+                onTap: () {
+                  context.push('/settings/downloads');
+                },
+              ),
+            ],
+          ),
           SettingTitle(
             title: 'Backup',
             subtitle: 'Export and import your data',

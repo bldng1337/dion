@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dionysos/data/entry/entry_detailed.dart';
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/task.dart';
@@ -12,6 +14,7 @@ import 'package:dionysos/utils/internetfile.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/ratelimit.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/utils/storage.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' show Row;
 import 'package:rhttp/rhttp.dart' as rhttp;
 
@@ -385,6 +388,31 @@ class DownloadTask extends Task {
 
 enum Status { nodownload, downloading, downloaded }
 
+class DownloadedEpisode {
+  final Directory path;
+  final int? number;
+  final int size;
+  final bool finished;
+  const DownloadedEpisode({
+    required this.path,
+    required this.number,
+    required this.size,
+    required this.finished,
+  });
+}
+
+class DownloadedEntry {
+  final Directory path;
+  final EntrySaved? entry;
+  final List<DownloadedEpisode> episodes;
+  const DownloadedEntry({
+    required this.path,
+    required this.entry,
+    required this.episodes,
+  });
+  int get size => episodes.fold(0, (sum, ep) => sum + ep.size);
+}
+
 class DownloadStatus {
   final Status status;
   final Task? task;
@@ -630,6 +658,104 @@ class DownloadService {
       return;
     }
     await downloadpath.delete(recursive: true);
+  }
+
+  Future<List<DownloadedEntry>> listDownloads() async {
+    final downloadsDir = locate<DirectoryProvider>().downloadspath;
+    if (!await downloadsDir.exists()) return [];
+
+    // Directories of in-flight downloads only hold partial data and are
+    // managed by their task; hide them until the task finishes or cleans up.
+    final active = <String>{
+      for (final task
+          in locate<TaskManager>().root.traverseBreathFirst().expand(
+            (cat) => cat.tasks,
+          ))
+        if (task is DownloadTask && !task.finished)
+          _getDownloadPath(task.ep).path,
+    };
+
+    // Directory names are sanitised one-way, so entries can only be matched
+    // by re-encoding their ids, never by decoding the directory name.
+    final entriesByKey = <String, EntrySaved>{};
+    final db = locate<Database>();
+    var page = 0;
+    while (true) {
+      final batch = await db.getEntries(page++, 100).toList();
+      if (batch.isEmpty) break;
+      for (final entry in batch) {
+        entriesByKey.putIfAbsent(
+          '${pathEncode(entry.boundExtensionId)}/${pathEncode(entry.id.uid)}',
+          () => entry,
+        );
+      }
+    }
+
+    final result = <DownloadedEntry>[];
+    await for (final extEntity in downloadsDir.list()) {
+      if (extEntity is! Directory) continue;
+      await for (final entryEntity in extEntity.list()) {
+        if (entryEntity is! Directory) continue;
+        final episodes = <DownloadedEpisode>[];
+        await for (final epEntity in entryEntity.list()) {
+          if (epEntity is! Directory) continue;
+          if (active.contains(epEntity.path)) continue;
+          episodes.add(
+            DownloadedEpisode(
+              path: epEntity,
+              number: int.tryParse(epEntity.name),
+              size: await getDirectorySize(epEntity),
+              finished: await _isFinished(epEntity),
+            ),
+          );
+        }
+        if (episodes.isEmpty) continue;
+        episodes.sort((a, b) => (a.number ?? -1).compareTo(b.number ?? -1));
+        result.add(
+          DownloadedEntry(
+            path: entryEntity,
+            entry: entriesByKey['${extEntity.name}/${entryEntity.name}'],
+            episodes: episodes,
+          ),
+        );
+      }
+    }
+    result.sort((a, b) => b.size.compareTo(a.size));
+    return result;
+  }
+
+  Future<bool> _isFinished(Directory dir) async {
+    try {
+      final index = jsonDecode(await dir.getFile('index.json').readAsString());
+      return index is Map && index['finished'] != false;
+    } catch (_) {
+      // A missing or broken index belongs to an interrupted download.
+      return false;
+    }
+  }
+
+  Future<void> deleteDownloadDirs(Iterable<Directory> dirs) async {
+    final downloadsDir = locate<DirectoryProvider>().downloadspath;
+    for (final dir in dirs) {
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+      await _pruneEmptyParents(dir.parent, downloadsDir);
+    }
+  }
+
+  Future<void> _pruneEmptyParents(Directory dir, Directory root) async {
+    var current = dir;
+    while (current.path != root.path) {
+      try {
+        if (!await current.exists() || !await current.list().isEmpty) return;
+        await current.delete();
+      } catch (e) {
+        logger.w('Failed to prune empty download directory', error: e);
+        return;
+      }
+      current = current.parent;
+    }
   }
 }
 

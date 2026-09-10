@@ -21,6 +21,7 @@ import 'package:dionysos/views/settings/developer.dart';
 import 'package:dionysos/views/settings/developer/log.dart';
 import 'package:dionysos/views/settings/developer/query.dart';
 import 'package:dionysos/views/settings/devices.dart';
+import 'package:dionysos/views/settings/downloads.dart';
 import 'package:dionysos/views/settings/extension.dart';
 import 'package:dionysos/views/settings/imagelist_reader.dart';
 import 'package:dionysos/views/settings/library.dart';
@@ -216,6 +217,15 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
           path: '/storage',
           pageBuilder: (context, state) =>
               getTransition(context, state, const Storage()),
+        ),
+        GoRoute(
+          path: '/downloads',
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const ManageDownloads(),
+            title: 'Manage Downloads',
+          ),
         ),
         GoRoute(
           path: '/imagelistreader',
