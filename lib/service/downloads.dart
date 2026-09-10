@@ -12,6 +12,7 @@ import 'package:dionysos/utils/internetfile.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/ratelimit.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:rdion_runtime/rdion_runtime.dart' show Row;
 import 'package:rhttp/rhttp.dart' as rhttp;
 
 const downloadVersion = 1;
@@ -37,6 +38,146 @@ class DownloadTask extends Task {
     }
   }
 
+  static List<Link> _paragraphImageLinks(List<Paragraph> paragraphs) {
+    final links = <String, Link>{};
+    for (final paragraph in paragraphs) {
+      _mapParagraphImages(paragraph, (image) {
+        links.putIfAbsent(image.url, () => image);
+        return image;
+      });
+    }
+    return links.values
+        .where(
+          (e) => e.url.startsWith('http://') || e.url.startsWith('https://'),
+        )
+        .toList();
+  }
+
+  static Paragraph _mapParagraphImages(
+    Paragraph paragraph,
+    Link Function(Link image) replace,
+  ) {
+    return switch (paragraph) {
+      Paragraph_Text() => paragraph,
+      Paragraph_Mixed(:final content) => paragraph.copyWith(
+        content: content
+            .map((e) => _mapMixedContentImages(e, replace))
+            .toList(),
+      ),
+      Paragraph_CustomUI(:final ui) => paragraph.copyWith(
+        ui: _mapCustomUIImages(ui, replace),
+      ),
+      Paragraph_Table(:final columns) => paragraph.copyWith(
+        columns: columns
+            .map(
+              (row) => Row(
+                cells: row.cells
+                    .map((e) => _mapParagraphImages(e, replace))
+                    .toList(),
+              ),
+            )
+            .toList(),
+      ),
+    };
+  }
+
+  static MixedContent _mapMixedContentImages(
+    MixedContent content,
+    Link Function(Link image) replace,
+  ) {
+    return switch (content) {
+      MixedContent_Text() => content,
+      MixedContent_CustomUI(:final ui) => content.copyWith(
+        ui: _mapCustomUIImages(ui, replace),
+      ),
+      MixedContent_Table(:final columns) => content.copyWith(
+        columns: columns
+            .map(
+              (row) => Row(
+                cells: row.cells
+                    .map((e) => _mapParagraphImages(e, replace))
+                    .toList(),
+              ),
+            )
+            .toList(),
+      ),
+    };
+  }
+
+  static CustomUI _mapCustomUIImages(
+    CustomUI ui,
+    Link Function(Link image) replace,
+  ) {
+    return switch (ui) {
+      CustomUI_Image(:final image) => ui.copyWith(image: replace(image)),
+      // Card's top/bottom are CustomUIs too, so they can carry images.
+      CustomUI_Card(:final image, :final top, :final bottom) => ui.copyWith(
+        image: replace(image),
+        top: _mapCustomUIImages(top, replace),
+        bottom: _mapCustomUIImages(bottom, replace),
+      ),
+      CustomUI_Slot(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_Column(:final children) => ui.copyWith(
+        children: children.map((e) => _mapCustomUIImages(e, replace)).toList(),
+      ),
+      CustomUI_Row(:final children) => ui.copyWith(
+        children: children.map((e) => _mapCustomUIImages(e, replace)).toList(),
+      ),
+      CustomUI_Padding(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_Container(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_Clickable(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_Expanded(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_SizedBox(:final child?) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_Wrap(:final children) => ui.copyWith(
+        children: children.map((e) => _mapCustomUIImages(e, replace)).toList(),
+      ),
+      CustomUI_Center(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_Align(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      CustomUI_Stack(:final children) => ui.copyWith(
+        children: children.map((e) => _mapCustomUIImages(e, replace)).toList(),
+      ),
+      CustomUI_ListTile(
+        :final leading,
+        :final title,
+        :final subtitle,
+        :final trailing,
+      ) =>
+        ui.copyWith(
+          leading: leading == null
+              ? null
+              : _mapCustomUIImages(leading, replace),
+          title: title == null ? null : _mapCustomUIImages(title, replace),
+          subtitle: subtitle == null
+              ? null
+              : _mapCustomUIImages(subtitle, replace),
+          trailing: trailing == null
+              ? null
+              : _mapCustomUIImages(trailing, replace),
+        ),
+      CustomUI_Badge(:final child) => ui.copyWith(
+        child: _mapCustomUIImages(child, replace),
+      ),
+      // All remaining variants are imageless leaves.
+      _ => ui,
+    };
+  }
+
   @override
   Future<void> onRun() async {
     if (token.isDisposed) return;
@@ -49,7 +190,9 @@ class DownloadTask extends Task {
     // apart from a finished one by the finished flag flipping to true.
     await dir
         .getFile('index.json')
-        .writeAsString(jsonEncode({'version': downloadVersion, 'finished': false}));
+        .writeAsString(
+          jsonEncode({'version': downloadVersion, 'finished': false}),
+        );
     await handleMetadata(dir);
 
     status = 'Fetching Source';
@@ -60,11 +203,38 @@ class DownloadTask extends Task {
     switch (source.source) {
       case final Source_Paragraphlist paragraphs:
         index['type'] = 'paragraphlist';
+        final images = _paragraphImageLinks(paragraphs.paragraphs);
+        final localImages = <String, Link>{};
+        if (images.isNotEmpty) {
+          status = 'Downloading Images';
+          for (final (index, image) in images.indexed) {
+            final file = await InternetFile.streamToFile(
+              image.url,
+              InternetFile.fromURI(image.url, dir, filename: 'image$index'),
+              headers: image.header,
+              onReceiveProgress: (current) =>
+                  progress = (index + current) / images.length,
+              rhttpToken: rhttpToken,
+            );
+            localImages[image.url] = Link(url: file.fileURL);
+          }
+          progress = null;
+        }
         status = 'Writing Content';
         await dir
             .getFile('data.txt')
             .writeAsString(
-              jsonEncode(paragraphs.paragraphs.map((e) => e.toJson()).toList()),
+              jsonEncode(
+                paragraphs.paragraphs
+                    .map(
+                      (e) => _mapParagraphImages(
+                        e,
+                        (image) => localImages[image.url] ?? image,
+                      ),
+                    )
+                    .map((e) => e.toJson())
+                    .toList(),
+              ),
             );
       case final Source_Epub data:
         status = 'Downloading Epub';
@@ -183,12 +353,14 @@ class DownloadTask extends Task {
   void onFailed(Object? error) {
     final dir = DownloadService._getDownloadPath(ep);
     if (dir.existsSync()) {
-      dir.delete(recursive: true).then(
-        (_) {},
-        onError: (Object e) {
-          logger.e('Failed to delete partial download', error: e);
-        },
-      );
+      dir
+          .delete(recursive: true)
+          .then(
+            (_) {},
+            onError: (Object e) {
+              logger.e('Failed to delete partial download', error: e);
+            },
+          );
     }
   }
 
@@ -350,11 +522,9 @@ class DownloadService {
       switch (index['type']) {
         case 'paragraphlist':
           return Source.paragraphlist(
-            paragraphs:
-                (json.decode(await path.getFile('data.txt').readAsString())
-                        as List<dynamic>)
-                    .map((e) => JsonParagraph.fromJson(e))
-                    .toList(),
+            paragraphs: (json.decode(
+              await path.getFile('data.txt').readAsString(),
+            ) as List<dynamic>).map((e) => JsonParagraph.fromJson(e)).toList(),
           );
         case 'epub':
           return Source.epub(
