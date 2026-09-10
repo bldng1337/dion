@@ -4,6 +4,7 @@ import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle;
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
+import 'package:dionysos/views/settings/search_settings.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
@@ -41,7 +42,7 @@ class _SearchState extends State<Search>
 
   @override
   Future<void> refresh() async {
-    if (lastquery == null) return;
+    if (!mounted || lastquery == null) return;
     await search(lastquery!);
   }
 
@@ -57,6 +58,7 @@ class _SearchState extends State<Search>
 
   @override
   void dispose() {
+    unregisterBrowseFeed(this);
     datacontroller?.dispose();
     super.dispose();
   }
@@ -74,6 +76,7 @@ class _SearchState extends State<Search>
                   e.data.extensionType.isEmpty),
         )
         .toList(growable: false);
+    registerBrowseFeed(this);
     super.initState();
   }
 
@@ -104,7 +107,7 @@ class _SearchState extends State<Search>
                 tooltip: 'Search Settings',
                 icon: const Icon(Icons.settings),
                 onPressed: () {
-                  showSettingPopup(context, this);
+                  showSettingPopup(context);
                 },
               ),
             ],
@@ -112,9 +115,7 @@ class _SearchState extends State<Search>
           if (datacontroller == null)
             // No active query (e.g. /search/ opened without a term); the
             // grid below would otherwise crash on the null controller.
-            const Center(
-              child: Text('Type something to search'),
-            ).expanded()
+            const Center(child: Text('Type something to search')).expanded()
           else
             DynamicGrid<Entry>(
               itemBuilder: (BuildContext context, item) =>

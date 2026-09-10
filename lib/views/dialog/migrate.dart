@@ -5,9 +5,21 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/settings/search_settings.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/card.dart';
@@ -66,9 +78,11 @@ class MigrateEntryPage extends StatefulWidget {
 }
 
 class _MigrateEntryPageState extends State<MigrateEntryPage>
-    with StateDisposeScopeMixin {
+    with StateDisposeScopeMixin
+    implements BrowseInterface {
   late final TextEditingController controller;
-  late final List<Extension> extensions;
+  @override
+  late List<Extension> extensions;
   DataSourceController<Entry>? datacontroller;
   String? lastquery;
   bool loading = false;
@@ -87,6 +101,31 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
                   e.data.extensionType.isEmpty),
         )
         .toList(growable: false);
+    registerBrowseFeed(this);
+  }
+
+  @override
+  Future<void> refresh() async {
+    if (!mounted) return;
+    datacontroller?.dispose();
+    final query = lastquery;
+    setState(() {
+      if (query == null || query.isEmpty) {
+        datacontroller = null;
+      } else {
+        datacontroller = DataSourceController<Entry>(
+          extensions.map((e) => e.search(query)).toList(),
+        );
+      }
+    });
+    datacontroller?.requestMore();
+  }
+
+  @override
+  void dispose() {
+    unregisterBrowseFeed(this);
+    datacontroller?.dispose();
+    super.dispose();
   }
 
   EntrySaved get sourceEntry {
@@ -109,12 +148,6 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
     );
     setState(() {});
     datacontroller!.requestMore();
-  }
-
-  @override
-  void dispose() {
-    datacontroller?.dispose();
-    super.dispose();
   }
 
   @override
@@ -171,9 +204,8 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
     } catch (e, stack) {
       logger.e('Migration failed', error: e, stackTrace: stack);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Migration failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Migration failed: $e')));
       }
     } finally {
       if (mounted) setState(() => loading = false);
@@ -186,6 +218,11 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
     return NavScaff(
       title: const Text('Migrate'),
       actions: [
+        DionIconbutton(
+          tooltip: 'Search Settings',
+          icon: const Icon(Icons.settings),
+          onPressed: () => showSettingPopup(context),
+        ),
         DionIconbutton(
           tooltip: 'Close',
           icon: const Icon(Icons.close),
@@ -395,8 +432,7 @@ class _MigrateConfirmDialog extends StatelessWidget {
                   context,
                   icon: Icons.warning_amber_rounded,
                   color: context.theme.colorScheme.error,
-                  text:
-                      'This entry is already in your library. Its current progress will be replaced.',
+                  text: 'This entry is already in your library. Its current progress will be replaced.',
                 ).paddingOnly(bottom: 12),
               _Notice(
                 context,
@@ -404,8 +440,7 @@ class _MigrateConfirmDialog extends StatelessWidget {
                 color: context.theme.colorScheme.onSurface.withValues(
                   alpha: 0.6,
                 ),
-                text:
-                    'Reading progress, bookmarks, categories and entry settings will be moved. Downloads are not migrated.',
+                text: 'Reading progress, bookmarks, categories and entry settings will be moved. Downloads are not migrated.',
               ).paddingOnly(bottom: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

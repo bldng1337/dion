@@ -3,32 +3,31 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
-import 'package:dionysos/service/extension.dart' hide ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, TextStyle, WrapAlignment;
-import 'package:dionysos/utils/media_type.dart';
+import 'package:dionysos/service/extension.dart'
+    hide
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/views/settings/library.dart';
+import 'package:dionysos/views/settings/search_settings.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
-import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
-import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
-import 'package:dionysos/widgets/settings/dion_runtime.dart';
-import 'package:flutter/material.dart' show Colors, Icons, showDialog;
+import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-abstract class BrowseInterface {
-  List<Extension> get extensions;
-  set extensions(List<Extension> value);
-  Future<void> refresh();
-}
 
 class Browse extends StatefulWidget {
   const Browse({super.key});
@@ -59,6 +58,7 @@ class _BrowseState extends State<Browse>
 
   @override
   void dispose() {
+    unregisterBrowseFeed(this);
     datacontroller.dispose();
     super.dispose();
   }
@@ -79,6 +79,7 @@ class _BrowseState extends State<Browse>
     datacontroller = DataSourceController<Entry>(
       extensions.map((e) => e.browse()).toList(),
     );
+    registerBrowseFeed(this);
     super.initState();
   }
 
@@ -104,7 +105,7 @@ class _BrowseState extends State<Browse>
                 tooltip: 'Search Settings',
                 icon: const Icon(Icons.settings),
                 onPressed: () {
-                  showSettingPopup(context, this);
+                  showSettingPopup(context);
                 },
               ),
             ],
@@ -194,118 +195,6 @@ class _EntryDisplayState extends State<EntryDisplay> {
           ),
       ],
       child: EntryCard(entry: item, showSaved: widget.showSaved),
-    );
-  }
-}
-
-void showSettingPopup(BuildContext context, BrowseInterface browse) {
-  showDialog(
-    context: context,
-    builder: (context) => DionDialog(child: SettingsPopup(browse: browse)),
-  );
-}
-
-class SettingsPopup extends StatefulWidget {
-  final BrowseInterface browse;
-  const SettingsPopup({super.key, required this.browse});
-
-  @override
-  State<SettingsPopup> createState() => _SettingsPopupState();
-}
-
-class _SettingsPopupState extends State<SettingsPopup>
-    with StateDisposeScopeMixin {
-  late List<Extension> allExtensions;
-
-  @override
-  void initState() {
-    // Get all enabled entry provider extensions (not just those with searchEnabled)
-    allExtensions = locate<ExtensionService>()
-        .getExtensions(
-          extfilter: (e) =>
-              e.isenabled &&
-              (e.getExtensionTypeOrNull<ExtensionType_EntryProvider>() !=
-                      null ||
-                  e.data.extensionType.isEmpty),
-        )
-        .toList(growable: false);
-
-    scope.addDispose(() async {
-      await Future.forEach(allExtensions, (e) => e.save());
-      // Update the browse extensions list with the current searchEnabled state
-      widget.browse.extensions = allExtensions
-          .where((e) => e.searchEnabled)
-          .toList(growable: false);
-      await widget.browse.refresh();
-    });
-
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Search Settings'),
-          for (final e in allExtensions) showExtension(context, e),
-        ].notNullWidget(),
-      ),
-    );
-  }
-
-  Widget? showExtension(BuildContext context, Extension e) {
-    if (e.loading || !e.isenabled) {
-      return null;
-    }
-    return Padding(
-      padding: const EdgeInsets.only(left: 5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              DionImage(imageUrl: e.data.icon, width: 24, height: 24),
-              Text(
-                e.data.name,
-                style: const TextStyle(fontSize: 16),
-              ).paddingAll(10),
-              const Spacer(),
-              for (final MediaType mediatype in e.data.mediaType)
-                Icon(mediatype.icon),
-              DionIconbutton(
-                tooltip: e.searchEnabled
-                    ? 'Exclude from Search'
-                    : 'Include in Search',
-                icon: Icon(
-                  e.searchEnabled
-                      ? Icons.check_box
-                      : Icons.check_box_outline_blank,
-                ),
-                onPressed: () {
-                  setState(() {
-                    e.searchEnabled = !e.searchEnabled;
-                  });
-                },
-              ),
-            ],
-          ),
-          if (e.searchEnabled &&
-              (e.settings[SettingKind.search]?.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(left: 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final setting in e.settings[SettingKind.search]!)
-                    DionRuntimeSettingView(setting: setting),
-                ],
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
