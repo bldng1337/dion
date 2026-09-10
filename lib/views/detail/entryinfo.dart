@@ -15,7 +15,9 @@ import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/media_type.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/placeholder.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/string.dart';
@@ -30,6 +32,7 @@ import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
@@ -56,6 +59,8 @@ class EntryInfo extends StatelessWidget {
               await (entry as EntryDetailed).extension?.enable();
             },
           ),
+        if (entry is EntrySaved)
+          _AttachedExtensionWarnings(entry: entry as EntrySaved),
         _buildHeaderSection(context),
         _buildGenresSection(context),
         _buildLibraryButton(context),
@@ -441,56 +446,56 @@ class EntryInfo extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildWarningBox(
-    BuildContext context, {
-    required String message,
-    String? buttonText,
-    FutureOr<void> Function()? onTap,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.theme.colorScheme.errorContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(
-          color: context.theme.colorScheme.error.withValues(alpha: 0.2),
-          width: 0.5,
+Widget _buildWarningBox(
+  BuildContext context, {
+  required String message,
+  String? buttonText,
+  FutureOr<void> Function()? onTap,
+}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(
+      color: context.theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(3),
+      border: Border.all(
+        color: context.theme.colorScheme.error.withValues(alpha: 0.2),
+        width: 0.5,
+      ),
+    ),
+    child: Row(
+      children: [
+        Icon(
+          Icons.warning_amber_rounded,
+          size: 18,
+          color: context.theme.colorScheme.error,
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            size: 18,
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            style: context.bodySmall?.copyWith(
+              color: context.theme.colorScheme.onErrorContainer,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        if (buttonText != null)
+          DionTextbutton(
+            type: ButtonType.ghost,
             color: context.theme.colorScheme.error,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
+            onPressed: onTap,
             child: Text(
-              message,
-              style: context.bodySmall?.copyWith(
-                color: context.theme.colorScheme.onErrorContainer,
-                fontWeight: FontWeight.w500,
+              buttonText,
+              style: context.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          if (buttonText != null)
-            DionTextbutton(
-              type: ButtonType.ghost,
-              color: context.theme.colorScheme.error,
-              onPressed: onTap,
-              child: Text(
-                buttonText,
-                style: context.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-        ],
-      ),
-    ).paddingOnly(bottom: 16);
-  }
+      ],
+    ),
+  ).paddingOnly(bottom: 16);
 }
 
 Widget isEntryDetailed({
@@ -826,5 +831,73 @@ class _LibraryButtonState extends State<_LibraryButton> {
         ),
       ),
     ).paddingOnly(bottom: 28);
+  }
+}
+
+/// Attached entry/source extensions only contribute their content while
+/// enabled, and Detail only listens to the bound extension — so observe the
+/// attached ones directly to keep the warnings in sync with enable/disable.
+class _AttachedExtensionWarnings extends StatefulWidget {
+  final EntrySaved entry;
+
+  const _AttachedExtensionWarnings({required this.entry});
+
+  @override
+  State<_AttachedExtensionWarnings> createState() =>
+      _AttachedExtensionWarningsState();
+}
+
+class _AttachedExtensionWarningsState
+    extends State<_AttachedExtensionWarnings> with StateDisposeScopeMixin {
+  List<(String kind, EntryExtension attached)> get _attached => [
+    for (final attached in widget.entry.entryExtensions)
+      ('Entry extension', attached),
+    for (final attached in widget.entry.sourceExtensions)
+      ('Source extension', attached),
+  ];
+
+  List<Observer> _observers = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _observeExtensions();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AttachedExtensionWarnings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.entry, widget.entry)) {
+      _observeExtensions();
+    }
+  }
+
+  void _observeExtensions() {
+    for (final observer in _observers) {
+      observer.dispose();
+    }
+    _observers = [
+      for (final (_, attached) in _attached)
+        if (attached.extension case final extension?)
+          Observer(() => safeSetState(), extension)..disposedBy(scope),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (kind, attached) in _attached)
+          if (attached.extension
+              case final extension? when !extension.isenabled)
+            _buildWarningBox(
+              context,
+              message: "$kind '${extension.name}' is disabled",
+              buttonText: 'Enable',
+              onTap: extension.enable,
+            ),
+      ],
+    );
   }
 }
