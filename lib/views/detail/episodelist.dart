@@ -6,6 +6,7 @@ import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/release_prediction.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
@@ -219,11 +220,19 @@ class EpisodeTile extends StatelessWidget {
     final isWide = !context.isCompactWindow;
     final hasCover = episodepath.episode.cover != null;
     final height = hasCover ? (isWide ? 110.0 : 80.0) : 70.0;
+    final releaseTime =
+        episodepath.episode.timestamp == null
+            ? null
+            : parseEpisodeTimestamp(episodepath.episode.timestamp!);
+    // Locked episodes are announcements: the source listed them ahead of
+    // their release, so they are shown, but not opened, selected or
+    // downloaded until a fetch lists them without the flag.
+    final locked = episodepath.episode.announced == true;
     return Clickable(
-      onLongTap: disabled ? null : onSelect,
+      onLongTap: disabled || locked ? null : onSelect,
       onTap: selection
           ? onSelect
-          : disabled
+          : disabled || locked
           ? null
           : () => episodepath.go(context),
       child: DionContainer(
@@ -265,7 +274,8 @@ class EpisodeTile extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                           height: 1.3,
                           letterSpacing: -0.2,
-                          color: epdata.finished
+                          color:
+                              epdata.finished || locked
                               ? context.theme.colorScheme.onSurface.withValues(
                                   alpha: 0.4,
                                 )
@@ -275,20 +285,36 @@ class EpisodeTile extends StatelessWidget {
                         ),
                   ),
 
-                  if (episodepath.episode.timestamp != null)
-                    Text(
-                      DateTime.tryParse(
-                            episodepath.episode.timestamp!,
-                          )?.formatrelative() ??
-                          '',
-                      style: context.labelSmall?.copyWith(
-                        letterSpacing: 0.3,
-                        fontSize: 11,
-                        color: context.theme.colorScheme.onSurface.withValues(
-                          alpha: 0.5,
+                  if (releaseTime != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (locked)
+                          Icon(
+                            Icons.schedule,
+                            size: 12,
+                            color: context.theme.colorScheme.primary,
+                          ).paddingOnly(right: 4),
+                        Text(
+                          locked
+                              ? (releaseTime.isAfter(DateTime.now())
+                                    ? 'Releases ${releaseTime.formatrelative(
+                                        allowFromNow: true,
+                                      )}'
+                                    : 'Expected ${releaseTime.formatrelative()}')
+                              : releaseTime.formatrelative(),
+                          style: context.labelSmall?.copyWith(
+                            letterSpacing: 0.3,
+                            fontSize: 11,
+                            color:
+                                locked
+                                    ? context.theme.colorScheme.primary
+                                    : context.theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
+                          ),
+                          maxLines: 1,
                         ),
-                      ),
-                      maxLines: 1,
+                      ],
                     ),
 
                   if (epdata.finished || epdata.bookmark) ...[
@@ -308,7 +334,18 @@ class EpisodeTile extends StatelessWidget {
                 ],
               ).paddingAll(6),
             ),
-            if (hasCover)
+            if (locked)
+              Padding(
+                padding: hasCover ? const EdgeInsets.all(6) : const EdgeInsets.only(right: 6),
+                child: Icon(
+                  Icons.upcoming_outlined,
+                  size: 18,
+                  color: context.theme.colorScheme.primary.withValues(
+                    alpha: 0.6,
+                  ),
+                ),
+              )
+            else if (hasCover)
               buildDownload(context).paddingAll(6)
             else
               Center(child: buildDownload(context)).paddingOnly(right: 6),

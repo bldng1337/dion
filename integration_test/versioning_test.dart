@@ -290,6 +290,13 @@ const _episodes = [
     cover: rust.Link(url: 'https://img.example.com/ep2.jpg', header: {'Cookie': 'c=1'}),
     timestamp: '2026-01-02T03:04:05Z',
   ),
+  rust.Episode(
+    id: rust.EpisodeId(uid: 'ep-3'),
+    name: 'Announced',
+    url: 'https://cdn.example.com/3',
+    timestamp: '2030-01-01T00:00:00Z',
+    announced: true,
+  ),
 ];
 
 /// A [rust.CustomUI] tree exercising *every* widget variant of the runtime
@@ -610,6 +617,9 @@ List<EntrySaved> get savedEntrySamples => [
       EntryExtension(extensionId: 'source.ext.a', extensionSettings: {}),
     ],
     lastRefreshed: DateTime.utc(2026, 4, 5, 6, 7, 8),
+    predictedNextRelease: DateTime.utc(2026, 4, 12, 6, 7, 8),
+    releaseInterval: const Duration(days: 7),
+    nextReleaseOverride: DateTime.utc(2026, 4, 13, 18),
   ),
 ];
 

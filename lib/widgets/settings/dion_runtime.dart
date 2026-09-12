@@ -53,6 +53,13 @@ class DionRuntimeSettingView extends StatelessWidget {
             setting: setting.cast(),
             title: setting.metadata.label,
           );
+        // The host directory picker is not wired up yet; the path is still
+        // editable as plain text.
+        case final SettingsUI_Directory _:
+          return SettingTextbox(
+            setting: setting.cast(),
+            title: setting.metadata.label,
+          );
       }
     }
     switch (setting.value) {

@@ -109,12 +109,21 @@ class SourceSupplier with ChangeNotifier implements Disposable {
       final download = locate<DownloadService>();
       download.download(
         Iterable.generate(
-          min(
-                entry.savedSettings.downloadNextEpisodes.value +
-                    _episode.episodenumber,
-                episode.entry.episodes.length - 1,
-              ) -
-              episode.episodenumber,
+          max(
+            // Never auto-download episodes the source has announced but not
+            // released yet.
+            0,
+            min(
+                  entry.savedSettings.downloadNextEpisodes.value +
+                      _episode.episodenumber,
+                  min(
+                    episode.entry.episodes.length,
+                    episode.entry.releasedEpisodes,
+                  ) -
+                      1,
+                ) -
+                episode.episodenumber,
+          ),
           (index) => EpisodePath(entry, episode.episodenumber + 1 + index),
         ),
       );

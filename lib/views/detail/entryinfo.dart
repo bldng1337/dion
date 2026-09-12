@@ -24,7 +24,9 @@ import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/detail/library_picker.dart';
+import 'package:dionysos/views/dialog/next_release.dart';
 import 'package:dionysos/widgets/bounds.dart';
+import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 
 import 'package:dionysos/widgets/foldabletext.dart';
@@ -584,6 +586,34 @@ class _ChapterInfoState extends State<ChapterInfo> {
     );
   }
 
+  Widget _buildNextRelease(BuildContext context, EntrySaved entry) {
+    final next = entry.nextRelease;
+    final episodeName = entry.mediaType.episodeName.toLowerCase();
+    final label = switch (next) {
+      null => 'Set next release',
+      final date when date.isAfter(DateTime.now()) =>
+        'Next $episodeName ${date.formatrelative(allowFromNow: true)}',
+      final date => 'Expected ${date.formatrelative()}',
+    };
+    return Clickable(
+      onTap: () => showNextReleaseEditor(context, entry),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            entry.nextReleaseOverride != null
+                ? Icons.event
+                : Icons.event_outlined,
+            size: 13,
+            color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+          const SizedBox(width: 4),
+          _metaText(context, label),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry;
@@ -608,6 +638,8 @@ class _ChapterInfoState extends State<ChapterInfo> {
               context,
               'Refreshed ${entry.lastRefreshed!.formatrelative()}',
             ),
+          if (entry.status != rust.ReleaseStatus.complete)
+            _buildNextRelease(context, entry),
         ];
         // Wrap instead of Row so the metadata line folds onto a second line on
         // narrow windows instead of overflowing; each bullet stays glued to

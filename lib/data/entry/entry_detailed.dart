@@ -40,6 +40,11 @@ abstract class EntryDetailed extends Entry {
   }
 }
 
+extension EntryDetailedReleaseInfo on EntryDetailed {
+  int get releasedEpisodes =>
+      episodes.where((e) => e.announced != true).length;
+}
+
 class EntryDetailedImpl implements EntryDetailed {
   @override
   final Map<String, rust.Setting> extensionSettings;
@@ -116,6 +121,7 @@ class EntryDetailedImpl implements EntryDetailed {
       savedSettings: EntrySavedSettings.defaultSettings(),
       extensionSettings: extensionSettings,
     );
+    saved.updateReleasePrediction();
     if (applyRules) {
       await attachAutoAddExtensions(saved);
     }
@@ -138,6 +144,7 @@ class EntryDetailedImpl implements EntryDetailed {
       savedSettings: EntrySavedSettings.defaultSettings(),
       extensionSettings: extensionSettings,
     );
+    saved.updateReleasePrediction();
     if (applyRules) {
       await attachAutoAddExtensions(saved);
     }

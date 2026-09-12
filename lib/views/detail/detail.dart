@@ -436,13 +436,15 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
           ? ActionButton(
               tooltip: 'Continue',
               onPressed: () async {
-                EpisodePath(
-                  entry! as EntryDetailed,
-                  min(
-                    (entry! as EntrySaved).latestEpisode,
-                    (entry! as EntrySaved).episodes.length - 1,
-                  ),
-                ).go(context);
+                final saved = entry! as EntrySaved;
+                // Never continue into an episode the source has announced
+                // but not released yet.
+                final lastPlayable =
+                    saved.latestEpisode < saved.releasedEpisodes
+                        ? saved.latestEpisode
+                        : saved.releasedEpisodes - 1;
+                if (lastPlayable < 0) return;
+                EpisodePath(entry! as EntryDetailed, lastPlayable).go(context);
               },
               child: const Icon(Icons.play_arrow, size: 26),
             )

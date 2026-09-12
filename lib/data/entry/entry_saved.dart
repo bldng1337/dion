@@ -11,6 +11,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/json_patch.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/release_prediction.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/metis.dart';
@@ -287,6 +288,14 @@ class EntrySaved
 
   DateTime? lastRefreshed;
 
+  DateTime? predictedNextRelease;
+
+  Duration? releaseInterval;
+
+  DateTime? nextReleaseOverride;
+
+  DateTime? get nextRelease => nextReleaseOverride ?? predictedNextRelease;
+
   @override
   rust.EntryDetailed get toRust => entry;
 
@@ -303,6 +312,9 @@ class EntrySaved
     this.entryExtensions = const [],
     this.sourceExtensions = const [],
     this.lastRefreshed,
+    this.predictedNextRelease,
+    this.releaseInterval,
+    this.nextReleaseOverride,
   }) : _episodedata = episodedata;
 
   List<EpisodeData> get episodedata => _episodedata;
@@ -414,10 +426,28 @@ class EntrySaved
 
   @override
   FutureOr<EntryDetailed> refresh({CancelToken? token}) async {
+    final previousReleased = releasedEpisodes;
     await locate<ExtensionService>().detail(this, token: token);
     lastRefreshed = DateTime.now();
+    updateReleasePrediction();
+    if (releasedEpisodes > previousReleased) {
+      // The awaited release arrived; a user-set date no longer applies.
+      nextReleaseOverride = null;
+    }
     await save();
     return this;
+  }
+
+  void updateReleasePrediction() {
+    final prediction = predictNextRelease(
+      entry.episodes.map((e) => e.timestamp),
+    );
+    predictedNextRelease = prediction?.nextRelease;
+    // A pre-announced next release carries no interval; keep the last
+    // cadence estimate instead of discarding it.
+    if (prediction != null && prediction.interval > Duration.zero) {
+      releaseInterval = prediction.interval;
+    }
   }
 
   Future<void> save() async {
@@ -453,6 +483,9 @@ class EntrySaved
       entryExtensions = fresh.entryExtensions;
       sourceExtensions = fresh.sourceExtensions;
       lastRefreshed = fresh.lastRefreshed;
+      predictedNextRelease = fresh.predictedNextRelease;
+      releaseInterval = fresh.releaseInterval;
+      nextReleaseOverride = fresh.nextReleaseOverride;
       locate<Database>().notifyListeners([DBEvent.entryUpdated]);
     } catch (e, stack) {
       logger.e(
@@ -513,6 +546,9 @@ class EntrySaved
       'sourceExtensions': sourceExtensions.map((e) => e.toJson()).toList(),
       'savedSettings': savedSettings.toJson(),
       'lastRefreshed': lastRefreshed?.toIso8601String(),
+      'predictedNextRelease': predictedNextRelease?.toIso8601String(),
+      'releaseInterval': releaseInterval?.inMilliseconds,
+      'nextReleaseOverride': nextReleaseOverride?.toIso8601String(),
       'extensionSettings': extensionSettings.map((key, value) {
         return MapEntry(key, value.toJson());
       }),
@@ -638,6 +674,16 @@ class EntrySaved
               .toList() ??
           [],
       lastRefreshed: DateTime.tryParse(json['lastRefreshed'] as String? ?? ''),
+      predictedNextRelease: DateTime.tryParse(
+        json['predictedNextRelease'] as String? ?? '',
+      ),
+      releaseInterval:
+          json['releaseInterval'] == null
+              ? null
+              : Duration(milliseconds: json['releaseInterval'] as int),
+      nextReleaseOverride: DateTime.tryParse(
+        json['nextReleaseOverride'] as String? ?? '',
+      ),
     );
   }
 

@@ -8,6 +8,7 @@ import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/browse/library.dart';
 import 'package:dionysos/views/browse/search.dart';
+import 'package:dionysos/views/calendar.dart';
 import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/detail/detail.dart';
 import 'package:dionysos/views/detail/saved_quotes.dart';
@@ -41,6 +42,11 @@ import 'package:go_router/go_router.dart';
 
 final homedestinations = [
   Destination(ico: Icons.bookmark, name: 'Library', path: '/library'),
+  Destination(
+    ico: Icons.calendar_month,
+    name: 'Calendar',
+    path: '/calendar',
+  ),
   Destination(ico: Icons.update, name: 'Activity', path: '/activity'),
   Destination(ico: Icons.search, name: 'Browse', path: '/browse'),
   Destination(ico: Icons.extension, name: 'Extensions', path: '/manage'),
@@ -73,6 +79,15 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         state,
         const ActivityView(),
         title: 'Activity',
+      ),
+    ),
+    GoRoute(
+      path: '/calendar',
+      pageBuilder: (context, state) => getTransition(
+        context,
+        state,
+        const ReleaseCalendarView(),
+        title: 'Calendar',
       ),
     ),
     GoRoute(

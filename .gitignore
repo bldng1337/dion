@@ -45,3 +45,7 @@ app.*.map.json
 # Local fixtures for integration_test/versioning_test.dart (not committed;
 # regenerate with: flutter test integration_test/versioning_test.dart --tags=writing)
 /.versioning_data/
+
+# Local path overrides for the runtime package (pubspec_overrides.yaml is the
+# standard local-override file and must never be committed).
+/pubspec_overrides.yaml

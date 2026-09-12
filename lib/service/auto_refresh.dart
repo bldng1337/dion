@@ -1,3 +1,4 @@
+import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
@@ -11,6 +12,10 @@ import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 const _refreshDelay = Duration(seconds: 2);
 
 const _pageSize = 50;
+
+/// Entries whose next release (predicted or user-set) lies further ahead than
+/// this are considered not due yet and skipped by the auto-refresh job.
+const _dueMargin = Duration(hours: 6);
 
 class AutoRefreshJob extends PeriodicJob {
   @override
@@ -32,6 +37,25 @@ class AutoRefreshJob extends PeriodicJob {
     await performRefresh();
   }
 
+  static bool shouldRefresh(EntrySaved entry, {DateTime? now}) {
+    now ??= DateTime.now();
+    // Caught up measures against released episodes: a pre-announced episode
+    // in the list must not make the entry look unfinished forever.
+    final caughtUp =
+        entry.latestEpisode >= entry.releasedEpisodes ||
+        entry.latestEpisode == entry.totalEpisodes;
+    final releasing =
+        entry.status == rust.ReleaseStatus.releasing ||
+        entry.status == rust.ReleaseStatus.unknown;
+    if (!caughtUp || !releasing) return false;
+    final next = entry.nextRelease;
+    if (next == null || !next.isAfter(now.add(_dueMargin))) return true;
+    final horizon = now.add(
+      entry.releaseInterval ?? const Duration(days: 365),
+    );
+    return next.isAfter(horizon);
+  }
+
   static Future<List<RefreshResult>> performRefresh() async {
     final db = locate<Database>();
     const maxPages = 400; // So we dont loop forever 400*50 = 20k these are more entries than anyone sane would have in their library
@@ -40,21 +64,18 @@ class AutoRefreshJob extends PeriodicJob {
 
     for (var page = 0; page < maxPages; page++) {
       final pageEntries = await db.getEntries(page, _pageSize).toList();
-      if (pageEntries.length < _pageSize) break;
-      final candidates = pageEntries.where((entry) {
-        final caughtUp = entry.latestEpisode == entry.totalEpisodes;
-        return caughtUp &&
-            (entry.status == rust.ReleaseStatus.releasing ||
-                entry.status == rust.ReleaseStatus.unknown);
-      }).toList();
+      if (pageEntries.isEmpty) break;
+      final candidates = pageEntries.where(shouldRefresh).toList();
 
       logger.i('Found ${candidates.length} entries to check for updates');
 
       for (final entry in candidates) {
         try {
-          final previousCount = entry.totalEpisodes;
+          // Compare released (confirmed) episodes: a newly announced
+          // episode must not count as an update, only an observed release.
+          final previousCount = entry.releasedEpisodes;
           await entry.refresh();
-          final newCount = entry.totalEpisodes;
+          final newCount = entry.releasedEpisodes;
 
           if (newCount > previousCount) {
             logger.i(
@@ -91,7 +112,7 @@ class AutoRefreshJob extends PeriodicJob {
         await notifService.showNewEpisodes(
           title: r.entry.title,
           previousCount: r.previousCount,
-          newCount: r.entry.totalEpisodes,
+          newCount: r.entry.releasedEpisodes,
           id: r.entry.title.hashCode,
         );
       } else {
