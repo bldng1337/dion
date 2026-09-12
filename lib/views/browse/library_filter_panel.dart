@@ -141,6 +141,24 @@ class _LibraryFilterPanelState extends State<_LibraryFilterPanel> {
               ],
             ),
             const _Divider(),
+            _FilterSection(
+              label: 'Downloads',
+              chips: [
+                for (final f in LibraryDownloadFilter.values)
+                  _Chip(
+                    label: f.label,
+                    selected: _filters.downloadStates.contains(f),
+                    onSelected: (sel) {
+                      final next = Set<LibraryDownloadFilter>.of(
+                        _filters.downloadStates,
+                      );
+                      sel ? next.add(f) : next.remove(f);
+                      _setFilters(_filters.copyWith(downloadStates: next));
+                    },
+                  ),
+              ],
+            ),
+            const _Divider(),
             // Only show the extension filter when there are sources to pick
             // from; otherwise the row would be an empty, confusing header.
             if (_extensions.isNotEmpty) ...[

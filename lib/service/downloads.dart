@@ -350,10 +350,12 @@ class DownloadTask extends Task {
     }
     index['finished'] = true;
     await dir.getFile('index.json').writeAsString(jsonEncode(index));
+    locate<DownloadService>().downloadsRevision++;
   }
 
   @override
   void onFailed(Object? error) {
+    locate<DownloadService>().downloadsRevision++;
     final dir = DownloadService._getDownloadPath(ep);
     if (dir.existsSync()) {
       dir
@@ -375,6 +377,7 @@ class DownloadTask extends Task {
     // Task.run deliberately skips onFailed when a task is cancelled, so the
     // partial download directory has to be removed here; otherwise it would
     // be mistaken for a finished download.
+    locate<DownloadService>().downloadsRevision++;
     final dir = DownloadService._getDownloadPath(ep);
     if (dir.existsSync()) {
       try {
@@ -429,6 +432,10 @@ class DownloadStatus {
 
 class DownloadService {
   final Ratelimit ratelimit = LeakyBucketRatelimit.fromRate(1);
+
+  // Bumped whenever downloads change on disk, so consumers can cache
+  // state derived from [downloadedEntryKeys].
+  int downloadsRevision = 0;
 
   static Future<void> ensureInitialized() async {
     register<DownloadService>(DownloadService());
@@ -636,6 +643,7 @@ class DownloadService {
       return;
     }
     await path.delete(recursive: true);
+    downloadsRevision++;
   }
 
   Future<void> deleteExtension(Extension ext) async {
@@ -644,6 +652,7 @@ class DownloadService {
       return;
     }
     await path.sub(pathEncode(ext.id)).delete(recursive: true);
+    downloadsRevision++;
   }
 
   Future<void> deleteEntry(EntryDetailed entry) async {
@@ -658,6 +667,35 @@ class DownloadService {
       return;
     }
     await downloadpath.delete(recursive: true);
+    downloadsRevision++;
+  }
+
+  /// Keys (`pathEncode(extensionid)` + `/` + `pathEncode(entry uid)`) of
+  /// entries with at least one finished download on disk. Directory names
+  /// carry one-way sanitised ids, so they can only be matched by re-encoding
+  /// entry ids, never decoded.
+  Future<Set<String>> downloadedEntryKeys() async {
+    final downloadsDir = locate<DirectoryProvider>().downloadspath;
+    if (!await downloadsDir.exists()) return {};
+    final keys = <String>{};
+    await for (final extEntity in downloadsDir.list()) {
+      if (extEntity is! Directory) continue;
+      await for (final entryEntity in extEntity.list()) {
+        if (entryEntity is! Directory) continue;
+        if (await _hasFinishedEpisode(entryEntity)) {
+          keys.add('${extEntity.name}/${entryEntity.name}');
+        }
+      }
+    }
+    return keys;
+  }
+
+  Future<bool> _hasFinishedEpisode(Directory entrydir) async {
+    await for (final entity in entrydir.list()) {
+      if (entity is! Directory) continue;
+      if (await _isFinished(entity)) return true;
+    }
+    return false;
   }
 
   Future<List<DownloadedEntry>> listDownloads() async {
@@ -742,6 +780,7 @@ class DownloadService {
       }
       await _pruneEmptyParents(dir.parent, downloadsDir);
     }
+    downloadsRevision++;
   }
 
   Future<void> _pruneEmptyParents(Directory dir, Directory root) async {

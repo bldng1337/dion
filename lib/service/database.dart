@@ -279,14 +279,14 @@ DEFINE TABLE IF NOT EXISTS extension;
     LibrarySort sort = const LibrarySort(),
     required int page,
     int limit = 25,
-  }) {
-    final (where, vars) = _buildEntryWhere(scope, filters);
+  }) async* {
+    final (where, vars) = await _buildEntryWhere(scope, filters);
     final projection = sort.toProjection();
     final selectClause = projection == null ? '*' : '*, ${projection.select}';
     final orderClause = projection == null
         ? ' ORDER BY id'
         : ' ${projection.orderBy}, id';
-    return _getEntriesSQL(
+    yield* _getEntriesSQL(
       'SELECT $selectClause FROM type::table(\$entry)$where$orderClause '
       'LIMIT \$limit START \$offset*\$limit FETCH categories',
       {'entry': entryTable.tb, 'limit': limit, 'offset': page, ...vars},
@@ -297,23 +297,57 @@ DEFINE TABLE IF NOT EXISTS extension;
     EntryScope scope = const EntryScopeAll(),
     LibraryFilters filters = LibraryFilters.empty,
   }) async {
-    final (where, vars) = _buildEntryWhere(scope, filters);
+    final (where, vars) = await _buildEntryWhere(scope, filters);
     return await _countSQL(
       query: 'SELECT count() FROM type::table(\$entry)$where GROUP ALL;',
       vars: {'entry': entryTable.tb, ...vars},
     );
   }
 
-  (String, Map<String, dynamic>) _buildEntryWhere(
+  Future<(String, Map<String, dynamic>)> _buildEntryWhere(
     EntryScope scope,
     LibraryFilters filters,
-  ) {
+  ) async {
     final conditions = <String>[];
     final vars = <String, dynamic>{};
     scope.writeCondition(conditions, vars);
-    filters.writeConditions(conditions, vars);
+    final downloadedUids = filters.downloadStates.isEmpty
+        ? const <String>{}
+        : await _downloadedUids();
+    filters.writeConditions(conditions, vars, downloadedUids: downloadedUids);
     if (conditions.isEmpty) return ('', vars);
     return (' WHERE ${conditions.join(' AND ')}', vars);
+  }
+
+  Set<String>? _downloadedUidsCache;
+  int _downloadedUidsRevision = -1;
+
+  // Download directories carry one-way sanitised ids, so they can only be
+  // matched against entries by re-encoding every saved entry's id. Cached
+  // until downloads or saved entries change.
+  Future<Set<String>> _downloadedUids() async {
+    final revision = locate<DownloadService>().downloadsRevision;
+    final cached = _downloadedUidsCache;
+    if (cached != null && _downloadedUidsRevision == revision) {
+      return cached;
+    }
+    final keys = await locate<DownloadService>().downloadedEntryKeys();
+    final uids = <String>{};
+    var page = 0;
+    while (true) {
+      final batch = await getEntries(page++, 100).toList();
+      if (batch.isEmpty) break;
+      for (final entry in batch) {
+        if (keys.contains(
+          '${pathEncode(entry.boundExtensionId)}/${pathEncode(entry.id.uid)}',
+        )) {
+          uids.add(entry.id.uid);
+        }
+      }
+    }
+    _downloadedUidsCache = uids;
+    _downloadedUidsRevision = revision;
+    return uids;
   }
 
   Future<int> _countSQL({
@@ -544,6 +578,7 @@ ORDER BY total DESC
   Future<void> removeEntry(EntrySaved entry) async {
     await adapter.delete(entry);
     notifyListeners([DBEvent.entryAddedOrRemoved]);
+    _downloadedUidsCache = null;
     if (has<ImageStoreService>()) {
       locate<ImageStoreService>().forgetEntry(entry);
     }
@@ -563,6 +598,7 @@ ORDER BY total DESC
   Future<void> addEntry(EntrySaved entry) async {
     await adapter.save(entry);
     notifyListeners([DBEvent.entryAddedOrRemoved]);
+    _downloadedUidsCache = null;
     storeEntryImages(entry);
   }
 
@@ -585,6 +621,7 @@ ORDER BY total DESC
     await db.query('DELETE activity');
     await db.query('DELETE category');
     await db.query('DELETE extension');
+    _downloadedUidsCache = null;
     if (has<ImageStoreService>()) {
       locate<ImageStoreService>().schedulePrune();
     }
@@ -603,6 +640,7 @@ ORDER BY total DESC
     } finally {
       otherdbConnection.dispose();
     }
+    _downloadedUidsCache = null;
   }
 
   Future<ExtensionMetaData> getExtensionMetaData(ExtensionData extdata) async {

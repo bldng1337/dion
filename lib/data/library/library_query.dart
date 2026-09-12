@@ -117,16 +117,28 @@ class LibrarySortProjection {
   const LibrarySortProjection._({required this.select, required this.orderBy});
 }
 
+enum LibraryDownloadFilter {
+  downloaded,
+  notDownloaded;
+
+  String get label => switch (this) {
+    downloaded => 'Downloaded',
+    notDownloaded => 'Not downloaded',
+  };
+}
+
 class LibraryFilters {
   final Set<MediaType> mediaTypes;
   final Set<String> extensionIds;
   final Set<ReleaseStatus> statuses;
+  final Set<LibraryDownloadFilter> downloadStates;
   final bool trackedOnly;
 
   const LibraryFilters({
     this.mediaTypes = const {},
     this.extensionIds = const {},
     this.statuses = const {},
+    this.downloadStates = const {},
     this.trackedOnly = false,
   });
 
@@ -136,21 +148,31 @@ class LibraryFilters {
       mediaTypes.isNotEmpty ||
       extensionIds.isNotEmpty ||
       statuses.isNotEmpty ||
+      downloadStates.isNotEmpty ||
       trackedOnly;
 
   LibraryFilters copyWith({
     Set<MediaType>? mediaTypes,
     Set<String>? extensionIds,
     Set<ReleaseStatus>? statuses,
+    Set<LibraryDownloadFilter>? downloadStates,
     bool? trackedOnly,
   }) => LibraryFilters(
     mediaTypes: mediaTypes ?? this.mediaTypes,
     extensionIds: extensionIds ?? this.extensionIds,
     statuses: statuses ?? this.statuses,
+    downloadStates: downloadStates ?? this.downloadStates,
     trackedOnly: trackedOnly ?? this.trackedOnly,
   );
 
-  void writeConditions(List<String> conditions, Map<String, dynamic> vars) {
+  // Download state lives on the filesystem, so callers resolve the affected
+  // entries up front and only pay for it when exactly one state is selected;
+  // both (or neither) selected match every entry.
+  void writeConditions(
+    List<String> conditions,
+    Map<String, dynamic> vars, {
+    Set<String> downloadedUids = const {},
+  }) {
     if (mediaTypes.isNotEmpty) {
       // Stored as capitalized strings ("Video", "Audio", …).
       final values = mediaTypes.map((m) => "'${m.jsonValue}'").join(', ');
@@ -164,6 +186,14 @@ class LibraryFilters {
       final values = statuses.map((s) => "'${s.jsonValue}'").join(', ');
       conditions.add('entry.status IN [$values]');
     }
+    if (downloadStates.length == 1) {
+      vars['flt_downloaded'] = downloadedUids.toList();
+      conditions.add(
+        downloadStates.single == LibraryDownloadFilter.downloaded
+            ? 'entry.id.uid IN \$flt_downloaded'
+            : 'entry.id.uid NOT IN \$flt_downloaded',
+      );
+    }
     if (trackedOnly) {
       conditions.add('count(episodedata) > 0');
     }
@@ -175,6 +205,7 @@ class LibraryFilters {
       _setEq(other.mediaTypes, mediaTypes) &&
       _setEq(other.extensionIds, extensionIds) &&
       _setEq(other.statuses, statuses) &&
+      _setEq(other.downloadStates, downloadStates) &&
       other.trackedOnly == trackedOnly;
 
   @override
@@ -182,6 +213,7 @@ class LibraryFilters {
     Object.hashAll(mediaTypes),
     Object.hashAll(extensionIds),
     Object.hashAll(statuses),
+    Object.hashAll(downloadStates),
     trackedOnly,
   );
 }
