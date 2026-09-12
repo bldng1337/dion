@@ -120,6 +120,7 @@ class EntryDetailedImpl implements EntryDetailed {
       episode: 0,
       savedSettings: EntrySavedSettings.defaultSettings(),
       extensionSettings: extensionSettings,
+      lastRefreshed: DateTime.now(),
     );
     saved.updateReleasePrediction();
     if (applyRules) {
@@ -143,6 +144,7 @@ class EntryDetailedImpl implements EntryDetailed {
       episode: 0,
       savedSettings: EntrySavedSettings.defaultSettings(),
       extensionSettings: extensionSettings,
+      lastRefreshed: DateTime.now(),
     );
     saved.updateReleasePrediction();
     if (applyRules) {

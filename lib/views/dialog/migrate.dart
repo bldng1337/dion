@@ -64,7 +64,7 @@ Future<EntrySaved> migrateEntry(EntrySaved source, Entry target) async {
     episode: source.episode.clamp(0, newEpisodes - 1 < 0 ? 0 : newEpisodes - 1),
     entryExtensions: source.entryExtensions,
     sourceExtensions: source.sourceExtensions,
-    lastRefreshed: source.lastRefreshed,
+    lastRefreshed: DateTime.now(),
     predictedNextRelease: source.predictedNextRelease,
     releaseInterval: source.releaseInterval,
     nextReleaseOverride: source.nextReleaseOverride,
