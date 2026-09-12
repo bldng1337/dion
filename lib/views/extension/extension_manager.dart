@@ -18,6 +18,7 @@ import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/searchbar.dart';
 import 'package:dionysos/widgets/tabbar.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:file_selector/file_selector.dart';
@@ -367,6 +368,11 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
 
   bool _updatesOnly = false;
 
+  String _query = '';
+
+  late final TextEditingController _searchController =
+      TextEditingController()..disposedBy(scope);
+
   DataSourceController<src.RemoteExtension>? _controller;
 
   void _onRepositoriesChanged() {
@@ -516,6 +522,15 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Column(
         children: [
+          DionSearchbar(
+            controller: _searchController,
+            hintText: 'Search extensions',
+            onChanged: (value) {
+              setState(() {
+                _query = value.trim().toLowerCase();
+              });
+            },
+          ).paddingOnly(bottom: 4),
           Row(
             children: [
               Expanded(
@@ -602,6 +617,10 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     );
   }
 
+  bool _matchesQuery(src.RemoteExtension ext) {
+    return ext.name.toLowerCase().contains(_query);
+  }
+
   Widget _buildBody(List<_ResolvedRepo> resolved) {
     if (_updatesOnly) {
       return _buildUpdatesList();
@@ -614,6 +633,7 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
       key: ValueKey('$_selectedRepoUrl|$_selectedSourceType'),
       showDataSources: false,
       controller: controller,
+      filter: _query.isEmpty ? null : _matchesQuery,
       itemBuilder: (context, item) => RemoteExtensionTile(extension: item),
     );
   }
@@ -628,6 +648,9 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
           entries = entries
               .where((e) => e.adapter.name == _selectedSourceType)
               .toList();
+        }
+        if (_query.isNotEmpty) {
+          entries = entries.where(_matchesQuery).toList();
         }
         if (entries.isEmpty) {
           return const Center(child: Text('No updates available'));

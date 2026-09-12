@@ -699,6 +699,8 @@ class DynamicList<T> extends StatefulWidget {
   final double preload;
   final bool showDataSources;
 
+  final bool Function(T item)? filter;
+
   final Widget? header;
   const DynamicList({
     super.key,
@@ -707,6 +709,7 @@ class DynamicList<T> extends StatefulWidget {
     required this.controller,
     this.preload = 0.7,
     this.showDataSources = true,
+    this.filter,
     this.header,
   }) : assert(preload >= 0 && preload <= 1);
 
@@ -767,11 +770,22 @@ class _DynamicListState<T> extends State<DynamicList<T>>
   @override
   Widget build(BuildContext context) {
     loadMore();
+    final filter = widget.filter;
+    final items = filter == null
+        ? widget.controller.items
+        : widget.controller.items
+              .where(
+                (r) => r.fold(
+                  onSuccess: filter,
+                  onFailure: (_, _) => true,
+                ),
+              )
+              .toList(growable: false);
     return CustomScrollView(
       controller: controller,
       slivers: [
         if (widget.header != null) SliverToBoxAdapter(child: widget.header),
-        if (widget.controller.finished && widget.controller.items.isEmpty)
+        if (widget.controller.finished && items.isEmpty)
           SliverToBoxAdapter(
             child: Center(
               child: Semantics(
@@ -825,11 +839,9 @@ class _DynamicListState<T> extends State<DynamicList<T>>
             ).paddingAll(5),
           ),
         SliverList.builder(
-          itemCount:
-              widget.controller.items.length +
-              (widget.controller.finished ? 0 : 1),
+          itemCount: items.length + (widget.controller.finished ? 0 : 1),
           itemBuilder: (context, index) {
-            if (index == widget.controller.items.length) {
+            if (index == items.length) {
               if (!widget.controller.loading) {
                 return DionTextbutton(
                   child: const Text('Load More'),
@@ -840,7 +852,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
               }
               return const Center(child: CircularProgressIndicator());
             }
-            return widget.controller.items[index].fold(
+            return items[index].fold(
               onSuccess: (item) => widget.itemBuilder(context, item),
               onFailure: (e, stacktrace) {
                 if (widget.errorBuilder == null) {
