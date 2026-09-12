@@ -11,6 +11,7 @@ import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_numberbox.dart';
+import 'package:dionysos/widgets/settings/setting_runtime_directory.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_stringlist.dart';
 import 'package:dionysos/widgets/settings/setting_textbox.dart';
@@ -53,12 +54,11 @@ class DionRuntimeSettingView extends StatelessWidget {
             setting: setting.cast(),
             title: setting.metadata.label,
           );
-        // The host directory picker is not wired up yet; the path is still
-        // editable as plain text.
-        case final SettingsUI_Directory _:
-          return SettingTextbox(
+        case final SettingsUI_Directory directory:
+          return SettingRuntimeDirectory(
             setting: setting.cast(),
             title: setting.metadata.label,
+            write: directory.write,
           );
       }
     }

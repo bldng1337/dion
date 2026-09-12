@@ -183,6 +183,9 @@ class MockTrackerExtension with ChangeNotifier implements Extension {
   Future<bool> hasPermission(rust.Permission permission) async => true;
 
   @override
+  Future<void> grantPermission(rust.Permission permission) async {}
+
+  @override
   Future<void> removePermission(rust.Permission permission) async {}
 
   @override

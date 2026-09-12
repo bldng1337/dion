@@ -494,6 +494,11 @@ class Extension extends ChangeNotifier {
     return await _proxy.hasPermission(permission: permission);
   }
 
+  Future<void> grantPermission(rust.Permission permission) async {
+    await _proxy.grantPermissions(permissions: [permission]);
+    await _proxy.savePermissions();
+  }
+
   Future<void> removePermission(rust.Permission permission) async {
     await _proxy.removePermission(permission: permission);
   }
