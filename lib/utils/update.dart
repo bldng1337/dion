@@ -5,6 +5,7 @@ import 'package:dionysos/main.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/preference.dart';
+import 'package:dionysos/utils/background_policy.dart';
 import 'package:dionysos/utils/build_info.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/internetfile.dart';
@@ -275,6 +276,12 @@ enum CheckResult { skipped, upToDate, updateAvailable, error }
 Future<CheckResult> checkVersion({bool force = false}) async {
   if (!force) {
     if (kDebugMode) {
+      return CheckResult.skipped;
+    }
+    // The startup check is scheduled, not user-initiated; the About-page
+    // check passes force:true and always runs.
+    if (!await BackgroundPolicy.allowsWork()) {
+      logger.i('Skipping update check: background conditions not met');
       return CheckResult.skipped;
     }
   }

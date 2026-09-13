@@ -178,6 +178,23 @@ enum ReaderMode { paginated, infinite }
 enum UpdateChannel { stable, beta, nightly }
 
 final settings = (
+  // Defaults skip metered connections and low battery but never wait for a
+  // charger: waiting for unmetered Wi-Fi is free, while charging-only would
+  // leave a phone on battery permanently out of date.
+  background: (
+    unmeteredOnly: Setting(
+      true,
+      const PreferenceBoolMetaData('background.unmeteredonly'),
+    )..addCollection(preferenceCollection),
+    chargingOnly: Setting(
+      false,
+      const PreferenceBoolMetaData('background.chargingonly'),
+    )..addCollection(preferenceCollection),
+    batteryNotLow: Setting(
+      true,
+      const PreferenceBoolMetaData('background.batterynotlow'),
+    )..addCollection(preferenceCollection),
+  ),
   autoDownload: (
     entryCovers: Setting(
       true,

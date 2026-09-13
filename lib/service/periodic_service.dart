@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/auto_refresh.dart';
 import 'package:dionysos/service/database.dart';
@@ -149,6 +150,11 @@ class PeriodicService {
       job.intervalSetting.addListener(_onSettingsChanged);
       _reschedule(job);
     }
+    // Constraints are baked into the WorkManager registration, so changing
+    // one must re-register the affected jobs.
+    settings.background.unmeteredOnly.addListener(_onSettingsChanged);
+    settings.background.chargingOnly.addListener(_onSettingsChanged);
+    settings.background.batteryNotLow.addListener(_onSettingsChanged);
   }
 
   void _onSettingsChanged() {
@@ -170,7 +176,7 @@ class PeriodicService {
         job.taskName,
         job.taskName,
         frequency: Duration(hours: intervalHours),
-        constraints: Constraints(networkType: NetworkType.connected),
+        constraints: _constraints(),
         existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
       );
       logger.i(
@@ -184,6 +190,17 @@ class PeriodicService {
       );
     }
   }
+
+  // Unlike BackgroundPolicy, WorkManager sees the OS metered flag natively
+  // (including user-marked metered Wi-Fi), so this is the authority for
+  // deferred Android jobs.
+  Constraints _constraints() => Constraints(
+        networkType: settings.background.unmeteredOnly.value
+            ? NetworkType.unmetered
+            : NetworkType.connected,
+        requiresCharging: settings.background.chargingOnly.value,
+        requiresBatteryNotLow: settings.background.batteryNotLow.value,
+      );
 
   Map<String, PeriodicJob> get jobs => Map.unmodifiable(_jobs);
 

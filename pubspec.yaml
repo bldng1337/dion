@@ -88,6 +88,8 @@ dependencies:
   epub_view: ^3.3.0
   pdfrx: ^2.6.1
   flutter_inappwebview: ^6.1.5
+  connectivity_plus: ^7.3.1
+  battery_plus: ^7.1.1
   # feedback: ^3.1.0
 
 dependency_overrides:
