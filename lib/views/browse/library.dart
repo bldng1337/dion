@@ -140,6 +140,7 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     _searchController = DataSourceController<EntrySaved>([
       SingleStreamSource(
         (i) => locate<Database>().searchEntries(trimmed, i, 25),
+        pageSize: 25,
       ),
     ]);
     setState(() {});
@@ -334,6 +335,7 @@ class _EntryGridState extends State<EntryGrid>
           sort: widget.sort,
           page: i,
         ),
+        pageSize: 25,
       ),
     ]);
     controller!.requestMore();

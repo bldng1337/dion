@@ -102,13 +102,15 @@ class StreamSource<T> extends DataSource<T> {
 
 class SingleStreamSource<T> extends DataSource<T> {
   final Stream<T> Function(int index) loadmore;
+
+  final int? pageSize;
   @override
   bool isfinished = false;
   int index = 0;
   @override
   bool requesting = false;
   StreamSubscription<T>? _subscription;
-  SingleStreamSource(this.loadmore);
+  SingleStreamSource(this.loadmore, {this.pageSize});
 
   @override
   Future<void> requestMore() async {
@@ -118,11 +120,13 @@ class SingleStreamSource<T> extends DataSource<T> {
     requesting = true;
     final generation = _generation;
     var hasdelivered = false;
+    var delivered = 0;
     final completer = Completer<void>();
     _subscription = loadmore(index++).listen(
       (e) {
         if (generation != _generation) return;
         hasdelivered = true;
+        delivered++;
         streamController?.add([Result.success(e)]);
       },
       onError: (e, stack) {
@@ -149,7 +153,8 @@ class SingleStreamSource<T> extends DataSource<T> {
         if (generation != _generation) return;
         completer.complete();
         requesting = false;
-        if (!hasdelivered) {
+        final pageSize = this.pageSize;
+        if (!hasdelivered || (pageSize != null && delivered < pageSize)) {
           isfinished = true;
         }
       },
@@ -176,13 +181,14 @@ class SingleStreamSource<T> extends DataSource<T> {
   bool operator ==(Object other) {
     return other is SingleStreamSource<T> &&
         other.loadmore == loadmore &&
+        other.pageSize == pageSize &&
         other.index == index &&
         other.isfinished == isfinished &&
         other.requesting == requesting;
   }
 
   @override
-  int get hashCode => Object.hash(loadmore, index, isfinished, requesting);
+  int get hashCode => Object.hash(loadmore, pageSize, index, isfinished, requesting);
 }
 
 class AsyncStreamSource<T> extends DataSource<T> {

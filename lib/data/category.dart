@@ -51,5 +51,6 @@ class Category with DBConstClass {
 
   DataSource<EntrySaved> getEntries() => SingleStreamSource(
     (i) => locate<Database>().getEntriesInCategory(this, i, 25),
+    pageSize: 25,
   );
 }
