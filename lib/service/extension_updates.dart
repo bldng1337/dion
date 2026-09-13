@@ -27,7 +27,7 @@ class ExtensionUpdateJob extends PeriodicJob {
       settings.extension.autoUpdate.interval;
 
   @override
-  Future<void> run() async {
+  Future<void> run(PeriodicJobContext ctx) async {
     final sourceExt = locate<ExtensionService>();
     final repos = settings.extension.repositories.value;
     if (repos.isEmpty) return;
@@ -35,10 +35,16 @@ class ExtensionUpdateJob extends PeriodicJob {
     final installed = sourceExt.getExtensions().toList(growable: false);
     final installedIds = installed.map((e) => e.id).toSet();
 
-    for (final repoUrl in repos) {
+    for (final (repoIndex, repoUrl) in repos.indexed) {
+      final repoProgress = repoIndex / repos.length;
       try {
         final repo = await sourceExt.getRepo(repoUrl);
         for (var page = 1; page <= _maxPagesPerRepo; page++) {
+          ctx.update(
+            'Checking $repoUrl (page $page)',
+            progress:
+                repoProgress + (page - 1) / _maxPagesPerRepo / repos.length,
+          );
           final res = await repo.browse(page: page);
           if (res.isEmpty) break;
           for (final remote in res) {
@@ -54,6 +60,7 @@ class ExtensionUpdateJob extends PeriodicJob {
                 logger.i(
                   'Updating extension ${remote.id} from ${inst.version} to ${remote.version}',
                 );
+                ctx.update('Updating ${remote.id}');
                 await remote.install();
               }
             }

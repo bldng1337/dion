@@ -1,10 +1,18 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:io';
 
+import 'package:dionysos/service/notification.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/tree.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
+// Distinct from the episode ids (0 and title hashCodes) in the
+// NotificationService so task progress never overwrites episode updates.
+const _taskNotificationId = 900001;
+const _foregroundServiceNotificationId = 900002;
 
 enum TaskStatus { idle, running, error }
 
@@ -86,6 +94,7 @@ abstract class Task extends ChangeNotifier {
   set status(String value) {
     _status = value;
     notifyListeners();
+    locate<TaskManager>().notifyListeners();
   }
 
   double? _progress;
@@ -184,7 +193,138 @@ class TaskManager extends ChangeNotifier {
     concurrency: null,
   );
 
+  static const _syncDelay = Duration(milliseconds: 500);
+
+  Timer? _syncDebounce;
+  bool _foregroundServiceRunning = false;
+  bool _foregroundServiceTransition = false;
+  bool _resyncForegroundService = false;
+  String _foregroundServiceText = '';
+
+  TaskManager() {
+    // Services live for the whole runtime, so the self-listener never needs
+    // detaching; it funnels every enqueue/run/progress/finish/error
+    // transition into one throttled background-UI sync.
+    addListener(_scheduleBackgroundSync);
+  }
+
   TaskCategory get root => _root;
+
+  void _scheduleBackgroundSync() {
+    _syncDebounce ??= Timer(_syncDelay, () {
+      _syncDebounce = null;
+      unawaited(_syncBackgroundUi());
+    });
+  }
+
+  Future<void> _syncBackgroundUi() async {
+    final tasks = _root
+        .traverseBreathFirst()
+        .expand((cat) => cat.tasks)
+        .where((task) => !task.finished)
+        .toList();
+    final running = tasks.where((task) => task.running).toList();
+    final errorCount = tasks.where((task) => task.error != null).length;
+
+    await _syncForegroundService(running.length);
+
+    if (!has<NotificationService>()) return;
+    if (tasks.isEmpty) {
+      await locate<NotificationService>().cancelNotification(
+        _taskNotificationId,
+      );
+      return;
+    }
+
+    // Same aggregate as the in-app task indicator: mean of the determinate
+    // progresses of running tasks; null renders as an indeterminate bar.
+    final measured = running
+        .where((task) => task.progress != null)
+        .map((task) => task.progress!)
+        .toList();
+    final progress = measured.isEmpty
+        ? null
+        : measured.fold<double>(0, (a, b) => a + b) / measured.length;
+
+    String body;
+    if (running.isEmpty) {
+      body = errorCount > 0
+          ? '$errorCount failed · ${tasks.length} pending'
+          : '${tasks.length} task${tasks.length == 1 ? '' : 's'} queued';
+    } else {
+      final first = running.first;
+      body = '${first.name} · ${first.status}';
+      if (running.length > 1) {
+        body += ' (+${running.length - 1} more)';
+      }
+      if (progress != null) {
+        body += ' · ${(progress * 100).round()}%';
+      }
+    }
+
+    await locate<NotificationService>().showProgressNotification(
+      id: _taskNotificationId,
+      channelId: taskChannelId,
+      channelName: taskChannelName,
+      channelDescription: taskChannelDescription,
+      title: 'dion',
+      body: body,
+      progress: progress,
+    );
+  }
+
+  Future<void> _syncForegroundService(int runningCount) async {
+    if (!Platform.isAndroid) return;
+    if (_foregroundServiceTransition) {
+      // A start/stop is still settling; run another pass afterwards so the
+      // service state ends up matching the task tree.
+      _resyncForegroundService = true;
+      return;
+    }
+    final wantService = runningCount > 0;
+    final text =
+        '$runningCount task${runningCount == 1 ? '' : 's'} running';
+    if (wantService == _foregroundServiceRunning) {
+      if (wantService && text != _foregroundServiceText) {
+        await FlutterForegroundTask.updateService(
+          notificationTitle: 'dion',
+          notificationText: text,
+        );
+        _foregroundServiceText = text;
+      }
+      return;
+    }
+    _foregroundServiceText = text;
+    _foregroundServiceTransition = true;
+    try {
+      if (wantService) {
+        final result = await FlutterForegroundTask.startService(
+          serviceId: _foregroundServiceNotificationId,
+          serviceTypes: const [ForegroundServiceTypes.dataSync],
+          notificationTitle: 'dion',
+          notificationText: text,
+        );
+        if (result is ServiceRequestFailure) {
+          logger.w('Foreground service failed to start', error: result.error);
+          return;
+        }
+        _foregroundServiceRunning = true;
+      } else {
+        final result = await FlutterForegroundTask.stopService();
+        if (result is ServiceRequestFailure) {
+          logger.w('Foreground service failed to stop', error: result.error);
+          return;
+        }
+        _foregroundServiceRunning = false;
+      }
+    } finally {
+      _foregroundServiceTransition = false;
+      if (_resyncForegroundService) {
+        _resyncForegroundService = false;
+        unawaited(_syncBackgroundUi());
+      }
+    }
+  }
 
   void _onDequeue() {
     update();
@@ -256,6 +396,26 @@ class TaskManager extends ChangeNotifier {
 
   static Future<void> ensureInitialized() async {
     register<TaskManager>(TaskManager());
+    if (Platform.isAndroid) {
+      // init only configures the service; the service itself is started and
+      // stopped by _syncForegroundService while tasks are running.
+      FlutterForegroundTask.init(
+        androidNotificationOptions: AndroidNotificationOptions(
+          channelId: 'task_service',
+          channelName: 'Active tasks',
+          channelDescription:
+              'Keeps dion running while tasks work in the background',
+          onlyAlertOnce: true,
+        ),
+        iosNotificationOptions: const IOSNotificationOptions(),
+        foregroundTaskOptions: ForegroundTaskOptions(
+          eventAction: ForegroundTaskEventAction.nothing(),
+          // Restarting would only bring back an empty service notification;
+          // the task state lives in this isolate and dies with it.
+          allowAutoRestart: false,
+        ),
+      );
+    }
   }
 
   Task? getTask(bool Function(Task) filter, {List<String>? categoryids}) {

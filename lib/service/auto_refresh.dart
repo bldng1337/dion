@@ -33,8 +33,8 @@ class AutoRefreshJob extends PeriodicJob {
       settings.library.autoRefresh.interval;
 
   @override
-  Future<void> run() async {
-    await performRefresh();
+  Future<void> run(PeriodicJobContext ctx) async {
+    await performRefresh(ctx);
   }
 
   static bool shouldRefresh(EntrySaved entry, {DateTime? now}) {
@@ -56,7 +56,9 @@ class AutoRefreshJob extends PeriodicJob {
     return next.isAfter(horizon);
   }
 
-  static Future<List<RefreshResult>> performRefresh() async {
+  static Future<List<RefreshResult>> performRefresh(
+    PeriodicJobContext ctx,
+  ) async {
     final db = locate<Database>();
     const maxPages = 400; // So we dont loop forever 400*50 = 20k these are more entries than anyone sane would have in their library
 
@@ -68,8 +70,16 @@ class AutoRefreshJob extends PeriodicJob {
       final candidates = pageEntries.where(shouldRefresh).toList();
 
       logger.i('Found ${candidates.length} entries to check for updates');
+      if (candidates.isEmpty) {
+        ctx.update('Checking library (page ${page + 1})');
+        continue;
+      }
 
-      for (final entry in candidates) {
+      for (final (index, entry) in candidates.indexed) {
+        ctx.update(
+          'Refreshing "${entry.title}" (${index + 1}/${candidates.length})',
+          progress: index / candidates.length,
+        );
         try {
           // Compare released (confirmed) episodes: a newly announced
           // episode must not count as an update, only an observed release.
