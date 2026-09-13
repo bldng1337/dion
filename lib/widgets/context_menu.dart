@@ -105,6 +105,9 @@ class ContextMenuState extends State<ContextMenu> with StateDisposeScopeMixin {
               // Selection stays active after most actions; the drawer closes
               // itself once the selection is cleared.
               closeOnTap: false,
+              // Stays open while episodes are selected, so it must stay short
+              // enough to leave the episode list visible and tappable.
+              maxHeightFactor: 0.4,
             ),
           ),
         ),
