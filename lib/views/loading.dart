@@ -150,6 +150,13 @@ class LoadingView extends StatelessWidget {
         if (context.mounted) {
           context.go('/library');
         }
+        // Apply the link the app was launched with now that every service it
+        // might need is up; a view it opens replaces the library, a link
+        // that cannot be handled leaves it.
+        final pending = locate<AppLinksService>().takePendingLink();
+        if (pending != null) {
+          await locate<AppLinksService>().handleLink(pending, coldStart: true);
+        }
       },
     );
   }

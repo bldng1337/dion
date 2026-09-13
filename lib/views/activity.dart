@@ -384,7 +384,9 @@ class _ActivityViewState extends State<ActivityView>
   @override
   void initState() {
     controller = DataSourceController([
-      SingleStreamSource((i) => getActionStream(i)),
+      // Date headers add to the yielded count, so delivered >= queried rows
+      // and a short page still proves the query exhausted.
+      SingleStreamSource((i) => getActionStream(i), pageSize: 10),
     ])..disposedBy(scope);
     super.initState();
   }

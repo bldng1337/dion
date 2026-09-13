@@ -356,6 +356,32 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
   }
 }
 
+Future<bool> showExtensionLinkInstallDialog(
+  BuildContext context,
+  String url,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: const Text('Install extension?'),
+      content: Text('dion will download and install an extension from:\n$url'),
+      actions: [
+        DionTextbutton(
+          type: ButtonType.ghost,
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        DionTextbutton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Install'),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true;
+}
+
 Future<bool> installExtensionWithConsent(
   BuildContext context, {
   required RemoteExtension extension,
