@@ -1,3 +1,4 @@
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:dionysos/data/settings/appsettings.dart';
@@ -132,17 +133,58 @@ Future<void> notify(Update update, {bool force = false}) async {
   );
 }
 
+/// ABI tags appearing in per-arch APK names (`dion-release-<abi>.apk`).
+const _androidAbiTags = ['arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86'];
+
+/// The per-ABI APK for this device, falling back to the universal APK for
+/// ABIs without a split (much larger, but installs everywhere).
+UpdateAssets _androidAsset(Update update) {
+  final apks = update.assets.where((e) => e.filename.endsWith('.apk'));
+  final abi = switch (Abi.current()) {
+    Abi.androidArm64 => 'arm64-v8a',
+    Abi.androidArm => 'armeabi-v7a',
+    Abi.androidX64 => 'x86_64',
+    Abi.androidIA32 => 'x86',
+    _ => null,
+  };
+  if (abi != null) {
+    for (final apk in apks) {
+      if (apk.filename.endsWith('-$abi.apk')) {
+        return apk;
+      }
+    }
+  }
+  return apks.firstWhere(
+    (apk) => !_androidAbiTags.any(apk.filename.contains),
+  );
+}
+
+/// The installer for this machine's architecture, when the release ships
+/// arch-tagged installers (`...-x64.exe` / `...-arm64.exe`).
+UpdateAssets _windowsAsset(Update update) {
+  final exes = update.assets.where((e) => e.filename.endsWith('.exe'));
+  final arch = switch (Abi.current()) {
+    Abi.windowsArm64 => 'arm64',
+    Abi.windowsX64 => 'x64',
+    _ => null,
+  };
+  if (arch != null) {
+    for (final exe in exes) {
+      if (exe.filename.contains(arch)) {
+        return exe;
+      }
+    }
+  }
+  return exes.first;
+}
+
 Future<void> downloadUpdate(
   Update update, {
   Function(double? progress, String phase)? onReceiveProgress,
 }) async {
   final asset = switch (getPlatform()) {
-    CPlatform.android => update.assets.firstWhere(
-      (e) => e.filename.endsWith('.apk'),
-    ),
-    CPlatform.windows => update.assets.firstWhere(
-      (e) => e.filename.endsWith('.exe'),
-    ),
+    CPlatform.android => _androidAsset(update),
+    CPlatform.windows => _windowsAsset(update),
     _ => throw UnimplementedError('Unsupported platform ${getPlatform()}'),
   };
   final dirprovider = locate<DirectoryProvider>();
@@ -233,6 +275,13 @@ Future<Update?> checkNightlyUpdate() async {
     }),
   );
   final release = res.bodyToJson as Map<String, dynamic>;
+  // The nightly release is deleted at the start of every nightly build, so it
+  // legitimately disappears for a while on each push; a 404 body has no
+  // tag_name. Treat that window as "no update" instead of failing the check.
+  if (release['tag_name'] == null) {
+    logger.i('No nightly release published at the moment');
+    return null;
+  }
   final assets = (release['assets'] as List<dynamic>)
       .map(
         (e) => UpdateAssets(

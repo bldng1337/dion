@@ -1,9 +1,12 @@
 name: Nightly
 
 # Build a fresh rolling "nightly" release on every new commit to main.
-# Artifacts land on a single persistent release tagged `nightly`; each build
-# overwrites the previous artifacts (replacesArtifacts) and refreshes a small
-# nightly.json manifest the app's updater reads to compare commit hashes.
+# The previous nightly release is deleted up front (Clear), each matrix leg
+# builds and uploads a workflow artifact (Build), and only if every leg
+# succeeded are the artifacts plus a small nightly.json manifest (which the
+# app's updater reads to compare commit hashes) attached to the fresh release
+# (Publish). A failed or cancelled run therefore leaves no nightly release at
+# all instead of one still serving the outdated version.
 on:
   push:
     branches:
@@ -15,9 +18,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Build:
+  Clear:
     permissions:
       contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete previous nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        # No-op on the first run, when no nightly release exists yet.
+        run: gh release delete nightly --yes --cleanup-tag || true
+
+  Build:
+    needs: Clear
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -112,22 +126,6 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "Building nightly $BUILD_VERSION"
 
-      - name: Write nightly.json manifest
-        shell: bash
-        run: |
-          # Deterministic on both runners for a given commit, so uploading it
-          # twice (once per matrix leg) is a harmless no-op replacement.
-          cat > nightly.json <<EOF
-          {
-            "version": "$BUILD_VERSION",
-            "base_version": "$NORMAL_VERSION",
-            "commit": "$SHORT_SHA",
-            "commit_date": "$COMMIT_DATE",
-            "channel": "nightly"
-          }
-          EOF
-          cat nightly.json
-
       - name: Versions
         run: |
           flutter --version
@@ -137,9 +135,14 @@ jobs:
       - name: Build Android (${{ matrix.build_mode }})
         if: matrix.os == 'ubuntu-latest'
         shell: bash
-
         run: |
+          # Universal fat APK first, then the per-ABI splits so devices on a
+          # known arch can download only their own native libs.
           flutter build apk --${{ matrix.build_mode }} --verbose \
+            --dart-define=BUILD_VERSION="$BUILD_VERSION" \
+            --dart-define=BUILD_COMMIT="$SHORT_SHA" \
+            --dart-define=BUILD_CHANNEL=nightly
+          flutter build apk --${{ matrix.build_mode }} --split-per-abi --verbose \
             --dart-define=BUILD_VERSION="$BUILD_VERSION" \
             --dart-define=BUILD_COMMIT="$SHORT_SHA" \
             --dart-define=BUILD_CHANNEL=nightly
@@ -149,11 +152,25 @@ jobs:
           echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
           echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
           echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
-          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          for apk in build/app/outputs/flutter-apk/app-*.apk; do
+            $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose "$apk"
+            $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs --verbose "$apk"
+          done
       - name: Move APK
         if: matrix.os == 'ubuntu-latest'
-        run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
+        shell: bash
+        run: |
+          for apk in build/app/outputs/flutter-apk/app-*.apk; do
+            name=$(basename "$apk" .apk)
+            suffix=${name#app-}
+            abi=${suffix%-${{ matrix.build_mode }}}
+            if [ "$abi" = "${{ matrix.build_mode }}" ]; then
+              mv "$apk" ./output/dion-${{ matrix.build_mode }}.apk
+            else
+              mv "$apk" "./output/dion-${{ matrix.build_mode }}-${abi}.apk"
+            fi
+          done
+          ls -la ./output
 
       - name: Enable Developer Mode (symlinks for pdfrx native assets)
         if: matrix.os == 'windows-latest'
@@ -201,16 +218,67 @@ jobs:
           path: ./build/windows/x64/installer/Release/inno-script.iss
       - name: Move installer
         if: matrix.os == 'windows-latest'
-        run: mv ./build/windows/x64/installer/Release/*.exe ./output/
+        shell: bash
+        run: |
+          # Tag the installer with the arch it was built for so the updater can
+          # pick exactly this one.
+          for f in ./build/windows/x64/installer/Release/*.exe; do
+            mv "$f" "./output/$(basename "$f" .exe)-x64.exe"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
           path: "./output/*"
           name: dion-nightly-${{ matrix.os }}-${{ matrix.build_mode }}
 
-      # Single rolling release tagged `nightly`. Both matrix legs attach to it;
-      # replacesArtifacts overwrites same-named assets so the release stays
-      # fresh. makeLatest: false keeps the real latest release untouched.
+  Publish:
+    needs: Build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Compute build metadata
+        shell: bash
+        run: |
+          NORMAL_VERSION=$(awk '/^version:/ { print $2 }' pubspec.yaml)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_DATE=$(git show -s --format=%cI HEAD)
+          BUILD_VERSION="${NORMAL_VERSION}+nightly.${SHORT_SHA}"
+          {
+            echo "NORMAL_VERSION=$NORMAL_VERSION"
+            echo "SHORT_SHA=$SHORT_SHA"
+            echo "BUILD_VERSION=$BUILD_VERSION"
+            echo "COMMIT_DATE=$COMMIT_DATE"
+          } >> "$GITHUB_ENV"
+      - name: Write nightly.json manifest
+        shell: bash
+        run: |
+          cat > nightly.json <<EOF
+          {
+            "version": "$BUILD_VERSION",
+            "base_version": "$NORMAL_VERSION",
+            "commit": "$SHORT_SHA",
+            "commit_date": "$COMMIT_DATE",
+            "channel": "nightly"
+          }
+          EOF
+          cat nightly.json
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dion-nightly-*
+          merge-multiple: true
+          path: ./output
+      - name: Tag build commit
+        run: |
+          # -f: a cancelled run can leave a stale nightly tag behind.
+          git tag -f nightly
+          git push -f origin nightly
+
+      # Single rolling release tagged `nightly`. makeLatest: false keeps the
+      # real latest release untouched.
       - uses: ncipollo/release-action@v1
         with:
           tag: nightly

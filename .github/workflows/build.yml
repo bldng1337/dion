@@ -121,18 +121,36 @@ jobs:
       - name: Build Android (${{ matrix.build_mode }})
         if: matrix.os == 'ubuntu-latest'
         shell: bash
-        run: flutter build apk --${{ matrix.build_mode }} --verbose
+        run: |
+          # Universal fat APK first, then the per-ABI splits so devices on a
+          # known arch can download only their own native libs.
+          flutter build apk --${{ matrix.build_mode }} --verbose
+          flutter build apk --${{ matrix.build_mode }} --split-per-abi --verbose
       - name: Sign APK
         if: matrix.os == 'ubuntu-latest'
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 -d > android/keystore.jks
           echo "${{ secrets.KEY_PASSWORD }}" > android/keypass
           echo "${{ secrets.KEYSTORE_PASSWORD }}" > android/storepass
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
-          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs --verbose build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk
+          for apk in build/app/outputs/flutter-apk/app-*.apk; do
+            $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks android/keystore.jks --key-pass file:android/keypass --ks-pass file:android/storepass --ks-key-alias dion --verbose "$apk"
+            $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs --verbose "$apk"
+          done
       - name: Move APK
         if: matrix.os == 'ubuntu-latest'
-        run: mv build/app/outputs/flutter-apk/app-${{ matrix.build_mode }}.apk ./output/dion-${{ matrix.build_mode }}.apk
+        shell: bash
+        run: |
+          for apk in build/app/outputs/flutter-apk/app-*.apk; do
+            name=$(basename "$apk" .apk)
+            suffix=${name#app-}
+            abi=${suffix%-${{ matrix.build_mode }}}
+            if [ "$abi" = "${{ matrix.build_mode }}" ]; then
+              mv "$apk" ./output/dion-${{ matrix.build_mode }}.apk
+            else
+              mv "$apk" "./output/dion-${{ matrix.build_mode }}-${abi}.apk"
+            fi
+          done
+          ls -la ./output
 
       - name: Build macOS (${{ matrix.build_mode }})
         if: matrix.os == 'macos-latest'
@@ -189,7 +207,13 @@ jobs:
           path: ./build/windows/x64/installer/Release/inno-script.iss
       - name: Move installer
         if: matrix.os == 'windows-latest'
-        run: mv ./build/windows/x64/installer/Release/*.exe ./output/
+        shell: bash
+        run: |
+          # Tag the installer with the arch it was built for so the updater can
+          # pick exactly this one.
+          for f in ./build/windows/x64/installer/Release/*.exe; do
+            mv "$f" "./output/$(basename "$f" .exe)-x64.exe"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
