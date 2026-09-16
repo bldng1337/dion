@@ -206,7 +206,12 @@ class Extension extends ChangeNotifier {
 
   @override
   bool operator ==(Object other) {
-    return other is Extension && other._proxy == _proxy;
+    // The runtimeType guard keeps alternative implementations (the debug
+    // mock implements this class from another library, without the private
+    // handle) out of the field access below.
+    return other is Extension &&
+        other.runtimeType == runtimeType &&
+        other._proxy == _proxy;
   }
 
   T getExtensionType<T extends rust.ExtensionType>() {
@@ -865,6 +870,12 @@ class RemoteExtension {
   String get version => data.version;
   bool get compatible => data.compatible;
   List<rust.Permission>? get permissions => data.permissions;
+  List<String> get authors => data.authors;
+  List<String> get lang => data.lang;
+  List<String> get tags => data.tags;
+  bool get nsfw => data.nsfw;
+  Set<rust.MediaType> get mediaType => data.mediaType;
+  List<rust.ExtensionKind> get extensionKinds => data.extensionKinds;
 
   RemoteExtension(this.adapter, this.data);
 
@@ -1216,14 +1227,18 @@ class ExtensionService with ChangeNotifier {
         return await adapter.getRepo(url);
       }
     }
+    Object? lastError;
     for (final adapter in _adapters.values) {
       try {
         return await adapter.getRepo(url);
       } catch (e) {
+        lastError = e;
         logger.e('Failed to get repo from $url', error: e);
       }
     }
-    throw Exception('Failed to get repo from $url');
+    // Surface the underlying cause so the UI can show why a repo is broken
+    // instead of a generic failure.
+    throw Exception('Failed to get repo from $url: $lastError');
   }
 
   Future<void> install(String location) async {

@@ -128,7 +128,9 @@ class SettingRow extends StatelessWidget {
             if (iconPrefix != null) iconPrefix,
             Expanded(child: label),
             const SizedBox(width: DionSpacing.md),
-            control,
+            // Loose flex: controls that expand (e.g. an isExpanded dropdown)
+            // need a bounded width; shrink-wrapping controls are unaffected.
+            Flexible(child: control),
           ],
         );
       },

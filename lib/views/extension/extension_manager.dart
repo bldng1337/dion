@@ -5,11 +5,13 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart' as src;
 import 'package:dionysos/service/extension_updates.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/toast.dart';
 import 'package:dionysos/utils/version.dart';
+import 'package:dionysos/views/extension/extension_meta.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
@@ -18,7 +20,6 @@ import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:dionysos/widgets/searchbar.dart';
 import 'package:dionysos/widgets/tabbar.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:file_selector/file_selector.dart';
@@ -26,17 +27,18 @@ import 'package:flutter/material.dart'
     show
         AlertDialog,
         Colors,
-        DropdownButton,
-        DropdownMenuItem,
+        ConstrainedBox,
         FilterChip,
         Icons,
         InputDecoration,
         TextButton,
         TextField,
+        Tooltip,
         showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
+import 'package:inline_result/inline_result.dart';
 
 class ExtensionManager extends StatefulWidget {
   const ExtensionManager({super.key});
@@ -232,8 +234,25 @@ class _ExtensionManagerState extends State<ExtensionManager> {
   }
 }
 
-class ExtensionList extends StatelessWidget {
+class ExtensionList extends StatefulWidget {
   const ExtensionList({super.key});
+
+  @override
+  State<ExtensionList> createState() => _ExtensionListState();
+}
+
+class _ExtensionListState extends State<ExtensionList>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _searchController = TextEditingController()
+    ..disposedBy(scope);
+
+  ExtensionFilters _filters = const ExtensionFilters();
+
+  void _setFilters(ExtensionFilters next) {
+    setState(() {
+      _filters = next;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,90 +264,137 @@ class ExtensionList extends StatelessWidget {
         if (sourceExt.loading) {
           return const Center(child: DionProgressBar());
         }
-        final exts = sourceExt.getExtensions().toList(growable: false);
-        if (exts.isEmpty) {
-          return const Center(child: Text('No extensions installed'));
-        }
+        final all = sourceExt.getExtensions().toList(growable: false);
         return ValueListenableBuilder<Map<String, src.RemoteExtension>>(
           valueListenable: updateService.updates,
           builder: (context, updateMap, _) {
-            return ListView.builder(
-              itemCount: exts.length,
-              itemBuilder: (context, i) {
-                final ext = exts[i];
-                final update = updateMap[ext.id];
-                return ListenableBuilder(
-                  listenable: ext,
-                  builder: (context, child) => DionListTile(
-                    leading: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: DionImage(
-                              imageUrl: ext.data.icon,
-                              width: 30,
-                              height: 30,
-                              errorWidget: const Icon(Icons.image, size: 30),
-                            ),
+            final exts = all
+                .where(_filters.matchesInstalled)
+                .toList(growable: false);
+            return Column(
+              children: [
+                ExtensionFilterBar(
+                  searchController: _searchController,
+                  searchHint: 'Search installed extensions',
+                  filters: _filters,
+                  languageOptions: {for (final e in all) ...e.data.lang},
+                  onChanged: _setFilters,
+                ),
+                Expanded(
+                  child: exts.isEmpty
+                      ? Center(
+                          child: Text(
+                            all.isEmpty
+                                ? 'No extensions installed'
+                                : 'No extensions match the current filters',
                           ),
-                          if (ext.loading) const DionProgressBar(),
-                        ],
-                      ),
-                    ),
-                    title: Text(
-                      ext.name,
-                      style: context.titleMedium!.copyWith(
-                        color: ext.isenabled
-                            ? context.theme.colorScheme.primary
-                            : Colors.grey,
-                      ),
-                    ),
-                    onTap: () => ext.toggle(),
-                    onLongTap: () => context.push('/extension/${ext.data.id}'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${ext.data.desc ?? ''} v${ext.data.version}'),
-                        if (update != null)
-                          Text(
-                            'Update available: v${update.version}',
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (update != null)
-                          DionIconbutton(
-                            tooltip: 'Update',
-                            icon: const Icon(
-                              Icons.system_update_alt,
-                              color: Colors.green,
-                            ),
-                            onPressed: () async {
-                              await update.install();
-                              updateService.markUpdated(ext.id);
-                            },
-                          ),
-                        DionIconbutton(
-                          tooltip: 'Uninstall',
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.red,
-                          ),
-                          onPressed: () => sourceExt.uninstall(ext),
+                        )
+                      : ListView.builder(
+                          itemCount: exts.length,
+                          itemBuilder: (context, i) {
+                            final ext = exts[i];
+                            final update = updateMap[ext.id];
+                            return ListenableBuilder(
+                              listenable: ext,
+                              builder: (context, child) => DionListTile(
+                                leading: SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Stack(
+                                    children: [
+                                      Center(
+                                        child: DionImage(
+                                          imageUrl: ext.data.icon,
+                                          width: 30,
+                                          height: 30,
+                                          errorWidget: const Icon(
+                                            Icons.image,
+                                            size: 30,
+                                          ),
+                                        ),
+                                      ),
+                                      if (ext.loading) const DionProgressBar(),
+                                    ],
+                                  ),
+                                ),
+                                title: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        ext.name,
+                                        style: context.titleMedium?.copyWith(
+                                          color: ext.isenabled
+                                              ? context.theme.colorScheme.primary
+                                              : Colors.grey,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: DionSpacing.sm),
+                                    Text(
+                                      'v${ext.data.version}',
+                                      style: context.bodySmall?.copyWith(
+                                        color: context
+                                            .theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () => ext.toggle(),
+                                onLongTap: () =>
+                                    context.push('/extension/${ext.data.id}'),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ExtensionMetaChips(
+                                      kinds: ext.extensionKinds,
+                                      mediaTypes: ext.data.mediaType,
+                                      nsfw: ext.data.nsfw,
+                                      languages: ext.data.lang,
+                                      iconOnlyKinds: true,
+                                      maxLanguages: 3,
+                                    ),
+                                    if (update != null)
+                                      Text(
+                                        'Update available: v${update.version}',
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (update != null)
+                                      DionIconbutton(
+                                        tooltip: 'Update',
+                                        icon: const Icon(
+                                          Icons.system_update_alt,
+                                          color: Colors.green,
+                                        ),
+                                        onPressed: () async {
+                                          await update.install();
+                                          updateService.markUpdated(ext.id);
+                                        },
+                                      ),
+                                    DionIconbutton(
+                                      tooltip: 'Uninstall',
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () => sourceExt.uninstall(ext),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                ),
+              ],
             );
           },
         );
@@ -337,12 +403,28 @@ class ExtensionList extends StatelessWidget {
   }
 }
 
-class _ResolvedRepo {
+/// Per-repository resolution so the catalog can show, for every configured
+/// repo, whether it is still loading, loaded, or failed (retryable by
+/// tapping its chip).
+sealed class _RepoResolution {
   final String url;
-  final src.RemoteExtensionRepo repo;
-  _ResolvedRepo(this.url, this.repo);
+  const _RepoResolution(this.url);
+}
 
-  String get sourceType => repo.adapter.name;
+class _RepoLoading extends _RepoResolution {
+  const _RepoLoading(super.url);
+}
+
+class _RepoReady extends _RepoResolution {
+  final src.RemoteExtensionRepo repo;
+  const _RepoReady(super.url, this.repo);
+
+  String get label => repo.data.name.isNotEmpty ? repo.data.name : url;
+}
+
+class _RepoFailed extends _RepoResolution {
+  final Object error;
+  const _RepoFailed(super.url, this.error);
 }
 
 class ExtensionCatalog extends StatefulWidget {
@@ -354,36 +436,32 @@ class ExtensionCatalog extends StatefulWidget {
 
 class _ExtensionCatalogState extends State<ExtensionCatalog>
     with StateDisposeScopeMixin {
-  List<_ResolvedRepo> _resolved = [];
-
-  final Set<String> _failedRepos = {};
-
-  int _pendingRepos = 0;
+  Map<String, _RepoResolution> _repos = {};
 
   int _resolveGeneration = 0;
 
   String? _selectedRepoUrl;
 
-  String? _selectedSourceType;
-
   bool _updatesOnly = false;
 
-  String _query = '';
+  ExtensionFilters _filters = const ExtensionFilters();
 
-  late final TextEditingController _searchController =
-      TextEditingController()..disposedBy(scope);
+  late final TextEditingController _searchController = TextEditingController()
+    ..disposedBy(scope);
 
   DataSourceController<src.RemoteExtension>? _controller;
 
-  void _onRepositoriesChanged() {
-    _resolveRepos();
-  }
+  bool get _hasPending => _repos.values.any((r) => r is _RepoLoading);
+
+  bool get _hasReady => _repos.values.any((r) => r is _RepoReady);
+
+  bool get _hasFailed => _repos.values.any((r) => r is _RepoFailed);
 
   @override
   void initState() {
     super.initState();
     settings.extension.repositories.addListener(_onRepositoriesChanged);
-    _resolveRepos();
+    _resolveAll();
   }
 
   @override
@@ -393,37 +471,39 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     super.dispose();
   }
 
-  Future<void> _resolveRepos() async {
-    final repos = settings.extension.repositories.value;
-    final sourceExt = locate<src.ExtensionService>();
+  void _onRepositoriesChanged() {
+    _resolveAll();
+  }
+
+  Future<void> _resolveAll() async {
+    final urls = settings.extension.repositories.value;
     final generation = ++_resolveGeneration;
     setState(() {
-      _resolved = [];
-      _failedRepos.clear();
-      _pendingRepos = repos.length;
-      if (_selectedRepoUrl != null && !repos.contains(_selectedRepoUrl)) {
+      _repos = {for (final url in urls) url: _RepoLoading(url)};
+      if (_selectedRepoUrl != null && !urls.contains(_selectedRepoUrl)) {
         _selectedRepoUrl = null;
       }
       _rebuildController();
     });
-    for (final url in repos) {
-      resolveRepo(sourceExt, url, generation);
+    for (final url in urls) {
+      // Unawaited on purpose: each repo resolves independently and updates
+      // its own chip; the generation guard drops stale results.
+      _resolveOne(url, generation);
     }
   }
 
-  Future<void> resolveRepo(
-    src.ExtensionService sourceExt,
-    String url,
-    int generation,
-  ) async {
+  Future<void> _resolveOne(String url, int generation) async {
+    final sourceExt = locate<src.ExtensionService>();
+    setState(() {
+      _repos[url] = _RepoLoading(url);
+    });
     try {
       final repo = await sourceExt.getRepo(url);
       if (!mounted || generation != _resolveGeneration) {
         return;
       }
       setState(() {
-        _resolved.add(_ResolvedRepo(url, repo));
-        _pendingRepos--;
+        _repos[url] = _RepoReady(url, repo);
         _rebuildController();
       });
     } catch (e, stack) {
@@ -431,9 +511,10 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
       if (!mounted || generation != _resolveGeneration) {
         return;
       }
+      // No controller rebuild: the set of contributing repos is unchanged,
+      // so already-loaded catalog pages must survive the failure.
       setState(() {
-        _failedRepos.add(url);
-        _pendingRepos--;
+        _repos[url] = _RepoFailed(url, e);
       });
     }
   }
@@ -441,33 +522,50 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
   void _rebuildController() {
     _controller?.dispose();
     _controller = null;
-    final resolved = _resolved;
-    if (resolved.isEmpty || _updatesOnly) {
+    if (_updatesOnly) {
       return;
     }
-    final effective = effectiveRepos(resolved);
-    if (effective.isEmpty) {
-      return;
-    }
-    final sources = effective.map((r) {
+    final ready = _repos.values
+        .whereType<_RepoReady>()
+        .where((r) => _selectedRepoUrl == null || r.url == _selectedRepoUrl)
+        .toList(growable: false);
+    final sources = ready.map((r) {
       final source = r.repo.adapter.getRepoDataSource(r.repo.data);
-      source.name = r.repo.data.name.isNotEmpty ? r.repo.data.name : r.url;
+      source.name = r.label;
       return source;
     }).toList();
+    if (sources.isEmpty) {
+      return;
+    }
     _controller = DataSourceController<src.RemoteExtension>(sources);
   }
 
-  List<_ResolvedRepo> effectiveRepos(List<_ResolvedRepo> resolved) {
-    return resolved.where((r) {
-      final matchesRepo = _selectedRepoUrl == null || r.url == _selectedRepoUrl;
-      final matchesSource =
-          _selectedSourceType == null || r.sourceType == _selectedSourceType;
-      return matchesRepo && matchesSource;
-    }).toList();
+  void _setFilters(ExtensionFilters next) {
+    setState(() {
+      _filters = next;
+    });
   }
 
-  void _applyFilter() {
-    setState(_rebuildController);
+  /// Languages currently on offer, gathered from the catalog items loaded so
+  /// far (or the pending updates when the updates-only filter is active).
+  Set<String> _availableLanguages() {
+    final updateService = locate<ExtensionUpdateService>();
+    if (_updatesOnly) {
+      return {for (final e in updateService.updates.value.values) ...e.lang};
+    }
+    final langs = <String>{};
+    final items = _controller?.items;
+    if (items != null) {
+      for (final item in items) {
+        langs.addAll(
+          item.fold(
+            onSuccess: (e) => e.lang,
+            onFailure: (_, _) => const <String>[],
+          ),
+        );
+      }
+    }
+    return langs;
   }
 
   @override
@@ -491,121 +589,82 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
       );
     }
 
-    final resolved = _resolved;
-    if (resolved.isEmpty) {
-      if (_pendingRepos == 0 && _failedRepos.isNotEmpty) {
-        return Center(
-          child: ErrorDisplay(
-            e: Exception(
-              'Failed to load repositories: ${_failedRepos.join(', ')}',
+    // Every repo failed and none is pending: nothing can be shown, offer a
+    // global retry. Partial failures stay visible as failed chips instead.
+    if (_hasFailed && !_hasReady && !_hasPending) {
+      final failedUrls = _repos.values
+          .whereType<_RepoFailed>()
+          .map((r) => r.url)
+          .join(', ');
+      return Column(
+        children: [
+          _buildFilterBar(),
+          Expanded(
+            child: ErrorDisplay(
+              e: Exception('Failed to load repositories: $failedUrls'),
+              logError: false,
+              actions: [ErrorAction(label: 'Retry', onTap: _resolveAll)],
             ),
-            logError: false,
-            actions: [ErrorAction(label: 'Retry', onTap: _resolveRepos)],
           ),
-        );
-      }
-      return const Center(child: DionProgressBar());
+        ],
+      );
     }
 
     return Column(
       children: [
-        _buildFilterBar(resolved),
-        Expanded(child: _buildBody(resolved)),
+        _buildFilterBar(),
+        Expanded(child: _buildBody()),
       ],
     );
   }
 
-  Widget _buildFilterBar(List<_ResolvedRepo> resolved) {
-    final sourceTypes = resolved.map((r) => r.sourceType).toSet().toList();
+  Widget _buildFilterBar() {
     final updateService = locate<ExtensionUpdateService>();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.sm,
+        vertical: DionSpacing.xs,
+      ),
       child: Column(
         children: [
-          DionSearchbar(
-            controller: _searchController,
-            hintText: 'Search extensions',
-            onChanged: (value) {
-              setState(() {
-                _query = value.trim().toLowerCase();
-              });
-            },
-          ).paddingOnly(bottom: 4),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButton<String?>(
-                  isExpanded: true,
-                  value: _selectedRepoUrl,
-                  hint: const Text('All repositories'),
-                  items: [
-                    // value omitted -> null, meaning "all repositories"
-                    const DropdownMenuItem<String?>(
-                      child: Text('All repositories'),
-                    ),
-                    ...resolved.map(
-                      (r) => DropdownMenuItem<String?>(
-                        value: r.url,
-                        child: Text(
-                          r.repo.data.name.isNotEmpty
-                              ? r.repo.data.name
-                              : r.url,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    _selectedRepoUrl = val;
-                    _applyFilter();
-                  },
-                ),
-              ),
-              DionIconbutton(
-                tooltip: 'Refresh Repositories',
-                icon: const Icon(Icons.refresh),
-                onPressed: () {
-                  _resolveRepos();
-                },
-              ),
-            ],
+          ExtensionFilterBar(
+            searchController: _searchController,
+            searchHint: 'Search available extensions',
+            filters: _filters,
+            languageOptions: _availableLanguages(),
+            onChanged: _setFilters,
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(top: DionSpacing.xs),
+            child: Row(
+              children: [
+                _repoChipAll(),
+                for (final r in _repos.values) _repoChip(context, r),
+              ],
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(top: 2),
             child: ValueListenableBuilder<Map<String, src.RemoteExtension>>(
               valueListenable: updateService.updates,
               builder: (context, updateMap, _) {
                 final updateCount = updateMap.length;
                 return Row(
                   children: [
-                    for (final type in sourceTypes)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: FilterChip(
-                          label: Text(type),
-                          selected: _selectedSourceType == type,
-                          onSelected: (selected) {
-                            _selectedSourceType = selected ? type : null;
-                            _applyFilter();
-                          },
-                        ),
+                    FilterChip(
+                      label: Text(
+                        updateCount > 0 ? 'Updates ($updateCount)' : 'Updates',
                       ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: FilterChip(
-                        label: Text(
-                          updateCount > 0
-                              ? 'Updates ($updateCount)'
-                              : 'Updates',
-                        ),
-                        selected: _updatesOnly,
-                        onSelected: (selected) {
-                          setState(() {
-                            _updatesOnly = selected;
-                            _rebuildController();
-                          });
-                        },
-                      ),
+                      showCheckmark: false,
+                      selected: _updatesOnly,
+                      onSelected: (selected) {
+                        setState(() {
+                          _updatesOnly = selected;
+                          _rebuildController();
+                        });
+                      },
                     ),
                   ],
                 );
@@ -617,23 +676,106 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     );
   }
 
-  bool _matchesQuery(src.RemoteExtension ext) {
-    return ext.name.toLowerCase().contains(_query);
+  Widget _repoChipAll() {
+    return Padding(
+      padding: const EdgeInsets.only(right: DionSpacing.sm),
+      child: FilterChip(
+        label: const Text('All repositories'),
+        showCheckmark: false,
+        selected: _selectedRepoUrl == null,
+        onSelected: (_) {
+          setState(() {
+            _selectedRepoUrl = null;
+            _rebuildController();
+          });
+        },
+      ),
+    );
   }
 
-  Widget _buildBody(List<_ResolvedRepo> resolved) {
+  Widget _repoChip(BuildContext context, _RepoResolution r) {
+    return Padding(
+      padding: const EdgeInsets.only(right: DionSpacing.sm),
+      child: switch (r) {
+        final _RepoReady ready => FilterChip(
+          selected: _selectedRepoUrl == ready.url,
+          showCheckmark: false,
+          avatar: const Icon(Icons.check_circle_outline, size: 18),
+          label: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(ready.label, overflow: TextOverflow.ellipsis),
+                ),
+                Text(
+                  ' (${ready.repo.adapter.name})',
+                  style: context.bodySmall?.copyWith(
+                    color: context.theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          onSelected: (selected) {
+            setState(() {
+              _selectedRepoUrl = selected ? ready.url : null;
+              _rebuildController();
+            });
+          },
+        ),
+        _RepoLoading() => Tooltip(
+          message: 'Loading ${r.url}',
+          child: FilterChip(
+            avatar: const SizedBox(
+              width: 14,
+              height: 14,
+              child: DionProgressBar(),
+            ),
+            label: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text(r.url, overflow: TextOverflow.ellipsis),
+            ),
+            onSelected: null,
+          ),
+        ),
+        final _RepoFailed failed => Tooltip(
+          message: 'Failed to load ${failed.url} ($failed). Tap to retry.',
+          child: FilterChip(
+            avatar: Icon(
+              Icons.error_outline,
+              size: 18,
+              color: context.theme.colorScheme.error,
+            ),
+            label: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text(failed.url, overflow: TextOverflow.ellipsis),
+            ),
+            onSelected: (_) => _resolveOne(failed.url, _resolveGeneration),
+          ),
+        ),
+      },
+    );
+  }
+
+  Widget _buildBody() {
     if (_updatesOnly) {
       return _buildUpdatesList();
     }
     final controller = _controller;
     if (controller == null) {
-      return const Center(child: Text('No extensions found'));
+      return Center(
+        child: _hasPending
+            ? const DionProgressBar()
+            : const Text('No extensions found'),
+      );
     }
     return DynamicList<src.RemoteExtension>(
-      key: ValueKey('$_selectedRepoUrl|$_selectedSourceType'),
+      key: ValueKey(_selectedRepoUrl),
       showDataSources: false,
       controller: controller,
-      filter: _query.isEmpty ? null : _matchesQuery,
+      filter: _filters.matchesRemote,
       itemBuilder: (context, item) => RemoteExtensionTile(extension: item),
     );
   }
@@ -643,17 +785,15 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
     return ValueListenableBuilder<Map<String, src.RemoteExtension>>(
       valueListenable: updateService.updates,
       builder: (context, updateMap, _) {
-        var entries = updateMap.values.toList();
-        if (_selectedSourceType != null) {
-          entries = entries
-              .where((e) => e.adapter.name == _selectedSourceType)
-              .toList();
-        }
-        if (_query.isNotEmpty) {
-          entries = entries.where(_matchesQuery).toList();
-        }
+        final entries = updateMap.values.where(_filters.matchesRemote).toList();
         if (entries.isEmpty) {
-          return const Center(child: Text('No updates available'));
+          return Center(
+            child: Text(
+              updateMap.isEmpty
+                  ? 'No updates available'
+                  : 'No updates match the current filters',
+            ),
+          );
         }
         return ListView.builder(
           itemCount: entries.length,
@@ -687,12 +827,43 @@ class RemoteExtensionTile extends StatelessWidget {
             height: 40,
             child: DionImage.fromLink(
               link: extension.cover,
+              width: 40,
+              height: 40,
               errorWidget: const Icon(Icons.extension),
             ),
           ),
-          title: Text(extension.name),
-          subtitle: Text(
-            'v${extension.version}${extension.compatible ? '' : ' (Incompatible)'}',
+          title: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  extension.name,
+                  style: context.titleMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: DionSpacing.sm),
+              Text(
+                'v${extension.version}',
+                style: context.bodySmall?.copyWith(
+                  color: context.theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (!extension.compatible)
+                Text(
+                  'Incompatible',
+                  style: context.bodySmall?.copyWith(
+                    color: context.theme.colorScheme.error,
+                  ),
+                ).paddingOnly(left: DionSpacing.sm),
+            ],
+          ),
+          subtitle: ExtensionMetaChips(
+            kinds: extension.extensionKinds,
+            mediaTypes: extension.mediaType,
+            nsfw: extension.nsfw,
+            languages: extension.lang,
+            iconOnlyKinds: true,
+            maxLanguages: 3,
           ),
           trailing: installed == null
               ? DionIconbutton(

@@ -7,6 +7,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/toast.dart';
 import 'package:dionysos/views/extension/account_view.dart';
+import 'package:dionysos/views/extension/extension_meta.dart';
 import 'package:dionysos/views/extension/permission_view.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/badge.dart';
@@ -100,33 +101,66 @@ class _ExtensionViewState extends State<ExtensionView>
                 width: 100,
                 height: 100,
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(extension!.name, style: context.titleLarge),
-                      DionBadge(
-                        child: Text(
-                          extension!.data.version,
-                          style: context.bodyMedium,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            extension!.name,
+                            style: context.titleLarge,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ).paddingAll(5),
-                    ],
-                  ),
-                  if (extension!.data.author.isNotEmpty)
-                    Text(
-                      'by ${extension!.data.author}',
-                      style: context.bodyMedium,
+                        if (extension!.data.nsfw)
+                          DionBadge(
+                            color: context.theme.colorScheme.errorContainer,
+                            child: Text(
+                              '18+',
+                              style: context.bodyMedium?.copyWith(
+                                color:
+                                    context.theme.colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ).paddingAll(5),
+                      ],
                     ),
-                  if (_extensionSize != null)
+                    Row(
+                      children: [
+                        if (extension!.data.author.isNotEmpty)
+                          Text(
+                            'by ${extension!.data.author.join(', ')}',
+                            style: context.bodyMedium,
+                          ),
+                        Text(
+                          'v${extension!.data.version}',
+                          style: context.bodySmall?.copyWith(
+                            color: context.theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ).paddingOnly(left: DionSpacing.sm),
+                      ],
+                    ),
+                    ExtensionMetaChips(
+                      kinds: extension!.extensionKinds,
+                      mediaTypes: extension!.data.mediaType,
+                      nsfw: extension!.data.nsfw,
+                      languages: extension!.data.lang,
+                    ).paddingSymmetric(vertical: DionSpacing.xs),
                     Text(
-                      'Storage: ${formatBytes(_extensionSize!)}',
+                      [
+                        if (extension!.data.license.isNotEmpty)
+                          'License: ${extension!.data.license}',
+                        if (_extensionSize != null)
+                          'Storage: ${formatBytes(_extensionSize!)}',
+                      ].join(' • '),
                       style: context.bodySmall,
                     ),
-                ],
-              ).paddingAll(10),
+                  ],
+                ).paddingAll(10),
+              ),
             ],
           ).paddingAll(30),
           const Divider(),
@@ -140,7 +174,7 @@ class _ExtensionViewState extends State<ExtensionView>
                     Foldabletext(
                       extension!.data.desc ?? '',
                       style: context.bodyMedium,
-                    ),
+                    ).paddingSymmetric(horizontal: DionSpacing.lg),
                     const Divider(),
                   ],
                   // Permissions section
@@ -278,19 +312,11 @@ class _AutoAddSectionState extends State<AutoAddSection>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'Auto-Add',
-              style: context.titleMedium?.copyWith(
-                color: context.theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: DionSpacing.sm),
-            DionBadge(
-              child: Text('Entry Extensions', style: context.bodySmall),
-            ),
-          ],
+        Text(
+          'Auto-Add',
+          style: context.titleMedium?.copyWith(
+            color: context.theme.colorScheme.primary,
+          ),
         ).paddingSymmetric(horizontal: DionSpacing.lg, vertical: DionSpacing.sm),
         Text(
           'Automatically add ${widget.extension.name} when saving entries '
