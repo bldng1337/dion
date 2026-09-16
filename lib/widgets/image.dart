@@ -366,6 +366,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
           child: ErrorDisplay(
             e: error,
             s: stackTrace,
+            logError: false,
             message: 'Failed to load image ${widget.imageUrl}',
             actions: [
               ErrorAction(
@@ -536,6 +537,7 @@ class _DionSvgImageState extends State<_DionSvgImage> {
       child: ErrorDisplay(
         e: _error,
         s: _stackTrace,
+        logError: false,
         message: 'Failed to load image ${widget.url}',
         actions: [
           ErrorAction(
