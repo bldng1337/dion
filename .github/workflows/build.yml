@@ -34,7 +34,7 @@ jobs:
           sudo rm -rf "/usr/local/share/boost"
           # sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Resolve Flutter version
         id: flutter-action
         uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # 2.16.0
@@ -65,8 +65,29 @@ jobs:
       #   if: (matrix.os == 'ubuntu-latest')
       #   run: sudo apt-get update && sudo apt-get install libgtk-3-dev
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        id: rust
         with:
           cache: false
+      - name: Cache cargo build state (cargokit plugins)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/flutter_surrealdb/build
+            build/rdion_runtime/build
+            build/rhttp/build
+            build/windows/x64/plugins/flutter_surrealdb/cargokit_build
+            build/windows/x64/plugins/rdion_runtime/cargokit_build
+            build/windows/x64/plugins/rhttp/cargokit_build
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargokit-${{ runner.os }}-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/pubspec.lock') }}
+          # The plugins' Cargo.lock lives in the pub cache, so pubspec.lock is
+          # the closest content key available. Unlike the pub cache above,
+          # restore-keys is safe: cargo fingerprints its artifacts and
+          # rebuilds anything stale, so a dep bump recompiles only what
+          # changed instead of the full ~45 min tree.
+          restore-keys: |
+            cargokit-${{ runner.os }}-${{ steps.rust.outputs.cachekey }}-
       # - name: Install ninja-build
       #   if: (matrix.os == 'ubuntu-latest')
       #   run: sudo apt-get update && sudo apt-get install ninja-build
@@ -76,6 +97,7 @@ jobs:
         with:
           java-version: "17"
           distribution: "temurin"
+          cache: gradle
       # - name: Setup Android SDK
       #   if: (matrix.os == 'ubuntu-latest')
       #   uses: android-actions/setup-android@v3

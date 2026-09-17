@@ -51,7 +51,7 @@ jobs:
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # Full history so we have a usable commit hash/date.
           fetch-depth: 0
@@ -82,14 +82,36 @@ jobs:
           flutter-version: ${{ steps.flutter-action.outputs.VERSION }}
           cache: false
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        id: rust
         with:
           cache: false
+      - name: Cache cargo build state (cargokit plugins)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/flutter_surrealdb/build
+            build/rdion_runtime/build
+            build/rhttp/build
+            build/windows/x64/plugins/flutter_surrealdb/cargokit_build
+            build/windows/x64/plugins/rdion_runtime/cargokit_build
+            build/windows/x64/plugins/rhttp/cargokit_build
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargokit-${{ runner.os }}-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/pubspec.lock') }}
+          # The plugins' Cargo.lock lives in the pub cache, so pubspec.lock is
+          # the closest content key available. Unlike the pub cache above,
+          # restore-keys is safe: cargo fingerprints its artifacts and
+          # rebuilds anything stale, so a dep bump recompiles only what
+          # changed instead of the full ~45 min tree.
+          restore-keys: |
+            cargokit-${{ runner.os }}-${{ steps.rust.outputs.cachekey }}-
       - name: Set up JDK 17
         if: (matrix.os == 'ubuntu-latest')
         uses: actions/setup-java@v3
         with:
           java-version: "17"
           distribution: "temurin"
+          cache: gradle
       - name: Install build tools
         if: (matrix.os == 'ubuntu-latest')
         run: |
@@ -237,7 +259,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Compute build metadata
