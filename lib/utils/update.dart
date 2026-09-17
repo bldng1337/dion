@@ -323,6 +323,7 @@ Future<Update?> checkNightlyUpdate() async {
 enum CheckResult { skipped, upToDate, updateAvailable, error }
 
 Future<CheckResult> checkVersion({bool force = false}) async {
+  await locateAsync<PreferenceService>();
   if (!force) {
     if (kDebugMode) {
       return CheckResult.skipped;
@@ -336,7 +337,6 @@ Future<CheckResult> checkVersion({bool force = false}) async {
   }
   try {
     logger.i('Checking for updates');
-    await locateAsync<PreferenceService>();
     final isNightlyChannel =
         settings.update.channel.value == UpdateChannel.nightly;
     final update = isNightlyChannel
