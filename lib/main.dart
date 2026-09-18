@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/periodic_service.dart';
+import 'package:dionysos/utils/crashlytics.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
@@ -19,12 +20,19 @@ GoRouter? appRouter;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initCrashlytics();
   FlutterError.onError = (details) {
     logger.e(
       'FlutterError',
       error: details.exception,
       stackTrace: details.stack,
     );
+  };
+  // Uncaught async errors do not force-close the app; route them into the
+  // log store so users can report them at their own discretion.
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    logger.e('Uncaught error', error: error, stackTrace: stack);
+    return true;
   };
   if (!Platform.isWindows) {
     await Workmanager().initialize(backgroundTaskDispatcher);

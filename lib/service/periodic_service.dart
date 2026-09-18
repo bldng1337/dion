@@ -16,6 +16,7 @@ import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/service/notification.dart';
 import 'package:dionysos/service/preference.dart';
+import 'package:dionysos/utils/crashlytics.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/string.dart';
@@ -32,8 +33,8 @@ class PeriodicJobContext {
   DateTime _lastSent = DateTime.fromMillisecondsSinceEpoch(0);
 
   PeriodicJobContext({required String taskName})
-      : _notificationId = taskName.hashCode,
-        displayName = taskName.humanized;
+    : _notificationId = taskName.hashCode,
+      displayName = taskName.humanized;
 
   /// Reports the current activity; [progress] in 0..1, or null to show an
   /// indeterminate bar.
@@ -56,11 +57,7 @@ class PeriodicJobContext {
         progress: progress,
       );
     } catch (e, stack) {
-      logger.w(
-        'Job progress notification failed',
-        error: e,
-        stackTrace: stack,
-      );
+      logger.w('Job progress notification failed', error: e, stackTrace: stack);
     }
   }
 
@@ -87,11 +84,14 @@ class JobError {
   const JobError({required this.time, required this.message});
 
   factory JobError.fromJson(Map<String, dynamic> json) => JobError(
-        time: DateTime.parse(json['time'] as String),
-        message: json['message'] as String? ?? '',
-      );
+    time: DateTime.parse(json['time'] as String),
+    message: json['message'] as String? ?? '',
+  );
 
-  Map<String, dynamic> toJson() => {'time': time.toIso8601String(), 'message': message};
+  Map<String, dynamic> toJson() => {
+    'time': time.toIso8601String(),
+    'message': message,
+  };
 }
 
 abstract class PeriodicJob {
@@ -195,12 +195,12 @@ class PeriodicService {
   // (including user-marked metered Wi-Fi), so this is the authority for
   // deferred Android jobs.
   Constraints _constraints() => Constraints(
-        networkType: settings.background.unmeteredOnly.value
-            ? NetworkType.unmetered
-            : NetworkType.connected,
-        requiresCharging: settings.background.chargingOnly.value,
-        requiresBatteryNotLow: settings.background.batteryNotLow.value,
-      );
+    networkType: settings.background.unmeteredOnly.value
+        ? NetworkType.unmetered
+        : NetworkType.connected,
+    requiresCharging: settings.background.chargingOnly.value,
+    requiresBatteryNotLow: settings.background.batteryNotLow.value,
+  );
 
   Map<String, PeriodicJob> get jobs => Map.unmodifiable(_jobs);
 
@@ -211,8 +211,9 @@ class PeriodicService {
   }
 
   JobError? lastError(PeriodicJob job) {
-    final raw =
-        locate<PreferenceService>().getString(lastErrorKey(job.taskName));
+    final raw = locate<PreferenceService>().getString(
+      lastErrorKey(job.taskName),
+    );
     if (raw == null) return null;
     try {
       return JobError.fromJson(jsonDecode(raw) as Map<String, dynamic>);
@@ -221,7 +222,6 @@ class PeriodicService {
     }
   }
 }
-
 
 Future<bool> seedBackgroundDependencies() async {
   try {
@@ -247,6 +247,10 @@ void backgroundTaskDispatcher() {
   // can distinguish periodic job output from main-isolate logs.
   LogStore.instance.source = kLogSourceBackground;
   Workmanager().executeTask((task, inputData) async {
+    // The background isolate runs in its own FlutterEngine; Firebase and the
+    // fatal-error listener must be set up there too so a force close during a
+    // periodic job is reported like a main-isolate crash.
+    await initCrashlytics();
     logger.i('Background task dispatched: $task');
 
     if (!await seedBackgroundDependencies()) {

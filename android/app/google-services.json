@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "622989999412",
+    "project_id": "dion-1533d",
+    "storage_bucket": "dion-1533d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:622989999412:android:5e6d73065e146d4522f961",
+        "android_client_info": {
+          "package_name": "com.bldng.dion"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjFe6Yi82zENYtH-4934TJwVnWnUv9Jmg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
