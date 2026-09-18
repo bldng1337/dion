@@ -32,7 +32,7 @@ class MockExtension with ChangeNotifier implements Extension {
     id: mockId,
     name: 'Mock',
     url: 'https://www.example.com',
-    icon: 'https://loremflickr.com/200/200?random=1',
+    icon: 'https://picsum.photos/seed/extension/400/400',
     desc:
         'Inbuilt debug/test mock extension. Returns placeholder entries '
         'across all media types. Only present in debug builds.',
@@ -308,12 +308,59 @@ class MockExtension with ChangeNotifier implements Extension {
               'extension. It exercises the paragraph reader (and TTS) without '
               'requiring a real source extension to be installed.',
         ),
+        const rust.Paragraph.customUi(
+          ui: CustomUI.image(
+            image: Link(url: 'https://picsum.photos/seed/mock-image/800/600'),
+          ),
+        ),
         const rust.Paragraph.text(
           content:
               'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed '
               'do eiusmod tempor incididunt ut labore et dolore magna aliqua. '
               'Ut enim ad minim veniam, quis nostrud exercitation ullamco '
               'laboris nisi ut aliquip ex ea commodo consequat.',
+        ),
+        const rust.Paragraph.table(
+          columns: [
+            rust.Row(cells: [
+              rust.Paragraph.text(content: 'Column 1', style: rust.TextStyle(bold: true)),
+              rust.Paragraph.text(content: 'Column 2', style: rust.TextStyle(bold: true)),
+              rust.Paragraph.text(content: 'Column 3', style: rust.TextStyle(bold: true)),
+            ]),
+            rust.Row(cells: [
+              rust.Paragraph.text(content: 'Row 1, Cell 1'),
+              rust.Paragraph.text(content: 'Row 1, Cell 2'),
+              rust.Paragraph.text(content: 'Row 1, Cell 3'),
+            ]),
+            rust.Row(cells: [
+              rust.Paragraph.customUi(
+                ui: CustomUI.image(
+                  image: Link(url: 'https://picsum.photos/seed/mock-table-image/400/300'),
+                ),
+              ),
+              rust.Paragraph.text(content: 'Row 2, Cell 2'),
+              rust.Paragraph.text(content: 'Row 2, Cell 3'),
+            ]),
+          ]
+        ),
+        const rust.Paragraph.mixed(
+          content: [
+            rust.MixedContent.text(content: 'This is a mixed content paragraph with an image: '),
+            rust.MixedContent.customUi(
+              ui: CustomUI.image(
+                image: Link(url: 'https://picsum.photos/seed/mock-mixed-image/20/20'),
+              ),
+            ),
+            rust.MixedContent.text(content: ' and some more text after the image. Now a Badge: '),
+            rust.MixedContent.customUi(
+              ui: CustomUI.badge(
+                child: CustomUI.text(
+                  text: 'Badge',
+                  style: rust.TextStyle(bold: true),
+                ),
+              )
+            ),
+          ]
         ),
         const rust.Paragraph.text(
           content:
@@ -330,8 +377,15 @@ class MockExtension with ChangeNotifier implements Extension {
   static rust.Source _comicSource(EpisodePath ep) {
     final page = ep.episodenumber + 1;
     return rust.Source.imagelist(
+      audio: [
+        const rust.ImageListAudio(
+          link: Link(url: _sampleAudio),
+          from: 3,
+          to: 10,
+        )
+      ],
       links: [
-        for (var i = 1; i <= 3; i++)
+        for (var i = 1; i <= 30; i++)
           rust.Link(
             url:
                 'https://placehold.co/800x1200/2A2A2A/FFFFFF/png'
@@ -341,9 +395,7 @@ class MockExtension with ChangeNotifier implements Extension {
     );
   }
 
-  static const _sampleVideo =
-      'https://commondatastorage.googleapis.com/'
-      'gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  static const _sampleVideo = 'https://archive.org/download/BigBuckBunnyFULLHD60FPS/Big%20Buck%20Bunny%20-%20FULL%20HD%2060FPS.ogv';
 
   static rust.Source _videoSource() {
     return const rust.Source.video(
@@ -355,11 +407,32 @@ class MockExtension with ChangeNotifier implements Extension {
         ),
       ],
       sub: [],
+      chapters: [
+        rust.Chapter(
+          title: 'Cold Open',
+          start: 0,
+          end: 10,
+          kind: rust.ChapterKind.recap,
+        ),
+        rust.Chapter(
+          title: 'Opening',
+          start: 10,
+          end: 30,
+          kind: rust.ChapterKind.intro,
+        ),
+        rust.Chapter(title: 'Feature', start: 30, end: 560),
+        rust.Chapter(
+          title: 'Ending',
+          start: 560,
+          end: 596,
+          kind: rust.ChapterKind.outro,
+        ),
+      ],
     );
   }
 
   static const _sampleAudio =
-      'https://actions.google.com/sounds/viral/ambient-music-1.ogg';
+      'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
   static rust.Source _audioSource() {
     return const rust.Source.audio(
@@ -368,6 +441,20 @@ class MockExtension with ChangeNotifier implements Extension {
           name: 'Mock Audio',
           lang: 'en',
           url: rust.Link(url: _sampleAudio),
+        ),
+      ],
+      chapters: [
+        rust.Chapter(
+          title: 'Opening',
+          start: 0,
+          end: 20,
+          kind: rust.ChapterKind.intro,
+        ),
+        rust.Chapter(title: 'Movement I', start: 20),
+        rust.Chapter(
+          title: 'Closing',
+          start: 240,
+          kind: rust.ChapterKind.outro,
         ),
       ],
     );
@@ -388,11 +475,15 @@ class MockExtension with ChangeNotifier implements Extension {
             '(${e.mediaType.name}). Useful for demos and for testing the '
             '${_readerName(e.mediaType)} reader end-to-end.',
         language: 'en',
-        cover: e.cover,
+        cover: Link(url: 'https://picsum.photos/seed/${e.id.uid}/800/1200'),
+        poster: Link(url: 'https://picsum.photos/seed/${e.id.uid}/1200/800'),
         episodes: [
           for (var i = 1; i <= episodeCount; i++)
             rust.Episode(
               id: rust.EpisodeId(uid: '${e.id.uid}-ep-$i'),
+              cover: i.isEven
+                  ? rust.Link(url: 'https://picsum.photos/seed/${e.id.uid}-$i/1200/800')
+                  : null,
               name: _episodeName(e.mediaType, i),
               description: 'Mock episode $i',
               url: '${e.url}/episode/$i',
@@ -526,7 +617,7 @@ class MockExtension with ChangeNotifier implements Extension {
             title: s.title,
             mediaType: s.type,
             cover: rust.Link(
-              url: 'https://loremflickr.com/800/1200?random=${s.views}',
+              url: 'https://picsum.photos/seed/${s.uid}/800/1200',
             ),
             author: const ['Mock Author'],
             rating: s.rating,
