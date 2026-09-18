@@ -177,6 +177,46 @@ enum ReaderMode { paginated, infinite }
 
 enum UpdateChannel { stable, beta, nightly }
 
+ChapterAutoSkipSettings chapterSettings(String prefix) =>
+    ChapterAutoSkipSettings._(
+      intro: Setting(
+        false,
+        PreferenceBoolMetaData('$prefix.chapters.autoskip.intro'),
+      )..addCollection(preferenceCollection),
+      outro: Setting(
+        false,
+        PreferenceBoolMetaData('$prefix.chapters.autoskip.outro'),
+      )..addCollection(preferenceCollection),
+      recap: Setting(
+        false,
+        PreferenceBoolMetaData('$prefix.chapters.autoskip.recap'),
+      )..addCollection(preferenceCollection),
+      filler: Setting(
+        false,
+        PreferenceBoolMetaData('$prefix.chapters.autoskip.filler'),
+      )..addCollection(preferenceCollection),
+      preview: Setting(
+        false,
+        PreferenceBoolMetaData('$prefix.chapters.autoskip.preview'),
+      )..addCollection(preferenceCollection),
+    );
+
+class ChapterAutoSkipSettings {
+  final Setting<bool, PreferenceBoolMetaData> intro;
+  final Setting<bool, PreferenceBoolMetaData> outro;
+  final Setting<bool, PreferenceBoolMetaData> recap;
+  final Setting<bool, PreferenceBoolMetaData> filler;
+  final Setting<bool, PreferenceBoolMetaData> preview;
+
+  const ChapterAutoSkipSettings._({
+    required this.intro,
+    required this.outro,
+    required this.recap,
+    required this.filler,
+    required this.preview,
+  });
+}
+
 final settings = (
   // Defaults skip metered connections and low battery but never wait for a
   // charger: waiting for unmetered Wi-Fi is free, while charging-only would
@@ -288,6 +328,7 @@ final settings = (
     //   true,
     //   const PreferenceBoolMetaData('audiobook.subtitle'),
     // ),
+    chapters: chapterSettings('audiobook'),
   ),
   videoSettings: (
     volume: Setting(50.0, const PreferenceDoubleMetaData('video.volume'))
@@ -308,6 +349,7 @@ final settings = (
         const PreferenceBindingListMetaData('video.bindings.bookmark'),
       )..addCollection(preferenceCollection),
     ),
+    chapters: chapterSettings('video'),
   ),
   update: (
     enabled: Setting(true, const PreferenceBoolMetaData('update.enabled'))

@@ -4,6 +4,7 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_bindings.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
+import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/material.dart';
 
 class AudioListenerSettings extends StatelessWidget {
@@ -11,6 +12,7 @@ class AudioListenerSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chapters = settings.audioBookSettings.chapters;
     return NavScaff(
       child: ListView(
         padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
@@ -34,6 +36,43 @@ class AudioListenerSettings extends StatelessWidget {
                 max: 4.0,
                 step: 0.25,
                 setting: settings.audioBookSettings.speed,
+              ),
+            ],
+          ),
+
+          SettingTitle(
+            title: 'Chapters',
+            subtitle: 'Automatically skip chapters of the chosen types',
+            children: [
+              SettingToggle(
+                title: 'Skip Intros',
+                description: 'Automatically skip opening chapters',
+                icon: Icons.skip_next,
+                setting: chapters.intro,
+              ),
+              SettingToggle(
+                title: 'Skip Outros',
+                description: 'Automatically skip ending/credits chapters',
+                icon: Icons.skip_next,
+                setting: chapters.outro,
+              ),
+              SettingToggle(
+                title: 'Skip Recaps',
+                description: 'Automatically skip recap chapters',
+                icon: Icons.skip_next,
+                setting: chapters.recap,
+              ),
+              SettingToggle(
+                title: 'Skip Filler',
+                description: 'Automatically skip filler chapters',
+                icon: Icons.skip_next,
+                setting: chapters.filler,
+              ),
+              SettingToggle(
+                title: 'Skip Previews',
+                description: 'Automatically skip preview chapters',
+                icon: Icons.skip_next,
+                setting: chapters.preview,
               ),
             ],
           ),

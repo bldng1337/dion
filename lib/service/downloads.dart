@@ -20,6 +20,54 @@ import 'package:rhttp/rhttp.dart' as rhttp;
 
 const downloadVersion = 1;
 
+/// Audio containers that can be downloaded as a single file (mpv plays them
+/// directly, embedded M4B/M4A chapters included), as opposed to HLS
+/// playlists which need segment downloading.
+const _directAudioExtensions = [
+  '.mp3',
+  '.m4b',
+  '.m4a',
+  '.flac',
+  '.ogg',
+  '.opus',
+  '.wav',
+  '.aac',
+];
+
+bool _isDirectAudio(String url) {
+  final path = Uri.tryParse(url)?.path.toLowerCase() ?? url.toLowerCase();
+  return _directAudioExtensions.any(path.endsWith);
+}
+
+void _indexChapters(Map<String, dynamic> index, List<Chapter>? chapters) {
+  if (chapters == null || chapters.isEmpty) return;
+  index['chapters'] = [
+    for (final chapter in chapters)
+      {
+        'title': chapter.title,
+        'start': chapter.start,
+        'end': chapter.end,
+        'kind': chapter.kind?.name,
+      },
+  ];
+}
+
+List<Chapter>? _chaptersFromIndex(dynamic raw) {
+  if (raw is! List || raw.isEmpty) return null;
+  return [
+    for (final entry in raw)
+      if (entry is Map)
+        Chapter(
+          title: entry['title'] as String? ?? '',
+          start: (entry['start'] as num?)?.toDouble() ?? 0,
+          end: (entry['end'] as num?)?.toDouble(),
+          kind: ChapterKind.values
+              .where((kind) => kind.name == entry['kind'])
+              .firstOrNull,
+        ),
+  ];
+}
+
 class DownloadTask extends Task {
   final EpisodePath ep;
   final CancelToken token = CancelToken();
@@ -319,10 +367,11 @@ class DownloadTask extends Task {
         index['lang'] = source.lang;
         index['name'] = source.name;
         index['playlist'] = file.filename;
+        _indexChapters(index, data.chapters);
       case final Source_Audio data:
-        status = 'Downloading MP3';
+        status = 'Downloading Audio';
         final source = data.sources[0];
-        if (source.url.url.endsWith('.mp3')) {
+        if (_isDirectAudio(source.url.url)) {
           final file = await InternetFile.streamToFile(
             source.url.url,
             InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
@@ -330,7 +379,7 @@ class DownloadTask extends Task {
             onReceiveProgress: (current) => progress = current,
             rhttpToken: rhttpToken,
           );
-          index['type'] = 'mp3';
+          index['type'] = 'audio';
           index['lang'] = source.lang;
           index['name'] = source.name;
           index['playlist'] = file.filename;
@@ -342,11 +391,12 @@ class DownloadTask extends Task {
             onReceiveProgress: (current) => progress = current,
             rhttpToken: rhttpToken,
           );
-          index['type'] = 'mp3';
+          index['type'] = 'audio';
           index['lang'] = source.lang;
           index['name'] = source.name;
           index['playlist'] = file.filename;
         }
+        _indexChapters(index, data.chapters);
     }
     index['finished'] = true;
     await dir.getFile('index.json').writeAsString(jsonEncode(index));
@@ -600,6 +650,21 @@ class DownloadService {
               ),
             ],
           );
+        case 'audio':
+          final playlist = path.getFile(index['playlist'] as String);
+          if (!await playlist.exists()) {
+            return null;
+          }
+          return Source.audio(
+            sources: [
+              StreamSource(
+                url: Link(url: playlist.fileURL),
+                lang: index['lang'] as String,
+                name: index['name'] as String,
+              ),
+            ],
+            chapters: _chaptersFromIndex(index['chapters']),
+          );
         case 'm3u8':
           final playlist = path.getFile(index['playlist'] as String);
           if (!await playlist.exists()) {
@@ -614,6 +679,7 @@ class DownloadService {
               ),
             ],
             sub: [],
+            chapters: _chaptersFromIndex(index['chapters']),
           );
         default:
           return null;

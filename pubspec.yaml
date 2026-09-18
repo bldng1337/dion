@@ -93,6 +93,10 @@ dependencies:
   # feedback: ^3.1.0
 
 dependency_overrides:
+  # Local checkout of the runtime for chapter support development; remove or
+  # point back at the pushed git ref once dion-runtime is published.
+  rdion_runtime:
+    path: ../dion-runtime/dart/rdion_runtime
   # epub_view -> epubx: the published epubx 4.0.0 predates image 4 support
   # and pins archive ^3. Upstream dev branch (unreleased 4.0.1) fixes
   # image 4; its read path (decodeBytes/files/name/content) is compatible

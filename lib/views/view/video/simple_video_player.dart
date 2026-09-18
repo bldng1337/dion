@@ -6,9 +6,13 @@ import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/service/player.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/view/chapters/chapter_controller.dart';
+import 'package:dionysos/views/view/chapters/chapter_markers.dart';
+import 'package:dionysos/views/view/chapters/chapter_sheet.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -39,6 +43,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   Player? player;
   VideoController? controller;
   Observer? sourceObserver;
+  ChapterController? chapterController;
   final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   final ValueNotifier<int> subtitleIndex = ValueNotifier(0);
   Source_Video? currentVideo;
@@ -85,6 +90,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     );
     this.player = player;
     controller = VideoController(player);
+    chapterController = ChapterController(
+      player: player,
+      autoSkip: settings.videoSettings.chapters,
+    )..disposedBy(scope);
     sourceObserver = Observer(() async {
       loading = true;
       final res = await widget.source.cache.get(widget.source.episode);
@@ -124,6 +133,9 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           start: startduration,
         ),
       );
+      unawaited(
+        chapterController?.onMediaOpened(chapters: currentVideo!.chapters),
+      );
       loading = false;
       await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
@@ -150,6 +162,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             start: startduration,
           ),
         );
+        unawaited(chapterController?.onMediaOpened(chapters: video.chapters));
         loading = false;
         if (!mounted) return;
         SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
@@ -271,13 +284,19 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     super.dispose();
   }
 
-  void _nextChapter() {
+  Future<void> _nextChapter() async {
+    if (chapterController != null && await chapterController!.nextChapter()) {
+      return;
+    }
     if (widget.source.episode.hasnext) {
       widget.source.episode.goNext(widget.source);
     }
   }
 
-  void _prevChapter() {
+  Future<void> _prevChapter() async {
+    if (chapterController != null && await chapterController!.prevChapter()) {
+      return;
+    }
     if (widget.source.episode.hasprev) {
       widget.source.episode.goPrev(widget.source);
     }
@@ -338,6 +357,22 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           }
         },
       ),
+    ),
+    ListenableBuilder(
+      listenable: chapterController!,
+      builder: (context, _) {
+        if (!chapterController!.hasChapters) {
+          return const SizedBox.shrink();
+        }
+        return DionIconbutton(
+          tooltip: 'Chapters',
+          icon: Icon(
+            Icons.format_list_numbered,
+            color: isFullscreen ? Colors.white : null,
+          ),
+          onPressed: () => showChapterSheet(context, chapterController!),
+        );
+      },
     ),
     DionIconbutton(
       tooltip: 'Open in Browser',
@@ -470,18 +505,49 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       ),
   ];
 
+  /// Layout of the built-in seek bar and bottom bar. Single source of truth
+  /// for both the controls theme and the chapter overlay drawn on top of it.
+  static const double _seekBarSideInset = 16.0;
+  static const double _seekBarBottom = 60.0;
+  static const double _seekBarHeight = 3.5;
+  // Small enough that the seek bar's touch container hugs the visible bar
+  // instead of reaching ~32px above it (the media_kit default of 36).
+  static const double _seekBarContainerHeight = 18.0;
+  static const double _barRowEdge = 10.0;
+  static const double _barRowHeight = 56.0;
+
   MaterialVideoControlsThemeData getPlayerTheme(bool isFullscreen) {
     final player = this.player!;
     return MaterialVideoControlsThemeData(
       topButtonBar: isFullscreen ? getActions(isFullscreen) : [],
-      bottomButtonBarMargin: const EdgeInsets.all(10),
+      bottomButtonBarMargin: const EdgeInsets.all(_barRowEdge),
       seekBarMargin: const EdgeInsets.only(
-        left: 16.0,
-        right: 16.0,
-        bottom: 60.0,
+        left: _seekBarSideInset,
+        right: _seekBarSideInset,
+        bottom: _seekBarBottom,
       ),
-      seekBarHeight: 3.5,
+      seekBarHeight: _seekBarHeight,
+      seekBarContainerHeight: _seekBarContainerHeight,
       speedUpOnLongPress: true,
+      // The chapter overlay draws onto the seek bar from the bottom button
+      // bar row; its geometry mirrors the margins above. The overlay must be
+      // the row's only flex child, so the fullscreen button rides inside it.
+      bottomButtonBar: [
+        ChapterSeekbarOverlay(
+          controller: chapterController!,
+          trailing: const MaterialFullscreenButton(),
+          geometry: const SeekbarGeometry(
+            seekBarMargin: EdgeInsets.only(
+              left: _seekBarSideInset,
+              right: _seekBarSideInset,
+              bottom: _seekBarBottom,
+            ),
+            seekBarHeight: _seekBarHeight,
+            buttonBarMargin: EdgeInsets.all(_barRowEdge),
+            buttonBarHeight: _barRowHeight,
+          ),
+        ),
+      ],
       primaryButtonBar: [
         if (widget.source.episode.hasprev)
           DionIconbutton(
@@ -578,13 +644,30 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
               fullscreen: getPlayerTheme(true),
               child: Video(
                 controller: controller,
-                controls: MaterialVideoControls,
+                controls: _buildControls,
                 filterQuality: FilterQuality.high,
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Wraps the built-in controls with the chapter skip pill, placed above the
+  /// seek bar. It lives outside the controls themselves so it stays visible
+  /// while they are hidden.
+  Widget _buildControls(VideoState state) {
+    return Stack(
+      children: [
+        Positioned.fill(child: MaterialVideoControls(state)),
+        Positioned(
+          right: _seekBarSideInset,
+          bottom:
+              _seekBarBottom + _seekBarContainerHeight + DionSpacing.sm,
+          child: ChapterSkipButton(controller: chapterController!),
+        ),
+      ],
     );
   }
 }

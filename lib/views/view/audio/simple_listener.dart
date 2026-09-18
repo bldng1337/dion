@@ -1,14 +1,18 @@
 import 'dart:async';
 
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
 import 'package:dionysos/service/player.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/view/chapters/chapter_controller.dart';
+import 'package:dionysos/views/view/chapters/chapter_markers.dart';
+import 'package:dionysos/views/view/chapters/chapter_progress_bar.dart';
+import 'package:dionysos/views/view/chapters/chapter_sheet.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -38,6 +42,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     with StateDisposeScopeMixin {
   Player? player;
   Observer? sourceObserver;
+  ChapterController? chapterController;
   final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   Source_Audio? currentAudio;
   final ValueNotifier<int> streamIndex = ValueNotifier(0);
@@ -77,6 +82,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     );
     this.player = player;
     _progressStream = _buildProgressStream(player);
+    chapterController = ChapterController(
+      player: player,
+      autoSkip: settings.audioBookSettings.chapters,
+    )..disposedBy(scope);
     sourceObserver = Observer(
       () async {
         if (mounted) {
@@ -123,6 +132,9 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             start: startduration,
           ),
         );
+        unawaited(
+          chapterController?.onMediaOpened(chapters: currentAudio!.chapters),
+        );
         if (mounted) {
           setState(() {
             loading = false;
@@ -151,6 +163,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             start: startduration,
           ),
         );
+        unawaited(chapterController?.onMediaOpened(chapters: audio.chapters));
         if (mounted) {
           setState(() {
             loading = false;
@@ -285,12 +298,18 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   void _seekBackward() => _seekBy(-5000);
 
-  void _nextChapter() {
+  Future<void> _nextChapter() async {
+    if (chapterController != null && await chapterController!.nextChapter()) {
+      return;
+    }
     if (!widget.source.episode.hasnext) return;
     widget.source.episode.goNext(widget.source);
   }
 
-  void _prevChapter() {
+  Future<void> _prevChapter() async {
+    if (chapterController != null && await chapterController!.prevChapter()) {
+      return;
+    }
     if (!widget.source.episode.hasprev) return;
     widget.source.episode.goPrev(widget.source);
   }
@@ -384,6 +403,19 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             }
           },
         ),
+        ListenableBuilder(
+          listenable: chapterController!,
+          builder: (context, _) {
+            if (!chapterController!.hasChapters) {
+              return const SizedBox.shrink();
+            }
+            return DionIconbutton(
+              tooltip: 'Chapters',
+              icon: const Icon(Icons.format_list_numbered),
+              onPressed: () => showChapterSheet(context, chapterController!),
+            );
+          },
+        ),
         DionIconbutton(
           tooltip: 'Open in Browser',
           icon: const Icon(Icons.open_in_browser),
@@ -435,11 +467,22 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         child: Column(
           children: [
             Expanded(
-              child: Center(
-                child: DionImage(
-                  imageUrl: widget.source.episode.cover?.url,
-                  httpHeaders: widget.source.episode.cover?.header,
-                ).paddingOnly(bottom: 10),
+              // The skip pill floats over the cover instead of sitting in the
+              // controls column, so its appearance never shifts the layout.
+              child: Stack(
+                children: [
+                  Center(
+                    child: DionImage(
+                      imageUrl: widget.source.episode.cover?.url,
+                      httpHeaders: widget.source.episode.cover?.header,
+                    ).paddingOnly(bottom: 10),
+                  ),
+                  Positioned(
+                    right: DionSpacing.sm,
+                    bottom: DionSpacing.sm,
+                    child: ChapterSkipButton(controller: chapterController!),
+                  ),
+                ],
               ),
             ),
             if (loading)
@@ -458,7 +501,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                               '${player.state.position.inMinutes}:${(player.state.position.inSeconds % 60).toString().padLeft(2, '0')}'
                               ' of '
                               '${player.state.duration.inMinutes}:${(player.state.duration.inSeconds % 60).toString().padLeft(2, '0')}',
-                          child: ProgressBar(
+                          child: ChapterProgressBar(
+                            controller: chapterController!,
                             progress: player.state.position,
                             total: player.state.duration,
                             buffered: player.state.buffer,
@@ -474,13 +518,38 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                         );
                       },
                     ),
+                    ListenableBuilder(
+                      listenable: chapterController!,
+                      builder: (context, _) {
+                        final chapter = chapterController!.currentChapter;
+                        if (!chapterController!.hasChapters || chapter == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            chapter.title,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.theme.textTheme.bodySmall?.copyWith(
+                              color: context.theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         DionIconbutton(
                           tooltip: 'Previous Chapter',
                           icon: const Icon(Icons.skip_previous),
-                          onPressed: () {
+                          onPressed: () async {
+                            if (chapterController != null &&
+                                await chapterController!.prevChapter()) {
+                              return;
+                            }
                             if (player.state.playlist.index == 0) {
                               if (mounted) {
                                 widget.source.episode.goPrev(widget.source);
@@ -522,7 +591,11 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                         DionIconbutton(
                           tooltip: 'Next Chapter',
                           icon: const Icon(Icons.skip_next),
-                          onPressed: () {
+                          onPressed: () async {
+                            if (chapterController != null &&
+                                await chapterController!.nextChapter()) {
+                              return;
+                            }
                             if (player.state.playlist.index ==
                                 player.state.playlist.medias.length - 1) {
                               if (mounted) {
