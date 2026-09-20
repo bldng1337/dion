@@ -39,6 +39,15 @@
 -keep class okhttp3.** { *; }
 -keep class okio.** { *; }
 
+# zstd-kmp (okhttp-zstd's dependency for `Content-Encoding: zstd`). Only
+# JniZstdKt and JniZstdDecompressor are referenced statically (from
+# okhttp3.zstd.Zstd); the rest of the package — e.g. ZstdCompressor — is
+# bound from libzstd-kmp.so via JNI FindClass during JniZstdKt.<clinit>.
+# R8 cannot see those references and strips the classes, and the pending
+# ClassNotFoundException then aborts the process (SIGABRT) on the first
+# zstd-compressed response. The library ships no consumer rules of its own.
+-keep class com.squareup.zstd.** { *; }
+
 # JSoup — the vast majority of manga extensions parse HTML with it.
 -keep class org.jsoup.** { *; }
 
