@@ -197,6 +197,18 @@ class LanSyncClient {
     return HttpClient(context: context);
   }
 
+  /// Build an mTLS [SyncHttpClient] against [baseUrl] for [pairedDevice].
+  /// Callers must dispose it when done.
+  SyncHttpClient remoteRepoFor({
+    required PairedDevice pairedDevice,
+    required String baseUrl,
+  }) {
+    return SyncHttpClient(
+      url: baseUrl,
+      client: _mtlsHttpClientFor(pairedDevice),
+    );
+  }
+
   Future<void> syncWith({
     required PairedDevice pairedDevice,
     required String baseUrl,
@@ -209,6 +221,62 @@ class LanSyncClient {
       await syncRepo.sync(remote, onProgress: onProgress);
     } finally {
       remote.dispose();
+    }
+  }
+
+  /// Asks a paired peer for its installed extensions so this device can
+  /// mirror the ones it is missing. Throws [LanSyncException] when the peer
+  /// does not support extension sync (older protocol) or the request fails.
+  Future<List<ExtensionSyncInfo>> fetchPeerExtensions({
+    required PairedDevice pairedDevice,
+    required String baseUrl,
+  }) async {
+    final client = _mtlsHttpClientFor(pairedDevice);
+    try {
+      final req = await client.postUrl(Uri.parse('$baseUrl/extensions/list'));
+      req.headers.contentType = ContentType.json;
+      req.headers.set(protocolVersionHeader, '$dionSyncProtocolVersion');
+      req.write('{}');
+      final res = await req.close();
+      final body = await utf8.decoder.bind(res).join();
+      if (res.statusCode != HttpStatus.ok) {
+        throw LanSyncException(
+          'extensions/list failed: ${res.statusCode} $body',
+        );
+      }
+      final list = jsonDecode(body) as List<dynamic>;
+      return list
+          .map((e) => ExtensionSyncInfo.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Asks a paired peer to install the extension described by [info] from its
+  /// recorded location.
+  Future<void> installPeerExtension({
+    required PairedDevice pairedDevice,
+    required String baseUrl,
+    required ExtensionSyncInfo info,
+  }) async {
+    final client = _mtlsHttpClientFor(pairedDevice);
+    try {
+      final req = await client.postUrl(
+        Uri.parse('$baseUrl/extensions/install'),
+      );
+      req.headers.contentType = ContentType.json;
+      req.headers.set(protocolVersionHeader, '$dionSyncProtocolVersion');
+      req.write(info.encode());
+      final res = await req.close();
+      final body = await utf8.decoder.bind(res).join();
+      if (res.statusCode != HttpStatus.ok) {
+        throw LanSyncException(
+          'extensions/install failed for ${info.id}: ${res.statusCode} $body',
+        );
+      }
+    } finally {
+      client.close(force: true);
     }
   }
 }

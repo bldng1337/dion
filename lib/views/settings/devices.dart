@@ -211,48 +211,49 @@ class _DevicesSettingsState extends State<DevicesSettings> {
           ? null
           : [
               for (final device in devices)
-                _materialTile(
-                  DionListTile(
-                    leading: const Icon(
-                      Icons.check_circle,
-                      color: Colors.greenAccent,
-                      size: 40,
-                    ),
-                    title: Text(device.name, style: context.titleMedium),
-                    subtitle: Text(
-                      device.lastSyncedAt == null
-                          ? 'Never synced'
-                          : 'Last synced ${device.lastSyncedAt}',
-                      style: context.bodySmall,
-                    ),
-                    trailing: _busy[device.deviceId] == true
-                        ? const DionProgressBar(size: 18)
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Loadable(
-                                loading: const DionProgressBar(size: 18),
-                                builder: (context, _, setFuture) =>
-                                    DionIconbutton(
-                                      icon: const Icon(Icons.sync),
-                                      tooltip: 'Sync now',
-                                      onPressed: () {
-                                        setFuture(
-                                          _sync(device.deviceId, device.name),
-                                        );
-                                      },
-                                    ),
-                              ),
-                              DionIconbutton(
-                                icon: const Icon(Icons.link_off),
-                                tooltip: 'Unpair',
-                                onPressed: () => _unpair(device),
-                              ),
-                            ],
-                          ),
+                _materialTile(_pairedTile(context, device)),
+            ],
+    );
+  }
+
+  DionListTile _pairedTile(BuildContext context, PairedDevice device) {
+    final online = _service.isOnline(device.deviceId);
+    return DionListTile(
+      leading: Icon(
+        Icons.check_circle,
+        color: online ? Colors.greenAccent : context.theme.disabledColor,
+        size: 40,
+      ),
+      title: Text(device.name, style: context.titleMedium),
+      subtitle: Text(
+        [
+          if (online) 'Online' else 'Offline',
+          if (device.lastSyncedAt != null) 'Last synced ${device.lastSyncedAt}',
+        ].join(' • '),
+        style: context.bodySmall,
+      ),
+      trailing: _busy[device.deviceId] == true
+          ? const DionProgressBar(size: 18)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Loadable(
+                  loading: const DionProgressBar(size: 18),
+                  builder: (context, _, setFuture) => DionIconbutton(
+                    icon: const Icon(Icons.sync),
+                    tooltip: 'Sync now',
+                    onPressed: () {
+                      setFuture(_sync(device.deviceId, device.name));
+                    },
                   ),
                 ),
-            ],
+                DionIconbutton(
+                  icon: const Icon(Icons.link_off),
+                  tooltip: 'Unpair',
+                  onPressed: () => _unpair(device),
+                ),
+              ],
+            ),
     );
   }
 

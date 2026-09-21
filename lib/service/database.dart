@@ -13,6 +13,7 @@ import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/image_store.dart';
+import 'package:dionysos/service/lansync/lansync_service.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/change.dart';
 import 'package:dionysos/utils/log.dart';
@@ -88,6 +89,11 @@ DEFINE TABLE IF NOT EXISTS extension;
           version: dbVersion,
           range: VersionRange.exact(dbVersion),
           table: extensionTable,
+        ),
+        SyncTable(
+          version: dbVersion,
+          range: VersionRange.exact(dbVersion),
+          table: activityTable,
         ),
       },
     );
@@ -216,14 +222,12 @@ DEFINE TABLE IF NOT EXISTS extension;
   Future<int> getNumEntriesInCategory(Category? category) async {
     if (category == null) {
       return await _countSQL(
-        query:
-            'SELECT count() FROM type::table(\$entry) WHERE array::is_empty(categories??[]) GROUP ALL;',
+        query: 'SELECT count() FROM type::table(\$entry) WHERE array::is_empty(categories??[]) GROUP ALL;',
         vars: {'entry': entryTable.tb},
       );
     }
     return await _countSQL(
-      query:
-          'SELECT count() FROM type::table(\$entry) WHERE categories CONTAINS \$category GROUP ALL;',
+      query: 'SELECT count() FROM type::table(\$entry) WHERE categories CONTAINS \$category GROUP ALL;',
       vars: {'category': category.id, 'entry': entryTable.tb},
     );
   }
@@ -369,23 +373,35 @@ DEFINE TABLE IF NOT EXISTS extension;
   Future<Activity?> getLastActivity() async {
     return await adapter
         .queryDataClasses<Activity>(
-          query:
-              'SELECT * FROM type::table(\$activity) ORDER BY time DESC LIMIT 1',
+          query: 'SELECT * FROM type::table(\$activity) ORDER BY time DESC LIMIT 1',
           vars: {'activity': activityTable.tb},
         )
         .firstOrNull;
   }
 
   Future<void> addActivity(Activity activity) async {
-    await adapter.save(activity);
+    await adapter.save(_stampDevice(activity));
     notifyListeners([DBEvent.activityUpdated]);
   }
 
   Future<void> addActivities(Iterable<Activity> activities) async {
     for (final activity in activities) {
-      await adapter.save(activity);
+      await adapter.save(_stampDevice(activity));
     }
     notifyListeners([DBEvent.activityUpdated]);
+  }
+
+  /// Activities carry the device they were created on so synced history can
+  /// be attributed. Records arriving over sync are written by the CRDT
+  /// adapter directly and keep the creating device's stamp; only activities
+  /// created on this device are stamped here. Null before the LAN sync
+  /// service is up (its identity is the device identity).
+  Activity _stampDevice(Activity activity) {
+    if (activity.device != null || !has<LanSyncService>()) return activity;
+    final identity = locate<LanSyncService>().identity;
+    return activity.copyWith(
+      device: DeviceRef(deviceId: identity.deviceId, name: identity.name),
+    );
   }
 
   Future<void> clearActivities() async {
@@ -395,8 +411,7 @@ DEFINE TABLE IF NOT EXISTS extension;
 
   Stream<Activity> getActivities(int page, int limit) {
     return adapter.queryDataClasses<Activity>(
-      query:
-          'SELECT * FROM activity ORDER BY time DESC LIMIT \$limit START \$offset*\$limit',
+      query: 'SELECT * FROM activity ORDER BY time DESC LIMIT \$limit START \$offset*\$limit',
       vars: {'limit': limit, 'offset': page},
     );
   }
@@ -519,8 +534,7 @@ ORDER BY total DESC
     final byUid = <String, Entry>{};
     final saved = await adapter
         .queryDataClasses<EntrySaved>(
-          query:
-              'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids FETCH categories',
+          query: 'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids FETCH categories',
           vars: {'entry': entryTable.tb, 'uids': order},
         )
         .toList();

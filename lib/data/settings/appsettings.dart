@@ -389,6 +389,10 @@ final settings = (
         true,
         const PreferenceBoolMetaData('sync.lan.discoverable'),
       )..addCollection(preferenceCollection),
+      autoSync: Setting(true, const PreferenceBoolMetaData('sync.lan.autosync'))
+        ..addCollection(preferenceCollection),
+      livesync: Setting(true, const PreferenceBoolMetaData('sync.lan.livesync'))
+        ..addCollection(preferenceCollection),
     ),
   ),
   readerSettings: (

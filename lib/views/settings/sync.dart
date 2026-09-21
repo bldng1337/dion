@@ -52,6 +52,20 @@ class SyncSettings extends StatelessWidget {
                 description: 'Let other devices find this device',
                 setting: settings.sync.lan.discoverable,
               ).conditional(settings.sync.lan.enabled),
+              SettingToggle(
+                title: 'Auto Sync',
+                description:
+                    'Sync with paired devices automatically whenever both are '
+                    'online',
+                setting: settings.sync.lan.autoSync,
+              ).conditional(settings.sync.lan.enabled),
+              SettingToggle(
+                title: 'Live Sync',
+                description:
+                    'Push changes to online devices as they happen instead of '
+                    'waiting for the next sync',
+                setting: settings.sync.lan.livesync,
+              ).conditional(settings.sync.lan.enabled),
             ],
           ),
         ],

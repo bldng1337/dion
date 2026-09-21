@@ -1,4 +1,3 @@
-
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/entry/entry.dart';
 
@@ -17,6 +16,7 @@ class EpisodeActivity extends Activity {
     this.duration = Duration.zero,
     required DateTime time,
     required String id,
+    super.device,
   }) : super(time, id);
 
   factory EpisodeActivity.fromJson(Map<String, dynamic> json) {
@@ -28,9 +28,11 @@ class EpisodeActivity extends Activity {
       duration: Duration(seconds: json['duration'] as int),
       time: Activity.parseTime(json['time']),
       id: json['aid'] as String,
+      device: Activity.parseDevice(json['device']),
     );
   }
 
+  @override
   EpisodeActivity copyWith({
     int? fromepisode,
     int? toepisode,
@@ -38,6 +40,7 @@ class EpisodeActivity extends Activity {
     String? extensionid,
     DateTime? time,
     Duration? duration,
+    DeviceRef? device,
   }) {
     return EpisodeActivity(
       fromepisode: fromepisode ?? this.fromepisode,
@@ -47,6 +50,7 @@ class EpisodeActivity extends Activity {
       time: time ?? this.time,
       duration: duration ?? this.duration,
       id: id,
+      device: device ?? this.device,
     );
   }
 

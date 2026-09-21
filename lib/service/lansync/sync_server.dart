@@ -52,6 +52,9 @@ typedef PairingPrompt =
 /// - `POST /getSyncData`, `/getSyncPointData`, `/pull`, `/push`,
 ///   `/querySyncData`        mTLS-protected: the caller must present a paired
 ///   client certificate; requests are delegated to metis's [SyncHttpHandler].
+/// - `POST /extensions/list`, `/extensions/install`
+///   mTLS-protected: exchange installed extensions so both devices can adopt
+///   what the other has.
 class LanSyncServer {
   final DeviceIdentity _identity;
   final PairingStore _pairingStore;
@@ -62,6 +65,15 @@ class LanSyncServer {
   /// can rebuild the [SecurityContext] (see [restart]). Not invoked for
   /// non-structural changes such as [PairingStore.markSynced].
   Future<void> Function()? onPairingChanged;
+
+  /// Lists the locally installed extensions for a paired peer asking through
+  /// `POST /extensions/list`. Returns an empty list until wired up.
+  Future<List<ExtensionSyncInfo>> Function()? extensionLister;
+
+  /// Installs an extension from a location requested by a paired peer through
+  /// `POST /extensions/install`. May be null (route then reports not
+  /// implemented).
+  Future<void> Function(String location)? extensionInstaller;
 
   HttpServer? _server;
   final Map<String, _PairSession> _sessions = {};
@@ -180,13 +192,22 @@ class LanSyncServer {
       return;
     }
 
-    // Everything else is a sync route requiring mTLS.
-    if (_isSyncRoute(path)) {
+    // Everything else requires mTLS: metis sync routes delegate to the metis
+    // handler, the extension routes let a paired peer mirror installations.
+    if (_isMtlsRoute(path)) {
       final authorized = _authorize(req);
       if (!authorized) {
         _respond(req, HttpStatus.unauthorized, {
           'error': 'client cert required',
         }, version: dionSyncProtocolVersion);
+        return;
+      }
+      if (path == '/extensions/list' && req.method == 'POST') {
+        await _handleExtensionList(req);
+        return;
+      }
+      if (path == '/extensions/install' && req.method == 'POST') {
+        await _handleExtensionInstall(req);
         return;
       }
       final metisServer = SyncHttpHandler(repo: _syncRepo);
@@ -207,7 +228,63 @@ class LanSyncServer {
     '/querySyncData',
   };
 
-  bool _isSyncRoute(String path) => _syncRoutes.contains(path);
+  static const _extensionRoutes = {'/extensions/list', '/extensions/install'};
+
+  bool _isMtlsRoute(String path) =>
+      _syncRoutes.contains(path) || _extensionRoutes.contains(path);
+
+  Future<void> _handleExtensionList(HttpRequest req) async {
+    final lister = extensionLister;
+    if (lister == null) {
+      _respond(req, HttpStatus.notImplemented, {
+        'error': 'extension sync not available',
+      }, version: dionSyncProtocolVersion);
+      return;
+    }
+    final list = await lister();
+    req.response
+      ..statusCode = HttpStatus.ok
+      ..headers.contentType = ContentType.json
+      ..headers.set(protocolVersionHeader, '$dionSyncProtocolVersion')
+      ..write(jsonEncode(list.map((e) => e.toJson()).toList()));
+    await req.response.close();
+  }
+
+  Future<void> _handleExtensionInstall(HttpRequest req) async {
+    final installer = extensionInstaller;
+    final body = await _readJson(req);
+    if (installer == null || body == null) {
+      _respond(req, HttpStatus.notImplemented, {
+        'error': 'extension sync not available',
+      }, version: dionSyncProtocolVersion);
+      return;
+    }
+    final info = ExtensionSyncInfo.fromJson(body);
+    // Only remote locations are accepted: a paired peer should never be able
+    // to make this device run code from a local file path it chose.
+    final scheme = Uri.tryParse(info.url)?.scheme;
+    if (info.url.isEmpty || (scheme != 'http' && scheme != 'https')) {
+      _respond(req, HttpStatus.badRequest, {
+        'error': 'extension location must be an http(s) url',
+      }, version: dionSyncProtocolVersion);
+      return;
+    }
+    try {
+      await installer(info.url);
+    } catch (e) {
+      logger.w(
+        'LAN sync: failed to install extension ${info.id} from ${info.url}',
+        error: e,
+      );
+      _respond(req, HttpStatus.internalServerError, {
+        'error': 'install failed: $e',
+      }, version: dionSyncProtocolVersion);
+      return;
+    }
+    _respond(req, HttpStatus.ok, {
+      'status': 'ok',
+    }, version: dionSyncProtocolVersion);
+  }
 
   /// Authorize an mTLS request: the peer must present a certificate whose
   /// fingerprint is in the paired set.

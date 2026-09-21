@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-const int dionSyncProtocolVersion = 1;
+const int dionSyncProtocolVersion = 2;
 
 const String dionSyncMdnsService = '_dionsync._tcp';
 
@@ -11,6 +11,48 @@ class MdnsTxt {
   static const String name = 'name';
   static const String pv = 'pv';
   static const String fp = 'fp';
+}
+
+/// Description of an installed extension exchanged between paired devices so
+/// both sides can install what they are missing. [url] is the location the
+/// extension can be (re-)installed from, [repo] the repo it was discovered
+/// through, if any.
+class ExtensionSyncInfo {
+  final String id;
+  final String name;
+  final String version;
+  final String url;
+  final String? repo;
+
+  const ExtensionSyncInfo({
+    required this.id,
+    required this.name,
+    required this.version,
+    required this.url,
+    this.repo,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'version': version,
+    'url': url,
+    if (repo != null) 'repo': repo,
+  };
+
+  factory ExtensionSyncInfo.fromJson(Map<String, dynamic> json) =>
+      ExtensionSyncInfo(
+        id: json['id'] as String,
+        name: json['name'] as String? ?? '',
+        version: json['version'] as String? ?? '',
+        url: json['url'] as String? ?? '',
+        repo: json['repo'] as String?,
+      );
+
+  String encode() => jsonEncode(toJson());
+
+  factory ExtensionSyncInfo.decode(String body) =>
+      ExtensionSyncInfo.fromJson(jsonDecode(body) as Map<String, dynamic>);
 }
 
 class DeviceInfo {
