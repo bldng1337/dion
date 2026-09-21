@@ -18,26 +18,12 @@ import 'package:dionysos/utils/storage.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' show Row;
 import 'package:rhttp/rhttp.dart' as rhttp;
 
-const downloadVersion = 1;
+const downloadVersion = 2;
 
-/// Audio containers that can be downloaded as a single file (mpv plays them
-/// directly, embedded M4B/M4A chapters included), as opposed to HLS
-/// playlists which need segment downloading.
-const _directAudioExtensions = [
-  '.mp3',
-  '.m4b',
-  '.m4a',
-  '.flac',
-  '.ogg',
-  '.opus',
-  '.wav',
-  '.aac',
-];
-
-bool _isDirectAudio(String url) {
-  final path = Uri.tryParse(url)?.path.toLowerCase() ?? url.toLowerCase();
-  return _directAudioExtensions.any(path.endsWith);
-}
+/// Index versions this build can read. v2 renamed the media file key to
+/// `filename` and can hold direct-file video; v1 entries still read
+/// unchanged from their stored filenames.
+const _readableDownloadVersions = [1, 2];
 
 void _indexChapters(Map<String, dynamic> index, List<Chapter>? chapters) {
   if (chapters == null || chapters.isEmpty) return;
@@ -84,6 +70,7 @@ class DownloadTask extends Task {
         headers: cover.header,
         onReceiveProgress: (current) => progress = current,
         rhttpToken: rhttpToken,
+        resolveEnding: true,
       );
       progress = null;
     }
@@ -234,7 +221,7 @@ class DownloadTask extends Task {
     if (token.isDisposed) return;
     if (rhttpToken.isCancelled) return;
     final download = locate<DownloadService>();
-    await download.ratelimit.acquire();
+    await download._ratelimitFor(ep).acquire();
     final dir = DownloadService._getDownloadPath(ep);
     await dir.create(recursive: true);
     // Written before any content so an interrupted download can be told
@@ -266,6 +253,7 @@ class DownloadTask extends Task {
               onReceiveProgress: (current) =>
                   progress = (index + current) / images.length,
               rhttpToken: rhttpToken,
+              resolveEnding: true,
             );
             localImages[image.url] = Link(url: file.fileURL);
           }
@@ -291,7 +279,12 @@ class DownloadTask extends Task {
         status = 'Downloading Epub';
         final filename = await InternetFile.streamToFile(
           data.link.url,
-          InternetFile.fromURI(data.link.url, dir, filename: 'data'),
+          InternetFile.fromURI(
+            data.link.url,
+            dir,
+            filename: 'data',
+            ending: '.epub',
+          ),
           headers: data.link.header,
           onReceiveProgress: (current) => progress = current,
           rhttpToken: rhttpToken,
@@ -303,7 +296,12 @@ class DownloadTask extends Task {
         status = 'Downloading PDF';
         final filename = await InternetFile.streamToFile(
           data.link.url,
-          InternetFile.fromURI(data.link.url, dir, filename: 'data'),
+          InternetFile.fromURI(
+            data.link.url,
+            dir,
+            filename: 'data',
+            ending: '.pdf',
+          ),
           headers: data.link.header,
           onReceiveProgress: (current) => progress = current,
           rhttpToken: rhttpToken,
@@ -323,6 +321,7 @@ class DownloadTask extends Task {
             onReceiveProgress: (current) =>
                 progress = (index + current) / data.links.length,
             rhttpToken: rhttpToken,
+            resolveEnding: true,
           );
           imagedata.add(file.filename);
         }
@@ -342,6 +341,7 @@ class DownloadTask extends Task {
               onReceiveProgress: (current) =>
                   progress = (index + current) / data.audio!.length,
               rhttpToken: rhttpToken,
+              resolveEnding: true,
             );
             progress = null;
             audiodata.add({
@@ -353,49 +353,36 @@ class DownloadTask extends Task {
           index['audio'] = audiodata;
         }
       case final Source_Video data:
-        status = 'Downloading m3u8';
-        //TODO: Better way to do this
+        status = 'Downloading Video';
         final source = data.sources[0];
-        final file = await InternetFile.downloadm3u8(
+        final media = await InternetFile.downloadMedia(
           source.url.url,
-          InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
+          InternetFile.fromURI(source.url.url, dir, filename: 'video'),
           headers: source.url.header,
           onReceiveProgress: (current) => progress = current,
           rhttpToken: rhttpToken,
         );
-        index['type'] = 'm3u8';
+        progress = null;
+        index['type'] = media.isPlaylist ? 'm3u8' : 'video';
         index['lang'] = source.lang;
         index['name'] = source.name;
-        index['playlist'] = file.filename;
+        index['filename'] = media.file.filename;
         _indexChapters(index, data.chapters);
       case final Source_Audio data:
         status = 'Downloading Audio';
         final source = data.sources[0];
-        if (_isDirectAudio(source.url.url)) {
-          final file = await InternetFile.streamToFile(
-            source.url.url,
-            InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
-            headers: source.url.header,
-            onReceiveProgress: (current) => progress = current,
-            rhttpToken: rhttpToken,
-          );
-          index['type'] = 'audio';
-          index['lang'] = source.lang;
-          index['name'] = source.name;
-          index['playlist'] = file.filename;
-        } else {
-          final file = await InternetFile.downloadm3u8(
-            source.url.url,
-            InternetFile.fromURI(source.url.url, dir, filename: 'playlist'),
-            headers: source.url.header,
-            onReceiveProgress: (current) => progress = current,
-            rhttpToken: rhttpToken,
-          );
-          index['type'] = 'audio';
-          index['lang'] = source.lang;
-          index['name'] = source.name;
-          index['playlist'] = file.filename;
-        }
+        final media = await InternetFile.downloadMedia(
+          source.url.url,
+          InternetFile.fromURI(source.url.url, dir, filename: 'audio'),
+          headers: source.url.header,
+          onReceiveProgress: (current) => progress = current,
+          rhttpToken: rhttpToken,
+        );
+        progress = null;
+        index['type'] = 'audio';
+        index['lang'] = source.lang;
+        index['name'] = source.name;
+        index['filename'] = media.file.filename;
         _indexChapters(index, data.chapters);
     }
     index['finished'] = true;
@@ -481,11 +468,20 @@ class DownloadStatus {
 }
 
 class DownloadService {
-  final Ratelimit ratelimit = LeakyBucketRatelimit.fromRate(1);
+  final Map<String, Ratelimit> _ratelimits = {};
 
   // Bumped whenever downloads change on disk, so consumers can cache
   // state derived from [downloadedEntryKeys].
   int downloadsRevision = 0;
+
+  /// Task starts are paced per extension so one source's politeness delay
+  /// doesn't throttle unrelated extensions.
+  Ratelimit _ratelimitFor(EpisodePath ep) {
+    return _ratelimits.putIfAbsent(
+      ep.extensionid,
+      () => LeakyBucketRatelimit.fromRate(1),
+    );
+  }
 
   static Future<void> ensureInitialized() async {
     register<DownloadService>(DownloadService());
@@ -581,111 +577,105 @@ class DownloadService {
     return controller.stream;
   }
 
-  Future<bool> isDownloaded(EpisodePath ep) async {
-    final path = _getDownloadPath(ep);
-    if (!await path.exists()) {
-      return false;
-    }
+  /// Reads and validates a download index: null when missing, unreadable,
+  /// written by an incompatible version, or for an interrupted download.
+  static Future<Map<String, dynamic>?> _readIndex(Directory dir) async {
     try {
-      final index = jsonDecode(await path.getFile('index.json').readAsString());
-      // Downloads written before the finished flag existed never set it, so
-      // only an explicit false (interrupted download) disqualifies.
-      return index is Map && index['finished'] != false;
-    } catch (e) {
-      logger.e('Error reading download index', error: e);
-      return false;
+      final index = jsonDecode(await dir.getFile('index.json').readAsString());
+      if (index is! Map) return null;
+      if (!_readableDownloadVersions.contains(index['version'])) return null;
+      if (index['finished'] == false) return null;
+      return Map<String, dynamic>.from(index);
+    } catch (_) {
+      // A missing or broken index belongs to an interrupted download.
+      return null;
     }
+  }
+
+  Future<bool> isDownloaded(EpisodePath ep) async {
+    return await _readIndex(_getDownloadPath(ep)) != null;
   }
 
   Future<Source?> getDownloaded(EpisodePath ep) async {
     final path = _getDownloadPath(ep);
-    if (await path.exists()) {
-      final index = jsonDecode(await path.getFile('index.json').readAsString());
-      if (index['version'] != downloadVersion || index['finished'] == false) {
-        return null;
-      }
-      switch (index['type']) {
-        case 'paragraphlist':
-          return Source.paragraphlist(
-            paragraphs: (json.decode(
-              await path.getFile('data.txt').readAsString(),
-            ) as List<dynamic>).map((e) => JsonParagraph.fromJson(e)).toList(),
-          );
-        case 'epub':
-          return Source.epub(
-            link: Link(url: path.getFile(index['filename'] as String).fileURL),
-          );
-        case 'pdf':
-          return Source.pdf(
-            link: Link(url: path.getFile(index['filename'] as String).fileURL),
-          );
-        case 'imagelist':
-          final images = index['images'] as List<dynamic>;
-          final audio = index['audio'] as List<dynamic>?;
-          return Source.imagelist(
-            links: images
-                .map((e) => Link(url: path.getFile(e as String).fileURL))
-                .toList(),
-            audio: audio
-                ?.map(
-                  (e) => ImageListAudio(
-                    from: e['from'] as int,
-                    to: e['to'] as int,
-                    link: Link(url: path.getFile(e['name'] as String).fileURL),
-                  ),
-                )
-                .toList(),
-          );
-        case 'mp3':
-          final playlist = path.getFile(index['playlist'] as String);
-          if (!await playlist.exists()) {
-            return null;
-          }
-          return Source.audio(
-            sources: [
-              StreamSource(
-                url: Link(url: playlist.fileURL),
-                lang: index['lang'] as String,
-                name: index['name'] as String,
-              ),
-            ],
-          );
-        case 'audio':
-          final playlist = path.getFile(index['playlist'] as String);
-          if (!await playlist.exists()) {
-            return null;
-          }
-          return Source.audio(
-            sources: [
-              StreamSource(
-                url: Link(url: playlist.fileURL),
-                lang: index['lang'] as String,
-                name: index['name'] as String,
-              ),
-            ],
-            chapters: _chaptersFromIndex(index['chapters']),
-          );
-        case 'm3u8':
-          final playlist = path.getFile(index['playlist'] as String);
-          if (!await playlist.exists()) {
-            return null;
-          }
-          return Source.video(
-            sources: [
-              StreamSource(
-                url: Link(url: playlist.fileURL),
-                lang: index['lang'] as String,
-                name: index['name'] as String,
-              ),
-            ],
-            sub: [],
-            chapters: _chaptersFromIndex(index['chapters']),
-          );
-        default:
+    if (!await path.exists()) return null;
+    final index = await _readIndex(path);
+    if (index == null) return null;
+    switch (index['type']) {
+      case 'paragraphlist':
+        return Source.paragraphlist(
+          paragraphs: (json.decode(
+            await path.getFile('data.txt').readAsString(),
+          ) as List<dynamic>).map((e) => JsonParagraph.fromJson(e)).toList(),
+        );
+      case 'epub':
+        return Source.epub(
+          link: Link(url: path.getFile(index['filename'] as String).fileURL),
+        );
+      case 'pdf':
+        return Source.pdf(
+          link: Link(url: path.getFile(index['filename'] as String).fileURL),
+        );
+      case 'imagelist':
+        final images = index['images'] as List<dynamic>;
+        final audio = index['audio'] as List<dynamic>?;
+        return Source.imagelist(
+          links: images
+              .map((e) => Link(url: path.getFile(e as String).fileURL))
+              .toList(),
+          audio: audio
+              ?.map(
+                (e) => ImageListAudio(
+                  from: e['from'] as int,
+                  to: e['to'] as int,
+                  link: Link(url: path.getFile(e['name'] as String).fileURL),
+                ),
+              )
+              .toList(),
+        );
+      case 'audio':
+        final file = _mediaFile(index, path);
+        if (file == null || !await file.exists()) {
           return null;
-      }
+        }
+        return Source.audio(
+          sources: [
+            StreamSource(
+              url: Link(url: file.fileURL),
+              lang: index['lang'] as String,
+              name: index['name'] as String,
+            ),
+          ],
+          chapters: _chaptersFromIndex(index['chapters']),
+        );
+      case 'm3u8':
+      case 'video':
+        final file = _mediaFile(index, path);
+        if (file == null || !await file.exists()) {
+          return null;
+        }
+        return Source.video(
+          sources: [
+            StreamSource(
+              url: Link(url: file.fileURL),
+              lang: index['lang'] as String,
+              name: index['name'] as String,
+            ),
+          ],
+          sub: [],
+          chapters: _chaptersFromIndex(index['chapters']),
+        );
+      default:
+        return null;
     }
-    return null;
+  }
+
+  /// The downloaded playlist or media file: the v2 `filename` key, falling
+  /// back to v1's `playlist`.
+  static File? _mediaFile(Map<String, dynamic> index, Directory path) {
+    final filename = index['filename'] ?? index['playlist'];
+    if (filename is! String) return null;
+    return path.getFile(filename);
   }
 
   static Directory _getDownloadPath(EpisodePath ep) {
@@ -829,13 +819,7 @@ class DownloadService {
   }
 
   Future<bool> _isFinished(Directory dir) async {
-    try {
-      final index = jsonDecode(await dir.getFile('index.json').readAsString());
-      return index is Map && index['finished'] != false;
-    } catch (_) {
-      // A missing or broken index belongs to an interrupted download.
-      return false;
-    }
+    return await _readIndex(dir) != null;
   }
 
   Future<void> deleteDownloadDirs(Iterable<Directory> dirs) async {
