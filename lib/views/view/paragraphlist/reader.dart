@@ -209,8 +209,8 @@ class ReaderRenderParagraph extends StatelessWidget {
   Widget makeParagraph(BuildContext context, Paragraph text) {
     switch (text) {
       case final Paragraph_Mixed mixed:
-        return RichText(
-          text: TextSpan(
+        return Text.rich(
+          TextSpan(
             children: mixed.content
                 .map(
                   (e) => wrapMixedContent(
@@ -235,8 +235,8 @@ class ReaderRenderParagraph extends StatelessWidget {
             builder: (context, child) {
               return LoadingBuilder(
                 future: psettings.font.value.toTextStyle(),
-                builder: (context, style) => RichText(
-                  text: getBionicText(
+                builder: (context, style) => Text.rich(
+                  getBionicText(
                     content: text.content,
                     basicStyle: _applyRuntimeStyle(
                       (context.bodyLarge ?? style)
@@ -274,8 +274,8 @@ class ReaderRenderParagraph extends StatelessWidget {
                     ),
                   ),
                 ),
-                error: (context, _, _) => RichText(
-                  text: getBionicText(
+                error: (context, _, _) => Text.rich(
+                  getBionicText(
                     content: text.content,
                     basicStyle: _applyRuntimeStyle(
                       context.bodyLarge?.copyWith(
@@ -305,8 +305,8 @@ class ReaderRenderParagraph extends StatelessWidget {
                     ),
                   ),
                 ),
-                loading: (context) => RichText(
-                  text: getBionicText(
+                loading: (context) => Text.rich(
+                  getBionicText(
                     content: text.content,
                     basicStyle: _applyRuntimeStyle(
                       context.bodyLarge?.copyWith(
@@ -671,7 +671,7 @@ InlineSpan wrapMixedContent(
   }
 }
 
-InlineSpan getBionicText({
+TextSpan getBionicText({
   required String content,
   required int letters,
   TextStyle? markStyle,
@@ -691,7 +691,7 @@ InlineSpan getBionicText({
   return TextSpan(children: display);
 }
 
-InlineSpan renderSpan(
+TextSpan renderSpan(
   String content, {
   required int letters,
   TextStyle? markStyle,
