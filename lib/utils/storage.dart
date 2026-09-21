@@ -6,7 +6,7 @@ String formatBytes(int bytes, {int decimals = 2}) {
   const suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   final i = (log(bytes) / log(1024)).floor();
   final value = bytes / pow(1024, i);
-  return '${value.toStringAsFixed(value>=10?0:decimals)} ${suffixes[i]}';
+  return '${value.toStringAsFixed(value >= 10 ? 0 : decimals)} ${suffixes[i]}';
 }
 
 Future<int> getDirectorySize(Directory dir) async {

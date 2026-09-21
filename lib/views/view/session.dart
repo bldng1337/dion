@@ -7,6 +7,7 @@ import 'package:dionysos/utils/debounce.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:uuid/uuid.dart';
 
 class SessionData extends InheritedWidget {
@@ -40,7 +41,9 @@ abstract class SessionManager {
   void keepSessionAlive({bool saveToDb = false});
 }
 
-class _SessionState extends State<Session> implements SessionManager {
+class _SessionState extends State<Session>
+    with StateDisposeScopeMixin
+    implements SessionManager {
   @override
   EpisodeActivity get session => sessionNotifier.value;
   @override
@@ -50,7 +53,7 @@ class _SessionState extends State<Session> implements SessionManager {
   late final Debouncer saveDebouncer = Debouncer(
     duration: const Duration(milliseconds: 750),
     action: saveSession,
-  );
+  )..disposedBy(scope);
 
   @override
   void keepSessionAlive({bool saveToDb = false}) {
@@ -108,14 +111,14 @@ class _SessionState extends State<Session> implements SessionManager {
         time: DateTime.now(),
         id: const Uuid().v4(),
       ),
-    );
+    )..disposedBy(scope);
     sourceObserver = Observer(
       () {
         keepSessionAlive(saveToDb: true);
       },
       widget.source,
       callIndirectly: false,
-    );
+    )..disposedBy(scope);
   }
 
   @override
@@ -127,8 +130,7 @@ class _SessionState extends State<Session> implements SessionManager {
 
   @override
   void dispose() {
-    // Cancel any debounced save and persist immediately on teardown.
-    saveDebouncer.dispose();
+    // Persist immediately on teardown.
     updateSession();
     saveSession();
     super.dispose();

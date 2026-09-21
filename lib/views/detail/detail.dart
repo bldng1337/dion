@@ -441,8 +441,8 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                 // but not released yet.
                 final lastPlayable =
                     saved.latestEpisode < saved.releasedEpisodes
-                        ? saved.latestEpisode
-                        : saved.releasedEpisodes - 1;
+                    ? saved.latestEpisode
+                    : saved.releasedEpisodes - 1;
                 if (lastPlayable < 0) return;
                 EpisodePath(entry! as EntryDetailed, lastPlayable).go(context);
               },

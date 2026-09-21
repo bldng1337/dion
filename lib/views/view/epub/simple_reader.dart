@@ -17,6 +17,7 @@ import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/source_file.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -72,7 +73,12 @@ class _SimpleEpubReaderState extends State<SimpleEpubReader>
       return controller;
     }
     _controller = controller;
-    controller.currentValueListenable.addListener(_onPositionChanged);
+    Observer(
+      _onPositionChanged,
+      controller.currentValueListenable,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
     return controller;
   }
 
@@ -103,7 +109,6 @@ class _SimpleEpubReaderState extends State<SimpleEpubReader>
     _disposed = true;
     widget.source.episode.save();
     WakelockPlus.toggle(enable: false);
-    _controller?.currentValueListenable.removeListener(_onPositionChanged);
     _controller?.dispose();
     super.dispose();
   }

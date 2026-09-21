@@ -8,11 +8,7 @@ class Selection extends StatefulWidget {
   final List<ContextMenuItem> Function(String selectedText)?
   selectionContextItems;
 
-  const Selection({
-    super.key,
-    required this.child,
-    this.selectionContextItems,
-  });
+  const Selection({super.key, required this.child, this.selectionContextItems});
 
   @override
   State<Selection> createState() => _SelectionState();

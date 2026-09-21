@@ -34,12 +34,11 @@ class _PairSession {
 
 /// Callback used to ask the local user to confirm an incoming pairing request
 /// (the device acting as B in the handshake). Returns `true` if accepted.
-typedef PairingPrompt =
-    Future<bool> Function(
-      DeviceInfo peerInfo,
-      String peerFingerprint,
-      String sasCode,
-    );
+typedef PairingPrompt = Future<bool> Function(
+  DeviceInfo peerInfo,
+  String peerFingerprint,
+  String sasCode,
+);
 
 /// The TLS-secured dion sync HTTP server.
 ///
@@ -81,15 +80,12 @@ class LanSyncServer {
   Timer? _sessionSweeper;
 
   LanSyncServer({
-    required DeviceIdentity identity,
-    required PairingStore pairingStore,
-    required PairingPrompt onPairingRequest,
-    required SyncRepo syncRepo,
+    required this._identity,
+    required this._pairingStore,
+    required this._onPairingRequest,
+    required this._syncRepo,
     this.onPairingChanged,
-  }) : _identity = identity,
-       _pairingStore = pairingStore,
-       _onPairingRequest = onPairingRequest,
-       _syncRepo = syncRepo;
+  });
 
   int? get port => _server?.port;
   bool get isRunning => _server != null;

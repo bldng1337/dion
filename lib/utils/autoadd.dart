@@ -100,16 +100,8 @@ Future<List<EntrySaved>> newlyMatchingEntries(
   return _entriesWhere(
     (entry) =>
         !entry.entryExtensions.any((e) => e.extensionId == extension.id) &&
-        autoAddRulesMatch(
-          newRules,
-          entry.boundExtensionId,
-          entry.mediaType,
-        ) &&
-        !autoAddRulesMatch(
-          oldRules,
-          entry.boundExtensionId,
-          entry.mediaType,
-        ),
+        autoAddRulesMatch(newRules, entry.boundExtensionId, entry.mediaType) &&
+        !autoAddRulesMatch(oldRules, entry.boundExtensionId, entry.mediaType),
   );
 }
 

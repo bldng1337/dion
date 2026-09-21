@@ -133,72 +133,86 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
   Future<void> _init() async {
     // Update position
     var lastduration = Duration.zero;
-    _streamSubs.add(player.stream.position.listen((event) {
-      if ((event - lastduration).inMilliseconds.abs() < 1000) {
-        return;
-      }
-      lastduration = event;
-      playbackState.add(playbackState.value.copyWith(updatePosition: event));
-    }));
+    _streamSubs.add(
+      player.stream.position.listen((event) {
+        if ((event - lastduration).inMilliseconds.abs() < 1000) {
+          return;
+        }
+        lastduration = event;
+        playbackState.add(playbackState.value.copyWith(updatePosition: event));
+      }),
+    );
 
     // Update buffering
-    _streamSubs.add(player.stream.buffering.listen((event) {
-      if (event) {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
-              MediaControl.pause,
-              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-            ],
-            processingState: AudioProcessingState.buffering,
-          ),
-        );
-      } else {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
-              MediaControl.play,
-              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-            ],
-            processingState: AudioProcessingState.ready,
-          ),
-        );
-      }
-    }));
+    _streamSubs.add(
+      player.stream.buffering.listen((event) {
+        if (event) {
+          playbackState.add(
+            playbackState.value.copyWith(
+              controls: [
+                if (eppath.hasprev && goprev != null)
+                  MediaControl.skipToPrevious,
+                MediaControl.pause,
+                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+              ],
+              processingState: AudioProcessingState.buffering,
+            ),
+          );
+        } else {
+          playbackState.add(
+            playbackState.value.copyWith(
+              controls: [
+                if (eppath.hasprev && goprev != null)
+                  MediaControl.skipToPrevious,
+                MediaControl.play,
+                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+              ],
+              processingState: AudioProcessingState.ready,
+            ),
+          );
+        }
+      }),
+    );
 
     // Update buffer
-    _streamSubs.add(player.stream.buffer.listen((event) {
-      playbackState.add(playbackState.value.copyWith(bufferedPosition: event));
-    }));
+    _streamSubs.add(
+      player.stream.buffer.listen((event) {
+        playbackState.add(
+          playbackState.value.copyWith(bufferedPosition: event),
+        );
+      }),
+    );
 
     // Update playing
-    _streamSubs.add(player.stream.playing.listen((event) {
-      if (event) {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
-              MediaControl.pause,
-              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-            ],
-            playing: true,
-          ),
-        );
-      } else {
-        playbackState.add(
-          playbackState.value.copyWith(
-            controls: [
-              if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
-              MediaControl.play,
-              if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-            ],
-            playing: false,
-          ),
-        );
-      }
-    }));
+    _streamSubs.add(
+      player.stream.playing.listen((event) {
+        if (event) {
+          playbackState.add(
+            playbackState.value.copyWith(
+              controls: [
+                if (eppath.hasprev && goprev != null)
+                  MediaControl.skipToPrevious,
+                MediaControl.pause,
+                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+              ],
+              playing: true,
+            ),
+          );
+        } else {
+          playbackState.add(
+            playbackState.value.copyWith(
+              controls: [
+                if (eppath.hasprev && goprev != null)
+                  MediaControl.skipToPrevious,
+                MediaControl.play,
+                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+              ],
+              playing: false,
+            ),
+          );
+        }
+      }),
+    );
 
     playbackState.add(
       playbackState.value.copyWith(
@@ -215,9 +229,11 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
         updatePosition: player.state.position,
       ),
     );
-    _streamSubs.add(player.stream.duration.listen((event) {
-      mediaItem.add(mediaItem.value!.copyWith(duration: event));
-    }));
+    _streamSubs.add(
+      player.stream.duration.listen((event) {
+        mediaItem.add(mediaItem.value!.copyWith(duration: event));
+      }),
+    );
     source.addListener(_publishMediaFromSource);
     mediaItem.add(
       MediaItem(

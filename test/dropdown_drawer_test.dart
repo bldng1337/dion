@@ -87,10 +87,7 @@ void main() {
     await tester.tap(find.text('One'));
     await tester.pumpAndSettle();
     expect(
-      find.descendant(
-        of: find.byType(ListView),
-        matching: find.text('One'),
-      ),
+      find.descendant(of: find.byType(ListView), matching: find.text('One')),
       findsOneWidget,
     );
     expect(selected, containsAll([1, 2]));

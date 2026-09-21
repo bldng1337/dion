@@ -285,9 +285,8 @@ class Extension extends ChangeNotifier {
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
                   return FadeTransition(
-                    opacity: CurveTween(
-                      curve: Curves.easeInOutCirc,
-                    ).animate(animation),
+                    opacity: CurveTween(curve: Curves.easeInOutCirc)
+                        .animate(animation),
                     child: child,
                   );
                 },
@@ -673,8 +672,8 @@ Future<void> remapSavedEntry(
   final doc = e.original.toJson() as Map<String, dynamic>..remove('ui');
   for (final entryExtension in e.entryExtensions) {
     final extension = entryExtension.extension;
-    final processor = extension?.getExtensionTypeOrNull<
-        rust.ExtensionType_EntryProcessor>();
+    final processor = extension
+        ?.getExtensionTypeOrNull<rust.ExtensionType_EntryProcessor>();
     if (!(extension != null && extension.isenabled && processor != null)) {
       entryExtension
         ..patch = null
@@ -744,20 +743,18 @@ class ExtensionAdapter with ChangeNotifier {
 
   void storeIcon(Extension ext) {
     final icon = ext.data.icon;
-    unawaited(
-      () async {
-        try {
-          final store = await locateAsync<ImageStoreService>();
-          await store.store(ImageStoreKind.extensionIcon, icon);
-        } catch (e, stack) {
-          logger.w(
-            'Failed to store icon of extension ${ext.id}',
-            error: e,
-            stackTrace: stack,
-          );
-        }
-      }(),
-    );
+    unawaited(() async {
+      try {
+        final store = await locateAsync<ImageStoreService>();
+        await store.store(ImageStoreKind.extensionIcon, icon);
+      } catch (e, stack) {
+        logger.w(
+          'Failed to store icon of extension ${ext.id}',
+          error: e,
+          stackTrace: stack,
+        );
+      }
+    }());
   }
 
   Future<void> reload() async {
@@ -914,8 +911,7 @@ class RemoteExtensionRepo {
   }
 }
 
-const storage =
-    FlutterSecureStorage(); //We just make it static as i dont want to init it multiple times or pass a ref around i dont think it really matters as we would mock ExtensionService and not this impl. If that changes the refactor should be trivial
+const storage = FlutterSecureStorage(); //We just make it static as i dont want to init it multiple times or pass a ref around i dont think it really matters as we would mock ExtensionService and not this impl. If that changes the refactor should be trivial
 
 class ExtensionService with ChangeNotifier {
   final Map<String, ExtensionAdapter> _adapters = {};
@@ -965,23 +961,21 @@ class ExtensionService with ChangeNotifier {
               entryExts[key] = entryExts[key]!.copyWith(value: value);
               await entry.save();
               _notifySettingChange(data.id, busKey);
-              unawaited(
-                () async {
-                  try {
-                    await entry.extension?.refreshEntryExtension(
-                      entry,
-                      entryExt!.extension!,
-                    );
-                    await entry.save();
-                  } catch (e, stack) {
-                    logger.e(
-                      'Failed to refresh entry extension after setting change',
-                      error: e,
-                      stackTrace: stack,
-                    );
-                  }
-                }(),
-              );
+              unawaited(() async {
+                try {
+                  await entry.extension?.refreshEntryExtension(
+                    entry,
+                    entryExt!.extension!,
+                  );
+                  await entry.save();
+                } catch (e, stack) {
+                  logger.e(
+                    'Failed to refresh entry extension after setting change',
+                    error: e,
+                    stackTrace: stack,
+                  );
+                }
+              }());
               return;
             }
             // 3. An attached SourceProcessor extension's settings.
@@ -1295,9 +1289,7 @@ class ExtensionService with ChangeNotifier {
 
   ExtensionAdapter? getAdapterForExtension(Extension ext) {
     return _adapters.values
-        .where(
-          (adapter) => adapter._extensions.any((e) => identical(e, ext)),
-        )
+        .where((adapter) => adapter._extensions.any((e) => identical(e, ext)))
         .firstOrNull;
   }
 

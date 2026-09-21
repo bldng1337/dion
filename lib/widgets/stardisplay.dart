@@ -28,7 +28,9 @@ class Stardisplay extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return Semantics(
-      label: semanticLabel ?? 'Rating ${(fill * maxstars).toStringAsFixed(1)} of $maxstars',
+      label:
+          semanticLabel ??
+          'Rating ${(fill * maxstars).toStringAsFixed(1)} of $maxstars',
       child: ShaderMask(
         blendMode: BlendMode.srcATop,
         shaderCallback: (Rect rect) {

@@ -33,10 +33,9 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
     return result;
   }
 
-  bool get _hasAnyContent =>
-      widget.entry.episodedata.any(
-        (e) => e.quotes.isNotEmpty || e.images.isNotEmpty,
-      );
+  bool get _hasAnyContent => widget.entry.episodedata.any(
+    (e) => e.quotes.isNotEmpty || e.images.isNotEmpty,
+  );
 
   @override
   void initState() {
@@ -248,9 +247,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
               hasPopup: true,
               errorWidget: ColoredBox(
                 color: context.theme.colorScheme.surfaceContainerHighest,
-                child: const Center(
-                  child: Icon(Icons.broken_image, size: 28),
-                ),
+                child: const Center(child: Icon(Icons.broken_image, size: 28)),
               ),
             ),
           ),
@@ -266,11 +263,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
                 color: Colors.black.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.close,
-                size: 14,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
             ),
           ),
         ),

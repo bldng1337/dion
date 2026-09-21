@@ -131,8 +131,7 @@ class _ExtensionBoundCustomUiState extends State<_ExtensionBoundCustomUi>
     }
     // Follow enable/disable so the banner swaps to the CustomUI (or back)
     // as soon as the state flips.
-    _observer = Observer(() => safeSetState(), extension)
-      ..disposedBy(scope);
+    _observer = Observer(() => safeSetState(), extension)..disposedBy(scope);
   }
 
   @override

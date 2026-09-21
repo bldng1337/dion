@@ -29,8 +29,10 @@ void main() {
   group('diffJson/applyJsonPatch', () {
     test('identical documents produce no ops', () {
       final doc = _entryDoc(genres: ['a'], meta: {'k': 'v'});
-      expect(diffJson(doc, _entryDoc(genres: ['a'], meta: {'k': 'v'})),
-          isEmpty);
+      expect(
+        diffJson(doc, _entryDoc(genres: ['a'], meta: {'k': 'v'})),
+        isEmpty,
+      );
     });
 
     test('round trip: applying the diff to before yields after', () {
@@ -49,7 +51,9 @@ void main() {
 
     test('meta diff produces per-key ops, not a whole-map replace', () {
       final before = _entryDoc(meta: {'a:one': '1', 'shared': 'x'});
-      final after = _entryDoc(meta: {'a:one': '1', 'shared': 'x', 'b:two': '2'});
+      final after = _entryDoc(
+        meta: {'a:one': '1', 'shared': 'x', 'b:two': '2'},
+      );
       final ops = diffJson(before, after);
       expect(ops, hasLength(1));
       expect(ops.single['op'], 'add');
@@ -57,13 +61,29 @@ void main() {
     });
 
     test('list changes are one wholesale replace op', () {
-      final before = _entryDoc(episodes: [
-        {'id': {'uid': 'e1'}, 'name': 'One', 'url': 'u1'},
-      ]);
-      final after = _entryDoc(episodes: [
-        {'id': {'uid': 'e1'}, 'name': 'One', 'url': 'u1'},
-        {'id': {'uid': 'e2'}, 'name': 'Two', 'url': 'u2'},
-      ]);
+      final before = _entryDoc(
+        episodes: [
+          {
+            'id': {'uid': 'e1'},
+            'name': 'One',
+            'url': 'u1',
+          },
+        ],
+      );
+      final after = _entryDoc(
+        episodes: [
+          {
+            'id': {'uid': 'e1'},
+            'name': 'One',
+            'url': 'u1',
+          },
+          {
+            'id': {'uid': 'e2'},
+            'name': 'Two',
+            'url': 'u2',
+          },
+        ],
+      );
       final ops = diffJson(before, after);
       expect(ops, hasLength(1));
       expect(ops.single['op'], 'replace');
@@ -84,10 +104,7 @@ void main() {
         'meta': <String, dynamic>{'a/b': '1', 'c~d': '2'},
       };
       final ops = diffJson(before, after);
-      expect(
-        ops.map((op) => op['path']).toSet(),
-        {'/meta/a~1b', '/meta/c~0d'},
-      );
+      expect(ops.map((op) => op['path']).toSet(), {'/meta/a~1b', '/meta/c~0d'});
       expect(applyJsonPatch(before, ops), after);
     });
 
@@ -118,10 +135,8 @@ void main() {
   });
 
   group('EntrySaved serialization', () {
-    rust.EntryDetailed savedEntry() => _entry(_entryDoc(
-          genres: ['g'],
-          meta: {'tracker:mediaId': '1'},
-        ));
+    rust.EntryDetailed savedEntry() =>
+        _entry(_entryDoc(genres: ['g'], meta: {'tracker:mediaId': '1'}));
 
     test('round trip keeps original, final, generation and patches', () async {
       final saved = EntrySaved(
@@ -158,22 +173,23 @@ void main() {
 
     test('legacy rows without original/generation default sensibly', () async {
       final finalEntry = _entry(_entryDoc(genres: ['g']));
-      final legacy = (EntrySaved(
-        entry: finalEntry,
-        original: finalEntry,
-        categories: [],
-        episodedata: [],
-        boundExtensionId: 'ext',
-        episode: 0,
-        savedSettings: EntrySavedSettings.defaultSettings(),
-        extensionSettings: {},
-        entryExtensions: [
-          EntryExtension(extensionId: 'tracker', extensionSettings: {}),
-        ],
-      ).toJson())
-        // Simulate a row written before the original/final split.
-        ..remove('original')
-        ..remove('generation');
+      final legacy =
+          (EntrySaved(
+              entry: finalEntry,
+              original: finalEntry,
+              categories: [],
+              episodedata: [],
+              boundExtensionId: 'ext',
+              episode: 0,
+              savedSettings: EntrySavedSettings.defaultSettings(),
+              extensionSettings: {},
+              entryExtensions: [
+                EntryExtension(extensionId: 'tracker', extensionSettings: {}),
+              ],
+            ).toJson())
+            // Simulate a row written before the original/final split.
+            ..remove('original')
+            ..remove('generation');
 
       final restored = await EntrySaved.fromJson(legacy);
       expect(restored.original.toJson(), finalEntry.toJson());

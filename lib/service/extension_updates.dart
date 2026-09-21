@@ -71,7 +71,6 @@ class ExtensionUpdateJob extends PeriodicJob {
       }
     }
   }
-
 }
 
 class ExtensionUpdateService {

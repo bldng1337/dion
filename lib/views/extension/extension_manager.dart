@@ -8,6 +8,7 @@ import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/toast.dart';
 import 'package:dionysos/utils/version.dart';
@@ -324,7 +325,10 @@ class _ExtensionListState extends State<ExtensionList>
                                         ext.name,
                                         style: context.titleMedium?.copyWith(
                                           color: ext.isenabled
-                                              ? context.theme.colorScheme.primary
+                                              ? context
+                                                    .theme
+                                                    .colorScheme
+                                                    .primary
                                               : Colors.grey,
                                         ),
                                         overflow: TextOverflow.ellipsis,
@@ -335,7 +339,9 @@ class _ExtensionListState extends State<ExtensionList>
                                       'v${ext.data.version}',
                                       style: context.bodySmall?.copyWith(
                                         color: context
-                                            .theme.colorScheme.onSurfaceVariant,
+                                            .theme
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -437,7 +443,6 @@ class ExtensionCatalog extends StatefulWidget {
 class _ExtensionCatalogState extends State<ExtensionCatalog>
     with StateDisposeScopeMixin {
   Map<String, _RepoResolution> _repos = {};
-
   int _resolveGeneration = 0;
 
   String? _selectedRepoUrl;
@@ -460,19 +465,18 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
   @override
   void initState() {
     super.initState();
-    settings.extension.repositories.addListener(_onRepositoriesChanged);
+    Observer(
+      _resolveAll,
+      settings.extension.repositories,
+      callOnInit: false,
+    ).disposedBy(scope);
     _resolveAll();
   }
 
   @override
   void dispose() {
-    settings.extension.repositories.removeListener(_onRepositoriesChanged);
     _controller?.dispose();
     super.dispose();
-  }
-
-  void _onRepositoriesChanged() {
-    _resolveAll();
   }
 
   Future<void> _resolveAll() async {
@@ -906,16 +910,12 @@ class _AddRepositoryDialog extends StatefulWidget {
   State<_AddRepositoryDialog> createState() => _AddRepositoryDialogState();
 }
 
-class _AddRepositoryDialogState extends State<_AddRepositoryDialog> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    // Disposing here (instead of right after showDialog returns) is what
-    // keeps the dialog's exit animation from touching a dead controller.
-    _controller.dispose();
-    super.dispose();
-  }
+class _AddRepositoryDialogState extends State<_AddRepositoryDialog>
+    with StateDisposeScopeMixin {
+  // Disposed with the State (not right after showDialog returns) so the
+  // dialog's exit animation never touches a dead controller.
+  late final TextEditingController _controller = TextEditingController()
+    ..disposedBy(scope);
 
   void _submit() {
     Navigator.pop(context, _controller.text.trim());

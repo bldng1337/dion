@@ -1,6 +1,17 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/dialog.dart';
@@ -289,10 +300,7 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
                           style: context.titleMedium,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          'v${extension.version}',
-                          style: context.bodySmall,
-                        ),
+                        Text('v${extension.version}', style: context.bodySmall),
                       ],
                     ),
                   ),

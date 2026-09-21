@@ -4,7 +4,18 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:country_flags/country_flags.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
@@ -44,7 +55,6 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   VideoController? controller;
   Observer? sourceObserver;
   ChapterController? chapterController;
-  final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   final ValueNotifier<int> subtitleIndex = ValueNotifier(0);
   Source_Video? currentVideo;
   final ValueNotifier<int> streamIndex = ValueNotifier(0);
@@ -68,11 +78,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     try {
       await _setupPlayer();
     } catch (e, s) {
-      logger.e(
-        'Failed to initialize video player',
-        error: e,
-        stackTrace: s,
-      );
+      logger.e('Failed to initialize video player', error: e, stackTrace: s);
       if (mounted) {
         setState(() {
           exception = e;
@@ -94,60 +100,61 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
       player: player,
       autoSkip: settings.videoSettings.chapters,
     )..disposedBy(scope);
-    sourceObserver = Observer(() async {
-      loading = true;
-      final res = await widget.source.cache.get(widget.source.episode);
-      if (!mounted) return;
-      if (res.isFailure) {
+    sourceObserver = Observer(
+      () async {
+        loading = true;
+        final res = await widget.source.cache.get(widget.source.episode);
+        if (!mounted) return;
+        if (res.isFailure) {
+          setState(() {
+            exception = res.exceptionOrNull;
+          });
+          return;
+        }
+        final source = res.getOrThrow;
+        if (source.source is! Source_Video) {
+          return;
+        }
         setState(() {
-          exception = res.exceptionOrNull;
+          currentVideo = source.source as Source_Video;
         });
-        return;
-      }
-      final source = res.getOrThrow;
-      if (source.source is! Source_Video) {
-        return;
-      }
-      setState(() {
-        currentVideo = source.source as Source_Video;
-      });
-      final prog = source.episode.data.progress?.split(':');
-      Duration startduration = Duration.zero;
-      if (prog != null &&
-          prog.length > 1 &&
-          !source.episode.data.finished) {
-        startduration =
-            Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
-      }
-      if (currentVideo!.sources.isEmpty) {
-        setState(() {
-          exception = Exception('No video sources available');
-        });
-        return;
-      }
-      final stream = currentVideo!.sources[getStreamIndex()];
-      await player.open(
-        Media(
-          stream.url.url,
-          httpHeaders: stream.url.header,
-          start: startduration,
-        ),
-      );
-      unawaited(
-        chapterController?.onMediaOpened(chapters: currentVideo!.chapters),
-      );
-      loading = false;
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return;
-      if (subtitles.isNotEmpty &&
-          subtitleIndex.value >= 0 &&
-          subtitleIndex.value < subtitles.length) {
-        final sub = subtitles[subtitleIndex.value];
-        await player.setSubtitleTrack(
-          SubtitleTrack.uri(sub.url.url, title: sub.title),
+        final prog = source.episode.data.progress?.split(':');
+        Duration startduration = Duration.zero;
+        if (prog != null && prog.length > 1 && !source.episode.data.finished) {
+          startduration = Duration(milliseconds: int.tryParse(prog[1]) ?? 0);
+        }
+        if (currentVideo!.sources.isEmpty) {
+          setState(() {
+            exception = Exception('No video sources available');
+          });
+          return;
+        }
+        final stream = currentVideo!.sources[getStreamIndex()];
+        await player.open(
+          Media(
+            stream.url.url,
+            httpHeaders: stream.url.header,
+            start: startduration,
+          ),
         );
-      }
-    }, widget.source, callIndirectly: false)..disposedBy(scope);
+        unawaited(
+          chapterController?.onMediaOpened(chapters: currentVideo!.chapters),
+        );
+        loading = false;
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (!mounted) return;
+        if (subtitles.isNotEmpty &&
+            subtitleIndex.value >= 0 &&
+            subtitleIndex.value < subtitles.length) {
+          final sub = subtitles[subtitleIndex.value];
+          await player.setSubtitleTrack(
+            SubtitleTrack.uri(sub.url.url, title: sub.title),
+          );
+        }
+      },
+      widget.source,
+      callIndirectly: false,
+    )..disposedBy(scope);
     Observer(
       () async {
         final video = currentVideo;
@@ -220,43 +227,43 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     await player.setPlaylistMode(PlaylistMode.none);
     if (!mounted) return;
 
-    playerStreamSubs.add(
-      player.stream.completed.listen((event) {
-        if (!event) {
-          return;
-        }
-        if (!mounted) {
-          return;
-        }
-        widget.source.episode.goNext(widget.source);
-      }),
-    );
-    playerStreamSubs.add(
-      player.stream.playing.listen((_) {
-        if (!mounted) return;
-        SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-      }),
-    );
-    playerStreamSubs.add(
-      player.stream.position.listen((event) {
-        if (!mounted) {
-          return;
-        }
-        if (loading) return;
-        SessionData.of(context)?.manager.keepSessionAlive();
-        final playlistindex = player.state.playlist.index;
-        widget.source.episode.data.progress =
-            '$playlistindex:${event.inMilliseconds}';
-        final duration = player.state.duration;
-        if (duration > Duration.zero &&
-            event.inMilliseconds / duration.inMilliseconds > 0.5) {
-          widget.source.cache.preload(widget.source.episode.next);
-        }
-        if (event.inSeconds % 5 == 0) {
+    player.stream.completed
+        .listen((event) {
+          if (!event) {
+            return;
+          }
+          if (!mounted) {
+            return;
+          }
+          widget.source.episode.goNext(widget.source);
+        })
+        .disposedBy(scope);
+    player.stream.playing
+        .listen((_) {
+          if (!mounted) return;
           SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-        }
-      }),
-    );
+        })
+        .disposedBy(scope);
+    player.stream.position
+        .listen((event) {
+          if (!mounted) {
+            return;
+          }
+          if (loading) return;
+          SessionData.of(context)?.manager.keepSessionAlive();
+          final playlistindex = player.state.playlist.index;
+          widget.source.episode.data.progress =
+              '$playlistindex:${event.inMilliseconds}';
+          final duration = player.state.duration;
+          if (duration > Duration.zero &&
+              event.inMilliseconds / duration.inMilliseconds > 0.5) {
+            widget.source.cache.preload(widget.source.episode.next);
+          }
+          if (event.inSeconds % 5 == 0) {
+            SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+          }
+        })
+        .disposedBy(scope);
   }
 
   @override
@@ -275,12 +282,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
 
   @override
   void dispose() {
-    for (final sub in playerStreamSubs) {
-      sub.cancel();
-    }
     widget.source.episode.save();
     player?.dispose();
-    player = null;
     super.dispose();
   }
 
@@ -303,8 +306,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   }
 
   Future<void> _toggleBookmark() async {
-    widget.source.episode.data.bookmark =
-        !widget.source.episode.data.bookmark;
+    widget.source.episode.data.bookmark = !widget.source.episode.data.bookmark;
     await widget.source.episode.save();
     if (mounted) {
       setState(() {});
@@ -338,10 +340,9 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     ],
     StatefulBuilder(
       builder: (context, setState) => DionIconbutton(
-        tooltip:
-            widget.source.episode.data.bookmark
-                ? 'Remove Bookmark'
-                : 'Add Bookmark',
+        tooltip: widget.source.episode.data.bookmark
+            ? 'Remove Bookmark'
+            : 'Add Bookmark',
         icon: Icon(
           widget.source.episode.data.bookmark
               ? Icons.bookmark
@@ -566,8 +567,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         StreamBuilder(
           stream: player.stream.playing,
           builder: (context, snapshot) => DionIconbutton(
-            tooltip:
-                (snapshot.data ?? player.state.playing) ? 'Pause' : 'Play',
+            tooltip: (snapshot.data ?? player.state.playing) ? 'Pause' : 'Play',
             icon: Icon(
               snapshot.data ?? player.state.playing
                   ? Icons.pause
@@ -663,8 +663,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         Positioned.fill(child: MaterialVideoControls(state)),
         Positioned(
           right: _seekBarSideInset,
-          bottom:
-              _seekBarBottom + _seekBarContainerHeight + DionSpacing.sm,
+          bottom: _seekBarBottom + _seekBarContainerHeight + DionSpacing.sm,
           child: ChapterSkipButton(controller: chapterController!),
         ),
       ],

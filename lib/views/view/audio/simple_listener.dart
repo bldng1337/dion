@@ -3,7 +3,18 @@ import 'dart:async';
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
@@ -43,7 +54,6 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   Player? player;
   Observer? sourceObserver;
   ChapterController? chapterController;
-  final List<StreamSubscription<dynamic>> playerStreamSubs = [];
   Source_Audio? currentAudio;
   final ValueNotifier<int> streamIndex = ValueNotifier(0);
   Object? exception;
@@ -60,11 +70,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     try {
       await _setupPlayer();
     } catch (e, s) {
-      logger.e(
-        'Failed to initialize audio player',
-        error: e,
-        stackTrace: s,
-      );
+      logger.e('Failed to initialize audio player', error: e, stackTrace: s);
       if (mounted) {
         setState(() {
           exception = e;
@@ -215,37 +221,38 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     await player.setPlaylistMode(PlaylistMode.none);
     if (!mounted) return;
 
-    playerStreamSubs.add(
-      player.stream.completed.listen((event) {
-        if (!event) {
-          return;
-        }
-        if (!mounted) {
-          return;
-        }
-        if (player.state.playlist.index <
-            player.state.playlist.medias.length - 1) {
-          return;
-        }
-        if (loading) return;
-        widget.source.episode.goNext(widget.source);
-      }),
-    );
-    playerStreamSubs.add(
-      player.stream.position.listen((event) {
-        if (mounted == false) return;
-        if (loading) return;
-        SessionData.of(context)?.manager.keepSessionAlive();
-        widget.source.episode.data.progress = '${event.inMilliseconds}';
-        final secs = event.inSeconds;
-        if (secs != 0 && secs % 5 == 0) {
-          SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
-        }
-        if (event.inMilliseconds / player.state.duration.inMilliseconds > 0.5) {
-          widget.source.cache.preload(widget.source.episode.next);
-        }
-      }),
-    );
+    player.stream.completed
+        .listen((event) {
+          if (!event) {
+            return;
+          }
+          if (!mounted) {
+            return;
+          }
+          if (player.state.playlist.index <
+              player.state.playlist.medias.length - 1) {
+            return;
+          }
+          if (loading) return;
+          widget.source.episode.goNext(widget.source);
+        })
+        .disposedBy(scope);
+    player.stream.position
+        .listen((event) {
+          if (mounted == false) return;
+          if (loading) return;
+          SessionData.of(context)?.manager.keepSessionAlive();
+          widget.source.episode.data.progress = '${event.inMilliseconds}';
+          final secs = event.inSeconds;
+          if (secs != 0 && secs % 5 == 0) {
+            SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
+          }
+          if (event.inMilliseconds / player.state.duration.inMilliseconds >
+              0.5) {
+            widget.source.cache.preload(widget.source.episode.next);
+          }
+        })
+        .disposedBy(scope);
   }
 
   @override
@@ -263,13 +270,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
 
   @override
   void dispose() {
-    for (final sub in playerStreamSubs) {
-      sub.cancel();
-    }
-    _progressController?.close();
     widget.source.episode.save();
     player?.dispose();
-    player = null;
     super.dispose();
   }
 
@@ -342,11 +344,9 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   }
 
   Stream<void> _progressStream = const Stream<void>.empty();
-  StreamController<void>? _progressController;
 
   Stream<void> _buildProgressStream(Player p) {
-    final controller = StreamController<void>.broadcast();
-    _progressController = controller;
+    final controller = StreamController<void>.broadcast()..disposedBy(scope);
     final subs = <StreamSubscription<dynamic>>[];
     void addPeers() {
       for (final stream in [
@@ -464,171 +464,178 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         ],
         child: Container(
           margin: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Expanded(
-              // The skip pill floats over the cover instead of sitting in the
-              // controls column, so its appearance never shifts the layout.
-              child: Stack(
-                children: [
-                  Center(
-                    child: DionImage(
-                      imageUrl: widget.source.episode.cover?.url,
-                      httpHeaders: widget.source.episode.cover?.header,
-                    ).paddingOnly(bottom: 10),
-                  ),
-                  Positioned(
-                    right: DionSpacing.sm,
-                    bottom: DionSpacing.sm,
-                    child: ChapterSkipButton(controller: chapterController!),
-                  ),
-                ],
-              ),
-            ),
-            if (loading)
-              50.0.heightBox
-            else
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          child: Column(
+            children: [
+              Expanded(
+                // The skip pill floats over the cover instead of sitting in the
+                // controls column, so its appearance never shifts the layout.
+                child: Stack(
                   children: [
-                    StreamBuilder(
-                      stream: _progressStream,
-                      builder: (context, snapshot) {
-                        return Semantics(
-                          label: 'Playback position',
-                          value:
-                              '${player.state.position.inMinutes}:${(player.state.position.inSeconds % 60).toString().padLeft(2, '0')}'
-                              ' of '
-                              '${player.state.duration.inMinutes}:${(player.state.duration.inSeconds % 60).toString().padLeft(2, '0')}',
-                          child: ChapterProgressBar(
-                            controller: chapterController!,
-                            progress: player.state.position,
-                            total: player.state.duration,
-                            buffered: player.state.buffer,
-                            onSeek: (value) {
-                              player.seek(value);
-                              widget.source.episode.data.progress =
-                                  '${value.inMilliseconds}';
-                              SessionData.of(
-                                context,
-                              )?.manager.keepSessionAlive(saveToDb: true);
-                            },
-                          ),
-                        );
-                      },
+                    Center(
+                      child: DionImage(
+                        imageUrl: widget.source.episode.cover?.url,
+                        httpHeaders: widget.source.episode.cover?.header,
+                      ).paddingOnly(bottom: 10),
                     ),
-                    ListenableBuilder(
-                      listenable: chapterController!,
-                      builder: (context, _) {
-                        final chapter = chapterController!.currentChapter;
-                        if (!chapterController!.hasChapters || chapter == null) {
-                          return const SizedBox.shrink();
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            chapter.title,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.theme.textTheme.bodySmall?.copyWith(
-                              color: context.theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        DionIconbutton(
-                          tooltip: 'Previous Chapter',
-                          icon: const Icon(Icons.skip_previous),
-                          onPressed: () async {
-                            if (chapterController != null &&
-                                await chapterController!.prevChapter()) {
-                              return;
-                            }
-                            if (player.state.playlist.index == 0) {
-                              if (mounted) {
-                                widget.source.episode.goPrev(widget.source);
-                              }
-                            }
-                            player.previous();
-                          },
-                        ),
-                        DionIconbutton(
-                          tooltip: 'Seek Backward',
-                          icon: const Icon(Icons.navigate_before),
-                          onPressed: _seekBackward,
-                        ),
-                        StreamBuilder(
-                          stream: player.stream.playing,
-                          initialData: player.state.playing,
-                          builder: (context, snapshot) {
-                            final data = snapshot.data ?? player.state.playing;
-                            final icon = data ? Icons.pause : Icons.play_arrow;
-                            return DionIconbutton(
-                              tooltip: data ? 'Pause' : 'Play',
-                              icon: Icon(icon),
-                              onPressed: () async {
-                                await player.playOrPause();
-                                if (context.mounted) {
-                                  SessionData.of(
-                                    context,
-                                  )?.manager.keepSessionAlive(saveToDb: true);
-                                }
-                              },
-                            );
-                          },
-                        ),
-                        DionIconbutton(
-                          tooltip: 'Seek Forward',
-                          icon: const Icon(Icons.navigate_next),
-                          onPressed: _seekForward,
-                        ),
-                        DionIconbutton(
-                          tooltip: 'Next Chapter',
-                          icon: const Icon(Icons.skip_next),
-                          onPressed: () async {
-                            if (chapterController != null &&
-                                await chapterController!.nextChapter()) {
-                              return;
-                            }
-                            if (player.state.playlist.index ==
-                                player.state.playlist.medias.length - 1) {
-                              if (mounted) {
-                                widget.source.episode.goNext(widget.source);
-                              }
-                            }
-                            player.next();
-                          },
-                        ),
-                        if (currentAudio!.sources.length > 1)
-                          DionDropdown(
-                            items: currentAudio!.sources.indexed
-                                .map(
-                                  (item) => DionDropdownItem(
-                                    value: item.$1,
-                                    label: '${item.$2.name} (${item.$2.lang})',
-                                  ),
-                                )
-                                .toList(),
-                            value: getStreamIndex(),
-                            onChanged: (val) {
-                              if (val == null) return;
-                              streamIndex.value = val;
-                            },
-                          ),
-                      ],
+                    Positioned(
+                      right: DionSpacing.sm,
+                      bottom: DionSpacing.sm,
+                      child: ChapterSkipButton(controller: chapterController!),
                     ),
                   ],
                 ),
               ),
-          ],
+              if (loading)
+                50.0.heightBox
+              else
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      StreamBuilder(
+                        stream: _progressStream,
+                        builder: (context, snapshot) {
+                          return Semantics(
+                            label: 'Playback position',
+                            value:
+                                '${player.state.position.inMinutes}:${(player.state.position.inSeconds % 60).toString().padLeft(2, '0')}'
+                                ' of '
+                                '${player.state.duration.inMinutes}:${(player.state.duration.inSeconds % 60).toString().padLeft(2, '0')}',
+                            child: ChapterProgressBar(
+                              controller: chapterController!,
+                              progress: player.state.position,
+                              total: player.state.duration,
+                              buffered: player.state.buffer,
+                              onSeek: (value) {
+                                player.seek(value);
+                                widget.source.episode.data.progress =
+                                    '${value.inMilliseconds}';
+                                SessionData.of(context)?.manager
+                                    .keepSessionAlive(saveToDb: true);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                      ListenableBuilder(
+                        listenable: chapterController!,
+                        builder: (context, _) {
+                          final chapter = chapterController!.currentChapter;
+                          if (!chapterController!.hasChapters ||
+                              chapter == null) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              chapter.title,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.theme.textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: context
+                                        .theme
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            ),
+                          );
+                        },
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DionIconbutton(
+                            tooltip: 'Previous Chapter',
+                            icon: const Icon(Icons.skip_previous),
+                            onPressed: () async {
+                              if (chapterController != null &&
+                                  await chapterController!.prevChapter()) {
+                                return;
+                              }
+                              if (player.state.playlist.index == 0) {
+                                if (mounted) {
+                                  widget.source.episode.goPrev(widget.source);
+                                }
+                              }
+                              player.previous();
+                            },
+                          ),
+                          DionIconbutton(
+                            tooltip: 'Seek Backward',
+                            icon: const Icon(Icons.navigate_before),
+                            onPressed: _seekBackward,
+                          ),
+                          StreamBuilder(
+                            stream: player.stream.playing,
+                            initialData: player.state.playing,
+                            builder: (context, snapshot) {
+                              final data =
+                                  snapshot.data ?? player.state.playing;
+                              final icon = data
+                                  ? Icons.pause
+                                  : Icons.play_arrow;
+                              return DionIconbutton(
+                                tooltip: data ? 'Pause' : 'Play',
+                                icon: Icon(icon),
+                                onPressed: () async {
+                                  await player.playOrPause();
+                                  if (context.mounted) {
+                                    SessionData.of(context)?.manager
+                                        .keepSessionAlive(saveToDb: true);
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                          DionIconbutton(
+                            tooltip: 'Seek Forward',
+                            icon: const Icon(Icons.navigate_next),
+                            onPressed: _seekForward,
+                          ),
+                          DionIconbutton(
+                            tooltip: 'Next Chapter',
+                            icon: const Icon(Icons.skip_next),
+                            onPressed: () async {
+                              if (chapterController != null &&
+                                  await chapterController!.nextChapter()) {
+                                return;
+                              }
+                              if (player.state.playlist.index ==
+                                  player.state.playlist.medias.length - 1) {
+                                if (mounted) {
+                                  widget.source.episode.goNext(widget.source);
+                                }
+                              }
+                              player.next();
+                            },
+                          ),
+                          if (currentAudio!.sources.length > 1)
+                            DionDropdown(
+                              items: currentAudio!.sources.indexed
+                                  .map(
+                                    (item) => DionDropdownItem(
+                                      value: item.$1,
+                                      label:
+                                          '${item.$2.name} (${item.$2.lang})',
+                                    ),
+                                  )
+                                  .toList(),
+                              value: getStreamIndex(),
+                              onChanged: (val) {
+                                if (val == null) return;
+                                streamIndex.value = val;
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

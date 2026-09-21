@@ -10,14 +10,13 @@ LogEvent _event(
   Object? error,
   StackTrace? stackTrace,
   DateTime? time,
-}) =>
-    LogEvent(
-      level,
-      message,
-      error: error,
-      stackTrace: stackTrace,
-      time: time ?? DateTime(2026, 1, 1, 12),
-    );
+}) => LogEvent(
+  level,
+  message,
+  error: error,
+  stackTrace: stackTrace,
+  time: time ?? DateTime(2026, 1, 1, 12),
+);
 
 void main() {
   late Directory dir;
@@ -89,27 +88,28 @@ void main() {
     expect(reopened.records.map((r) => r.message), ['early']);
   });
 
-  test('background isolate records are tagged and appended per write',
-      () async {
-    final store = spawnStore()..source = kLogSourceBackground;
-    await store.init(dir);
-    store.add(_event('from bg', level: Level.error, error: 'job failed'));
-    await store.flushed;
+  test(
+    'background isolate records are tagged and appended per write',
+    () async {
+      final store = spawnStore()..source = kLogSourceBackground;
+      await store.init(dir);
+      store.add(_event('from bg', level: Level.error, error: 'job failed'));
+      await store.flushed;
 
-    final reopened = spawnStore();
-    await reopened.init(dir);
-    final record = reopened.records.single;
-    expect(record.source, kLogSourceBackground);
-    expect(record.error, 'job failed');
+      final reopened = spawnStore();
+      await reopened.init(dir);
+      final record = reopened.records.single;
+      expect(record.source, kLogSourceBackground);
+      expect(record.error, 'job failed');
 
-    final formatted = formatLogRecord(record);
-    expect(formatted, contains('[BACKGROUND]'));
-    expect(formatted, contains('Error: job failed'));
-    expect(formatted, contains('---'));
-  });
+      final formatted = formatLogRecord(record);
+      expect(formatted, contains('[BACKGROUND]'));
+      expect(formatted, contains('Error: job failed'));
+      expect(formatted, contains('---'));
+    },
+  );
 
-  test('rotation moves the current file and keeps history loadable',
-      () async {
+  test('rotation moves the current file and keeps history loadable', () async {
     final store = spawnStore(rotateBytes: 200);
     await store.init(dir);
     for (var i = 0; i < 20; i++) {
@@ -128,8 +128,7 @@ void main() {
     // Retention is size-bounded, so the oldest records may have rotated out;
     // what must hold is that history loads from more than just the current
     // file, in order, up to the newest record.
-    final currentFileLines =
-        await File('${dir.path}/dion.log').readAsLines();
+    final currentFileLines = await File('${dir.path}/dion.log').readAsLines();
     expect(reopened.records.length, greaterThan(currentFileLines.length));
     expect(messages.last, 'message 19 with some padding to fill the file');
     final indexes = messages

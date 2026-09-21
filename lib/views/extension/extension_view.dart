@@ -1,5 +1,16 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment,ButtonType,ContainerType,CrossAxisAlignment,EdgeInsets,MainAxisAlignment,MainAxisSize,StackFit,TextStyle,WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/autoadd.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
@@ -231,13 +242,19 @@ class _AutoAddSectionState extends State<AutoAddSection>
     _controller.setItems([
       MultiDropdownItem<String>(value: autoAddTokenAll, label: 'All sources'),
       for (final (type, label) in _mediaTypeItems)
-        MultiDropdownItem<String>(value: autoAddTokenForMediaType(type), label: label),
+        MultiDropdownItem<String>(
+          value: autoAddTokenForMediaType(type),
+          label: label,
+        ),
       ...locate<ExtensionService>()
           .getExtensions()
           .where(
             (ext) =>
                 ext.id != widget.extension.id &&
-                ext.getExtensionTypeOrNull<rust.ExtensionType_EntryProvider>() !=
+                ext
+                        .getExtensionTypeOrNull<
+                          rust.ExtensionType_EntryProvider
+                        >() !=
                     null,
           )
           .map(
@@ -257,7 +274,9 @@ class _AutoAddSectionState extends State<AutoAddSection>
     final hasAll = selection.contains(autoAddTokenAll);
     final hadAll = widget.extension.meta.autoAddRules.contains(autoAddTokenAll);
     if (hasAll && !hadAll) return [autoAddTokenAll];
-    if (hasAll && hadAll) return selection.where((e) => e != autoAddTokenAll).toList();
+    if (hasAll && hadAll) {
+      return selection.where((e) => e != autoAddTokenAll).toList();
+    }
     return selection;
   }
 
@@ -317,15 +336,18 @@ class _AutoAddSectionState extends State<AutoAddSection>
           style: context.titleMedium?.copyWith(
             color: context.theme.colorScheme.primary,
           ),
-        ).paddingSymmetric(horizontal: DionSpacing.lg, vertical: DionSpacing.sm),
+        ).paddingSymmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.sm,
+        ),
         Text(
-          'Automatically add ${widget.extension.name} when saving entries '
-          'from the selected sources. Leave empty to never add it '
-          'automatically.',
-          style: context.bodySmall?.copyWith(
-            color: context.theme.colorScheme.onSurfaceVariant,
-          ),
-        )
+              'Automatically add ${widget.extension.name} when saving entries '
+              'from the selected sources. Leave empty to never add it '
+              'automatically.',
+              style: context.bodySmall?.copyWith(
+                color: context.theme.colorScheme.onSurfaceVariant,
+              ),
+            )
             .paddingSymmetric(horizontal: DionSpacing.lg)
             .paddingOnly(bottom: DionSpacing.sm),
         DionMultiDropdown<String>(
@@ -342,7 +364,10 @@ class _AutoAddSectionState extends State<AutoAddSection>
             ),
           ),
           onSelectionChange: _onSelectionChange,
-        ).paddingSymmetric(horizontal: DionSpacing.lg, vertical: DionSpacing.xs),
+        ).paddingSymmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.xs,
+        ),
       ],
     );
   }

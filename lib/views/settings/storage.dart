@@ -29,20 +29,14 @@ import 'package:path_provider/path_provider.dart';
 const archiveVersion = 2;
 Future<void> applyBackup(Archive archive) async {
   final db = locate<Database>();
-  final meta =
-      json.decode(
-            String.fromCharCodes(archive.findFile('dionmeta.json')!.content),
-          )
-          as Map<String, dynamic>;
+  final meta = json.decode(
+    String.fromCharCodes(archive.findFile('dionmeta.json')!.content),
+  ) as Map<String, dynamic>;
   switch (meta['version'] as int) {
     case 1:
-      final entries =
-          json.decode(
-                String.fromCharCodes(
-                  archive.findFile('entrydata.json')!.content,
-                ),
-              )
-              as List<dynamic>;
+      final entries = json.decode(
+        String.fromCharCodes(archive.findFile('entrydata.json')!.content),
+      ) as List<dynamic>;
       for (final entry in entries) {
         final entryData = await EntrySaved.fromJson(
           entry as Map<String, dynamic>,
@@ -50,13 +44,9 @@ Future<void> applyBackup(Archive archive) async {
         await db.updateEntry(entryData);
       }
     case 2:
-      final entries =
-          json.decode(
-                String.fromCharCodes(
-                  archive.findFile('entrydata.json')!.content,
-                ),
-              )
-              as List<dynamic>;
+      final entries = json.decode(
+        String.fromCharCodes(archive.findFile('entrydata.json')!.content),
+      ) as List<dynamic>;
       for (final entry in entries) {
         entry['categories'] = await db.getCategoriesByName(
           (entry['categories'] as List<dynamic>).cast<String>(),
@@ -66,13 +56,9 @@ Future<void> applyBackup(Archive archive) async {
         );
         await db.updateEntry(entrydata);
       }
-      final activities =
-          json.decode(
-                String.fromCharCodes(
-                  archive.findFile('activitydata.json')!.content,
-                ),
-              )
-              as List<dynamic>;
+      final activities = json.decode(
+        String.fromCharCodes(archive.findFile('activitydata.json')!.content),
+      ) as List<dynamic>;
       for (final activity in activities) {
         activity['time'] = DateTime.parse(activity['time'] as String);
         final activityData = Activity.fromJson(
@@ -112,8 +98,7 @@ Future<Archive> createBackup() async {
     activities.addAll(
       activitiesdb.map((e) {
         final json = e.toDBJson();
-        json['time'] = (json['time'] as DateTime)
-            .toIso8601String(); // Maybe we should do something that is robuster to schema changes here
+        json['time'] = (json['time'] as DateTime).toIso8601String(); // Maybe we should do something that is robuster to schema changes here
         return json;
       }),
     );
@@ -207,8 +192,7 @@ class Storage extends StatelessWidget {
           ),
           SettingTitle(
             title: 'Auto-Download',
-            subtitle:
-                'Keep permanent copies of images in case sources go down',
+            subtitle: 'Keep permanent copies of images in case sources go down',
             children: [
               SettingToggle(
                 title: 'Entry Covers & Posters',

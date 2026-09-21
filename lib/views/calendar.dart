@@ -84,12 +84,12 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
                 }
                 final sections = _buildSections(entries);
                 return ListView.builder(
-                  padding: DionSpacing.pagePadding
-                      .copyWith(bottom: DionSpacing.xxxl),
-                  itemCount: sections.length,
-                  itemBuilder: (context, index) => sections[index].render(
-                    context,
+                  padding: DionSpacing.pagePadding.copyWith(
+                    bottom: DionSpacing.xxxl,
                   ),
+                  itemCount: sections.length,
+                  itemBuilder: (context, index) =>
+                      sections[index].render(context),
                 );
               },
             ),
@@ -177,7 +177,8 @@ class _CalendarSection {
         for (final e in entries) _CalendarItem(item: e),
       ],
     );
-  }}
+  }
+}
 
 class _CalendarItem extends StatelessWidget {
   final _CalendarEntry item;

@@ -41,8 +41,7 @@ abstract class EntryDetailed extends Entry {
 }
 
 extension EntryDetailedReleaseInfo on EntryDetailed {
-  int get releasedEpisodes =>
-      episodes.where((e) => e.announced != true).length;
+  int get releasedEpisodes => episodes.where((e) => e.announced != true).length;
 }
 
 class EntryDetailedImpl implements EntryDetailed {

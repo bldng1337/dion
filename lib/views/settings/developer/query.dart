@@ -7,6 +7,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 /// A developer tool for running arbitrary SurrealQL queries against the
 /// active database and inspecting the raw return values. Useful for
@@ -18,24 +19,18 @@ class QueryDebugger extends StatefulWidget {
   State<QueryDebugger> createState() => _QueryDebuggerState();
 }
 
-class _QueryDebuggerState extends State<QueryDebugger> {
-  final TextEditingController _queryController = TextEditingController(
+class _QueryDebuggerState extends State<QueryDebugger>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _queryController = TextEditingController(
     text: 'SELECT * FROM type::table(\$table) LIMIT 10;',
-  );
-  final TextEditingController _varsController = TextEditingController(
+  )..disposedBy(scope);
+  late final TextEditingController _varsController = TextEditingController(
     text: '{\n  "table": "entry"\n}',
-  );
+  )..disposedBy(scope);
 
   bool _varsExpanded = false;
   bool _running = false;
   _QueryResult? _result;
-
-  @override
-  void dispose() {
-    _queryController.dispose();
-    _varsController.dispose();
-    super.dispose();
-  }
 
   Future<void> _runQuery() async {
     final query = _queryController.text.trim();
@@ -51,16 +46,22 @@ class _QueryDebuggerState extends State<QueryDebugger> {
         } else if (decoded is Map) {
           vars = decoded.map((k, v) => MapEntry(k.toString(), v));
         } else {
-          setState(() => _result = _QueryResult.error(
-            'Variables must be a JSON object, got ${decoded.runtimeType}.',
-          ));
+          setState(
+            () => _result = _QueryResult.error(
+              'Variables must be a JSON object, got ${decoded.runtimeType}.',
+            ),
+          );
           return;
         }
       } catch (e, stack) {
-        logger.e('Failed to parse query variables', error: e, stackTrace: stack);
-        setState(() => _result = _QueryResult.error(
-          'Invalid variables JSON:\n$e',
-        ));
+        logger.e(
+          'Failed to parse query variables',
+          error: e,
+          stackTrace: stack,
+        );
+        setState(
+          () => _result = _QueryResult.error('Invalid variables JSON:\n$e'),
+        );
         return;
       }
     }
@@ -76,10 +77,7 @@ class _QueryDebuggerState extends State<QueryDebugger> {
       stopwatch.stop();
       if (!mounted) return;
       setState(() {
-        _result = _QueryResult.success(
-          result,
-          elapsed: stopwatch.elapsed,
-        );
+        _result = _QueryResult.success(result, elapsed: stopwatch.elapsed);
         _running = false;
       });
     } catch (e, stack) {
@@ -154,9 +152,8 @@ class _QueryDebuggerState extends State<QueryDebugger> {
                 _VarsSection(
                   controller: _varsController,
                   expanded: _varsExpanded,
-                  onToggle: () => setState(
-                    () => _varsExpanded = !_varsExpanded,
-                  ),
+                  onToggle: () =>
+                      setState(() => _varsExpanded = !_varsExpanded),
                 ),
                 const SizedBox(height: DionSpacing.md),
                 _ActionBar(
@@ -250,9 +247,7 @@ class _VarsSection extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  expanded
-                      ? Icons.expand_less
-                      : Icons.expand_more,
+                  expanded ? Icons.expand_less : Icons.expand_more,
                   size: 18,
                   color: context.textTertiary,
                 ),
@@ -270,10 +265,7 @@ class _VarsSection extends StatelessWidget {
               controller: controller,
               minLines: 3,
               maxLines: 8,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
@@ -411,10 +403,7 @@ class _BorderedBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.05),
         borderRadius: DionRadius.medium,
-        border: Border.all(
-          color: accent.withValues(alpha: 0.3),
-          width: 0.5,
-        ),
+        border: Border.all(color: accent.withValues(alpha: 0.3), width: 0.5),
       ),
       padding: const EdgeInsets.all(DionSpacing.md),
       child: Column(
@@ -466,8 +455,10 @@ class _QueryResult {
 
   const _QueryResult._({this.data, this.error, this.elapsed});
 
-  factory _QueryResult.success(List<dynamic> data, {required Duration elapsed}) =>
-      _QueryResult._(data: data, elapsed: elapsed);
+  factory _QueryResult.success(
+    List<dynamic> data, {
+    required Duration elapsed,
+  }) => _QueryResult._(data: data, elapsed: elapsed);
 
   factory _QueryResult.error(String message, {Duration? elapsed}) =>
       _QueryResult._(error: message, elapsed: elapsed);

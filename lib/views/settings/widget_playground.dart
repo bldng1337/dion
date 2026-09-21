@@ -98,9 +98,8 @@ class WidgetPlayground extends StatelessWidget {
                 onPressed: () => Future.delayed(const Duration(seconds: 2)),
                 child: const Icon(Icons.add),
               ).paddingOnly(bottom: 16),
-              const ActionButton(
-                child: Icon(Icons.add),
-              ).paddingOnly(bottom: 16),
+              const ActionButton(child: Icon(Icons.add))
+                  .paddingOnly(bottom: 16),
             ],
           ),
           SettingTitle(
@@ -388,26 +387,26 @@ class WidgetPlayground extends StatelessWidget {
                   ],
                 ),
               ).paddingOnly(bottom: 16),
-          // SizedBox( TODO: Fix trailing tab bar
-          //   height: 200,
-          //   child: DionTabBar(
-          //     trailing: const Icon(Icons.abc),
-          //     tabs: [
-          //       DionTab(
-          //         tab: const Text('Tab 1'),
-          //         child: const Center(child: Text('Content 1')),
-          //       ),
-          //       DionTab(
-          //         tab: const Text('Tab 2'),
-          //         child: const Center(child: Text('Content 2')),
-          //       ),
-          //       DionTab(
-          //         tab: const Text('Tab 3'),
-          //         child: const Center(child: Text('Content 3')),
-          //       ),
-          //     ],
-          //   ),
-          // ).paddingOnly(bottom: 16),
+              // SizedBox( TODO: Fix trailing tab bar
+              //   height: 200,
+              //   child: DionTabBar(
+              //     trailing: const Icon(Icons.abc),
+              //     tabs: [
+              //       DionTab(
+              //         tab: const Text('Tab 1'),
+              //         child: const Center(child: Text('Content 1')),
+              //       ),
+              //       DionTab(
+              //         tab: const Text('Tab 2'),
+              //         child: const Center(child: Text('Content 2')),
+              //       ),
+              //       DionTab(
+              //         tab: const Text('Tab 3'),
+              //         child: const Center(child: Text('Content 3')),
+              //       ),
+              //     ],
+              //   ),
+              // ).paddingOnly(bottom: 16),
               const SizedBox(
                 height: 200,
                 child: DionTabBar(
@@ -526,7 +525,8 @@ class WidgetPlayground extends StatelessWidget {
             children: [
               const Text('Loadable Button').paddingOnly(bottom: 8),
               // Note the DionTextbutton already uses Loadable internally so for simple loading flows just return a future from onPressed or make the callback async.
-              const Text('This button uses Loadable internally').paddingOnly(bottom: 8),
+              const Text('This button uses Loadable internally')
+                  .paddingOnly(bottom: 8),
               DionTextbutton(
                 onPressed: () async {
                   await Future.delayed(const Duration(seconds: 2));
@@ -555,7 +555,7 @@ class WidgetPlayground extends StatelessWidget {
               ).paddingOnly(bottom: 16),
             ],
           ),
-          200.0.heightBox
+          200.0.heightBox,
         ],
       ),
     );

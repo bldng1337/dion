@@ -73,7 +73,11 @@ class DirectoryProvider {
           await dir.delete(recursive: true);
         }
       } catch (e, stack) {
-        logger.e('Failed to delete $dir while clearing data', error: e, stackTrace: stack);
+        logger.e(
+          'Failed to delete $dir while clearing data',
+          error: e,
+          stackTrace: stack,
+        );
       }
     }
     await basepath.delete(recursive: true);

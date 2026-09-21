@@ -6,7 +6,12 @@ class Observer implements Disposable {
   final Function() callback;
   final bool callIndirectly;
   Listenable listener;
-  Observer(this.callback, this.listener, {bool callOnInit = true, this.callIndirectly=true}) {
+  Observer(
+    this.callback,
+    this.listener, {
+    bool callOnInit = true,
+    this.callIndirectly = true,
+  }) {
     if (callOnInit) {
       _call();
     }
@@ -14,17 +19,17 @@ class Observer implements Disposable {
   }
 
   void _call() {
-    if(callIndirectly){
+    if (callIndirectly) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         callback();
       });
-    }else{
+    } else {
       callback();
     }
   }
 
   void swapListener(Listenable newListener) {
-    if(listener==newListener) return;
+    if (listener == newListener) return;
     listener.removeListener(_call);
     listener = newListener;
     listener.addListener(_call);

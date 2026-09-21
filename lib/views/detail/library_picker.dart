@@ -16,6 +16,7 @@ import 'package:dionysos/service/extension.dart'
         TextStyle,
         WrapAlignment;
 import 'package:dionysos/utils/autoadd.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
@@ -25,6 +26,7 @@ import 'package:flutter/material.dart'
     show Checkbox, CircularProgressIndicator, Colors, Icons, InkWell, Material;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 class LibraryPickerResult {
@@ -57,7 +59,8 @@ class LibrarySaveSheet extends StatefulWidget {
   State<LibrarySaveSheet> createState() => _LibrarySaveSheetState();
 }
 
-class _LibrarySaveSheetState extends State<LibrarySaveSheet> {
+class _LibrarySaveSheetState extends State<LibrarySaveSheet>
+    with StateDisposeScopeMixin {
   static const _panelWidth = 340.0;
 
   bool _extensionsTab = true;
@@ -66,11 +69,12 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet> {
   final Set<Category> _categories = {};
   late final Set<String> _autoIds;
   bool _dismissed = false;
-  final _newCategoryController = TextEditingController();
+  late final _newCategoryController = TextEditingController()
+    ..disposedBy(scope);
   late Future<List<Category>> _categoriesFuture = locate<Database>()
       .getCategories();
 
-  final _scopeNode = FocusScopeNode();
+  late final _scopeNode = FocusScopeNode()..disposedBy(scope);
 
   bool get _isSaved => widget.entry is EntrySaved;
 
@@ -99,15 +103,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet> {
         _scopeNode.requestFocus();
       }
     });
-    HardwareKeyboard.instance.addHandler(_handleKey);
-  }
-
-  @override
-  void dispose() {
-    HardwareKeyboard.instance.removeHandler(_handleKey);
-    _newCategoryController.dispose();
-    _scopeNode.dispose();
-    super.dispose();
+    KeyObserver(_handleKey).disposedBy(scope);
   }
 
   bool _handleKey(KeyEvent event) {
@@ -206,9 +202,8 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet> {
             ),
             Expanded(child: Text(ext.name, style: context.bodyMedium)),
             if (_autoIds.contains(ext.id))
-              DionBadge(
-                child: Text('auto', style: context.bodySmall),
-              ).paddingOnly(right: 4),
+              DionBadge(child: Text('auto', style: context.bodySmall))
+                  .paddingOnly(right: 4),
           ],
         ),
       ),

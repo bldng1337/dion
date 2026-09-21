@@ -10,6 +10,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart'
     hide Alignment, ButtonType, EdgeInsets, StackFit, WrapAlignment;
 import 'package:dionysos/utils/custom_ui_tokens.dart';
+import 'package:dionysos/utils/debounce.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
@@ -30,6 +31,7 @@ import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart'
     show Colors, Divider, Material, TextEditingController, TextField;
 import 'package:flutter/widgets.dart' hide Page;
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -160,7 +162,7 @@ class CustomUIWidget extends StatelessWidget {
         element: element.child('feed'),
       ),
       final CustomUI_Button button => DionTextbutton(
-        type: button.buttonType?.toFlutter??ButtonType.filled,
+        type: button.buttonType?.toFlutter ?? ButtonType.filled,
         color: button.color.resolve(context),
         onPressed: () async {
           await element.runInteraction(button.onClick);
@@ -193,8 +195,7 @@ class CustomUIWidget extends StatelessWidget {
         borderColor: container.borderColor.resolve(context),
         width: container.width,
         height: container.height,
-        alignment:
-            container.alignment.toFlutter ?? Alignment.center,
+        alignment: container.alignment.toFlutter ?? Alignment.center,
         emphasized: container.emphasized ?? false,
         child: Padding(
           padding: container.padding.toFlutter ?? EdgeInsets.zero,
@@ -255,10 +256,7 @@ class CustomUIWidget extends StatelessWidget {
       ),
       final CustomUI_Align align => Align(
         alignment: align.alignment.toFlutter,
-        child: CustomUIWidget(
-          ui: align.child,
-          element: element.child('align'),
-        ),
+        child: CustomUIWidget(ui: align.child, element: element.child('align')),
       ),
       final CustomUI_Stack stack => Stack(
         alignment: stack.alignment.toFlutter ?? AlignmentDirectional.center,
@@ -307,10 +305,7 @@ class CustomUIWidget extends StatelessWidget {
       ),
       final CustomUI_Badge badge => DionBadge(
         color: badge.color.resolve(context),
-        child: CustomUIWidget(
-          ui: badge.child,
-          element: element.child('badge'),
-        ),
+        child: CustomUIWidget(ui: badge.child, element: element.child('badge')),
       ),
       final CustomUI_FoldableText foldable => Foldabletext(
         foldable.text,
@@ -671,22 +666,15 @@ class _CustomUITextInput extends StatefulWidget {
   State<_CustomUITextInput> createState() => _CustomUITextInputState();
 }
 
-class _CustomUITextInputState extends State<_CustomUITextInput> {
-  late final TextEditingController _controller;
-  Timer? _debounce;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.data.initial);
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
+class _CustomUITextInputState extends State<_CustomUITextInput>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.data.initial,
+  )..disposedBy(scope);
+  late final Debouncer _debounce = Debouncer(
+    duration: Duration(milliseconds: widget.data.debounceMs ?? 0),
+    action: _fireChange,
+  )..disposedBy(scope);
 
   void _fireChange() {
     final interaction = widget.data.onChange;
@@ -695,7 +683,7 @@ class _CustomUITextInputState extends State<_CustomUITextInput> {
   }
 
   void _fireCommit() {
-    _debounce?.cancel();
+    _debounce.cancel();
     final interaction = widget.data.onCommit;
     if (interaction == null) return;
     widget.element.runInteraction(_withValue(interaction, _controller.text));
@@ -705,13 +693,11 @@ class _CustomUITextInputState extends State<_CustomUITextInput> {
       interactionWithValue(interaction, text);
 
   void _onChange() {
-    _debounce?.cancel();
-    final ms = widget.data.debounceMs ?? 0;
-    if (ms <= 0) {
+    if ((widget.data.debounceMs ?? 0) <= 0) {
       _fireChange();
       return;
     }
-    _debounce = Timer(Duration(milliseconds: ms), _fireChange);
+    _debounce.run();
   }
 
   @override
@@ -733,7 +719,10 @@ class _CustomUITextInputState extends State<_CustomUITextInput> {
   return (EntryId(uid: key.substring(0, idx)), key.substring(idx + 1));
 }
 
-rust.Interaction interactionWithValue(rust.Interaction interaction, String value) {
+rust.Interaction interactionWithValue(
+  rust.Interaction interaction,
+  String value,
+) {
   final encoded = jsonEncode(value);
   return switch (interaction) {
     final rust.Interaction_WriteKey w => rust.Interaction.writeKey(
@@ -792,9 +781,7 @@ class _CustomUIDropdownState extends State<_CustomUIDropdown> {
           ? _value
           : null,
       items: items
-          .map(
-            (e) => DionDropdownItem<String>(value: e.value, label: e.label),
-          )
+          .map((e) => DionDropdownItem<String>(value: e.value, label: e.label))
           .toList(),
       onChanged: _onChanged,
     );

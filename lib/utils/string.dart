@@ -13,9 +13,7 @@ extension StringExt on String {
     final buf = StringBuffer();
     for (var i = 0; i < length; i++) {
       final ch = this[i];
-      if (ch.toUpperCase() == ch &&
-          ch.toLowerCase() != ch &&
-          buf.isNotEmpty) {
+      if (ch.toUpperCase() == ch && ch.toLowerCase() != ch && buf.isNotEmpty) {
         buf.write(' ');
       }
       buf.write(ch);

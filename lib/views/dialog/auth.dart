@@ -2,7 +2,17 @@ import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/service/applinks.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/service/network.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
@@ -52,15 +62,11 @@ class ApiKeyAuthDialog extends StatefulWidget {
   State<ApiKeyAuthDialog> createState() => _ApiKeyAuthDialogState();
 }
 
-class _ApiKeyAuthDialogState extends State<ApiKeyAuthDialog> {
-  late final TextEditingController _apiKeyController = TextEditingController();
+class _ApiKeyAuthDialogState extends State<ApiKeyAuthDialog>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _apiKeyController = TextEditingController()
+    ..disposedBy(scope);
   String? _error;
-
-  @override
-  void dispose() {
-    _apiKeyController.dispose();
-    super.dispose();
-  }
 
   void _handleSubmit() {
     final key = _apiKeyController.text.trim();
@@ -129,21 +135,14 @@ class UserPassAuthDialog extends StatefulWidget {
   State<UserPassAuthDialog> createState() => _UserPassAuthDialogState();
 }
 
-class _UserPassAuthDialogState extends State<UserPassAuthDialog> {
-  late final TextEditingController _usernameController =
-      TextEditingController();
-  late final TextEditingController _passwordController =
-      TextEditingController();
-  late final FocusNode _passwordFocusNode = FocusNode();
+class _UserPassAuthDialogState extends State<UserPassAuthDialog>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _usernameController = TextEditingController()
+    ..disposedBy(scope);
+  late final TextEditingController _passwordController = TextEditingController()
+    ..disposedBy(scope);
+  late final FocusNode _passwordFocusNode = FocusNode()..disposedBy(scope);
   String? _error;
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _passwordFocusNode.dispose();
-    super.dispose();
-  }
 
   void _handleSubmit() {
     final username = _usernameController.text.trim();
@@ -154,9 +153,8 @@ class _UserPassAuthDialogState extends State<UserPassAuthDialog> {
       return;
     }
 
-    Navigator.of(
-      context,
-    ).pop(rust.AuthCreds.userPass(username: username, password: password));
+    Navigator.of(context)
+        .pop(rust.AuthCreds.userPass(username: username, password: password));
   }
 
   @override
@@ -294,9 +292,8 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
                 if (!mounted) {
                   return;
                 }
-                Navigator.of(
-                  context,
-                ).pop(rust.AuthCreds.oAuth(accessToken: token));
+                Navigator.of(context)
+                    .pop(rust.AuthCreds.oAuth(accessToken: token));
                 return;
               }
               // Extract access token from query parameters or fragment

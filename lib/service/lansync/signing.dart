@@ -23,7 +23,11 @@ bool verifyPayload(String certPem, Uint8List data, String signatureBase64) {
       HexUtils.decode(spkiHex),
     );
     final signature = base64.decode(signatureBase64);
-    return CryptoUtils.rsaVerify(publicKey, data, Uint8List.fromList(signature));
+    return CryptoUtils.rsaVerify(
+      publicKey,
+      data,
+      Uint8List.fromList(signature),
+    );
   } catch (_) {
     return false;
   }

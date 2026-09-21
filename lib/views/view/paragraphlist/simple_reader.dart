@@ -1,7 +1,18 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
@@ -230,149 +241,151 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           // arena and drag selection never starts.
           mouseDrags: !psettings.text.selectable.value,
           actions: [
-          BindingAction(
-            setting:
-                settings.readerSettings.paragraphreader.bindings.nextChapter,
-            onTrigger: _nextChapter,
-          ),
-          BindingAction(
-            setting:
-                settings.readerSettings.paragraphreader.bindings.prevChapter,
-            onTrigger: _prevChapter,
-          ),
-          BindingAction(
-            setting:
-                settings.readerSettings.paragraphreader.bindings.toggleBookmark,
-            onTrigger: _toggleBookmark,
-          ),
-          BindingAction(
-            setting: settings.readerSettings.paragraphreader.bindings.jumpDown,
-            onTrigger: _jumpDown,
-          ),
-          BindingAction(
-            setting: settings.readerSettings.paragraphreader.bindings.jumpUp,
-            onTrigger: _jumpUp,
-          ),
-          BindingAction(
-            setting: settings.readerSettings.paragraphreader.bindings.toggleTts,
-            onTrigger: _toggleTts,
-          ),
-        ],
-        child: ReaderSelectable(
-          selectionContextItems: (text) =>
-              quoteContextItems(context, widget.source.episode, text),
-          child: Stack(
-            children: [
-              ScrollConfiguration(
-                behavior: ScrollConfiguration.of(context).copyWith(),
-                child: CustomScrollView(
-                  controller: controller,
-                  slivers: [
-                    SliverAppBar(
-                      floating: true,
-                      title: DionTextScroll(widget.source.name),
-                      leading: DionIconbutton(
-                        tooltip: 'Back',
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () {
-                          context.pop();
-                        },
-                      ),
-                      actions: [
-                        if (tts != null)
-                          ListenableBuilder(
-                            listenable: tts,
-                            builder: (context, _) {
-                              return DionIconbutton(
-                                tooltip: 'Read aloud',
-                                icon: Icon(
-                                  tts.state == TtsState.playing
-                                      ? Icons.stop
-                                      : Icons.play_arrow,
-                                ),
-                                onPressed: _toggleTts,
-                              );
-                            },
-                          ),
-                        DionIconbutton(
-                          tooltip:
+            BindingAction(
+              setting:
+                  settings.readerSettings.paragraphreader.bindings.nextChapter,
+              onTrigger: _nextChapter,
+            ),
+            BindingAction(
+              setting:
+                  settings.readerSettings.paragraphreader.bindings.prevChapter,
+              onTrigger: _prevChapter,
+            ),
+            BindingAction(
+              setting: settings
+                  .readerSettings
+                  .paragraphreader
+                  .bindings
+                  .toggleBookmark,
+              onTrigger: _toggleBookmark,
+            ),
+            BindingAction(
+              setting:
+                  settings.readerSettings.paragraphreader.bindings.jumpDown,
+              onTrigger: _jumpDown,
+            ),
+            BindingAction(
+              setting: settings.readerSettings.paragraphreader.bindings.jumpUp,
+              onTrigger: _jumpUp,
+            ),
+            BindingAction(
+              setting:
+                  settings.readerSettings.paragraphreader.bindings.toggleTts,
+              onTrigger: _toggleTts,
+            ),
+          ],
+          child: ReaderSelectable(
+            selectionContextItems: (text) =>
+                quoteContextItems(context, widget.source.episode, text),
+            child: Stack(
+              children: [
+                ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(),
+                  child: CustomScrollView(
+                    controller: controller,
+                    slivers: [
+                      SliverAppBar(
+                        floating: true,
+                        title: DionTextScroll(widget.source.name),
+                        leading: DionIconbutton(
+                          tooltip: 'Back',
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () {
+                            context.pop();
+                          },
+                        ),
+                        actions: [
+                          if (tts != null)
+                            ListenableBuilder(
+                              listenable: tts,
+                              builder: (context, _) {
+                                return DionIconbutton(
+                                  tooltip: 'Read aloud',
+                                  icon: Icon(
+                                    tts.state == TtsState.playing
+                                        ? Icons.stop
+                                        : Icons.play_arrow,
+                                  ),
+                                  onPressed: _toggleTts,
+                                );
+                              },
+                            ),
+                          DionIconbutton(
+                            tooltip: epdata.bookmark
+                                ? 'Remove Bookmark'
+                                : 'Add Bookmark',
+                            icon: Icon(
                               epdata.bookmark
-                                  ? 'Remove Bookmark'
-                                  : 'Add Bookmark',
-                          icon: Icon(
-                            epdata.bookmark
-                                ? Icons.bookmark
-                                : Icons.bookmark_border,
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                            ),
+                            onPressed: _toggleBookmark,
                           ),
-                          onPressed: _toggleBookmark,
-                        ),
-                        DionIconbutton(
-                          tooltip: 'Open in Browser',
-                          icon: const Icon(Icons.open_in_browser),
-                          onPressed: () => launchUrl(
-                            Uri.parse(widget.source.episode.episode.url),
+                          DionIconbutton(
+                            tooltip: 'Open in Browser',
+                            icon: const Icon(Icons.open_in_browser),
+                            onPressed: () => launchUrl(
+                              Uri.parse(widget.source.episode.episode.url),
+                            ),
+                          ),
+                          DionIconbutton(
+                            tooltip: 'Settings',
+                            icon: const Icon(Icons.settings),
+                            onPressed: () =>
+                                context.push('/settings/paragraphreader'),
+                          ),
+                        ],
+                      ),
+                      if (widget.source.episode.hasprev)
+                        SliverToBoxAdapter(
+                          child: DionTextbutton(
+                            child: const Text('Previous')
+                                .paddingSymmetric(vertical: 16),
+                            onPressed: () =>
+                                widget.source.episode.goPrev(widget.supplier),
                           ),
                         ),
-                        DionIconbutton(
-                          tooltip: 'Settings',
-                          icon: const Icon(Icons.settings),
-                          onPressed: () =>
-                              context.push('/settings/paragraphreader'),
-                        ),
-                      ],
-                    ),
-                    if (widget.source.episode.hasprev)
                       SliverToBoxAdapter(
-                        child: DionTextbutton(
-                          child: const Text(
-                            'Previous',
-                          ).paddingSymmetric(vertical: 16),
-                          onPressed: () =>
-                              widget.source.episode.goPrev(widget.supplier),
+                        child: EpisodeTitle(episode: widget.source.episode),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        sliver: SuperSliverList.builder(
+                          listController: listController,
+                          itemBuilder: (context, index) =>
+                              _buildParagraphItem(context, index, paragraphs),
+                          itemCount: paragraphs.length,
                         ),
                       ),
-                    SliverToBoxAdapter(
-                      child: EpisodeTitle(episode: widget.source.episode),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      sliver: SuperSliverList.builder(
-                        listController: listController,
-                        itemBuilder: (context, index) =>
-                            _buildParagraphItem(context, index, paragraphs),
-                        itemCount: paragraphs.length,
-                      ),
-                    ),
-                    if (widget.source.episode.hasnext)
-                      SliverToBoxAdapter(
-                        child: DionTextbutton(
-                          child: const Text(
-                            'Next',
-                          ).paddingSymmetric(vertical: 16),
-                          onPressed: () =>
-                              widget.source.episode.goNext(widget.supplier),
+                      if (widget.source.episode.hasnext)
+                        SliverToBoxAdapter(
+                          child: DionTextbutton(
+                            child: const Text('Next')
+                                .paddingSymmetric(vertical: 16),
+                            onPressed: () =>
+                                widget.source.episode.goNext(widget.supplier),
+                          ),
                         ),
-                      ),
-                    // Space so the last paragraph isn't hidden behind the popup.
-                    if (tts != null &&
-                        tts.state != TtsState.stopped &&
-                        !tts.isLoadingNextChapter)
-                      const SliverToBoxAdapter(child: SizedBox(height: 96)),
-                  ],
+                      // Space so the last paragraph isn't hidden behind the popup.
+                      if (tts != null &&
+                          tts.state != TtsState.stopped &&
+                          !tts.isLoadingNextChapter)
+                        const SliverToBoxAdapter(child: SizedBox(height: 96)),
+                    ],
+                  ),
                 ),
-              ),
-              if (tts != null)
-                Positioned(
-                  left: DionSpacing.sm,
-                  right: DionSpacing.sm,
-                  bottom: DionSpacing.sm,
-                  child: TtsPlayerBar(tts: tts),
-                ),
-            ],
+                if (tts != null)
+                  Positioned(
+                    left: DionSpacing.sm,
+                    right: DionSpacing.sm,
+                    bottom: DionSpacing.sm,
+                    child: TtsPlayerBar(tts: tts),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
-        ),
     );
   }
 
@@ -462,9 +475,8 @@ class TtsPlayerBar extends StatelessWidget {
                             ? null
                             : () {
                                 tts.skipToPreviousParagraph();
-                                SessionData.of(
-                                  context,
-                                )?.manager.keepSessionAlive(saveToDb: true);
+                                SessionData.of(context)?.manager
+                                    .keepSessionAlive(saveToDb: true);
                               },
                       ),
                       DionIconbutton(
@@ -490,9 +502,8 @@ class TtsPlayerBar extends StatelessWidget {
                                 } else {
                                   tts.resume();
                                 }
-                                SessionData.of(
-                                  context,
-                                )?.manager.keepSessionAlive(saveToDb: true);
+                                SessionData.of(context)?.manager
+                                    .keepSessionAlive(saveToDb: true);
                               },
                       ),
                       DionIconbutton(
@@ -502,9 +513,8 @@ class TtsPlayerBar extends StatelessWidget {
                             ? null
                             : () {
                                 tts.skipToNextParagraph();
-                                SessionData.of(
-                                  context,
-                                )?.manager.keepSessionAlive(saveToDb: true);
+                                SessionData.of(context)?.manager
+                                    .keepSessionAlive(saveToDb: true);
                               },
                       ),
                       DionIconbutton(
@@ -512,9 +522,8 @@ class TtsPlayerBar extends StatelessWidget {
                         icon: const Icon(Icons.close, size: 22),
                         onPressed: () {
                           tts.stop();
-                          SessionData.of(
-                            context,
-                          )?.manager.keepSessionAlive(saveToDb: true);
+                          SessionData.of(context)?.manager
+                              .keepSessionAlive(saveToDb: true);
                         },
                       ),
                     ],

@@ -1,8 +1,10 @@
 import 'package:dionysos/data/settings/binding.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class BindingAction {
   final Setting<List<InputBinding>, dynamic> setting;
@@ -34,7 +36,8 @@ class BindingDispatcher extends StatefulWidget {
   State<BindingDispatcher> createState() => _BindingDispatcherState();
 }
 
-class _BindingDispatcherState extends State<BindingDispatcher> {
+class _BindingDispatcherState extends State<BindingDispatcher>
+    with StateDisposeScopeMixin {
   final GlobalKey _gestureKey = GlobalKey();
 
   static const double _swipeMinDistance = 64;
@@ -58,13 +61,7 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
   @override
   void initState() {
     super.initState();
-    HardwareKeyboard.instance.addHandler(_handleKey);
-  }
-
-  @override
-  void dispose() {
-    HardwareKeyboard.instance.removeHandler(_handleKey);
-    super.dispose();
+    KeyObserver(_handleKey).disposedBy(scope);
   }
 
   bool _isTypingContext() {
@@ -142,7 +139,9 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
     if (start == null || current == null) return;
     final delta = current - start;
     if (delta.distance >= _swipeMinDistance) {
-      _triggerGesture(SwipeGesture(_classifySwipe(delta), zone: _zoneOf(start)));
+      _triggerGesture(
+        SwipeGesture(_classifySwipe(delta), zone: _zoneOf(start)),
+      );
     }
   }
 
@@ -207,9 +206,7 @@ class _BindingDispatcherState extends State<BindingDispatcher> {
             behavior: HitTestBehavior.translucent,
             onTapDown: (d) => _tapDownLocal = d.localPosition,
             onTap: () {
-              _triggerGesture(
-                TapGesture(1, zone: _zoneOf(_tapDownLocal)),
-              );
+              _triggerGesture(TapGesture(1, zone: _zoneOf(_tapDownLocal)));
               _tapDownLocal = null;
             },
             onDoubleTapDown: (d) => _downLocal = d.localPosition,

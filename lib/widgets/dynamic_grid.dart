@@ -188,7 +188,8 @@ class SingleStreamSource<T> extends DataSource<T> {
   }
 
   @override
-  int get hashCode => Object.hash(loadmore, pageSize, index, isfinished, requesting);
+  int get hashCode =>
+      Object.hash(loadmore, pageSize, index, isfinished, requesting);
 }
 
 class AsyncStreamSource<T> extends DataSource<T> {
@@ -781,10 +782,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
         ? widget.controller.items
         : widget.controller.items
               .where(
-                (r) => r.fold(
-                  onSuccess: filter,
-                  onFailure: (_, _) => true,
-                ),
+                (r) => r.fold(onSuccess: filter, onFailure: (_, _) => true),
               )
               .toList(growable: false);
     return CustomScrollView(

@@ -71,15 +71,21 @@ class ImageListReaderSettings extends StatelessWidget {
                 title: 'Next Chapter',
                 description: 'Inputs that advance to the next chapter',
                 icon: Icons.skip_next,
-                setting:
-                    settings.readerSettings.imagelistreader.bindings.nextChapter,
+                setting: settings
+                    .readerSettings
+                    .imagelistreader
+                    .bindings
+                    .nextChapter,
               ),
               SettingBindings(
                 title: 'Previous Chapter',
                 description: 'Inputs that go back to the previous chapter',
                 icon: Icons.skip_previous,
-                setting:
-                    settings.readerSettings.imagelistreader.bindings.prevChapter,
+                setting: settings
+                    .readerSettings
+                    .imagelistreader
+                    .bindings
+                    .prevChapter,
               ),
               SettingBindings(
                 title: 'Toggle Bookmark',
@@ -102,7 +108,8 @@ class ImageListReaderSettings extends StatelessWidget {
                 title: 'Jump Up',
                 description: 'Inputs that scroll up',
                 icon: Icons.arrow_upward,
-                setting: settings.readerSettings.imagelistreader.bindings.jumpUp,
+                setting:
+                    settings.readerSettings.imagelistreader.bindings.jumpUp,
               ),
             ],
           ),

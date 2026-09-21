@@ -1217,10 +1217,12 @@ packages:
   metis:
     dependency: "direct main"
     description:
-      path: "C:\\Users\\bldng\\DEV\\metis"
-      relative: false
-    source: path
-    version: "0.0.2"
+      path: "."
+      ref: dd0d5638e87148aea37a809e6d844caf75e13fe7
+      resolved-ref: dd0d5638e87148aea37a809e6d844caf75e13fe7
+      url: "https://github.com/bldng1337/metis.git"
+    source: git
+    version: "0.0.1"
   mime:
     dependency: transitive
     description:

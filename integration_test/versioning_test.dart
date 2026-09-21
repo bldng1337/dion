@@ -264,10 +264,10 @@ EntryImpl get comprehensiveBasicEntry => const EntryImpl(
     url: 'https://example.com/comprehensive',
     title: 'Comprehensive Entry',
     mediaType: rust.MediaType.book,
-    cover: rust.Link(url: 'https://img.example.com/cover.jpg', header: {
-      'Authorization': 'Bearer token',
-      'Cookie': 'session=abc',
-    }),
+    cover: rust.Link(
+      url: 'https://img.example.com/cover.jpg',
+      header: {'Authorization': 'Bearer token', 'Cookie': 'session=abc'},
+    ),
     author: ['Author One', 'Author Two'],
     rating: 4.5,
     views: 100.5,
@@ -287,7 +287,10 @@ const _episodes = [
     name: 'Second',
     description: 'with description',
     url: 'https://cdn.example.com/2',
-    cover: rust.Link(url: 'https://img.example.com/ep2.jpg', header: {'Cookie': 'c=1'}),
+    cover: rust.Link(
+      url: 'https://img.example.com/ep2.jpg',
+      header: {'Cookie': 'c=1'},
+    ),
     timestamp: '2026-01-02T03:04:05Z',
   ),
   rust.Episode(
@@ -390,7 +393,9 @@ const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
           stateKey: 'stateStore',
         ),
         rust.Subscription(
-          source: rust.SubscriptionSource.setting(kind: rust.SettingKind.extension_),
+          source: rust.SubscriptionSource.setting(
+            kind: rust.SettingKind.extension_,
+          ),
           key: 'settingKey',
           stateKey: 'stateSetting',
         ),
@@ -402,10 +407,16 @@ const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
       ],
     ),
     rust.CustomUI.listTile(
-      leading: rust.CustomUI.badge(child: rust.CustomUI.text(text: '!'), color: rust.ColorToken.error),
+      leading: rust.CustomUI.badge(
+        child: rust.CustomUI.text(text: '!'),
+        color: rust.ColorToken.error,
+      ),
       title: rust.CustomUI.text(text: 'tile title'),
       subtitle: rust.CustomUI.link(link: 'https://tile.example.com'),
-      trailing: rust.CustomUI.timestamp(timestamp: 'ts', display: rust.TimestampType.absolute),
+      trailing: rust.CustomUI.timestamp(
+        timestamp: 'ts',
+        display: rust.TimestampType.absolute,
+      ),
       onClick: rust.Interaction.invoke(handler: 'tileTap', payload: ''),
       onLongClick: rust.Interaction.writeKey(key: 'tileKey', value: ''),
     ),
@@ -449,7 +460,10 @@ const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
       child: rust.CustomUI.text(text: 'aligned'),
     ),
     rust.CustomUI.stack(
-      children: [rust.CustomUI.text(text: 'stacked'), rust.CustomUI.spinner()],
+      children: [
+        rust.CustomUI.text(text: 'stacked'),
+        rust.CustomUI.spinner(),
+      ],
       alignment: rust.Alignment.topCenter,
       fit: rust.StackFit.loose,
     ),
@@ -457,7 +471,9 @@ const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
     rust.CustomUI.row(
       scrollable: true,
       children: [
-        rust.CustomUI.image(image: rust.Link(url: 'https://img.example.com/row.jpg')),
+        rust.CustomUI.image(
+          image: rust.Link(url: 'https://img.example.com/row.jpg'),
+        ),
         rust.CustomUI.text(text: 'right sibling'),
       ],
     ),
@@ -486,7 +502,10 @@ rust.EntryDetailed get comprehensiveDetailed => const rust.EntryDetailed(
   status: rust.ReleaseStatus.releasing,
   description: 'A deliberately exhaustive entry',
   language: 'en',
-  cover: rust.Link(url: 'https://img.example.com/detailed.jpg', header: {'Authorization': 'Bearer t'}),
+  cover: rust.Link(
+    url: 'https://img.example.com/detailed.jpg',
+    header: {'Authorization': 'Bearer t'},
+  ),
   poster: rust.Link(url: 'https://img.example.com/poster.jpg'),
   episodes: _episodes,
   genres: ['genre1', 'genre2'],
@@ -566,7 +585,10 @@ List<EntrySaved> get savedEntrySamples => [
       episodes: [],
     ),
     categories: [_categories.first],
-    savedSettings: EntrySavedSettings(deleteOnFinish: true, downloadNextEpisodes: 2),
+    savedSettings: EntrySavedSettings(
+      deleteOnFinish: true,
+      downloadNextEpisodes: 2,
+    ),
     boundExtensionId: _boundExtensionId,
     extensionSettings: {},
     episode: 1,
@@ -597,7 +619,10 @@ List<EntrySaved> get savedEntrySamples => [
         finished: false,
         progress: '12.75',
         quotes: [
-          SavedQuote(text: 'quote text', savedAt: DateTime.utc(2026, 1, 2, 3, 4, 5)),
+          SavedQuote(
+            text: 'quote text',
+            savedAt: DateTime.utc(2026, 1, 2, 3, 4, 5),
+          ),
           SavedQuote(text: 'second quote', savedAt: DateTime.utc(2026, 2, 3)),
         ],
         images: [
@@ -610,8 +635,15 @@ List<EntrySaved> get savedEntrySamples => [
       ),
     ],
     entryExtensions: [
-      EntryExtension(extensionId: 'entry.ext.a', extensionSettings: comprehensiveExtensionSettings),
-      EntryExtension(extensionId: 'entry.ext.b', extensionSettings: {}, ui: const rust.CustomUI.text(text: 'extension ui')),
+      EntryExtension(
+        extensionId: 'entry.ext.a',
+        extensionSettings: comprehensiveExtensionSettings,
+      ),
+      EntryExtension(
+        extensionId: 'entry.ext.b',
+        extensionSettings: {},
+        ui: const rust.CustomUI.text(text: 'extension ui'),
+      ),
     ],
     sourceExtensions: [
       EntryExtension(extensionId: 'source.ext.a', extensionSettings: {}),
@@ -751,7 +783,6 @@ Map<String, dynamic> _legacyV1BackupEntry(EntrySaved saved) {
     'settings': saved.savedSettings.toJson(),
   };
 }
-
 
 // ---------------------------------------------------------------------------
 // Database seeding
@@ -907,17 +938,20 @@ void main() {
   }
 
   group('JSON schema', () {
-
     test('deserialize and round-trip every stored version', () async {
       // EntrySaved.fromJson resolves category records through the database.
       final mockdb = await mockDatabase();
-      when(() => mockdb.getCategoriesbyId(any())).thenAnswer((invocation) async {
-        final ids = invocation.positionalArguments[0] as Iterable<metis.DBRecord>;
+      when(() => mockdb.getCategoriesbyId(any())).thenAnswer((
+        invocation,
+      ) async {
+        final ids =
+            invocation.positionalArguments[0] as Iterable<metis.DBRecord>;
         return [
           for (final id in ids)
             _categories.firstWhere(
               (c) => c.id.id == id.id,
-              orElse: () => throw StateError('mock database holds no category ${id.id}'),
+              orElse: () =>
+                  throw StateError('mock database holds no category ${id.id}'),
             ),
         ];
       });
@@ -981,7 +1015,9 @@ void main() {
             for (final category in _categories) {
               await db.updateCategory(category);
             }
-            final archive = ZipDecoder().decodeBytes(await entity.readAsBytes());
+            final archive = ZipDecoder().decodeBytes(
+              await entity.readAsBytes(),
+            );
             await applyBackup(archive);
             await _verifyRestoredBackup(db);
             await _closeDb(db);
@@ -997,20 +1033,19 @@ void main() {
       await _guarded(
         () async {
           final db = await _openMemoryDb(seed: false);
-          final archive =
-              Archive()
-                ..addFile(
-                  ArchiveFile.string('dionmeta.json', json.encode({'version': 1})),
-                )
-                ..addFile(
-                  ArchiveFile.string(
-                    'entrydata.json',
-                    json.encode([
-                      for (final saved in savedEntrySamples)
-                        _legacyV1BackupEntry(saved),
-                    ]),
-                  ),
-                );
+          final archive = Archive()
+            ..addFile(
+              ArchiveFile.string('dionmeta.json', json.encode({'version': 1})),
+            )
+            ..addFile(
+              ArchiveFile.string(
+                'entrydata.json',
+                json.encode([
+                  for (final saved in savedEntrySamples)
+                    _legacyV1BackupEntry(saved),
+                ]),
+              ),
+            );
           await applyBackup(archive);
           final restored = await db.getEntries(0, 100).toList();
           if (restored.length != savedEntrySamples.length) {
@@ -1184,7 +1219,8 @@ Future<void> _checkSimpleJsonSurfaces() async {
     for (final entity in root.listSync()) {
       if (entity is! File || entity.extension != '.json') continue;
       final version = entity.filenameWithoutExtension;
-      final doc = jsonDecode(await entity.readAsString()) as Map<String, dynamic>;
+      final doc =
+          jsonDecode(await entity.readAsString()) as Map<String, dynamic>;
       final items = doc[itemsKey] as List<dynamic>;
       for (final (i, item) in items.indexed) {
         await _guarded(
@@ -1209,13 +1245,12 @@ Future<void> _checkSimpleJsonSurfaces() async {
     root: _categoryFixtures,
     surface: 'category',
     itemsKey: 'items',
-    parse:
-        (json) => Category.fromJson({
-          'name': json['name'],
-          'index': json['index'],
-          // Mirrors the injection the surreal adapter performs on DB rows.
-          'id': metis.DBRecord.fromJson(json['id'] as Map<String, dynamic>),
-        }),
+    parse: (json) => Category.fromJson({
+      'name': json['name'],
+      'index': json['index'],
+      // Mirrors the injection the surreal adapter performs on DB rows.
+      'id': metis.DBRecord.fromJson(json['id'] as Map<String, dynamic>),
+    }),
     serialize: (parsed) => (parsed! as Category).toJson(),
   );
 
@@ -1223,14 +1258,13 @@ Future<void> _checkSimpleJsonSurfaces() async {
     root: _extensionMetaFixtures,
     surface: 'extension-meta',
     itemsKey: 'items',
-    parse:
-        (json) => ExtensionMetaData.fromJson({
-          'version': json['version'],
-          'enabled': json['enabled'],
-          'searchEnabled': json['searchEnabled'],
-          // Mirrors the injection the surreal adapter performs on DB rows.
-          'id': metis.DBRecord.fromJson(json['id'] as Map<String, dynamic>),
-        }),
+    parse: (json) => ExtensionMetaData.fromJson({
+      'version': json['version'],
+      'enabled': json['enabled'],
+      'searchEnabled': json['searchEnabled'],
+      // Mirrors the injection the surreal adapter performs on DB rows.
+      'id': metis.DBRecord.fromJson(json['id'] as Map<String, dynamic>),
+    }),
     serialize: (parsed) => (parsed! as ExtensionMetaData).toDBJson(),
   );
 }
@@ -1244,7 +1278,10 @@ Map<String, dynamic> _hydrateRecordMaps(Object? document) {
   if (map['categories'] is List) {
     map['categories'] = [
       for (final item in map['categories'] as List)
-        if (item is Map && !item.containsKey('name')) metis.DBRecord.fromJson(Map<String, dynamic>.from(item)) else item,
+        if (item is Map && !item.containsKey('name'))
+          metis.DBRecord.fromJson(Map<String, dynamic>.from(item))
+        else
+          item,
     ];
   }
   return map;
@@ -1261,14 +1298,15 @@ Future<void> _verifySeededContent(Database db) async {
   for (final sample in savedEntrySamples) {
     final loaded = entries.firstWhere(
       (e) => e.id.uid == sample.id.uid,
-      orElse:
-          () => throw StateError(
-            'entry uid "${sample.id.uid}" missing after read-back',
-          ),
+      orElse: () => throw StateError(
+        'entry uid "${sample.id.uid}" missing after read-back',
+      ),
     );
     void check(bool ok, String what) {
       if (!ok) {
-        throw StateError('${loaded.id.uid}: $what drifted across the round-trip');
+        throw StateError(
+          '${loaded.id.uid}: $what drifted across the round-trip',
+        );
       }
     }
 
@@ -1282,8 +1320,7 @@ Future<void> _verifySeededContent(Database db) async {
       '${loaded.extensionSettings.length} extension settings != ${sample.extensionSettings.length}',
     );
     check(
-      loaded.savedSettings.reverse.value ==
-          sample.savedSettings.reverse.value,
+      loaded.savedSettings.reverse.value == sample.savedSettings.reverse.value,
       'savedSettings.reverse',
     );
     check(
@@ -1315,11 +1352,15 @@ Future<void> _verifySeededContent(Database db) async {
       constructExtensionDBRecord(meta.id),
     );
     if (loaded == null) {
-      throw StateError('ExtensionMetaData "${meta.id}" missing after read-back');
+      throw StateError(
+        'ExtensionMetaData "${meta.id}" missing after read-back',
+      );
     }
     if (loaded.enabled != meta.enabled ||
         loaded.searchEnabled != meta.searchEnabled) {
-      throw StateError('ExtensionMetaData "${meta.id}" flags drifted ($loaded)');
+      throw StateError(
+        'ExtensionMetaData "${meta.id}" flags drifted ($loaded)',
+      );
     }
   }
 }
@@ -1341,7 +1382,9 @@ Future<void> _verifyRestoredBackup(Database db) async {
     }
     for (final category in entry.categories) {
       if (!knownCategoryNames.contains(category.name)) {
-        throw StateError('${entry.id.uid}: category "${category.name}" did not resolve against the target db');
+        throw StateError(
+          '${entry.id.uid}: category "${category.name}" did not resolve against the target db',
+        );
       }
     }
   }

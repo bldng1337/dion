@@ -17,11 +17,7 @@ void showToast(String message, ToastKind kind) {
           children: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Icon(
-                _iconFor(kind),
-                color: _colorFor(kind),
-                size: 20,
-              ),
+              child: Icon(_iconFor(kind), color: _colorFor(kind), size: 20),
             ),
             Expanded(child: Text(message)),
           ],

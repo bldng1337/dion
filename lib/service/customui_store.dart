@@ -6,10 +6,9 @@ import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class CustomUIStore implements Disposable {
   CustomUIStore({
-    Duration watchdogInterval = _defaultWatchdogInterval,
-    int hangThreshold = _defaultHangThreshold,
-  })  : _watchdogInterval = watchdogInterval,
-        _hangThreshold = hangThreshold {
+    this._watchdogInterval = _defaultWatchdogInterval,
+    this._hangThreshold = _defaultHangThreshold,
+  }) {
     _watchdog = Timer.periodic(_watchdogInterval, (_) => _tick());
   }
 
@@ -50,7 +49,11 @@ class CustomUIStore implements Disposable {
       try {
         cb();
       } catch (e, st) {
-        logger.e('CustomUIStore subscriber for "$key" threw', error: e, stackTrace: st);
+        logger.e(
+          'CustomUIStore subscriber for "$key" threw',
+          error: e,
+          stackTrace: st,
+        );
       }
     }
   }
@@ -69,7 +72,11 @@ class CustomUIStore implements Disposable {
       try {
         onNotify();
       } catch (e, st) {
-        logger.e('CustomUIStore initial fire for "$key" threw', error: e, stackTrace: st);
+        logger.e(
+          'CustomUIStore initial fire for "$key" threw',
+          error: e,
+          stackTrace: st,
+        );
       }
     }
     return token;
@@ -195,8 +202,12 @@ class _Broadcaster {
     for (final cb in snapshot) {
       try {
         cb();
-      } catch (err,stack) {
-        logger.e('CustomUIChangeBus subscriber threw', error: err, stackTrace: stack);
+      } catch (err, stack) {
+        logger.e(
+          'CustomUIChangeBus subscriber threw',
+          error: err,
+          stackTrace: stack,
+        );
         // A failing listener must not break notification of the others.
       }
     }

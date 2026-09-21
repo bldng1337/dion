@@ -39,8 +39,9 @@ abstract final class BackgroundPolicy {
     final pluggedIn = await isPluggedIn();
     final level = await batteryLevel();
 
-    RuleStatus rule(bool enabled, bool ok) =>
-        !enabled ? RuleStatus.off : (ok ? RuleStatus.passed : RuleStatus.blocked);
+    RuleStatus rule(bool enabled, bool ok) => !enabled
+        ? RuleStatus.off
+        : (ok ? RuleStatus.passed : RuleStatus.blocked);
 
     return BackgroundEvaluation(
       unmeteredRule: rule(

@@ -4,7 +4,18 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
@@ -264,8 +275,10 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   void _jumpDown() {
     if (!scrollController.hasClients) return;
     final position = scrollController.position;
-    final distance =
-        (position.viewportDimension * 0.85).clamp(64.0, double.infinity);
+    final distance = (position.viewportDimension * 0.85).clamp(
+      64.0,
+      double.infinity,
+    );
     scrollController.animateTo(
       (position.pixels + distance).clamp(0.0, position.maxScrollExtent),
       duration: const Duration(milliseconds: 160),
@@ -277,8 +290,10 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
   void _jumpUp() {
     if (!scrollController.hasClients) return;
     final position = scrollController.position;
-    final distance =
-        (position.viewportDimension * 0.85).clamp(64.0, double.infinity);
+    final distance = (position.viewportDimension * 0.85).clamp(
+      64.0,
+      double.infinity,
+    );
     scrollController.animateTo(
       (position.pixels - distance).clamp(0.0, position.maxScrollExtent),
       duration: const Duration(milliseconds: 160),
@@ -311,7 +326,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       child: BindingDispatcher(
         actions: [
           BindingAction(
-            setting: settings.readerSettings.imagelistreader.bindings.nextChapter,
+            setting:
+                settings.readerSettings.imagelistreader.bindings.nextChapter,
             onTrigger: _nextChapter,
           ),
           BindingAction(
@@ -334,129 +350,135 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
           ),
         ],
         child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(),
-        child: InteractiveViewer(
-          minScale: 0.1,
-          maxScale: 10,
-          panAxis: PanAxis.horizontal,
-          scaleEnabled: _ctrlIsPressed,
-          trackpadScrollCausesScale: _ctrlIsPressed,
-          child: CustomScrollView(
-            controller: scrollController,
-            physics: _ctrlIsPressed
-                ? const NeverScrollableScrollPhysics()
-                : const ClampingScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                title: DionTextScroll(widget.source.name),
-                actions: [
-                  if (player != null)
-                    StreamBuilder(
-                      stream: player!.stream.playing,
-                      builder: (context, snapshot) => Stack(
-                        alignment: Alignment.center,
-                        fit: StackFit.passthrough,
-                        children: [
-                          DionIconbutton(
-                            tooltip:
-                                (snapshot.data ?? false) ? 'Pause' : 'Play',
-                            icon: Icon(
-                              (snapshot.data ?? false)
-                                  ? Icons.pause
-                                  : Icons.play_arrow,
-                            ),
-                            onPressed: () async {
-                              if (player!.state.playing) {
-                                await player!.pause();
-                              } else {
-                                await player!.play();
-                              }
-                            },
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            child: StreamBuilder(
-                              stream: player!.stream.position,
-                              builder: (context, snapshot) {
-                                final position = snapshot.data ?? Duration.zero;
-                                final total = player!.state.duration;
-                                if (total == Duration.zero) {
-                                  return const SizedBox.shrink();
+          behavior: ScrollConfiguration.of(context).copyWith(),
+          child: InteractiveViewer(
+            minScale: 0.1,
+            maxScale: 10,
+            panAxis: PanAxis.horizontal,
+            scaleEnabled: _ctrlIsPressed,
+            trackpadScrollCausesScale: _ctrlIsPressed,
+            child: CustomScrollView(
+              controller: scrollController,
+              physics: _ctrlIsPressed
+                  ? const NeverScrollableScrollPhysics()
+                  : const ClampingScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  floating: true,
+                  title: DionTextScroll(widget.source.name),
+                  actions: [
+                    if (player != null)
+                      StreamBuilder(
+                        stream: player!.stream.playing,
+                        builder: (context, snapshot) => Stack(
+                          alignment: Alignment.center,
+                          fit: StackFit.passthrough,
+                          children: [
+                            DionIconbutton(
+                              tooltip: (snapshot.data ?? false)
+                                  ? 'Pause'
+                                  : 'Play',
+                              icon: Icon(
+                                (snapshot.data ?? false)
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                              ),
+                              onPressed: () async {
+                                if (player!.state.playing) {
+                                  await player!.pause();
+                                } else {
+                                  await player!.play();
                                 }
-                                return SizedBox(
-                                  width: 24,
-                                  height: 2,
-                                  child: DionProgressBar(
-                                    type: DionProgressType.linear,
-                                    value: position.inMilliseconds.toDouble(),
-                                    max: total.inMilliseconds.toDouble(),
-                                    color: Colors.white,
-                                  ),
-                                );
                               },
                             ),
-                          ),
-                        ],
+                            Positioned(
+                              bottom: 0,
+                              child: StreamBuilder(
+                                stream: player!.stream.position,
+                                builder: (context, snapshot) {
+                                  final position =
+                                      snapshot.data ?? Duration.zero;
+                                  final total = player!.state.duration;
+                                  if (total == Duration.zero) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return SizedBox(
+                                    width: 24,
+                                    height: 2,
+                                    child: DionProgressBar(
+                                      type: DionProgressType.linear,
+                                      value: position.inMilliseconds.toDouble(),
+                                      max: total.inMilliseconds.toDouble(),
+                                      color: Colors.white,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    DionIconbutton(
+                      tooltip: epdata.bookmark
+                          ? 'Remove Bookmark'
+                          : 'Add Bookmark',
+                      icon: Icon(
+                        epdata.bookmark
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                      ),
+                      onPressed: () async {
+                        epdata.bookmark = !epdata.bookmark;
+                        await widget.source.episode.save();
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      },
+                    ),
+                    DionIconbutton(
+                      tooltip: 'Open in Browser',
+                      icon: const Icon(Icons.open_in_browser),
+                      onPressed: () => launchUrl(
+                        Uri.parse(widget.source.episode.episode.url),
                       ),
                     ),
-                  DionIconbutton(
-                    tooltip:
-                        epdata.bookmark ? 'Remove Bookmark' : 'Add Bookmark',
-                    icon: Icon(
-                      epdata.bookmark ? Icons.bookmark : Icons.bookmark_border,
+                    DionIconbutton(
+                      tooltip: 'Settings',
+                      icon: const Icon(Icons.settings),
+                      onPressed: () =>
+                          context.push('/settings/imagelistreader'),
                     ),
-                    onPressed: () async {
-                      epdata.bookmark = !epdata.bookmark;
-                      await widget.source.episode.save();
-                      if (mounted) {
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  DionIconbutton(
-                    tooltip: 'Open in Browser',
-                    icon: const Icon(Icons.open_in_browser),
-                    onPressed: () =>
-                        launchUrl(Uri.parse(widget.source.episode.episode.url)),
-                  ),
-                  DionIconbutton(
-                    tooltip: 'Settings',
-                    icon: const Icon(Icons.settings),
-                    onPressed: () => context.push('/settings/imagelistreader'),
-                  ),
-                ],
-              ),
-              if (widget.source.episode.hasprev)
-                SliverToBoxAdapter(
-                  child: DionTextbutton(
-                    child: const Text(
-                      'Previous',
-                    ).paddingSymmetric(vertical: 16),
-                    onPressed: () =>
-                        widget.source.episode.goPrev(widget.supplier),
-                  ),
+                  ],
                 ),
-              SuperSliverList.builder(
-                layoutKeptAliveChildren: true,
-                delayPopulatingCacheArea: false,
-                listController: listController,
-                itemBuilder: (context, index) =>
-                    wrapScreen(context, makeImage(context, images[index])),
-                itemCount: images.length,
-              ),
-              if (widget.source.episode.hasnext)
-                SliverToBoxAdapter(
-                  child: DionTextbutton(
-                    child: const Text('Next').paddingSymmetric(vertical: 16),
-                    onPressed: () =>
-                        widget.source.episode.goNext(widget.supplier),
+                if (widget.source.episode.hasprev)
+                  SliverToBoxAdapter(
+                    child: DionTextbutton(
+                      child: const Text('Previous')
+                          .paddingSymmetric(vertical: 16),
+                      onPressed: () =>
+                          widget.source.episode.goPrev(widget.supplier),
+                    ),
                   ),
+                SuperSliverList.builder(
+                  layoutKeptAliveChildren: true,
+                  delayPopulatingCacheArea: false,
+                  listController: listController,
+                  itemBuilder: (context, index) =>
+                      wrapScreen(context, makeImage(context, images[index])),
+                  itemCount: images.length,
                 ),
-            ],
+                if (widget.source.episode.hasnext)
+                  SliverToBoxAdapter(
+                    child: DionTextbutton(
+                      child: const Text('Next').paddingSymmetric(vertical: 16),
+                      onPressed: () =>
+                          widget.source.episode.goNext(widget.supplier),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

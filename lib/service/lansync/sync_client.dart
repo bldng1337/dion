@@ -13,12 +13,11 @@ import 'package:metis/adapter/sync/repo.dart';
 
 /// Callback used to ask the local user (acting as A, the initiator) to
 /// confirm a pairing after B's info is known. Returns `true` if accepted.
-typedef InitiatorPrompt =
-    Future<bool> Function(
-      DeviceInfo peerInfo,
-      String peerFingerprint,
-      String sasCode,
-    );
+typedef InitiatorPrompt = Future<bool> Function(
+  DeviceInfo peerInfo,
+  String peerFingerprint,
+  String sasCode,
+);
 
 class LanSyncClient {
   final DeviceIdentity _identity;

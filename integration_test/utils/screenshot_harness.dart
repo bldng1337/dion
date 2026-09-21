@@ -122,9 +122,9 @@ Future<void> bootstrapScreenshots() async {
 ///
 /// Returns the saved entries (the first one is used for the detail shot).
 Future<List<EntrySaved>> seedMockLibrary() async {
-  final ext = locate<ExtensionService>()
-      .getExtensions()
-      .firstWhere((e) => e.id == MockExtension.mockId);
+  final ext = locate<ExtensionService>().getExtensions().firstWhere(
+    (e) => e.id == MockExtension.mockId,
+  );
 
   // Pull the 12 placeholder entries through the mock's browse() stream.
   final controller = DataSourceController<Entry>([ext.browse()]);
@@ -176,8 +176,9 @@ Future<File> capture(String name, {double? pixelRatio}) async {
   if (!await screenshotsDir.exists()) {
     await screenshotsDir.create(recursive: true);
   }
-  final boundary = screenshotBoundaryKey.currentContext!.findRenderObject()!
-      as RenderRepaintBoundary;
+  final boundary =
+      screenshotBoundaryKey.currentContext!.findRenderObject()!
+          as RenderRepaintBoundary;
   final image = await boundary.toImage(pixelRatio: pixelRatio ?? 2.0);
   final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
   final file = File(p.join(screenshotsDir.path, '$name.png'));

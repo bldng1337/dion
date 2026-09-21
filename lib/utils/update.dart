@@ -154,9 +154,7 @@ UpdateAssets _androidAsset(Update update) {
       }
     }
   }
-  return apks.firstWhere(
-    (apk) => !_androidAbiTags.any(apk.filename.contains),
-  );
+  return apks.firstWhere((apk) => !_androidAbiTags.any(apk.filename.contains));
 }
 
 /// The installer for this machine's architecture, when the release ships

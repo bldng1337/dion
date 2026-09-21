@@ -73,25 +73,25 @@ class LogRecord {
   }
 
   Map<String, dynamic> toMap() => {
-        'time': time.toIso8601String(),
-        'level': level.name,
-        'message': message,
-        'source': source,
-        if (error != null) 'error': error,
-        if (stackTrace != null) 'stackTrace': stackTrace,
-      };
+    'time': time.toIso8601String(),
+    'level': level.name,
+    'message': message,
+    'source': source,
+    if (error != null) 'error': error,
+    if (stackTrace != null) 'stackTrace': stackTrace,
+  };
 
   factory LogRecord.fromMap(Map<String, dynamic> map) => LogRecord(
-        time: DateTime.parse(map['time'] as String),
-        level: Level.values.firstWhere(
-          (level) => level.name == map['level'],
-          orElse: () => Level.info,
-        ),
-        message: map['message'] as String? ?? '',
-        source: map['source'] as String? ?? kLogSourceMain,
-        error: map['error'] as String?,
-        stackTrace: map['stackTrace'] as String?,
-      );
+    time: DateTime.parse(map['time'] as String),
+    level: Level.values.firstWhere(
+      (level) => level.name == map['level'],
+      orElse: () => Level.info,
+    ),
+    message: map['message'] as String? ?? '',
+    source: map['source'] as String? ?? kLogSourceMain,
+    error: map['error'] as String?,
+    stackTrace: map['stackTrace'] as String?,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -204,9 +204,8 @@ class LogStore extends ChangeNotifier {
     }
   }
 
-  File _fileFor(int index) => File(
-        p.join(_dir!.path, index == 0 ? _fileName : '$_fileName.$index'),
-      );
+  File _fileFor(int index) =>
+      File(p.join(_dir!.path, index == 0 ? _fileName : '$_fileName.$index'));
 
   /// Loads the newest [maxMemoryRecords] records across the current and
   /// rotated files.
@@ -252,10 +251,7 @@ class LogStore extends ChangeNotifier {
   void add(LogEvent event) {
     final record = LogRecord.fromEvent(event, source: _source);
     if (_records.length >= maxMemoryRecords) {
-      _records.removeRange(
-        0,
-        _records.length - maxMemoryRecords + 1,
-      );
+      _records.removeRange(0, _records.length - maxMemoryRecords + 1);
     }
     _records.add(record);
     final line = jsonEncode(record.toMap());
@@ -344,8 +340,8 @@ class LogStore extends ChangeNotifier {
   }
 
   Future<void> close() => _io = _io.then((_) async {
-        await _sink?.flush();
-        await _sink?.close();
-        _sink = null;
-      });
+    await _sink?.flush();
+    await _sink?.close();
+    _sink = null;
+  });
 }

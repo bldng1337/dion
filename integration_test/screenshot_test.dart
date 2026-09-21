@@ -35,22 +35,34 @@ void main() {
 
         await tester.pumpWidget(app);
         await pumpStable(tester);
-        await capture('library_${ff.fileSuffix}', pixelRatio: ff.devicePixelRatio);
+        await capture(
+          'library_${ff.fileSuffix}',
+          pixelRatio: ff.devicePixelRatio,
+        );
 
         router.go('/activity');
         await pumpStable(tester);
-        await capture('activity_${ff.fileSuffix}', pixelRatio: ff.devicePixelRatio);
+        await capture(
+          'activity_${ff.fileSuffix}',
+          pixelRatio: ff.devicePixelRatio,
+        );
 
         // Detail screen needs the Entry passed via `extra`.
         router.push('/detail', extra: [savedEntries.first]);
         await pumpStable(tester);
-        await capture('entry_${ff.fileSuffix}', pixelRatio: ff.devicePixelRatio);
+        await capture(
+          'entry_${ff.fileSuffix}',
+          pixelRatio: ff.devicePixelRatio,
+        );
         router.pop();
         await pumpStable(tester);
 
         router.go('/settings');
         await pumpStable(tester);
-        await capture('settings_${ff.fileSuffix}', pixelRatio: ff.devicePixelRatio);
+        await capture(
+          'settings_${ff.fileSuffix}',
+          pixelRatio: ff.devicePixelRatio,
+        );
       });
     }
   });

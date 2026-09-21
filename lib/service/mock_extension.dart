@@ -243,10 +243,12 @@ class MockExtension with ChangeNotifier implements Extension {
     Extension extension, {
     rust.CancelToken? token,
   }) {
-    return locate<ExtensionService>().withEntryLock(
-      e,
-      () => remapSavedEntry(e, only: extension.id, token: token),
-    ).then((_) => e);
+    return locate<ExtensionService>()
+        .withEntryLock(
+          e,
+          () => remapSavedEntry(e, only: extension.id, token: token),
+        )
+        .then((_) => e);
   }
 
   @override
@@ -322,45 +324,69 @@ class MockExtension with ChangeNotifier implements Extension {
         ),
         const rust.Paragraph.table(
           columns: [
-            rust.Row(cells: [
-              rust.Paragraph.text(content: 'Column 1', style: rust.TextStyle(bold: true)),
-              rust.Paragraph.text(content: 'Column 2', style: rust.TextStyle(bold: true)),
-              rust.Paragraph.text(content: 'Column 3', style: rust.TextStyle(bold: true)),
-            ]),
-            rust.Row(cells: [
-              rust.Paragraph.text(content: 'Row 1, Cell 1'),
-              rust.Paragraph.text(content: 'Row 1, Cell 2'),
-              rust.Paragraph.text(content: 'Row 1, Cell 3'),
-            ]),
-            rust.Row(cells: [
-              rust.Paragraph.customUi(
-                ui: CustomUI.image(
-                  image: Link(url: 'https://picsum.photos/seed/mock-table-image/400/300'),
+            rust.Row(
+              cells: [
+                rust.Paragraph.text(
+                  content: 'Column 1',
+                  style: rust.TextStyle(bold: true),
                 ),
-              ),
-              rust.Paragraph.text(content: 'Row 2, Cell 2'),
-              rust.Paragraph.text(content: 'Row 2, Cell 3'),
-            ]),
-          ]
+                rust.Paragraph.text(
+                  content: 'Column 2',
+                  style: rust.TextStyle(bold: true),
+                ),
+                rust.Paragraph.text(
+                  content: 'Column 3',
+                  style: rust.TextStyle(bold: true),
+                ),
+              ],
+            ),
+            rust.Row(
+              cells: [
+                rust.Paragraph.text(content: 'Row 1, Cell 1'),
+                rust.Paragraph.text(content: 'Row 1, Cell 2'),
+                rust.Paragraph.text(content: 'Row 1, Cell 3'),
+              ],
+            ),
+            rust.Row(
+              cells: [
+                rust.Paragraph.customUi(
+                  ui: CustomUI.image(
+                    image: Link(
+                      url:
+                          'https://picsum.photos/seed/mock-table-image/400/300',
+                    ),
+                  ),
+                ),
+                rust.Paragraph.text(content: 'Row 2, Cell 2'),
+                rust.Paragraph.text(content: 'Row 2, Cell 3'),
+              ],
+            ),
+          ],
         ),
         const rust.Paragraph.mixed(
           content: [
-            rust.MixedContent.text(content: 'This is a mixed content paragraph with an image: '),
+            rust.MixedContent.text(
+              content: 'This is a mixed content paragraph with an image: ',
+            ),
             rust.MixedContent.customUi(
               ui: CustomUI.image(
-                image: Link(url: 'https://picsum.photos/seed/mock-mixed-image/20/20'),
+                image: Link(
+                  url: 'https://picsum.photos/seed/mock-mixed-image/20/20',
+                ),
               ),
             ),
-            rust.MixedContent.text(content: ' and some more text after the image. Now a Badge: '),
+            rust.MixedContent.text(
+              content: ' and some more text after the image. Now a Badge: ',
+            ),
             rust.MixedContent.customUi(
               ui: CustomUI.badge(
                 child: CustomUI.text(
                   text: 'Badge',
                   style: rust.TextStyle(bold: true),
                 ),
-              )
+              ),
             ),
-          ]
+          ],
         ),
         const rust.Paragraph.text(
           content:
@@ -382,7 +408,7 @@ class MockExtension with ChangeNotifier implements Extension {
           link: Link(url: _sampleAudio),
           from: 3,
           to: 10,
-        )
+        ),
       ],
       links: [
         for (var i = 1; i <= 30; i++)
@@ -395,7 +421,8 @@ class MockExtension with ChangeNotifier implements Extension {
     );
   }
 
-  static const _sampleVideo = 'https://archive.org/download/BigBuckBunnyFULLHD60FPS/Big%20Buck%20Bunny%20-%20FULL%20HD%2060FPS.ogv';
+  static const _sampleVideo =
+      'https://archive.org/download/BigBuckBunnyFULLHD60FPS/Big%20Buck%20Bunny%20-%20FULL%20HD%2060FPS.ogv';
 
   static rust.Source _videoSource() {
     return const rust.Source.video(
@@ -482,7 +509,9 @@ class MockExtension with ChangeNotifier implements Extension {
             rust.Episode(
               id: rust.EpisodeId(uid: '${e.id.uid}-ep-$i'),
               cover: i.isEven
-                  ? rust.Link(url: 'https://picsum.photos/seed/${e.id.uid}-$i/1200/800')
+                  ? rust.Link(
+                      url: 'https://picsum.photos/seed/${e.id.uid}-$i/1200/800',
+                    )
                   : null,
               name: _episodeName(e.mediaType, i),
               description: 'Mock episode $i',

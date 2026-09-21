@@ -3,7 +3,6 @@ import 'package:dionysos/views/view/view.dart';
 import 'package:flutter/cupertino.dart';
 
 class AudioListener extends StatelessWidget {
-
   const AudioListener({super.key});
 
   @override

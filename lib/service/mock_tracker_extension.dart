@@ -92,7 +92,10 @@ class MockTrackerExtension with ChangeNotifier implements Extension {
   List<Account> get accounts => const [];
 
   @override
-  Map<rust.SettingKind, List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>>>
+  Map<
+    rust.SettingKind,
+    List<Setting<dynamic, ExtensionSettingMetaData<dynamic>>>
+  >
   get settings => _settings;
 
   static final Map<

@@ -1,13 +1,16 @@
 import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions_flutter.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:quiver/cache.dart';
 import 'package:quiver/collection.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+
 // Modified version of https://pub.dev/packages/huge_listview
 
 class ListItem<T> {
@@ -88,7 +91,8 @@ class HugeListView<T> extends StatefulWidget {
   HugeListViewState<T> createState() => HugeListViewState<T>();
 }
 
-class HugeListViewState<T> extends State<HugeListView<T>> {
+class HugeListViewState<T> extends State<HugeListView<T>>
+    with StateDisposeScopeMixin {
   final listener = ItemPositionsListener.create();
   late final Map<int, ListItem<T>> map;
   late final MapCache<int, ListItem<T>?> cache;
@@ -101,18 +105,12 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
     super.initState();
     totalItemCount = widget.totalCount;
     _initCache();
-    listener.itemPositions.addListener(_sendScroll);
-  }
-
-  @override
-  void dispose() {
-    listener.itemPositions.removeListener(_sendScroll);
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(HugeListView<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
+    Observer(
+      _sendScroll,
+      listener.itemPositions,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
   }
 
   void _sendScroll() {
@@ -177,7 +175,11 @@ class HugeListViewState<T> extends State<HugeListView<T>> {
                     );
               }
               if (pageListItem.item != null) {
-                return widget.itemBuilder(context, index, pageListItem.item as T);
+                return widget.itemBuilder(
+                  context,
+                  index,
+                  pageListItem.item as T,
+                );
               }
               return ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 10),

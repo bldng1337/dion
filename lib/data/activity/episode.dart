@@ -82,13 +82,13 @@ class EpisodeActivity extends Activity {
 //             .isAfter(DateTime.now()) &&
 //         (activity.fromepisode - 1 <= ep.episodenumber ||
 //             activity.toepisode + 1 >= ep.episodenumber)) {
-      // await db.addActivity(
-      //   activity.copyWith(
-      //     toepisode: max(ep.episodenumber, activity.toepisode),
-      //     fromepisode: min(ep.episodenumber, activity.fromepisode),
-      //     duration: DateTime.now().difference(activity.time),
-      //   ),
-      // );
+// await db.addActivity(
+//   activity.copyWith(
+//     toepisode: max(ep.episodenumber, activity.toepisode),
+//     fromepisode: min(ep.episodenumber, activity.fromepisode),
+//     duration: DateTime.now().difference(activity.time),
+//   ),
+// );
 //       return;
 //     }
 //     await db.addActivity(

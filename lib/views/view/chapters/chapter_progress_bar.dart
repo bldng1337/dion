@@ -21,9 +21,8 @@ class ChapterProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Theme-aware so the ticks stay visible on the light track in light mode.
-    final tickColor = Theme.of(context).colorScheme.onSurface.withValues(
-      alpha: 0.9,
-    );
+    final tickColor = Theme.of(context).colorScheme.onSurface
+        .withValues(alpha: 0.9);
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -78,8 +77,7 @@ class _ChapterTickPainter extends CustomPainter {
     final paint = Paint()..color = tickColor;
     for (final chapter in chapters) {
       if (chapter.start > total) continue;
-      final fraction =
-          chapter.start.inMilliseconds / total.inMilliseconds;
+      final fraction = chapter.start.inMilliseconds / total.inMilliseconds;
       final x = (fraction * (size.width - barHeight) + barHeight / 2).clamp(
         10.0,
         size.width - 10.0,

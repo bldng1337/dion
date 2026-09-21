@@ -490,9 +490,7 @@ Widget _buildWarningBox(
             onPressed: onTap,
             child: Text(
               buttonText,
-              style: context.labelSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: context.labelSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
       ],
@@ -879,8 +877,8 @@ class _AttachedExtensionWarnings extends StatefulWidget {
       _AttachedExtensionWarningsState();
 }
 
-class _AttachedExtensionWarningsState
-    extends State<_AttachedExtensionWarnings> with StateDisposeScopeMixin {
+class _AttachedExtensionWarningsState extends State<_AttachedExtensionWarnings>
+    with StateDisposeScopeMixin {
   List<(String kind, EntryExtension attached)> get _attached => [
     for (final attached in widget.entry.entryExtensions)
       ('Entry extension', attached),
@@ -921,8 +919,8 @@ class _AttachedExtensionWarningsState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final (kind, attached) in _attached)
-          if (attached.extension
-              case final extension? when !extension.isenabled)
+          if (attached.extension case final extension?
+              when !extension.isenabled)
             _buildWarningBox(
               context,
               message: "$kind '${extension.name}' is disabled",

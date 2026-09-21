@@ -1,6 +1,17 @@
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
 import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -72,10 +83,9 @@ class _InfiniteParagraphListReaderState
       ),
       actions: [
         DionIconbutton(
-          tooltip:
-              widget.supplier.episode.data.bookmark
-                  ? 'Remove Bookmark'
-                  : 'Add Bookmark',
+          tooltip: widget.supplier.episode.data.bookmark
+              ? 'Remove Bookmark'
+              : 'Add Bookmark',
           icon: Icon(
             widget.supplier.episode.data.bookmark
                 ? Icons.bookmark
@@ -111,67 +121,68 @@ class _InfiniteParagraphListReaderState
           mouseDrags: !psettings.text.selectable.value,
           actions: [
             BindingAction(
-              setting:
-                  settings.readerSettings.paragraphreader.bindings.toggleBookmark,
+              setting: settings
+                  .readerSettings
+                  .paragraphreader
+                  .bindings
+                  .toggleBookmark,
               onTrigger: _toggleBookmark,
             ),
           ],
           child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: HugeListView(
-          firstShown: (value) {
-            if (value == widget.supplier.episode.episodenumber) return;
-            widget.supplier.setEpisodeByIndex(value);
-          },
-          totalCount: widget.supplier.episode.entry.episodes.length,
-          startIndex: widget.supplier.episode.episodenumber,
-          pageFuture: (int pageIndex) async {
-            return await widget.supplier.getIndex(pageIndex);
-          },
-          itemBuilder: (BuildContext context, int index, dynamic test) {
-            final sourcepath = test as SourcePath;
-            final source = sourcepath.source as Source_Paragraphlist;
-            return ListenableBuilder(
-              listenable: settings.readerSettings.paragraphreader.title,
-              builder: (context, child) {
-                if (!settings.readerSettings.paragraphreader.title.value) {
-                  return child!;
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    EpisodeTitle(episode: sourcepath.episode),
-                    child!,
-                  ],
+            behavior: ScrollConfiguration.of(context)
+                .copyWith(scrollbars: false),
+            child: HugeListView(
+              firstShown: (value) {
+                if (value == widget.supplier.episode.episodenumber) return;
+                widget.supplier.setEpisodeByIndex(value);
+              },
+              totalCount: widget.supplier.episode.entry.episodes.length,
+              startIndex: widget.supplier.episode.episodenumber,
+              pageFuture: (int pageIndex) async {
+                return await widget.supplier.getIndex(pageIndex);
+              },
+              itemBuilder: (BuildContext context, int index, dynamic test) {
+                final sourcepath = test as SourcePath;
+                final source = sourcepath.source as Source_Paragraphlist;
+                return ListenableBuilder(
+                  listenable: settings.readerSettings.paragraphreader.title,
+                  builder: (context, child) {
+                    if (!settings.readerSettings.paragraphreader.title.value) {
+                      return child!;
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        EpisodeTitle(episode: sourcepath.episode),
+                        child!,
+                      ],
+                    );
+                  },
+                  child: ReaderSelectable(
+                    selectionContextItems: (text) =>
+                        quoteContextItems(context, sourcepath.episode, text),
+                    child: ReaderWrapScreen(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: source.paragraphs
+                            .map(
+                              (e) => ReaderRenderParagraph(
+                                e,
+                                widget.supplier.episode.entry.extension!,
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
                 );
               },
-              child: ReaderSelectable(
-                selectionContextItems: (text) => quoteContextItems(
-                  context,
-                  sourcepath.episode,
-                  text,
-                ),
-                child: ReaderWrapScreen(
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: source.paragraphs
-                        .map(
-                          (e) => ReaderRenderParagraph(
-                            e,
-                            widget.supplier.episode.entry.extension!,
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+            ),
+          ),
         ),
       ),
-        ),
     );
   }
 }

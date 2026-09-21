@@ -376,10 +376,7 @@ class ExtensionMetaChips extends StatelessWidget {
           _MetaBadge(
             child: Tooltip(
               message: languages.skip(maxLanguages).join(', '),
-              child: Text(
-                '+$hiddenLanguageCount',
-                style: context.bodySmall,
-              ),
+              child: Text('+$hiddenLanguageCount', style: context.bodySmall),
             ),
           ),
       ],

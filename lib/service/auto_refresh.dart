@@ -50,9 +50,7 @@ class AutoRefreshJob extends PeriodicJob {
     if (!caughtUp || !releasing) return false;
     final next = entry.nextRelease;
     if (next == null || !next.isAfter(now.add(_dueMargin))) return true;
-    final horizon = now.add(
-      entry.releaseInterval ?? const Duration(days: 365),
-    );
+    final horizon = now.add(entry.releaseInterval ?? const Duration(days: 365));
     return next.isAfter(horizon);
   }
 

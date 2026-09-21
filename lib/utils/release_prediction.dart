@@ -1,4 +1,3 @@
-
 const _recentWindow = 10;
 
 const _minInterval = Duration(hours: 1);
@@ -44,9 +43,8 @@ DateTime? parseEpisodeTimestamp(String raw) {
   }
   // DateTime.parse accepts the T separator, a space separator and optional
   // seconds; it rejects bare HH:MM, so complete that shape first.
-  final timeOnly = RegExp(
-    r'^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$',
-  ).firstMatch(s);
+  final timeOnly = RegExp(r'^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$')
+      .firstMatch(s);
   final normalized = timeOnly == null ? s : '${timeOnly[1]} ${timeOnly[2]}:00';
   final parsed = DateTime.tryParse(normalized);
   if (parsed != null && !_rolledOver(normalized, parsed)) return parsed;
@@ -127,9 +125,9 @@ DateTime? _tryParseRfc2822(String s) {
   if (zone != null && zone.startsWith(RegExp('[+-]'))) {
     final sign = zone.startsWith('-') ? -1 : 1;
     offsetMinutes =
-        sign * (int.parse(zone.substring(1, 3)) * 60 + int.parse(
-          zone.substring(3, 5),
-        ));
+        sign *
+        (int.parse(zone.substring(1, 3)) * 60 +
+            int.parse(zone.substring(3, 5)));
   } else if (zone != null) {
     offsetMinutes = (_rfc2822Zones[zone.toUpperCase()] ?? 0) * 60;
   }
@@ -150,16 +148,14 @@ ReleasePrediction? predictNextRelease(
   final times = <DateTime>[];
   for (final time in parsed) {
     if (times.isEmpty ||
-        time.millisecondsSinceEpoch !=
-            times.last.millisecondsSinceEpoch) {
+        time.millisecondsSinceEpoch != times.last.millisecondsSinceEpoch) {
       times.add(time);
     }
   }
   if (times.length < 2) return null;
-  final tail =
-      times.length <= _recentWindow
-          ? times
-          : times.sublist(times.length - _recentWindow);
+  final tail = times.length <= _recentWindow
+      ? times
+      : times.sublist(times.length - _recentWindow);
   final diffs = <Duration>[];
   for (var i = 1; i < tail.length; i++) {
     final diff = tail[i].difference(tail[i - 1]);
@@ -181,28 +177,23 @@ ReleasePrediction? predictNextRelease(
   // Prefer day-scale gaps: same-day batch drops otherwise drag the median
   // down even though they are not the release cadence. Series that release
   // multiple times a day have no day-scale gaps and keep the raw median.
-  final dayScale = diffs
-      .where((d) => d >= _batchDropCutoff)
-      .toList();
+  final dayScale = diffs.where((d) => d >= _batchDropCutoff).toList();
   var interval = _median(dayScale.isEmpty ? diffs : dayScale);
   if (interval == null) return null;
   final weeks = (interval.inMilliseconds / _week.inMilliseconds).round();
-  if (weeks >= 1 &&
-      (interval - _week * weeks).abs() <= _weeklySnapTolerance) {
+  if (weeks >= 1 && (interval - _week * weeks).abs() <= _weeklySnapTolerance) {
     interval = _week * weeks;
   }
   if (interval < _minInterval || interval > _maxInterval) return null;
 
-  final mad = _median([
-    for (final d in diffs) (d - interval).abs(),
-  ]);
-  final dispersion =
-      mad == null
-          ? 0.0
-          : 1.0 - (2.5 * mad.inMilliseconds / interval.inMilliseconds).clamp(
-            0.0,
-            1.0,
-          );
+  final mad = _median([for (final d in diffs) (d - interval).abs()]);
+  final dispersion = mad == null
+      ? 0.0
+      : 1.0 -
+            (2.5 * mad.inMilliseconds / interval.inMilliseconds).clamp(
+              0.0,
+              1.0,
+            );
   // Few samples mean the regularity is luck until proven otherwise.
   final sizeFactor = (0.6 + 0.08 * diffs.length).clamp(0.0, 1.0);
   return ReleasePrediction(

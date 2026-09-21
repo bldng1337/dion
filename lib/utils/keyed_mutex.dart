@@ -7,13 +7,11 @@ class KeyedMutex {
     final previous = _tails[key] ?? Future<void>.value();
     final completer = Completer<void>();
     _tails[key] = completer.future;
-    return previous
-        .then((_) => action())
-        .whenComplete(() {
-          if (identical(_tails[key], completer.future)) {
-            _tails.remove(key);
-          }
-          completer.complete();
-        });
+    return previous.then((_) => action()).whenComplete(() {
+      if (identical(_tails[key], completer.future)) {
+        _tails.remove(key);
+      }
+      completer.complete();
+    });
   }
 }

@@ -131,13 +131,12 @@ class ErrorDisplay extends StatelessWidget {
                 DionTextbutton(
                   child: const Text('Copy Error'),
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: '$e\n\n$s')).then((
-                      a,
-                    ) {
-                      if (context.mounted) {
-                        context.pop();
-                      }
-                    });
+                    Clipboard.setData(ClipboardData(text: '$e\n\n$s'))
+                        .then((a) {
+                          if (context.mounted) {
+                            context.pop();
+                          }
+                        });
                   },
                 ).paddingOnly(right: 8),
                 ...?actions?.map(

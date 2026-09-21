@@ -27,8 +27,7 @@ class _ClickableState extends State<Clickable> {
     final highlighted = _hover || _focused;
     return FocusableActionDetector(
       enabled: enabled,
-      mouseCursor:
-          enabled ? SystemMouseCursors.click : MouseCursor.defer,
+      mouseCursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
       shortcuts: _activations,
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(

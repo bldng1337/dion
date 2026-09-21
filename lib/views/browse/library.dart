@@ -128,6 +128,8 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
   }
 
   void _runSearch(String query) {
+    // Reached via the debounce timer, so it can fire after unmount.
+    if (!mounted) return;
     final trimmed = query.trim();
     if (trimmed == _query) return;
     _query = trimmed;

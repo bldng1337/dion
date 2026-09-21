@@ -54,9 +54,7 @@ class SavedImage {
 
   @override
   bool operator ==(Object other) =>
-      other is SavedImage &&
-      url == other.url &&
-      savedAt == other.savedAt;
+      other is SavedImage && url == other.url && savedAt == other.savedAt;
 
   @override
   int get hashCode => Object.hash(url, savedAt);
@@ -96,8 +94,7 @@ class EpisodeData {
     List<SavedImage>? images,
   }) : quotes = quotes ?? [],
        images = images ?? [];
-  EpisodeData.empty()
-    : this(bookmark: false, finished: false, progress: null);
+  EpisodeData.empty() : this(bookmark: false, finished: false, progress: null);
 
   @override
   bool operator ==(Object other) =>
@@ -109,9 +106,13 @@ class EpisodeData {
       _listEquals(images, other.images);
 
   @override
-  int get hashCode =>
-      Object.hash(bookmark, finished, progress, Object.hashAll(quotes),
-          Object.hashAll(images));
+  int get hashCode => Object.hash(
+    bookmark,
+    finished,
+    progress,
+    Object.hashAll(quotes),
+    Object.hashAll(images),
+  );
 
   @override
   String toString() {
@@ -304,7 +305,6 @@ class EntrySaved
     required this.original,
     this.generation = 0,
     required this.categories,
-    required List<EpisodeData> episodedata,
     required this.boundExtensionId,
     required this.episode,
     required this.savedSettings,
@@ -315,7 +315,8 @@ class EntrySaved
     this.predictedNextRelease,
     this.releaseInterval,
     this.nextReleaseOverride,
-  }) : _episodedata = episodedata;
+    required this._episodedata,
+  });
 
   List<EpisodeData> get episodedata => _episodedata;
   int get latestEpisode => min(
@@ -639,8 +640,7 @@ class EntrySaved
       entry: entry,
       // Rows written before the original/final split only stored the folded
       // entry; it doubles as the original until the next refresh.
-      original:
-          json['original'] == null
+      original: json['original'] == null
           ? entry
           : rust.JsonEntryDetailed.fromJson(
               json['original'] as Map<String, dynamic>,
@@ -677,10 +677,9 @@ class EntrySaved
       predictedNextRelease: DateTime.tryParse(
         json['predictedNextRelease'] as String? ?? '',
       ),
-      releaseInterval:
-          json['releaseInterval'] == null
-              ? null
-              : Duration(milliseconds: json['releaseInterval'] as int),
+      releaseInterval: json['releaseInterval'] == null
+          ? null
+          : Duration(milliseconds: json['releaseInterval'] as int),
       nextReleaseOverride: DateTime.tryParse(
         json['nextReleaseOverride'] as String? ?? '',
       ),

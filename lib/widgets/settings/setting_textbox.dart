@@ -1,7 +1,9 @@
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 /// A text input setting with the new clean design.
 class SettingTextbox extends StatefulWidget {
@@ -22,42 +24,35 @@ class SettingTextbox extends StatefulWidget {
   State<SettingTextbox> createState() => _SettingTextboxState();
 }
 
-class _SettingTextboxState extends State<SettingTextbox> {
-  late final TextEditingController _controller;
-  late final VoidCallback _settingListener;
+class _SettingTextboxState extends State<SettingTextbox>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.setting.value,
+  )..disposedBy(scope);
+  late final Observer _settingObserver = Observer(
+    _syncFromSetting,
+    widget.setting,
+    callOnInit: false,
+    callIndirectly: false,
+  )..disposedBy(scope);
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.setting.value);
-    _settingListener = () {
-      if (!mounted) return;
-      final newText = widget.setting.value;
-      if (_controller.text != newText) {
-        _controller.value = _controller.value.copyWith(
-          text: newText,
-          selection: TextSelection.collapsed(offset: newText.length),
-        );
-      }
-    };
-    widget.setting.addListener(_settingListener);
+  void _syncFromSetting() {
+    final newText = widget.setting.value;
+    if (_controller.text != newText) {
+      _controller.value = _controller.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
   }
 
   @override
   void didUpdateWidget(covariant SettingTextbox oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.setting != widget.setting) {
-      oldWidget.setting.removeListener(_settingListener);
+      _settingObserver.swapListener(widget.setting);
       _controller.text = widget.setting.value;
-      widget.setting.addListener(_settingListener);
     }
-  }
-
-  @override
-  void dispose() {
-    widget.setting.removeListener(_settingListener);
-    _controller.dispose();
-    super.dispose();
   }
 
   void _applyControllerToSetting() {

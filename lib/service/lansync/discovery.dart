@@ -56,8 +56,7 @@ class LanDiscovery {
   final ValueNotifier<List<DiscoveredPeer>> peers =
       ValueNotifier<List<DiscoveredPeer>>(const []);
 
-  LanDiscovery({required DeviceIdentity identity, required this.port})
-    : _identity = identity;
+  LanDiscovery({required this._identity, required this.port});
 
   bool get isAdvertising => _advertising;
 

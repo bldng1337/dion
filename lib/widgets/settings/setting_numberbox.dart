@@ -1,8 +1,10 @@
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class SinglePeriodEnforcer extends TextInputFormatter {
   @override
@@ -37,40 +39,32 @@ class SettingNumberbox<T extends num> extends StatefulWidget {
   State<SettingNumberbox<T>> createState() => _SettingNumberboxState<T>();
 }
 
-class _SettingNumberboxState<T extends num> extends State<SettingNumberbox<T>> {
-  late final TextEditingController _controller;
-  late VoidCallback _settingListener;
+class _SettingNumberboxState<T extends num> extends State<SettingNumberbox<T>>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.setting.value.toString(),
+  )..disposedBy(scope);
+  late final Observer _settingObserver = Observer(
+    _syncFromSetting,
+    widget.setting,
+    callOnInit: false,
+    callIndirectly: false,
+  )..disposedBy(scope);
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.setting.value.toString());
-
-    _settingListener = () {
-      if (!mounted) return;
-      final text = widget.setting.value.toString();
-      if (_controller.text != text) {
-        _controller.text = text;
-      }
-    };
-    widget.setting.addListener(_settingListener);
+  void _syncFromSetting() {
+    final text = widget.setting.value.toString();
+    if (_controller.text != text) {
+      _controller.text = text;
+    }
   }
 
   @override
   void didUpdateWidget(covariant SettingNumberbox<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.setting != widget.setting) {
-      oldWidget.setting.removeListener(_settingListener);
+      _settingObserver.swapListener(widget.setting);
       _controller.text = widget.setting.value.toString();
-      widget.setting.addListener(_settingListener);
     }
-  }
-
-  @override
-  void dispose() {
-    widget.setting.removeListener(_settingListener);
-    _controller.dispose();
-    super.dispose();
   }
 
   T _convert(num value) {

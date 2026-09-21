@@ -5,6 +5,7 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/selection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 /// A string list setting with the new clean design.
 ///
@@ -19,20 +20,10 @@ class SettingStringList extends StatefulWidget {
   State<SettingStringList> createState() => _SettingStringListState();
 }
 
-class _SettingStringListState extends State<SettingStringList> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class _SettingStringListState extends State<SettingStringList>
+    with StateDisposeScopeMixin {
+  late final TextEditingController _controller = TextEditingController()
+    ..disposedBy(scope);
 
   void _addEntryFromController() {
     final raw = _controller.text;

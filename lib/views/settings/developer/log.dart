@@ -166,7 +166,9 @@ class _LogViewState extends State<LogView> {
                   label: const Text('Clear'),
                 ),
                 TextButton.icon(
-                  onPressed: _filteredLogs.isEmpty ? null : () => _exportLogs(_filteredLogs),
+                  onPressed: _filteredLogs.isEmpty
+                      ? null
+                      : () => _exportLogs(_filteredLogs),
                   icon: const Icon(Icons.filter_alt_outlined, size: 18),
                   label: const Text('Export'),
                 ),
@@ -353,8 +355,7 @@ class _LogItemState extends State<_LogItem> {
                       margin: const EdgeInsets.only(top: 4),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: context
-                            .theme.colorScheme.surfaceContainerHighest
+                        color: context.theme.colorScheme.surfaceContainerHighest
                             .withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(4),
                       ),

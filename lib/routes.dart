@@ -42,11 +42,7 @@ import 'package:go_router/go_router.dart';
 
 final homedestinations = [
   Destination(ico: Icons.bookmark, name: 'Library', path: '/library'),
-  Destination(
-    ico: Icons.calendar_month,
-    name: 'Calendar',
-    path: '/calendar',
-  ),
+  Destination(ico: Icons.calendar_month, name: 'Calendar', path: '/calendar'),
   Destination(ico: Icons.update, name: 'Activity', path: '/activity'),
   Destination(ico: Icons.search, name: 'Browse', path: '/browse'),
   Destination(ico: Icons.extension, name: 'Extensions', path: '/manage'),

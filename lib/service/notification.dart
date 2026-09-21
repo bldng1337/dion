@@ -16,8 +16,7 @@ const taskChannelDescription =
 
 const jobChannelId = 'periodic_jobs';
 const jobChannelName = 'Background Jobs';
-const jobChannelDescription =
-    'Progress of periodic library maintenance jobs';
+const jobChannelDescription = 'Progress of periodic library maintenance jobs';
 
 // Windows progress notifications are shown once and then updated in place
 // through data bindings, so progress ticks do not re-raise a toast every
@@ -168,11 +167,7 @@ class NotificationService {
         ),
       );
     } catch (e, stack) {
-      logger.w(
-        'Progress notification failed',
-        error: e,
-        stackTrace: stack,
-      );
+      logger.w('Progress notification failed', error: e, stackTrace: stack);
     }
   }
 
@@ -204,9 +199,7 @@ class NotificationService {
       title: title,
       body: body,
       notificationDetails: NotificationDetails(
-        windows: WindowsNotificationDetails(
-          progressBars: [progressBar],
-        ),
+        windows: WindowsNotificationDetails(progressBars: [progressBar]),
       ),
     );
     _windowsProgressNotifications.add(id);

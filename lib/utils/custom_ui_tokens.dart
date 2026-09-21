@@ -117,7 +117,9 @@ extension RustTextStyleExt on rust.TextStyle {
     return TextStyle(
       fontWeight: bold == true ? FontWeight.bold : null,
       fontStyle: italic == true ? FontStyle.italic : null,
-      decoration: decorations.isEmpty ? null : TextDecoration.combine(decorations),
+      decoration: decorations.isEmpty
+          ? null
+          : TextDecoration.combine(decorations),
       fontSize: fontSize?.toDouble(),
       fontFamily: code == true ? 'monospace' : null,
     );

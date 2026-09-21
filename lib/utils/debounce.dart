@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 
-class Debouncer {
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+
+class Debouncer implements Disposable {
   final Duration duration;
   final VoidCallback action;
   Timer? _timer;
@@ -31,8 +33,15 @@ class Debouncer {
     _timer = null;
   }
 
-  void dispose() {
+  @override
+  void disposedBy(DisposeScope disposeScope) {
+    disposeScope.addDispose(dispose);
+  }
+
+  @override
+  Future<void> dispose() {
     cancel();
     _disposed = true;
+    return Future.value();
   }
 }

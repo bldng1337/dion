@@ -183,9 +183,7 @@ class _ManageDownloadsState extends State<ManageDownloads> {
         ),
       if (hovered != null)
         ContextMenuItem(
-          label: _selected.contains(hovered)
-              ? 'Deselect Item'
-              : 'Select Item',
+          label: _selected.contains(hovered) ? 'Deselect Item' : 'Select Item',
           icon: Icons.check_circle_outline,
           section: 'Selection',
           onTap: () async {
@@ -294,8 +292,7 @@ class _DownloadsSummary extends StatelessWidget {
     );
     final incomplete = entries.fold<int>(
       0,
-      (sum, entry) =>
-          sum + entry.episodes.where((ep) => !ep.finished).length,
+      (sum, entry) => sum + entry.episodes.where((ep) => !ep.finished).length,
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -344,8 +341,7 @@ class _DownloadsSummary extends StatelessWidget {
                     [
                       '${entries.length} ${entries.length == 1 ? 'entry' : 'entries'}',
                       '$episodeCount episode${episodeCount == 1 ? '' : 's'}',
-                      if (incomplete > 0)
-                        '$incomplete incomplete',
+                      if (incomplete > 0) '$incomplete incomplete',
                     ].join('  ·  '),
                     style: DionTypography.bodySmall(context.textTertiary),
                   ),
@@ -392,8 +388,10 @@ class _EntrySection extends StatelessWidget {
     final extName = entry.entry?.extension?.name;
     final incomplete = entry.episodes.where((ep) => !ep.finished).length;
     return [
-      if (extName != null) extName
-      else if (entry.entry == null) 'Not in library',
+      if (extName != null)
+        extName
+      else if (entry.entry == null)
+        'Not in library',
       '${entry.episodes.length} ${entry.episodes.length == 1 ? 'episode' : 'episodes'}',
       if (incomplete > 0) '$incomplete incomplete',
     ].join('  ·  ');
@@ -418,9 +416,11 @@ class _EntrySection extends StatelessWidget {
             _buildTile(context, selected),
             if (expanded)
               for (final ep in entry.episodes)
-                _buildEpisodeRow(context, ep, selectedPaths.contains(
-                  ep.path.path,
-                )),
+                _buildEpisodeRow(
+                  context,
+                  ep,
+                  selectedPaths.contains(ep.path.path),
+                ),
           ],
         ),
       ),
@@ -547,11 +547,7 @@ class _EntrySection extends StatelessWidget {
         color: context.surfaceMuted,
         borderRadius: DionRadius.small,
       ),
-      child: Icon(
-        Icons.help_outline,
-        size: 20,
-        color: context.textTertiary,
-      ),
+      child: Icon(Icons.help_outline, size: 20, color: context.textTertiary),
     );
   }
 
@@ -563,10 +559,7 @@ class _EntrySection extends StatelessWidget {
     final number = ep.number;
     final name = _episodeName(ep);
     return Padding(
-      padding: const EdgeInsets.only(
-        left: DionSpacing.xl,
-        bottom: 3,
-      ),
+      padding: const EdgeInsets.only(left: DionSpacing.xl, bottom: 3),
       child: Clickable(
         onTap: selectionActive ? () => onToggleSelected(ep.path.path) : null,
         onLongTap: () => onToggleSelected(ep.path.path),

@@ -10,7 +10,10 @@ import 'package:flutter/widgets.dart';
 
 enum _NextReleaseAction { setDate, clear }
 
-Future<void> showNextReleaseEditor(BuildContext context, EntrySaved entry) async {
+Future<void> showNextReleaseEditor(
+  BuildContext context,
+  EntrySaved entry,
+) async {
   final episodeName = entry.mediaType.episodeName.toLowerCase();
   final overrideDate = entry.nextReleaseOverride;
   final action = await showDialog<_NextReleaseAction>(
@@ -21,27 +24,20 @@ Future<void> showNextReleaseEditor(BuildContext context, EntrySaved entry) async
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            switch (entry.nextRelease) {
-              null => 'No next release date known.',
-              final date when entry.nextReleaseOverride != null =>
-                  'Set manually: ${date.toDateString()}',
-              final date => 'Predicted: ${date.toDateString()}',
-            },
-            style: dialogContext.bodyMedium,
-          ),
+          Text(switch (entry.nextRelease) {
+            null => 'No next release date known.',
+            final date when entry.nextReleaseOverride != null =>
+              'Set manually: ${date.toDateString()}',
+            final date => 'Predicted: ${date.toDateString()}',
+          }, style: dialogContext.bodyMedium),
         ],
       ),
       actions: [
         DionTextbutton(
           type: ButtonType.ghost,
-          onPressed:
-              overrideDate == null
-                  ? null
-                  : () => Navigator.pop(
-                    dialogContext,
-                    _NextReleaseAction.clear,
-                  ),
+          onPressed: overrideDate == null
+              ? null
+              : () => Navigator.pop(dialogContext, _NextReleaseAction.clear),
           child: const Text('Clear'),
         ),
         DionTextbutton(
@@ -89,10 +85,9 @@ Future<DateTime?> _pickDate(
   if (date == null || !context.mounted) return null;
   final time = await showTimePicker(
     context: context,
-    initialTime:
-        entry.nextRelease != null
-            ? TimeOfDay.fromDateTime(entry.nextRelease!)
-            : TimeOfDay.now(),
+    initialTime: entry.nextRelease != null
+        ? TimeOfDay.fromDateTime(entry.nextRelease!)
+        : TimeOfDay.now(),
     helpText: 'Next $episodeName releases',
   );
   if (time == null) return null;

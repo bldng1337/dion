@@ -30,11 +30,8 @@ class _MemoryStore implements PairingKeyValueStore {
 /// Extends [SyncRepo] to inherit its concrete `sync` implementation.
 class _FakeSyncRepo extends SyncRepo {
   @override
-  Future<SyncRepoData> getSyncPointData() async => const SyncRepoData(
-        tables: {},
-        version: 1,
-        entries: 0,
-      );
+  Future<SyncRepoData> getSyncPointData() async =>
+      const SyncRepoData(tables: {}, version: 1, entries: 0);
   @override
   Stream<SyncData> querySyncData(int offset, int limit) async* {}
   @override
@@ -125,10 +122,7 @@ void main() {
     test('happy path: pairWithoutClientCert completes and persists', () async {
       final client = LanSyncClient(initiator);
       final paired = await client.pairWith(
-        DiscoveredPeerOrAddress.fromAddress(
-          InternetAddress.loopbackIPv4,
-          port,
-        ),
+        DiscoveredPeerOrAddress.fromAddress(InternetAddress.loopbackIPv4, port),
         (_, _, _) async => true,
       );
       expect(paired, isNotNull);
@@ -136,16 +130,17 @@ void main() {
       // The fingerprint the initiator recorded is the responder's real cert fp.
       expect(paired.fingerprint, responder.fingerprint);
       // The responder stores the initiator's cert fingerprint (the peer).
-      expect(
-        responderStore.containsFingerprint(initiator.fingerprint),
-        isTrue,
-      );
+      expect(responderStore.containsFingerprint(initiator.fingerprint), isTrue);
     });
 
     test('responder rejects an invalid signature with 403', () async {
       // Build a request with a signature over the *wrong* material.
-      // ignore: avoid_redundant_argument_values
-      final http = HttpClient(context: SecurityContext(withTrustedRoots: false));
+      final http = HttpClient(
+        // An empty trust store is the point: the tests validate the
+        // handshake signatures themselves.
+        // ignore: avoid_redundant_argument_values
+        context: SecurityContext(withTrustedRoots: false),
+      );
       http.badCertificateCallback = (cert, host, p) => true;
       final info = initiator.toInfo();
       final bogusSig = signPayload(
@@ -164,8 +159,12 @@ void main() {
     });
 
     test('responder rejects a fingerprint/cert mismatch with 403', () async {
-      // ignore: avoid_redundant_argument_values
-      final http = HttpClient(context: SecurityContext(withTrustedRoots: false));
+      final http = HttpClient(
+        // An empty trust store is the point: the tests validate the
+        // handshake signatures themselves.
+        // ignore: avoid_redundant_argument_values
+        context: SecurityContext(withTrustedRoots: false),
+      );
       http.badCertificateCallback = (cert, host, p) => true;
       // Sign honestly but lie about the fingerprint in the body.
       final info = DeviceInfo(
@@ -175,7 +174,10 @@ void main() {
         certPem: initiator.certPem,
         fingerprint: 'deadbeef',
       );
-      final sig = signPayload(initiator.privateKeyPem, canonicalPairingTbs(info));
+      final sig = signPayload(
+        initiator.privateKeyPem,
+        canonicalPairingTbs(info),
+      );
       final req = await http.postUrl(
         Uri.parse('https://127.0.0.1:$port/pair/init'),
       );
@@ -195,10 +197,7 @@ void main() {
       // Pair first so each side trusts the other's cert.
       final client = LanSyncClient(initiator);
       final paired = await client.pairWith(
-        DiscoveredPeerOrAddress.fromAddress(
-          InternetAddress.loopbackIPv4,
-          port,
-        ),
+        DiscoveredPeerOrAddress.fromAddress(InternetAddress.loopbackIPv4, port),
         (_, _, _) async => true,
       );
       expect(paired, isNotNull);
@@ -218,10 +217,7 @@ void main() {
       // mismatched cert rather than TOFU-accepting it.
       final client = LanSyncClient(initiator);
       final paired = await client.pairWith(
-        DiscoveredPeerOrAddress.fromAddress(
-          InternetAddress.loopbackIPv4,
-          port,
-        ),
+        DiscoveredPeerOrAddress.fromAddress(InternetAddress.loopbackIPv4, port),
         (_, _, _) async => true,
       );
       expect(paired, isNotNull);
@@ -235,8 +231,9 @@ void main() {
         onPairingRequest: (_, _, _) async => true,
         syncRepo: _FakeSyncRepo(),
       );
-      final foreignPort =
-          await foreignServer.start(address: InternetAddress.loopbackIPv4);
+      final foreignPort = await foreignServer.start(
+        address: InternetAddress.loopbackIPv4,
+      );
       try {
         expect(
           () => client.syncWith(

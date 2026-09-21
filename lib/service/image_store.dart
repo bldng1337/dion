@@ -232,8 +232,7 @@ class ImageStoreService {
     // before, this stores it without a second network download.
     if (has<CacheService>()) {
       try {
-        final cached = await locate<CacheService>()
-            .imgcache
+        final cached = await locate<CacheService>().imgcache
             .getFileFromCache(url)
             .then((info) => info?.file);
         if (cached != null &&

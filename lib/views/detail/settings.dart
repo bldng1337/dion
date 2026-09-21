@@ -63,7 +63,7 @@ class _SettingsPopupState extends State<SettingsPopup>
     });
     db.getCategories().then((categories) {
       if (categories.isEmpty) return;
-      controller = MultiDropdownController<Category>();
+      controller = MultiDropdownController<Category>()..disposedBy(scope);
       controller!.setItems(
         categories.map((e) => MultiDropdownItem(label: e.name, value: e)),
       );

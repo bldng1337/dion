@@ -20,7 +20,8 @@ class CustomUiView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final d = data ??
+    final d =
+        data ??
         (GoRouterState.of(context).extra! as List<Object?>)[0]!
             as CustomUIViewData;
     return NavScaff(

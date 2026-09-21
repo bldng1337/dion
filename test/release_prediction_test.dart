@@ -22,9 +22,8 @@ void main() {
       );
       // Offset shifts the instant.
       expect(
-        parseEpisodeTimestamp(
-          '2024-01-05T14:30:00+02:00',
-        )!.millisecondsSinceEpoch,
+        parseEpisodeTimestamp('2024-01-05T14:30:00+02:00')!
+            .millisecondsSinceEpoch,
         expectedMillis,
       );
       // Offset-less strings are read as local time.
@@ -41,25 +40,23 @@ void main() {
         DateTime(2024, 1, 5).millisecondsSinceEpoch,
       );
       expect(
-        parseEpisodeTimestamp(expectedMillis.toString())!.millisecondsSinceEpoch,
+        parseEpisodeTimestamp(expectedMillis.toString())!
+            .millisecondsSinceEpoch,
         expectedMillis,
       );
       expect(
-        parseEpisodeTimestamp(
-          (expectedMillis / 1000).round().toString(),
-        )!.millisecondsSinceEpoch,
+        parseEpisodeTimestamp((expectedMillis / 1000).round().toString())!
+            .millisecondsSinceEpoch,
         expectedMillis,
       );
       expect(
-        parseEpisodeTimestamp(
-          'Fri, 5 Jan 2024 12:30:00 GMT',
-        )!.millisecondsSinceEpoch,
+        parseEpisodeTimestamp('Fri, 5 Jan 2024 12:30:00 GMT')!
+            .millisecondsSinceEpoch,
         expectedMillis,
       );
       expect(
-        parseEpisodeTimestamp(
-          'Fri, 5 Jan 2024 14:30:00 +0200',
-        )!.millisecondsSinceEpoch,
+        parseEpisodeTimestamp('Fri, 5 Jan 2024 14:30:00 +0200')!
+            .millisecondsSinceEpoch,
         expectedMillis,
       );
     });
@@ -77,9 +74,9 @@ void main() {
     test('weekly iso series', () {
       // Five Fridays, far enough in the past to never race DateTime.now().
       final start = DateTime.fromMillisecondsSinceEpoch(1600000000000);
-      final p = predictNextRelease(
-        [for (var i = 0; i < 5; i++) _iso(start.add(_week * i))],
-      )!;
+      final p = predictNextRelease([
+        for (var i = 0; i < 5; i++) _iso(start.add(_week * i)),
+      ])!;
       expect(p.interval, _week);
       expect(
         p.nextRelease.millisecondsSinceEpoch,
@@ -104,9 +101,7 @@ void main() {
         for (var i = 0; i < 4; i++)
           start.add(_week * i).millisecondsSinceEpoch ~/ 1000,
       ];
-      final p = predictNextRelease([
-        for (final s in seconds) s.toString(),
-      ])!;
+      final p = predictNextRelease([for (final s in seconds) s.toString()])!;
       expect(p.interval, _week);
     });
 

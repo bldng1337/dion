@@ -38,14 +38,12 @@ class _PeriodicJobsSettingsState extends State<PeriodicJobsSettings> {
         children: [
           SettingTitle(
             title: 'Conditions',
-            subtitle:
-                'When jobs and the automatic update check may run. Manual runs are never held back.',
+            subtitle: 'When jobs and the automatic update check may run. Manual runs are never held back.',
             children: [
               const _ConditionsStatus(),
               SettingToggle(
                 title: 'Only on unmetered networks',
-                description:
-                    'Wait for Wi-Fi or Ethernet instead of running on mobile data',
+                description: 'Wait for Wi-Fi or Ethernet instead of running on mobile data',
                 setting: settings.background.unmeteredOnly,
               ),
               SettingToggle(
@@ -55,7 +53,8 @@ class _PeriodicJobsSettingsState extends State<PeriodicJobsSettings> {
               ),
               SettingToggle(
                 title: 'Skip on low battery',
-                description: 'Postpone work while the battery is at 15% or less',
+                description:
+                    'Postpone work while the battery is at 15% or less',
                 setting: settings.background.batteryNotLow,
               ),
             ],
@@ -169,8 +168,8 @@ class _JobRow extends StatelessWidget {
             color: lastError != null
                 ? context.theme.colorScheme.error
                 : enabled
-                    ? context.textSecondary
-                    : context.theme.disabledColor,
+                ? context.textSecondary
+                : context.theme.disabledColor,
           ),
           const SizedBox(width: DionSpacing.md),
           Expanded(
@@ -237,14 +236,13 @@ class _ConditionsStatusState extends State<_ConditionsStatus>
     with StateDisposeScopeMixin {
   static const _pollInterval = Duration(seconds: 5);
 
-  Timer? _poll;
   BackgroundEvaluation? _evaluation;
 
   @override
   void initState() {
     super.initState();
     _refresh();
-    _poll = Timer.periodic(_pollInterval, (_) => _refresh());
+    Timer.periodic(_pollInterval, (_) => _refresh()).disposedBy(scope);
     // Re-evaluate as soon as a rule is toggled rather than at the next poll.
     Observer(
       _refresh,
@@ -255,12 +253,6 @@ class _ConditionsStatusState extends State<_ConditionsStatus>
       ]),
       callOnInit: false,
     ).disposedBy(scope);
-  }
-
-  @override
-  void dispose() {
-    _poll?.cancel();
-    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -329,8 +321,7 @@ class _ConditionsStatusState extends State<_ConditionsStatus>
     ].join(', ');
   }
 
-  String _unmeteredWaiting(NetworkClass network) =>
-      network == NetworkClass.none
+  String _unmeteredWaiting(NetworkClass network) => network == NetworkClass.none
       ? 'a network connection'
       : 'an unmetered network';
 

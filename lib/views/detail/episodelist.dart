@@ -3,7 +3,17 @@ import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/downloads.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/release_prediction.dart';
@@ -220,10 +230,9 @@ class EpisodeTile extends StatelessWidget {
     final isWide = !context.isCompactWindow;
     final hasCover = episodepath.episode.cover != null;
     final height = hasCover ? (isWide ? 110.0 : 80.0) : 70.0;
-    final releaseTime =
-        episodepath.episode.timestamp == null
-            ? null
-            : parseEpisodeTimestamp(episodepath.episode.timestamp!);
+    final releaseTime = episodepath.episode.timestamp == null
+        ? null
+        : parseEpisodeTimestamp(episodepath.episode.timestamp!);
     // Locked episodes are announcements: the source listed them ahead of
     // their release, so they are shown, but not opened, selected or
     // downloaded until a fetch lists them without the flag.
@@ -274,8 +283,7 @@ class EpisodeTile extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                           height: 1.3,
                           letterSpacing: -0.2,
-                          color:
-                              epdata.finished || locked
+                          color: epdata.finished || locked
                               ? context.theme.colorScheme.onSurface.withValues(
                                   alpha: 0.4,
                                 )
@@ -298,19 +306,16 @@ class EpisodeTile extends StatelessWidget {
                         Text(
                           locked
                               ? (releaseTime.isAfter(DateTime.now())
-                                    ? 'Releases ${releaseTime.formatrelative(
-                                        allowFromNow: true,
-                                      )}'
+                                    ? 'Releases ${releaseTime.formatrelative(allowFromNow: true)}'
                                     : 'Expected ${releaseTime.formatrelative()}')
                               : releaseTime.formatrelative(),
                           style: context.labelSmall?.copyWith(
                             letterSpacing: 0.3,
                             fontSize: 11,
-                            color:
-                                locked
-                                    ? context.theme.colorScheme.primary
-                                    : context.theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.5),
+                            color: locked
+                                ? context.theme.colorScheme.primary
+                                : context.theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
                           ),
                           maxLines: 1,
                         ),
@@ -336,7 +341,9 @@ class EpisodeTile extends StatelessWidget {
             ),
             if (locked)
               Padding(
-                padding: hasCover ? const EdgeInsets.all(6) : const EdgeInsets.only(right: 6),
+                padding: hasCover
+                    ? const EdgeInsets.all(6)
+                    : const EdgeInsets.only(right: 6),
                 child: Icon(
                   Icons.upcoming_outlined,
                   size: 18,

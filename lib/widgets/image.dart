@@ -4,7 +4,8 @@ import 'dart:ui';
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/main.dart';
 import 'package:dionysos/service/cache.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment,CrossAxisAlignment,MainAxisSize,StackFit;
+import 'package:dionysos/service/extension.dart'
+    hide Alignment, CrossAxisAlignment, MainAxisSize, StackFit;
 import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
@@ -138,6 +139,7 @@ class DionNetworkImage extends ImageProvider<DionNetworkImage> {
 
   final double? height;
   final Map<String, String>? httpHeaders;
+
   /// The scale to place in the [ImageInfo] object of the image.
   final double scale;
 
@@ -275,15 +277,16 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                               final stored = ImageStoreService.maybeStored(
                                 widget.imageUrl!,
                               );
-                              final file = stored ??
-                                  (await locate<CacheService>()
-                                      .imgcache
-                                      .getImageFile(
-                                        widget.imageUrl!,
-                                        headers: widget.httpHeaders,
-                                      )
-                                      .where((e) => e is FileInfo)
-                                      .last as FileInfo)
+                              final file =
+                                  stored ??
+                                  (await locate<CacheService>().imgcache
+                                              .getImageFile(
+                                                widget.imageUrl!,
+                                                headers: widget.httpHeaders,
+                                              )
+                                              .where((e) => e is FileInfo)
+                                              .last
+                                          as FileInfo)
                                       .file;
                               file.share();
                             },

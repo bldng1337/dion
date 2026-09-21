@@ -1,7 +1,9 @@
 import 'package:dionysos/data/settings/binding.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 Future<InputBinding?> showBindingCapture(BuildContext context) {
   return showDialog<InputBinding?>(
@@ -83,7 +85,8 @@ class _CaptureSurface extends StatefulWidget {
   State<_CaptureSurface> createState() => _CaptureSurfaceState();
 }
 
-class _CaptureSurfaceState extends State<_CaptureSurface> {
+class _CaptureSurfaceState extends State<_CaptureSurface>
+    with StateDisposeScopeMixin {
   final GlobalKey _surfaceKey = GlobalKey();
 
   Offset? _downLocal;
@@ -95,13 +98,7 @@ class _CaptureSurfaceState extends State<_CaptureSurface> {
   @override
   void initState() {
     super.initState();
-    HardwareKeyboard.instance.addHandler(_handleKey);
-  }
-
-  @override
-  void dispose() {
-    HardwareKeyboard.instance.removeHandler(_handleKey);
-    super.dispose();
+    KeyObserver(_handleKey).disposedBy(scope);
   }
 
   bool _handleKey(KeyEvent event) {

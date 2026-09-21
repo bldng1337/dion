@@ -117,9 +117,9 @@ class SourceSupplier with ChangeNotifier implements Disposable {
                   entry.savedSettings.downloadNextEpisodes.value +
                       _episode.episodenumber,
                   min(
-                    episode.entry.episodes.length,
-                    episode.entry.releasedEpisodes,
-                  ) -
+                        episode.entry.episodes.length,
+                        episode.entry.releasedEpisodes,
+                      ) -
                       1,
                 ) -
                 episode.episodenumber,
@@ -137,9 +137,7 @@ class SourceSupplier with ChangeNotifier implements Disposable {
 
   Future<SourcePath> _loadSource(EpisodePath eppath) async {
     final download = locate<DownloadService>();
-    final dowloadStatus = await download.getCurrentStatus(
-      eppath,
-    ); //Do we really want to wait for the download to finish? In case it is large the user could still stream it while downloading but that would stress the server more
+    final dowloadStatus = await download.getCurrentStatus(eppath); //Do we really want to wait for the download to finish? In case it is large the user could still stream it while downloading but that would stress the server more
     if (dowloadStatus.task?.task != null) {
       await dowloadStatus.task?.task;
     }
@@ -167,9 +165,7 @@ class SourceSupplier with ChangeNotifier implements Disposable {
     if (entry is EntrySaved) {
       entry.onEntryActivity(path.episodenumber, token: tok);
     }
-    cache.preload(
-      path,
-    ); // We preload here as we dont care about the return but just want to load the data if it is not loaded
+    cache.preload(path); // We preload here as we dont care about the return but just want to load the data if it is not loaded
     notifyListeners();
   }
 

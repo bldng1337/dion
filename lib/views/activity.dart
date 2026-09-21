@@ -6,7 +6,18 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/service/extension.dart' hide Alignment, ButtonType, ContainerType, CrossAxisAlignment, EdgeInsets, MainAxisAlignment, MainAxisSize, StackFit, TextStyle, WrapAlignment;
+import 'package:dionysos/service/extension.dart'
+    hide
+        Alignment,
+        ButtonType,
+        ContainerType,
+        CrossAxisAlignment,
+        EdgeInsets,
+        MainAxisAlignment,
+        MainAxisSize,
+        StackFit,
+        TextStyle,
+        WrapAlignment;
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/media_type.dart';
@@ -337,13 +348,16 @@ class _ActivityMetadata extends StatelessWidget {
         Icon(
           icon,
           size: 13,
-          color: color ?? context.theme.colorScheme.onSurface.withValues(alpha: 0.45),
+          color:
+              color ??
+              context.theme.colorScheme.onSurface.withValues(alpha: 0.45),
         ).paddingOnly(right: compact ? 2.5 : 4),
         Text(
           text,
           style: context.labelSmall?.copyWith(
             color:
-                color ?? context.theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                color ??
+                context.theme.colorScheme.onSurface.withValues(alpha: 0.5),
             fontSize: 11.5,
             letterSpacing: 0.1,
           ),
