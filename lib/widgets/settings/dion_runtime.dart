@@ -56,7 +56,7 @@ class DionRuntimeSettingView extends StatelessWidget {
           );
         case final SettingsUI_Directory directory:
           return SettingRuntimeDirectory(
-            setting: setting.cast(),
+            setting: setting,
             title: setting.metadata.label,
             write: directory.write,
           );

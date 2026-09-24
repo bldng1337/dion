@@ -15,7 +15,12 @@ class SettingRuntimeDirectory extends StatelessWidget {
   final String title;
   final String? description;
   final bool write;
-  final Setting<String, DionRuntimeSettingMetaData<dynamic>> setting;
+
+  /// Not a `Setting.cast()` view: the cast's inference degenerates to `Never`
+  /// for this widget's type context, and reading `metadata` on the view then
+  /// throws `... is not a subtype of type 'Never'` inside [_pick], silently
+  /// aborting every pick.
+  final Setting<dynamic, DionRuntimeSettingMetaData<dynamic>> setting;
 
   const SettingRuntimeDirectory({
     super.key,
@@ -37,8 +42,8 @@ class SettingRuntimeDirectory extends StatelessWidget {
           ),
           child: SettingRow(
             title: title,
-            subtitle: setting.value.isNotEmpty
-                ? setting.value
+            subtitle: (setting.value as String).isNotEmpty
+                ? setting.value as String
                 : 'No directory selected',
             control: DionIconbutton(
               tooltip: 'Choose Directory',
@@ -60,7 +65,9 @@ class SettingRuntimeDirectory extends StatelessWidget {
     final path = await pickDirectoryPath(
       context,
       write: write,
-      initialDirectory: setting.value.isNotEmpty ? setting.value : null,
+      initialDirectory: (setting.value as String).isNotEmpty
+          ? setting.value as String
+          : null,
     );
     if (path == null || path.isEmpty) return;
     final extension = setting.metadata.extensionOrNull;
