@@ -17,15 +17,22 @@ Future<String?> pickDirectoryPath(
   String? initialDirectory,
 }) async {
   if (!Platform.isAndroid) {
-    return await getDirectoryPath(initialDirectory: initialDirectory);
+    // The Windows plugin pushes an empty string into the results when the
+    // chosen shell item has no filesystem path (Home, Network, ...), so an
+    // empty result must be treated as "nothing picked".
+    final path = await getDirectoryPath(initialDirectory: initialDirectory);
+    return (path == null || path.isEmpty) ? null : path;
   }
   if (!await _ensureAndroidStorageAccess(context, write: write)) return null;
   if (!context.mounted) return null;
   try {
-    return await getDirectoryPath(initialDirectory: initialDirectory);
+    final path = await getDirectoryPath(initialDirectory: initialDirectory);
+    return (path == null || path.isEmpty) ? null : path;
   } on PlatformException {
     showToast(
-      'This location cannot be used. Pick a folder on device storage.',
+      'The system picker cannot open this location as a folder (e.g. the '
+      'Downloads shortcut, SD cards or cloud locations). Pick the folder '
+      'via Internal storage instead.',
       ToastKind.warning,
     );
     return null;
