@@ -62,7 +62,7 @@ class SettingRuntimeDirectory extends StatelessWidget {
       write: write,
       initialDirectory: setting.value.isNotEmpty ? setting.value : null,
     );
-    if (path == null) return;
+    if (path == null || path.isEmpty) return;
     final extension = setting.metadata.extensionOrNull;
     if (extension != null) {
       try {
