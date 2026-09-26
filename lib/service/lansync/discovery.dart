@@ -43,6 +43,8 @@ class DiscoveredPeer {
   int get hashCode => deviceId.hashCode;
 }
 
+const _mdnsTimeout = Duration(seconds: 5);
+
 class LanDiscovery {
   final DeviceIdentity _identity;
   final int port;
@@ -59,6 +61,7 @@ class LanDiscovery {
   LanDiscovery({required this._identity, required this.port});
 
   bool get isAdvertising => _advertising;
+  bool get isScanning => _scanning;
 
   /// Begin advertising the dion sync service on the LAN.
   Future<void> startAdvertising() async {
@@ -77,7 +80,7 @@ class LanDiscovery {
           port: port,
           txt: txt,
         ),
-      );
+      ).timeout(_mdnsTimeout);
       _advertising = true;
       logger.i('LAN sync: advertising $_identity.name on port $port');
     } catch (e) {
@@ -94,7 +97,7 @@ class LanDiscovery {
     _registration = null;
     if (registration == null) return;
     try {
-      await unregister(registration);
+      await unregister(registration).timeout(_mdnsTimeout);
     } catch (e) {
       logger.w('LAN sync: error stopping registration', error: e);
     }
@@ -109,7 +112,7 @@ class LanDiscovery {
       _discovery = await startDiscovery(
         dionSyncMdnsService,
         ipLookupType: IpLookupType.any,
-      );
+      ).timeout(_mdnsTimeout);
       _discovery!.addListener(_onDiscoveryChanged);
       // Seed from any services already collected.
       _onDiscoveryChanged();
@@ -128,7 +131,7 @@ class LanDiscovery {
     if (discovery == null) return;
     discovery.removeListener(_onDiscoveryChanged);
     try {
-      await stopDiscovery(discovery);
+      await stopDiscovery(discovery).timeout(_mdnsTimeout);
     } catch (e) {
       logger.w('LAN sync: error stopping discovery', error: e);
     }

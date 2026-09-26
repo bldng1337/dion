@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
@@ -31,7 +32,9 @@ class LanSyncService extends ChangeNotifier {
   late final LiveSync liveSync;
 
   bool _running = false;
+  int _runEpoch = 0;
   final SyncLock _syncLock = SyncLock();
+  final SyncLock _bringUpLock = SyncLock();
   int _scanHolds = 0;
   Debouncer? _autoSyncDebouncer;
 
@@ -112,8 +115,10 @@ class LanSyncService extends ChangeNotifier {
       callIndirectly: false,
     );
 
+    Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
+
     if (settings.sync.lan.enabled.value) {
-      await enable();
+      unawaited(enable());
     }
     pairingStore.addListener(_onPairingChanged);
   }
@@ -126,10 +131,15 @@ class LanSyncService extends ChangeNotifier {
   Future<void> enable() async {
     if (_running) return;
     _running = true;
-    if (settings.sync.lan.discoverable.value) {
-      await discovery.startAdvertising();
+    final epoch = ++_runEpoch;
+    _scanHolds++;
+    await _applyBringUp();
+    if (epoch != _runEpoch) {
+      // disable() ran while bring-up was pending; roll the partial state back.
+      await discovery.stopAdvertising();
+      await _releaseScanning();
+      return;
     }
-    await _holdScanning();
     _updateLiveSync();
     notifyListeners();
   }
@@ -137,6 +147,7 @@ class LanSyncService extends ChangeNotifier {
   Future<void> disable() async {
     if (!_running) return;
     _running = false;
+    _runEpoch++;
     liveSync.stop();
     _autoSyncDebouncer?.cancel();
     await discovery.stopAdvertising();
@@ -163,7 +174,7 @@ class LanSyncService extends ChangeNotifier {
 
   Future<void> _holdScanning() async {
     _scanHolds++;
-    await discovery.startScanning();
+    await _applyBringUp();
   }
 
   Future<void> _releaseScanning() async {
@@ -172,6 +183,22 @@ class LanSyncService extends ChangeNotifier {
       _scanHolds = 0;
       await discovery.stopScanning();
     }
+  }
+
+  Future<void> _applyBringUp() => _bringUpLock.run(() async {
+    if (_running &&
+        settings.sync.lan.discoverable.value &&
+        !discovery.isAdvertising) {
+      await discovery.startAdvertising();
+    }
+    if (_scanHolds > 0 && !discovery.isScanning) {
+      await discovery.startScanning();
+    }
+  });
+
+  void _onConnectivityChanged(List<ConnectivityResult> results) {
+    if (!results.hasConnectivity) return;
+    unawaited(_applyBringUp());
   }
 
   /// Initiate pairing with a discovered peer (we act as A, the initiator).
