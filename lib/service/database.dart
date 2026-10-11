@@ -22,7 +22,7 @@ import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
 
-const dbVersion = 2;
+const dbVersion = 3;
 const entryTable = DBTable('entry');
 const categoryTable = DBTable('category');
 const activityTable = DBTable('activity');
@@ -67,6 +67,27 @@ DEFINE TABLE IF NOT EXISTS entry;
 DEFINE TABLE IF NOT EXISTS category;
 DEFINE TABLE IF NOT EXISTS activity;
 DEFINE TABLE IF NOT EXISTS extension;
+-- Indexes backing the hot read paths. Nested paths (entry.id.uid) index the
+-- uid inside the serialized entry object; the sort_* columns and
+-- search_text are derived on every entry write (EntrySaved.toJson) and
+-- back the library's ORDER BY and full-text search with index walks.
+-- NOTE: a `FIELDS categories[*]` index is deliberately NOT defined here: on
+-- surrealdb-core 3.2.1 and 3.3.0 it poisons `categories CONTAINS`
+-- evaluation for record-id arrays (verified in
+-- integration_test/db_benchmark.dart) — even unindexed literal lookups
+-- return 0 once the index exists. Revisit after a surrealdb-core upgrade;
+-- it would turn per-tab counts and category pages into index lookups.
+DEFINE INDEX IF NOT EXISTS entry_uid_idx ON TABLE entry FIELDS entry.id.uid;
+DEFINE INDEX IF NOT EXISTS entry_extensionid_idx ON TABLE entry FIELDS extensionid;
+DEFINE INDEX IF NOT EXISTS entry_sort_title_idx ON TABLE entry FIELDS sort_title;
+DEFINE INDEX IF NOT EXISTS entry_sort_chapters_idx ON TABLE entry FIELDS sort_total_chapters;
+DEFINE INDEX IF NOT EXISTS entry_sort_read_idx ON TABLE entry FIELDS sort_chapters_read;
+DEFINE INDEX IF NOT EXISTS entry_sort_unread_idx ON TABLE entry FIELDS sort_chapters_unread;
+DEFINE INDEX IF NOT EXISTS entry_sort_rating_idx ON TABLE entry FIELDS sort_rating;
+DEFINE ANALYZER IF NOT EXISTS dion_search TOKENIZERS blank FILTERS ascii, lowercase;
+DEFINE INDEX IF NOT EXISTS entry_search_ft ON TABLE entry FIELDS search_text FULLTEXT ANALYZER dion_search BM25(1.2, 0.75);
+DEFINE INDEX IF NOT EXISTS activity_time_idx ON TABLE activity FIELDS time;
+DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry.entry.id.uid;
       ''');
     final dataclass = await db.setDataClassAdapter();
     dataclass.registerDataClass(categoryTable, Category.fromJson);
@@ -100,10 +121,28 @@ DEFINE TABLE IF NOT EXISTS extension;
     await db.setMigrationAdapter(
       version: dbVersion,
       migrationName: 'app',
+      // WARNING: migrations race the Database service. They run inside
+      // init(), before register<Database>(), so while they execute the
+      // locator still reports Database as initializing and every
+      // locate<Database>() throws. Migration queries hydrate records
+      // through the registered fromJson callbacks, so any fromJson that
+      // reaches back into the service (EntrySaved.fromJson ->
+      // handleCategories) is a circular dependency.
       onMigrate: (migrateDb, from, to) async {
         if (from < 2) {
           final adapter = db.getAdapter<DBDataClassAdapter>();
           await _migrateBatched<Activity>(adapter, activityTable);
+          await _migrateBatched<EntrySaved>(
+            adapter,
+            entryTable,
+            fetch: 'categories',
+          );
+        }
+        if (from < 3) {
+          // v3 backfills the derived sort_* and search_text columns by
+          // re-saving every entry (toJson computes them). The columns'
+          // indexes were defined above, so each re-save maintains them.
+          final adapter = db.getAdapter<DBDataClassAdapter>();
           await _migrateBatched<EntrySaved>(
             adapter,
             entryTable,
@@ -262,15 +301,16 @@ DEFINE TABLE IF NOT EXISTS extension;
   }
 
   Stream<EntrySaved> searchEntries(String query, int page, int limit) {
+    // Full-text match over the derived search_text column (titles + authors,
+    // word-tokenized, case-insensitive via the dion_search analyzer). @1@
+    // is the numbered matches operator (plain @@ is WIP upstream); the
+    // query string is analyzed with the index's analyzer.
     return _getEntriesSQL(
-      'SELECT * FROM type::table(\$entry) WHERE '
-      'array::any(entry.titles, |\$t| string::contains(string::lowercase(\$t), \$query)) OR '
-      '(entry.author != NONE AND array::any(entry.author, |\$a| string::contains(string::lowercase(\$a), \$query))) '
-      'ORDER BY id '
-      'LIMIT \$limit START \$offset*\$limit FETCH categories',
+      'SELECT * FROM type::table(\$entry) WHERE search_text @1@ \$query '
+      'ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
       {
         'entry': entryTable.tb,
-        'query': query.toLowerCase(),
+        'query': query,
         'limit': limit,
         'offset': page,
       },
@@ -285,13 +325,8 @@ DEFINE TABLE IF NOT EXISTS extension;
     int limit = 25,
   }) async* {
     final (where, vars) = await _buildEntryWhere(scope, filters);
-    final projection = sort.toProjection();
-    final selectClause = projection == null ? '*' : '*, ${projection.select}';
-    final orderClause = projection == null
-        ? ' ORDER BY id'
-        : ' ${projection.orderBy}, id';
     yield* _getEntriesSQL(
-      'SELECT $selectClause FROM type::table(\$entry)$where$orderClause '
+      'SELECT * FROM type::table(\$entry)$where${sort.orderClause} '
       'LIMIT \$limit START \$offset*\$limit FETCH categories',
       {'entry': entryTable.tb, 'limit': limit, 'offset': page, ...vars},
     );
@@ -611,6 +646,7 @@ ORDER BY total DESC
 
   Future<void> addEntry(EntrySaved entry) async {
     await adapter.save(entry);
+    entry.notePersistedScope();
     notifyListeners([DBEvent.entryAddedOrRemoved]);
     _downloadedUidsCache = null;
     storeEntryImages(entry);
@@ -618,7 +654,15 @@ ORDER BY total DESC
 
   Future<void> updateEntry(EntrySaved entry) async {
     await adapter.save(entry);
-    notifyListeners([DBEvent.entryUpdated]);
+    // Instances are mutated in place before saving, so a category change can
+    // only be detected against the ids last persisted or hydrated. A scope
+    // change alters which library tabs an entry belongs to.
+    final scopeChanged = !entry.categoriesUnchangedSincePersisted;
+    notifyListeners([
+      if (scopeChanged) DBEvent.entryAddedOrRemoved,
+      DBEvent.entryUpdated,
+    ]);
+    entry.notePersistedScope();
     storeEntryImages(entry);
   }
 

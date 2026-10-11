@@ -221,6 +221,25 @@ List<String> _deepDiff(Object? expected, Object? actual, String path) {
 /// objects and values loaded back from disk can be compared structurally.
 dynamic _normalized(Object? value) => jsonDecode(jsonEncode(value));
 
+/// Derived database columns emitted by EntrySaved.toJson. They are storage
+/// (indexed for sorting/searching), recomputed on every write and never read
+/// back, so they are not part of the versioned payload and are excluded
+/// from payload round-trip comparisons.
+const _derivedEntryColumns = {
+  'sort_title',
+  'sort_total_chapters',
+  'sort_chapters_read',
+  'sort_chapters_unread',
+  'sort_rating',
+  'search_text',
+};
+
+Map<String, dynamic> _withoutDerivedEntryColumns(
+  Map<String, dynamic> json,
+) => Map.fromEntries(
+  json.entries.where((e) => !_derivedEntryColumns.contains(e.key)),
+);
+
 void _assertLosslessRoundTrip(
   Object? reserialized,
   Object? original,
@@ -1186,7 +1205,9 @@ Future<void> _checkEntryJsonVersions() async {
                 _hydrateRecordMaps(sample.value),
               );
               _assertLosslessRoundTrip(
-                _normalized(parsed.toJson()),
+                _normalized(
+                  _withoutDerivedEntryColumns(parsed.toJson()),
+                ),
                 _normalized(sample.value),
                 'EntrySaved',
               );

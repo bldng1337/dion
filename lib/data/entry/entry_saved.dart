@@ -284,6 +284,9 @@ class EntrySaved
   List<EpisodeData> _episodedata;
   int episode;
 
+  /// Category record ids as last persisted or hydrated. Null until the row was saved or read.
+  Set<DBRecord>? _persistedCategoryIds;
+
   List<EntryExtension> entryExtensions;
   List<EntryExtension> sourceExtensions;
 
@@ -319,6 +322,18 @@ class EntrySaved
   });
 
   List<EpisodeData> get episodedata => _episodedata;
+
+  bool get categoriesUnchangedSincePersisted {
+    final persisted = _persistedCategoryIds;
+    if (persisted == null) return false;
+    return persisted.length == categories.length &&
+        categories.every((c) => persisted.contains(c.id));
+  }
+
+  void notePersistedScope() {
+    _persistedCategoryIds = {for (final c in categories) c.id};
+  }
+
   int get latestEpisode => min(
     episodedata.lastIndexWhere((e) => e.finished == true) + 1,
     totalEpisodes,
@@ -487,6 +502,7 @@ class EntrySaved
       predictedNextRelease = fresh.predictedNextRelease;
       releaseInterval = fresh.releaseInterval;
       nextReleaseOverride = fresh.nextReleaseOverride;
+      _persistedCategoryIds = fresh._persistedCategoryIds;
       locate<Database>().notifyListeners([DBEvent.entryUpdated]);
     } catch (e, stack) {
       logger.e(
@@ -534,6 +550,7 @@ class EntrySaved
   }
 
   Map<String, dynamic> toJson() {
+    final readCount = episodedata.where((e) => e.finished).length;
     return {
       'version': entrySerializeVersion.current,
       'entry': entry.toJson(),
@@ -553,6 +570,12 @@ class EntrySaved
       'extensionSettings': extensionSettings.map((key, value) {
         return MapEntry(key, value.toJson());
       }),
+      'sort_title': entry.titles.isEmpty ? '' : entry.titles.first,
+      'sort_total_chapters': entry.episodes.length,
+      'sort_chapters_read': readCount,
+      'sort_chapters_unread': max(0, entry.episodes.length - readCount),
+      'sort_rating': entry.rating ?? 0,
+      'search_text': [...entry.titles, ...?entry.author].join(' '),
     };
   }
 
@@ -631,7 +654,8 @@ class EntrySaved
           episode: (json['episode'] as int?) ?? 0,
           savedSettings: EntrySavedSettings.fromJson(json['settings']),
           extensionSettings: {},
-        );
+        )
+          ..notePersistedScope();
     }
     final entry = rust.JsonEntryDetailed.fromJson(
       json['entry'] as Map<String, dynamic>,
@@ -683,7 +707,7 @@ class EntrySaved
       nextReleaseOverride: DateTime.tryParse(
         json['nextReleaseOverride'] as String? ?? '',
       ),
-    );
+    )..notePersistedScope();
   }
 
   @override

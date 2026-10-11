@@ -7,6 +7,7 @@ import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/utils/debounce.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
@@ -64,17 +65,19 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
   @override
   void initState() {
     Observer(() async {
-      if (mounted) {
-        final categories = await locate<Database>().getCategories();
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          this.categories = categories;
-        });
-        _refreshCounts();
-      }
-    }, locate<Database>().globalListenable).disposedBy(scope);
+      if (!mounted) return;
+      final categories = await locate<Database>().getCategories();
+      if (!mounted) return;
+      setState(() {
+        this.categories = categories;
+      });
+      _refreshCounts();
+    }, locate<Database>().getListenable(DBEvent.categoryUpdated)).disposedBy(
+      scope,
+    );
+    Observer(_refreshCounts, locate<Database>().getListenable(
+      DBEvent.entryAddedOrRemoved,
+    )).disposedBy(scope);
 
     super.initState();
   }
@@ -297,23 +300,26 @@ class EntryGrid extends StatefulWidget {
 class _EntryGridState extends State<EntryGrid>
     with StateDisposeScopeMixin, AutomaticKeepAliveClientMixin {
   DataSourceController<EntrySaved>? controller;
+  late Debouncer _reloadDebounce;
 
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
-    _rebuildController();
-    Observer(
-      () {
-        if (mounted && controller != null) {
-          controller!.reset();
-          controller!.requestMore();
-        }
+    _reloadDebounce = Debouncer(
+      duration: const Duration(milliseconds: 50),
+      action: () {
+        if (!mounted || controller == null) return;
+        controller!.reset();
+        controller!.requestMore();
       },
-      locate<Database>().globalListenable,
-      callOnInit: false,
-    ).disposedBy(scope);
+    )..disposedBy(scope);
+    _rebuildController();
+    Observer(() {
+      _reloadDebounce.run();
+    }, locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
+        callOnInit: false).disposedBy(scope);
     super.initState();
   }
 
@@ -345,6 +351,7 @@ class _EntryGridState extends State<EntryGrid>
 
   @override
   void dispose() {
+    _reloadDebounce.cancel();
     controller?.dispose();
     super.dispose();
   }

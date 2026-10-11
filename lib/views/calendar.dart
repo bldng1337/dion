@@ -37,7 +37,11 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
   @override
   void initState() {
     super.initState();
-    Observer(_reload, locate<Database>().globalListenable).disposedBy(scope);
+    Observer(_reload, Listenable.merge([
+      locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
+      locate<Database>().getListenable(DBEvent.entryUpdated),
+      locate<Database>().getListenable(DBEvent.categoryUpdated),
+    ])).disposedBy(scope);
   }
 
   void _reload() {

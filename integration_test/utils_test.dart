@@ -147,7 +147,7 @@ void main() {
         register<String>('test_service');
         expect(locate<String>(), 'test_service');
         remove<String>();
-        expect(() => locate<String>(), throwsA(isA<TypeError>()));
+        expect(() => locate<String>(), throwsA(isA<StateError>()));
       });
 
       test('locateAsync waits for service', () async {

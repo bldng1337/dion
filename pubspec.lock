@@ -805,8 +805,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: ddeca03b461aed5dd5ba7c6d177d547e5f5411b9
-      resolved-ref: ddeca03b461aed5dd5ba7c6d177d547e5f5411b9
+      ref: e1548fa510c0ffdd88c90c707fb39b537c894563
+      resolved-ref: e1548fa510c0ffdd88c90c707fb39b537c894563
       url: "https://github.com/bldng1337/flutter_surrealdb.git"
     source: git
     version: "0.0.1"
@@ -1218,8 +1218,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: dd0d5638e87148aea37a809e6d844caf75e13fe7
-      resolved-ref: dd0d5638e87148aea37a809e6d844caf75e13fe7
+      ref: "0de8a3dee79b7831f88e08b4b4f23d8ce440ab27"
+      resolved-ref: "0de8a3dee79b7831f88e08b4b4f23d8ce440ab27"
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"

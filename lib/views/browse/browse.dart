@@ -3,6 +3,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart'
     hide
         ContainerType,
@@ -12,6 +13,7 @@ import 'package:dionysos/service/extension.dart'
         MainAxisSize,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
@@ -130,11 +132,15 @@ class EntryDisplay extends StatefulWidget {
   State<EntryDisplay> createState() => _EntryDisplayState();
 }
 
-class _EntryDisplayState extends State<EntryDisplay> {
+class _EntryDisplayState extends State<EntryDisplay> with StateDisposeScopeMixin {
   late Entry item;
   @override
   void initState() {
     item = widget.entry;
+    Observer(() {
+      if (mounted) setState(() {});
+    }, locate<Database>().getListenable(DBEvent.entryUpdated),
+        callOnInit: false).disposedBy(scope);
     super.initState();
   }
 

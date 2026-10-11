@@ -72,33 +72,20 @@ class LibrarySort {
     descending: descending ?? this.descending,
   );
 
-  LibrarySortProjection? toProjection() {
-    final expr = _expression();
-    if (expr == null) return null;
-    final dir = descending ? 'DESC' : 'ASC';
-    return LibrarySortProjection._(
-      select: '$expr AS lib_sort',
-      orderBy: 'ORDER BY lib_sort $dir',
-    );
-  }
 
-  String? _expression() {
-    switch (key) {
-      case LibrarySortKey.none:
-        return null;
-      case LibrarySortKey.title:
-        // titles is non-empty by construction (title = titles.first).
-        return 'entry.titles[0]';
-      case LibrarySortKey.totalChapters:
-        return 'array::len(entry.episodes)';
-      case LibrarySortKey.chaptersRead:
-        return r'array::len(array::filter(episodedata, |$e| $e.finished = true))';
-      case LibrarySortKey.chaptersUnread:
-        return 'array::len(entry.episodes) - '
-            r'array::len(array::filter(episodedata, |$e| $e.finished = true))';
-      case LibrarySortKey.rating:
-        return 'entry.rating';
-    }
+  String? get _column => switch (key) {
+    LibrarySortKey.none => null,
+    LibrarySortKey.title => 'sort_title',
+    LibrarySortKey.totalChapters => 'sort_total_chapters',
+    LibrarySortKey.chaptersRead => 'sort_chapters_read',
+    LibrarySortKey.chaptersUnread => 'sort_chapters_unread',
+    LibrarySortKey.rating => 'sort_rating',
+  };
+
+  String get orderClause {
+    final column = _column;
+    if (column == null) return ' ORDER BY id';
+    return ' ORDER BY $column ${descending ? 'DESC' : 'ASC'}, id';
   }
 
   @override
@@ -109,12 +96,6 @@ class LibrarySort {
 
   @override
   int get hashCode => Object.hash(key, descending);
-}
-
-class LibrarySortProjection {
-  final String select;
-  final String orderBy;
-  const LibrarySortProjection._({required this.select, required this.orderBy});
 }
 
 enum LibraryDownloadFilter {
