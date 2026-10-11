@@ -16,8 +16,8 @@ import 'package:dionysos/service/extension.dart'
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/dialog/edit_categories.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
-import 'package:dionysos/views/settings/library.dart';
 import 'package:dionysos/views/settings/search_settings.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/card.dart';
@@ -134,6 +134,7 @@ class EntryDisplay extends StatefulWidget {
 
 class _EntryDisplayState extends State<EntryDisplay> with StateDisposeScopeMixin {
   late Entry item;
+  late final GlobalKey _cardKey = GlobalKey();
   @override
   void initState() {
     item = widget.entry;
@@ -181,9 +182,11 @@ class _EntryDisplayState extends State<EntryDisplay> with StateDisposeScopeMixin
         if (item is EntrySaved)
           ContextMenuItem(
             label: 'Edit Categories',
-            onTap: () async {
-              showEditCategoriesDialog(context, item as EntrySaved);
-            },
+            onTap: () => showEditCategories(
+              context,
+              anchor: _cardAnchor(),
+              entry: item as EntrySaved,
+            ),
           ),
         if (item is EntrySaved)
           ContextMenuItem(
@@ -200,7 +203,25 @@ class _EntryDisplayState extends State<EntryDisplay> with StateDisposeScopeMixin
             },
           ),
       ],
-      child: EntryCard(entry: item, showSaved: widget.showSaved),
+      child: EntryCard(key: _cardKey, entry: item, showSaved: widget.showSaved),
     );
+  }
+
+  /// Measure the card's rect relative to the root overlay; the categories
+  /// panel positions itself statically from it (same pattern as the library
+  /// picker on the detail page).
+  Rect _cardAnchor() {
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final cardBox = _cardKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlayBox = overlay.context.findRenderObject()! as RenderBox;
+    return cardBox == null
+        ? Rect.zero
+        : Rect.fromPoints(
+            cardBox.localToGlobal(Offset.zero, ancestor: overlayBox),
+            cardBox.localToGlobal(
+              cardBox.size.bottomRight(Offset.zero),
+              ancestor: overlayBox,
+            ),
+          );
   }
 }

@@ -1,12 +1,9 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/category.dart';
-import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/database.dart';
-import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
-import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
@@ -14,7 +11,6 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
-import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_numberbox.dart';
@@ -132,51 +128,6 @@ void showUpdateDialog(BuildContext context, Category category) {
       );
     },
   ).whenComplete(() => scope.dispose());
-}
-
-void showEditCategoriesDialog(BuildContext context, EntrySaved entry) {
-  showAdaptiveDialog(
-    context: context,
-    builder: (context) => DionDialog(
-      child: LoadingBuilder(
-        future: locate<Database>().getCategories(),
-        builder: (context, value) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Edit Categories'),
-            DionMultiDropdown(
-              defaultItem: const Text('Choose a category'),
-              items: value
-                  .map(
-                    (e) => entry.categories.contains(e)
-                        ? MultiDropdownItem.active(value: e, label: e.name)
-                        : MultiDropdownItem(value: e, label: e.name),
-                  )
-                  .toList(),
-              onSelectionChange: (selection) {
-                entry.categories = selection;
-              },
-            ).paddingAll(10),
-            DionTextbutton(
-              child: const Text('Save'),
-              onPressed: () async {
-                try {
-                  await entry.save();
-                } catch (e) {
-                  logger.e('Failed to save entry', error: e);
-                }
-                if (!context.mounted) {
-                  return;
-                }
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ).paddingAll(15),
-      ),
-    ),
-  );
 }
 
 void showAddCategoryDialog(BuildContext context, int index) {
