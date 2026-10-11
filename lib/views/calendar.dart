@@ -1,24 +1,31 @@
+import 'dart:math';
+
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
-import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/activity/activity.dart';
+import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
-import 'package:dionysos/views/dialog/next_release.dart';
+import 'package:dionysos/views/dialog/day_details.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
-import 'package:dionysos/widgets/container/container.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
-import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/material.dart' show Colors, Icons, Tooltip;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
+/// Month-per-page release calendar: releases render as a cover treemap per
+/// day, time spent as a heatmap tint on days without covers.
 class ReleaseCalendarView extends StatefulWidget {
   const ReleaseCalendarView({super.key});
 
@@ -30,43 +37,82 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
     with StateDisposeScopeMixin {
   static const _pageSize = 100;
 
-  static const _daySections = 14;
+  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  Future<_MonthData>? _future;
 
-  Future<List<_CalendarEntry>>? _future;
+  /// Last successfully loaded data, kept so DB events re-querying the
+  /// current month don't blank the grid back to a spinner.
+  _MonthData? _shown;
 
   @override
   void initState() {
     super.initState();
+    // The Observer fires on init (post-frame), kicking off the first load.
     Observer(_reload, Listenable.merge([
       locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
       locate<Database>().getListenable(DBEvent.entryUpdated),
       locate<Database>().getListenable(DBEvent.categoryUpdated),
+      locate<Database>().getListenable(DBEvent.activityUpdated),
     ])).disposedBy(scope);
   }
 
   void _reload() {
     if (!mounted) return;
     setState(() {
-      _future = _load();
+      _future = _loadMonth(_month);
     });
   }
 
-  Future<List<_CalendarEntry>> _load() async {
+  bool get _isCurrentMonth => _sameMonth(_month, DateTime.now());
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _month = DateTime(_month.year, _month.month + delta);
+      _future = _loadMonth(_month);
+    });
+  }
+
+  void _goToCurrentMonth() {
+    if (_isCurrentMonth) return;
+    final now = DateTime.now();
+    setState(() {
+      _month = DateTime(now.year, now.month);
+      _future = _loadMonth(_month);
+    });
+  }
+
+  Future<_MonthData> _loadMonth(DateTime month) async {
     final db = locate<Database>();
-    final entries = <EntrySaved>[];
-    for (var page = 0; ; page++) {
+    final monthStart = DateTime(month.year, month.month);
+    final monthEnd = DateTime(month.year, month.month + 1);
+    final releases = <DayRelease>[];
+    for (var page = 0;; page++) {
       final pageEntries = await db.getEntries(page, _pageSize).toList();
-      entries.addAll(pageEntries);
+      for (final entry in pageEntries) {
+        final release = entry.nextRelease;
+        if (release == null || entry.status == rust.ReleaseStatus.complete) {
+          continue;
+        }
+        if (release.isBefore(monthStart) || !release.isBefore(monthEnd)) {
+          continue;
+        }
+        releases.add(DayRelease(entry, release));
+      }
       if (pageEntries.length < _pageSize) break;
     }
-    return entries
-        .where(
-          (e) =>
-              e.nextRelease != null && e.status != rust.ReleaseStatus.complete,
-        )
-        .map((e) => _CalendarEntry(e, e.nextRelease!))
-        .toList()
-      ..sort((a, b) => a.release.compareTo(b.release));
+    final activities = await db.getActivitiesBetween(monthStart, monthEnd);
+    return _MonthData.build(monthStart, releases, activities);
+  }
+
+  void _openDay(DateTime day) {
+    final data = _shown;
+    if (data == null) return;
+    showDayDetails(
+      context,
+      day: day,
+      releases: data.releasesFor(day),
+      activities: data.activitiesFor(day),
+    );
   }
 
   @override
@@ -74,237 +120,685 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
     return NavScaff(
       destination: homedestinations,
       title: const Text('Calendar'),
-      child: _future == null
-          ? const SizedBox.shrink()
-          : FutureBuilder<List<_CalendarEntry>>(
-              future: _future,
-              builder: (context, snapshot) {
-                final entries = snapshot.data;
-                if (entries == null) {
-                  return const Center(child: DionProgressBar());
-                }
-                if (entries.isEmpty) {
-                  return const _EmptyCalendar();
-                }
-                final sections = _buildSections(entries);
-                return ListView.builder(
-                  padding: DionSpacing.pagePadding.copyWith(
-                    bottom: DionSpacing.xxxl,
+      child: FutureBuilder<_MonthData>(
+        future: _future,
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          if (data != null && _sameMonth(data.month, _month)) {
+            _shown = data;
+          }
+          final shown = _shown;
+          if (shown == null || !_sameMonth(shown.month, _month)) {
+            if (snapshot.hasError) {
+              return Center(
+                child: ErrorDisplay(e: snapshot.error, s: snapshot.stackTrace),
+              );
+            }
+            return const Center(child: DionProgressBar());
+          }
+          return Column(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: SingleChildScrollView(
+                      padding: DionSpacing.pagePadding.copyWith(
+                        bottom: DionSpacing.xl,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _MonthSelector(
+                            month: _month,
+                            onPrevious: () => _shiftMonth(-1),
+                            onNext: () => _shiftMonth(1),
+                          ),
+                          _MonthSummary(data: shown),
+                          const SizedBox(height: DionSpacing.lg),
+                          _WeekdayHeader(month: _month),
+                          const SizedBox(height: DionSpacing.sm),
+                          _MonthGrid(
+                            month: _month,
+                            data: shown,
+                            onDayTap: _openDay,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  itemCount: sections.length,
-                  itemBuilder: (context, index) =>
-                      sections[index].render(context),
-                );
-              },
-            ),
+                ),
+              ),
+              _CalendarFooter(
+                isCurrentMonth: _isCurrentMonth,
+                onPrevious: () => _shiftMonth(-1),
+                onNext: () => _shiftMonth(1),
+                onToday: _goToCurrentMonth,
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
-  List<_CalendarSection> _buildSections(List<_CalendarEntry> entries) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final sections = <_CalendarSection>[];
+  static bool _sameMonth(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month;
+}
 
-    final overdue = entries.where((e) => e.release.isBefore(today)).toList();
-    if (overdue.isNotEmpty) {
-      sections.add(
-        _CalendarSection(title: 'Overdue', highlight: true, entries: overdue),
-      );
+class _MonthData {
+  final DateTime month;
+  final List<Activity> activities;
+  final Map<DateTime, List<DayRelease>> _releasesByDay;
+  final Map<DateTime, List<Activity>> _activitiesByDay;
+  final Map<DateTime, Duration> _durationByDay;
+
+  /// Busiest day of the month; the heatmap normalizes against it.
+  final Duration maxDayDuration;
+
+  const _MonthData._(
+    this.month,
+    this.activities,
+    this._releasesByDay,
+    this._activitiesByDay,
+    this._durationByDay,
+    this.maxDayDuration,
+  );
+
+  factory _MonthData.build(
+    DateTime month,
+    List<DayRelease> releases,
+    List<Activity> activities,
+  ) {
+    final releasesByDay = <DateTime, List<DayRelease>>{};
+    for (final release in releases) {
+      releasesByDay
+          .putIfAbsent(_dayKey(release.release), () => [])
+          .add(release);
     }
-    for (var day = 0; day < _daySections; day++) {
-      final dayStart = today.add(Duration(days: day));
-      final dayEntries = entries
-          .where(
-            (e) =>
-                !e.release.isBefore(dayStart) &&
-                e.release.isBefore(dayStart.add(const Duration(days: 1))),
-          )
-          .toList();
-      if (dayEntries.isEmpty) continue;
-      sections.add(
-        _CalendarSection(
-          title: switch (day) {
-            0 => 'Today',
-            1 => 'Tomorrow',
-            _ => DateFormat(
-              'EEEE, MMM d',
-            ).format(today.add(Duration(days: day))),
-          },
-          entries: dayEntries,
-        ),
-      );
+    for (final dayReleases in releasesByDay.values) {
+      dayReleases.sort((a, b) => a.release.compareTo(b.release));
     }
-    final horizon = today.add(const Duration(days: _daySections));
-    final later = entries.where((e) => !e.release.isBefore(horizon)).toList();
-    if (later.isNotEmpty) {
-      sections.add(_CalendarSection(title: 'Later', entries: later));
+
+    final activitiesByDay = <DateTime, List<Activity>>{};
+    final durationByDay = <DateTime, Duration>{};
+    for (final activity in activities) {
+      activitiesByDay
+          .putIfAbsent(_dayKey(activity.time), () => [])
+          .add(activity);
+      final duration = activity is EpisodeActivity
+          ? activity.duration
+          : Duration.zero;
+      if (duration <= Duration.zero) continue;
+      final day = _dayKey(activity.time);
+      durationByDay[day] = (durationByDay[day] ?? Duration.zero) + duration;
     }
-    return sections;
+
+    final maxDay = durationByDay.values.fold<Duration>(
+      Duration.zero,
+      (max, duration) => duration > max ? duration : max,
+    );
+
+    return _MonthData._(
+      month,
+      activities,
+      releasesByDay,
+      activitiesByDay,
+      durationByDay,
+      maxDay,
+    );
+  }
+
+  List<DayRelease> releasesFor(DateTime day) =>
+      _releasesByDay[_dayKey(day)] ?? const [];
+
+  List<Activity> activitiesFor(DateTime day) =>
+      _activitiesByDay[_dayKey(day)] ?? const [];
+
+  Duration durationFor(DateTime day) =>
+      _durationByDay[_dayKey(day)] ?? Duration.zero;
+
+  static DateTime _dayKey(DateTime d) => DateTime(d.year, d.month, d.day);
+}
+
+/// Heat tint for a day cell; [intensity] 0..1 blends the surface color
+/// towards the accent. Shared with the footer legend.
+Color _heatColor(BuildContext context, double intensity) {
+  final base = context.isDarkMode
+      ? context.theme.colorScheme.surfaceContainer
+      : context.surfaceMuted;
+  final accent = context.isDarkMode ? DionColors.primary : DionColors.primaryDark;
+  return Color.lerp(base, accent, 0.12 + 0.58 * intensity.clamp(0.0, 1.0))!;
+}
+
+class _MonthSelector extends StatelessWidget {
+  final DateTime month;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+
+  const _MonthSelector({
+    required this.month,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: DionSpacing.xs),
+      child: Row(
+        children: [
+          DionIconbutton(
+            icon: const Icon(Icons.chevron_left),
+            tooltip: 'Previous month',
+            onPressed: onPrevious,
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                DateFormat('MMMM y').format(month),
+                style: context.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+          ),
+          DionIconbutton(
+            icon: const Icon(Icons.chevron_right),
+            tooltip: 'Next month',
+            onPressed: onNext,
+          ),
+        ],
+      ),
+    );
   }
 }
 
-class _CalendarEntry {
-  final EntrySaved entry;
-  final DateTime release;
+class _MonthSummary extends StatelessWidget {
+  final _MonthData data;
 
-  const _CalendarEntry(this.entry, this.release);
+  const _MonthSummary({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = mediaStatChips(
+      data.activities.whereType<EpisodeActivity>(),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, DionSpacing.sm, 2, 0),
+      child: Wrap(
+        spacing: DionSpacing.sm,
+        runSpacing: DionSpacing.sm,
+        children: chips.isNotEmpty
+            ? chips
+            : [
+                Text(
+                  'No listening, reading or watching recorded this month.',
+                  style: context.bodySmall?.copyWith(
+                    color: context.theme.colorScheme.onSurface.withValues(
+                      alpha: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+      ),
+    );
+  }
 }
 
-class _CalendarSection {
-  final String title;
-  final List<_CalendarEntry> entries;
-  final bool highlight;
+class _WeekdayHeader extends StatelessWidget {
+  final DateTime month;
 
-  const _CalendarSection({
-    required this.title,
-    required this.entries,
-    this.highlight = false,
-  });
+  const _WeekdayHeader({required this.month});
 
-  Widget render(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  @override
+  Widget build(BuildContext context) {
+    final first = DateTime(month.year, month.month);
+    final leading = (first.weekday - DateTime.monday) % 7;
+    final gridStart = first.subtract(Duration(days: leading));
+    return Row(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 24, 4, 8),
-          child: Text(
-            title,
-            style: context.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.5,
-              color: highlight
-                  ? context.theme.colorScheme.error
-                  : context.theme.colorScheme.onSurface,
+        for (var i = 0; i < 7; i++)
+          Expanded(
+            child: Center(
+              child: Text(
+                DateFormat.E().format(gridStart.add(Duration(days: i))),
+                style: context.labelSmall?.copyWith(
+                  color: context.textTertiary,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ),
-        ),
-        for (final e in entries) _CalendarItem(item: e),
       ],
     );
   }
 }
 
-class _CalendarItem extends StatelessWidget {
-  final _CalendarEntry item;
+class _MonthGrid extends StatelessWidget {
+  final DateTime month;
+  final _MonthData data;
+  final void Function(DateTime day) onDayTap;
 
-  const _CalendarItem({required this.item});
+  const _MonthGrid({
+    required this.month,
+    required this.data,
+    required this.onDayTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final entry = item.entry;
-    final manual = entry.nextReleaseOverride != null;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Clickable(
-        onTap: () => context.push('/detail', extra: [entry]),
-        onLongTap: () => showNextReleaseEditor(context, entry),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: DionContainer(
-            color: context.theme.colorScheme.surfaceContainer,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 48,
-                  height: 72,
-                  child: DionImage(
-                    imageUrl: entry.cover?.url,
-                    boxFit: BoxFit.cover,
-                    httpHeaders: entry.cover?.header,
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          entry.title.trim(),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            height: 1.2,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              manual ? Icons.event : Icons.auto_awesome,
-                              size: 13,
-                              color: context.theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.45),
-                            ).paddingOnly(right: 4),
-                            Text(
-                              manual ? 'Set manually' : 'Predicted',
-                              style: context.labelSmall?.copyWith(
-                                color: context.theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5),
-                                fontSize: 11.5,
-                                letterSpacing: 0.1,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              item.release.formatrelative(allowFromNow: true),
-                              style: context.labelSmall?.copyWith(
-                                color: context.theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    final first = DateTime(month.year, month.month);
+    final leading = (first.weekday - DateTime.monday) % 7;
+    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+    final totalCells = ((leading + daysInMonth) / 7).ceil() * 7;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final cells = <Widget>[];
+    for (var i = 0; i < totalCells; i++) {
+      final date = first.subtract(Duration(days: leading - i));
+      cells.add(
+        _DayCell(
+          date: date,
+          inMonth: date.year == month.year && date.month == month.month,
+          isToday: date == today,
+          releases: data.releasesFor(date),
+          duration: data.durationFor(date),
+          maxDuration: data.maxDayDuration,
+          onTap: () => onDayTap(date),
+        ),
+      );
+    }
+
+    return GridView.count(
+      crossAxisCount: 7,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      mainAxisSpacing: DionSpacing.xs,
+      crossAxisSpacing: DionSpacing.xs,
+      // Cells are portrait so covers stay recognizable.
+      childAspectRatio: 0.8,
+      children: cells,
+    );
+  }
+}
+
+class _DayCell extends StatelessWidget {
+  final DateTime date;
+  final bool inMonth;
+  final bool isToday;
+  final List<DayRelease> releases;
+  final Duration duration;
+  final Duration maxDuration;
+  final VoidCallback? onTap;
+
+  const _DayCell({
+    required this.date,
+    required this.inMonth,
+    required this.isToday,
+    required this.releases,
+    required this.duration,
+    required this.maxDuration,
+    this.onTap,
+  });
+
+  static const _cellRadius = BorderRadius.all(Radius.circular(DionRadius.md));
+
+  @override
+  Widget build(BuildContext context) {
+    final hasReleases = releases.isNotEmpty;
+    final hasActivity = duration > Duration.zero;
+    final intensity = hasActivity && maxDuration > Duration.zero
+        ? sqrt(
+            (duration.inMilliseconds / maxDuration.inMilliseconds).clamp(
+              0.0,
+              1.0,
+            ),
+          )
+        : 0.0;
+    final accent = context.isDarkMode
+        ? DionColors.primary
+        : DionColors.primaryDark;
+
+    final numberColor = !inMonth
+        ? context.theme.colorScheme.onSurface.withValues(alpha: 0.25)
+        : hasReleases
+        ? Colors.white
+        : context.theme.colorScheme.onSurface.withValues(alpha: 0.75);
+
+    final cell = Stack(
+      children: [
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: _cellRadius,
+              color: !inMonth
+                  ? Colors.transparent
+                  : hasReleases || !hasActivity
+                  ? context.surfaceMuted
+                  : _heatColor(context, intensity),
             ),
           ),
         ),
+        // Covers fill the cell edge to edge, so the treemap itself carries
+        // the release visual; the heatmap tint only shows on release-free
+        // days (see background above).
+        if (hasReleases)
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: _cellRadius,
+              child: _DayTreemap(releases: releases.take(4).toList()),
+            ),
+          ),
+        if (isToday)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: _cellRadius,
+                  border: Border.all(color: accent, width: 1.5),
+                ),
+              ),
+            ),
+          ),
+        Positioned(
+          left: 5,
+          top: 3,
+          child: Text(
+            '${date.day}',
+            style: context.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: numberColor,
+              shadows: hasReleases
+                  ? const [Shadow(color: Colors.black87, blurRadius: 4)]
+                  : null,
+            ),
+          ),
+        ),
+        if (hasActivity)
+          Positioned(
+            left: 5,
+            bottom: 4,
+            child: Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: accent,
+                shape: BoxShape.circle,
+                // border: Border.all(color: context.theme.colorScheme.surface),
+              ),
+            ),
+          ),
+        if (hasReleases)
+          Positioned(
+            right: 3,
+            bottom: 3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(DionRadius.xl),
+                border: Border.all(color: context.theme.colorScheme.surface),
+              ),
+              child: Text(
+                '${releases.length}',
+                style: const TextStyle(
+                  fontSize: 9.5,
+                  height: 1.3,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+
+    if (!inMonth) return cell;
+
+    final tooltip = [
+      date.toDateString(),
+      if (hasReleases)
+        '${releases.length} ${releases.length == 1 ? 'release' : 'releases'}',
+      if (hasActivity) duration.formatrelative(),
+    ].join(' · ');
+
+    return Tooltip(
+      message: tooltip,
+      waitDuration: const Duration(milliseconds: 500),
+      child: Clickable(
+        onTap: onTap,
+        child: ClipRRect(borderRadius: _cellRadius, child: cell),
       ),
     );
   }
 }
 
-class _EmptyCalendar extends StatelessWidget {
-  const _EmptyCalendar();
+/// Slice-and-dice treemap of up to four release covers in a day cell.
+class _DayTreemap extends StatelessWidget {
+  final List<DayRelease> releases;
+
+  const _DayTreemap({required this.releases});
+
+  static const _gapW = SizedBox(width: 1.5);
+  static const _gapH = SizedBox(height: 1.5);
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return switch (releases.length) {
+      1 => _tile(0),
+      2 => Row(
         children: [
-          Icon(
-            Icons.event_busy,
-            size: 42,
-            color: context.theme.colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: DionSpacing.md),
-          Text(
-            'No upcoming releases',
-            style: context.titleMedium?.copyWith(
-              color: context.theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-          const SizedBox(height: DionSpacing.xs),
-          Text(
-            'Predictions appear here automatically once entries have\n'
-            'episode timestamps; you can also set a date manually\n'
-            "from an entry's detail page.",
-            textAlign: TextAlign.center,
-            style: context.bodySmall?.copyWith(
-              color: context.theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          Expanded(child: _tile(0)),
+          _gapW,
+          Expanded(child: _tile(1)),
+        ],
+      ),
+      3 => Row(
+        children: [
+          Expanded(child: _tile(0)),
+          _gapW,
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(child: _tile(1)),
+                _gapH,
+                Expanded(child: _tile(2)),
+              ],
             ),
           ),
         ],
       ),
+      _ => Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: _tile(0)),
+                _gapW,
+                Expanded(child: _tile(1)),
+              ],
+            ),
+          ),
+          _gapH,
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: _tile(2)),
+                _gapW,
+                Expanded(child: _tile(3)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    };
+  }
+
+  Widget _tile(int index) {
+    final entry = releases[index].entry;
+    final cover = entry.cover;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (cover != null)
+          DionImage.fromLink(
+            link: cover,
+            boxFit: BoxFit.cover,
+            errorWidget: _TileFallback(release: releases[index]),
+            loadingBuilder: (context) => ColoredBox(
+              color: context.theme.colorScheme.surfaceContainerHighest,
+            ),
+          )
+        else
+          _TileFallback(release: releases[index]),
+        // Top scrim keeps the day number readable over bright covers.
+        const Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: 16,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x66000000), Colors.transparent],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TileFallback extends StatelessWidget {
+  final DayRelease release;
+
+  const _TileFallback({required this.release});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: context.theme.colorScheme.surfaceContainerHighest,
+      child: Icon(
+        release.entry.mediaType.icon,
+        size: 12,
+        color: context.theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+class _CalendarFooter extends StatelessWidget {
+  final bool isCurrentMonth;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onToday;
+
+  const _CalendarFooter({
+    required this.isCurrentMonth,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onToday,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: context.dionDivider, width: 0.5),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.md,
+        vertical: DionSpacing.xs,
+      ),
+      child: Row(
+        children: [
+          DionIconbutton(
+            icon: const Icon(Icons.chevron_left),
+            tooltip: 'Previous month',
+            onPressed: onPrevious,
+          ),
+          DionTextbutton(
+            type: ButtonType.ghost,
+            onPressed: isCurrentMonth ? null : onToday,
+            child: const Text('Today'),
+          ),
+          DionIconbutton(
+            icon: const Icon(Icons.chevron_right),
+            tooltip: 'Next month',
+            onPressed: onNext,
+          ),
+          const Spacer(),
+          if (context.isExpandedWindow) const _CalendarLegend(),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarLegend extends StatelessWidget {
+  const _CalendarLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = context.isDarkMode
+        ? DionColors.primary
+        : DionColors.primaryDark;
+    Widget label(String text) => Text(
+      text,
+      style: context.labelSmall?.copyWith(color: context.textTertiary),
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(DionRadius.sm),
+            color: _heatColor(context, 0.8),
+          ),
+        ),
+        const SizedBox(width: 5),
+        label('Time spent'),
+        const SizedBox(width: 14),
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        label('Activity'),
+        const SizedBox(width: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(
+            color: accent,
+            borderRadius: BorderRadius.circular(DionRadius.xl),
+          ),
+          child: const Text(
+            '4',
+            style: TextStyle(
+              fontSize: 9.5,
+              height: 1.3,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(width: 5),
+        label('Releases'),
+      ],
     );
   }
 }

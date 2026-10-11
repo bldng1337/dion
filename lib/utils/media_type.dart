@@ -32,6 +32,21 @@ extension MediaTypeExtension on MediaType {
     }
   }
 
+  /// Present-tense verb for history summaries, as used by the activity feed.
+  String get activityVerb {
+    switch (this) {
+      case MediaType.audio:
+        return 'Listened';
+      case MediaType.video:
+        return 'Watched';
+      case MediaType.comic:
+      case MediaType.book:
+        return 'Read';
+      case MediaType.unknown:
+        return 'Consumed';
+    }
+  }
+
   String getEpisodeNames(int num) {
     if (num == 1) {
       return episodeName;

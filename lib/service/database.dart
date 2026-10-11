@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/activity/entry_duration.dart';
+import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
@@ -308,12 +309,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     return _getEntriesSQL(
       'SELECT * FROM type::table(\$entry) WHERE search_text @1@ \$query '
       'ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
-      {
-        'entry': entryTable.tb,
-        'query': query,
-        'limit': limit,
-        'offset': page,
-      },
+      {'entry': entryTable.tb, 'query': query, 'limit': limit, 'offset': page},
     );
   }
 
@@ -449,6 +445,19 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       query: 'SELECT * FROM activity ORDER BY time DESC LIMIT \$limit START \$offset*\$limit',
       vars: {'limit': limit, 'offset': page},
     );
+  }
+
+  /// Activities whose start time falls into [start] (inclusive) … [end]
+  /// (exclusive). The activity_time index backs the range scan.
+  Future<List<Activity>> getActivitiesBetween(DateTime start, DateTime end) {
+    return adapter
+        .queryDataClasses<Activity>(
+          query:
+              'SELECT * FROM type::table(\$activity) '
+              'WHERE time >= \$start AND time < \$end ORDER BY time DESC',
+          vars: {'activity': activityTable.tb, 'start': start, 'end': end},
+        )
+        .toList();
   }
 
   Future<Duration> getActivityDuration(DateTime time, Duration duration) async {
@@ -609,6 +618,35 @@ ORDER BY total DESC
         if (byUid.containsKey(uid) && totals[uid] != null)
           EntryDuration(entry: byUid[uid]!, duration: totals[uid]!),
     ];
+  }
+
+  /// Best representation of each activity's entry, keyed by entry uid: the
+  /// saved library row when present (fresh covers, genres, ...), otherwise
+  /// the payload snapshot stored on the activity itself.
+  Future<Map<String, Entry>> resolveActivityEntries(
+    Iterable<Activity> activities,
+  ) async {
+    final byUid = <String, Entry>{};
+    final uids = <String>{
+      for (final activity in activities)
+        if (activity is EpisodeActivity) activity.entry.id.uid,
+    };
+    if (uids.isEmpty) return byUid;
+
+    final saved = await adapter
+        .queryDataClasses<EntrySaved>(
+          query: 'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids FETCH categories',
+          vars: {'entry': entryTable.tb, 'uids': uids.toList()},
+        )
+        .toList();
+    for (final entry in saved) {
+      byUid[entry.id.uid] = entry;
+    }
+    for (final activity in activities) {
+      if (activity is! EpisodeActivity) continue;
+      byUid.putIfAbsent(activity.entry.id.uid, () => activity.entry);
+    }
+    return byUid;
   }
 
   Future<EntrySaved?> getSavedById(EntryId entry) async {
