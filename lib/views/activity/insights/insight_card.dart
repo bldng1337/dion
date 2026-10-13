@@ -37,14 +37,19 @@ class InsightContext {
   static Future<InsightContext> load() async {
     final db = locate<Database>();
     final now = DateTime.now();
-    final activities =
-        (await db.getActivitiesBetween(
-            now.subtract(insightActivityWindow),
-            now.add(const Duration(days: 1)),
-          )).whereType<EpisodeActivity>().toList()
-          ..removeWhere((a) => a.duration <= Duration.zero)
-          ..sort((a, b) => a.time.compareTo(b.time));
-    final dailyTotals = await db.getDailyActivityDurations();
+    // The 180-day window scan and the daily aggregate are independent; the
+    // entry resolution below needs the activities, so only the first two
+    // run concurrently.
+    final (rawActivities, dailyTotals) = await (
+      db.getActivitiesBetween(
+        now.subtract(insightActivityWindow),
+        now.add(const Duration(days: 1)),
+      ),
+      db.getDailyActivityDurations(),
+    ).wait;
+    final activities = rawActivities.whereType<EpisodeActivity>().toList()
+      ..removeWhere((a) => a.duration <= Duration.zero)
+      ..sort((a, b) => a.time.compareTo(b.time));
     final entries = await db.resolveActivityEntries(activities);
     return InsightContext(
       now: now,

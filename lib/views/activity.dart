@@ -269,6 +269,7 @@ class _ActivityCover extends StatelessWidget {
           DionImage(
             imageUrl: entry.cover?.url,
             boxFit: BoxFit.cover,
+            cacheWidth: 95,
             httpHeaders: entry.cover?.header,
           ),
           // Media Type Badge

@@ -82,6 +82,9 @@ class InsightCover extends StatelessWidget {
               : DionImage.fromLink(
                   link: entry!.cover,
                   boxFit: BoxFit.cover,
+                  // Expanded covers have no intrinsic width; the strip layout
+                  // tops out around this size.
+                  cacheWidth: expand ? 96 : width,
                   errorWidget: _CoverFallback(entry: entry!, size: size),
                   loadingBuilder: (context) => ColoredBox(
                     color: context.theme.colorScheme.surfaceContainerHighest,
@@ -260,7 +263,13 @@ class BarStrip extends StatelessWidget {
   final Color accent;
   final int? highlightFrom;
   final int? highlightTo;
-  final double? height;
+
+  /// Must stay a fixed height: inside a Column with a Spacer, non-flex
+  /// children are laid out with unbounded main-axis constraints, and a null
+  /// height let the unbounded constraint reach the per-bar
+  /// FractionallySizedBox, aborting layout mid-subtree (corrupted card
+  /// rendering; force-close on release builds).
+  final double height;
 
   const BarStrip({
     super.key,
@@ -268,7 +277,7 @@ class BarStrip extends StatelessWidget {
     required this.accent,
     this.highlightFrom,
     this.highlightTo,
-    this.height,
+    this.height = 10, //TMP
   });
 
   @override
