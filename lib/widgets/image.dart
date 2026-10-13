@@ -31,6 +31,9 @@ class DionImage extends StatefulWidget {
   final String? imageUrl;
   final double? width;
   final double? height;
+
+  final double? cacheWidth;
+  final double? cacheHeight;
   final Map<String, String>? httpHeaders;
   final FilterQuality? filterQuality;
   final BoxFit? boxFit;
@@ -50,6 +53,8 @@ class DionImage extends StatefulWidget {
     required this.imageUrl,
     this.width,
     this.height,
+    this.cacheWidth,
+    this.cacheHeight,
     this.boxFit,
     this.errorWidget,
     this.color,
@@ -70,6 +75,8 @@ class DionImage extends StatefulWidget {
     Link? link,
     double? width,
     double? height,
+    double? cacheWidth,
+    double? cacheHeight,
     FilterQuality? filterQuality,
     BoxFit? boxFit,
     bool shouldAnimate = true,
@@ -86,6 +93,8 @@ class DionImage extends StatefulWidget {
     httpHeaders: link?.header,
     width: width,
     height: height,
+    cacheWidth: cacheWidth,
+    cacheHeight: cacheHeight,
     filterQuality: filterQuality,
     boxFit: boxFit,
     shouldAnimate: shouldAnimate,
@@ -345,13 +354,25 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
         semanticLabel: widget.semanticLabel,
       );
     }
+    int? resolveCache(double? logical) => logical == null
+        ? null
+        : (logical * MediaQuery.devicePixelRatioOf(context)).round().clamp(
+            1,
+            4096,
+          );
     return Image(
       key: _imageKey,
-      image: DionNetworkImage(
-        widget.imageUrl!,
-        width: width,
-        height: height,
-        httpHeaders: widget.httpHeaders,
+      // The default Image constructor has no cacheWidth/cacheHeight; the
+      // decode bound goes through ResizeImage instead.
+      image: ResizeImage.resizeIfNeeded(
+        resolveCache(widget.cacheWidth),
+        resolveCache(widget.cacheHeight),
+        DionNetworkImage(
+          widget.imageUrl!,
+          width: width,
+          height: height,
+          httpHeaders: widget.httpHeaders,
+        ),
       ),
       semanticLabel: widget.semanticLabel,
       filterQuality: widget.filterQuality ?? FilterQuality.high,
