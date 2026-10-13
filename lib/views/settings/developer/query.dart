@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/design_tokens.dart';
@@ -8,6 +10,11 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
+
+/// Above this many characters the rendered preview is truncated; the full
+/// text stays available through the copy button. Rendering multi-megabyte
+/// strings in a SelectableText blocks the UI thread on its own.
+const _maxRenderChars = 200000;
 
 /// A developer tool for running arbitrary SurrealQL queries against the
 /// active database and inspecting the raw return values. Useful for
@@ -31,6 +38,15 @@ class _QueryDebuggerState extends State<QueryDebugger>
   bool _varsExpanded = false;
   bool _running = false;
   _QueryResult? _result;
+
+  /// Pretty-printed JSON of [_result], computed off the UI isolate (large
+  /// results take seconds to encode on the main thread). Null while the
+  /// encoding for the current run is in flight.
+  String? _pretty;
+
+  /// Guards against a finished encoding from an older run overwriting the
+  /// current result.
+  int _runSeq = 0;
 
   Future<void> _runQuery() async {
     final query = _queryController.text.trim();
@@ -66,9 +82,11 @@ class _QueryDebuggerState extends State<QueryDebugger>
       }
     }
 
+    final seq = ++_runSeq;
     setState(() {
       _running = true;
       _result = null;
+      _pretty = null;
     });
 
     final stopwatch = Stopwatch()..start();
@@ -80,6 +98,7 @@ class _QueryDebuggerState extends State<QueryDebugger>
         _result = _QueryResult.success(result, elapsed: stopwatch.elapsed);
         _running = false;
       });
+      unawaited(_encodePretty(result, seq));
     } catch (e, stack) {
       stopwatch.stop();
       logger.e('Query failed', error: e, stackTrace: stack);
@@ -90,6 +109,24 @@ class _QueryDebuggerState extends State<QueryDebugger>
       });
     }
   }
+
+  Future<void> _encodePretty(List<dynamic> result, int seq) async {
+    String pretty;
+    try {
+      pretty = await _prettyJson(result);
+    } catch (e) {
+      logger.e('Failed to encode query result', error: e);
+      pretty = result.toString();
+    }
+    if (!mounted || seq != _runSeq) return;
+    setState(() => _pretty = pretty);
+  }
+
+  /// Static so the [Isolate.run] closure cannot capture the State: closures
+  /// inside instance methods box `this` into their context, and the State's
+  /// graph (controllers, listeners, binding) is unsendable across isolates.
+  static Future<String> _prettyJson(List<dynamic> result) =>
+      Isolate.run(() => prettyEncode(result));
 
   void _clear() {
     setState(() => _result = null);
@@ -105,16 +142,6 @@ class _QueryDebuggerState extends State<QueryDebugger>
     final stmtLabel = statements == 1 ? 'statement' : 'statements';
     final recLabel = totalRecords == 1 ? 'record' : 'records';
     return '$statements $stmtLabel · $totalRecords $recLabel';
-  }
-
-  String _prettyEncode(List<dynamic> result) {
-    const encoder = JsonEncoder.withIndent('  ', _fallbackEncoder);
-    try {
-      return encoder.convert(result);
-    } catch (_) {
-      // Last resort: fall back to toString if anything still throws.
-      return result.toString();
-    }
   }
 
   @override
@@ -165,8 +192,8 @@ class _QueryDebuggerState extends State<QueryDebugger>
                   const SizedBox(height: DionSpacing.md),
                   _ResultPanel(
                     result: _result!,
+                    pretty: _pretty,
                     summarize: _summarize,
-                    encode: _prettyEncode,
                   ),
                 ],
               ],
@@ -184,6 +211,18 @@ class _QueryDebuggerState extends State<QueryDebugger>
 Object? _fallbackEncoder(Object? object) {
   if (object is DateTime) return object.toIso8601String();
   return object.toString();
+}
+
+/// Pretty-prints a query result for display. Runs on a helper isolate (see
+/// [_QueryDebuggerState._encodePretty]), so it must not touch widget state.
+String prettyEncode(List<dynamic> result) {
+  const encoder = JsonEncoder.withIndent('  ', _fallbackEncoder);
+  try {
+    return encoder.convert(result);
+  } catch (_) {
+    // Last resort: fall back to toString if anything still throws.
+    return result.toString();
+  }
 }
 
 /// A bordered container wrapping an editor field, styled like the grouped
@@ -319,13 +358,16 @@ class _ActionBar extends StatelessWidget {
 
 class _ResultPanel extends StatelessWidget {
   final _QueryResult result;
+
+  /// Pretty-printed JSON, null while the (possibly slow) off-isolate
+  /// encoding is still running.
+  final String? pretty;
   final String Function(List<dynamic>) summarize;
-  final String Function(List<dynamic>) encode;
 
   const _ResultPanel({
     required this.result,
+    required this.pretty,
     required this.summarize,
-    required this.encode,
   });
 
   @override
@@ -352,7 +394,48 @@ class _ResultPanel extends StatelessWidget {
     }
 
     final data = result.data!;
-    final pretty = encode(data);
+    if (pretty == null) {
+      return _BorderedBlock(
+        accent: DionColors.success,
+        header: Row(
+          children: [
+            Text(
+              'RESULT · ${result.elapsed!.inMilliseconds} ms',
+              style: DionTypography.labelMedium(DionColors.success),
+            ),
+            const SizedBox(width: DionSpacing.sm),
+            Flexible(
+              child: Text(
+                summarize(data),
+                style: DionTypography.bodySmall(context.textTertiary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DionSpacing.md),
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: context.textTertiary,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final full = pretty!;
+    final truncated = full.length > _maxRenderChars;
+    final preview = truncated
+        ? '${full.substring(0, _maxRenderChars)}\n… '
+            '[truncated, ${full.length - _maxRenderChars} more '
+            'characters — use the copy button for the full output]'
+        : full;
     return _BorderedBlock(
       accent: DionColors.success,
       header: Row(
@@ -371,9 +454,9 @@ class _ResultPanel extends StatelessWidget {
           ),
         ],
       ),
-      trailing: _CopyButton(text: pretty),
+      trailing: _CopyButton(text: full),
       child: SelectableText(
-        pretty,
+        preview,
         style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 12,
