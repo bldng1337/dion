@@ -278,6 +278,7 @@ class _ReleaseRow extends StatelessWidget {
                 child: DionImage.fromLink(
                   link: entry.cover,
                   boxFit: BoxFit.cover,
+                  cacheWidth: 40,
                   errorWidget: _CoverFallback(entry: entry),
                   loadingBuilder: (context) => ColoredBox(
                     color: context.theme.colorScheme.surfaceContainerHighest,

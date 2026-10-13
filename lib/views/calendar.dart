@@ -4,7 +4,6 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/entry/entry.dart';
-import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart' show EntryId;
@@ -16,7 +15,6 @@ import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/views/dialog/day_details.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
-import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
@@ -91,9 +89,12 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
     final db = locate<Database>();
     final monthStart = DateTime(month.year, month.month);
     final monthEnd = DateTime(month.year, month.month + 1);
+    // Entry paging and the activities range scan are independent; run them
+    // concurrently so the month costs the slower of the two, not the sum.
+    final activitiesFuture = db.getActivitiesBetween(monthStart, monthEnd);
     final releases = <DayRelease>[];
     for (var page = 0; ; page++) {
-      final pageEntries = await db.getEntries(page, _pageSize).toList();
+      final pageEntries = await db.getCalendarEntries(page, _pageSize).toList();
       for (final entry in pageEntries) {
         final release = entry.nextRelease;
         if (release == null || entry.status == rust.ReleaseStatus.complete) {
@@ -106,8 +107,7 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
       }
       if (pageEntries.length < _pageSize) break;
     }
-    final activities = await db.getActivitiesBetween(monthStart, monthEnd);
-    return _MonthData.build(monthStart, releases, activities);
+    return _MonthData.build(monthStart, releases, await activitiesFuture);
   }
 
   void _openDay(DateTime day) {
@@ -160,6 +160,8 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
                             month: _month,
                             onPrevious: () => _shiftMonth(-1),
                             onNext: () => _shiftMonth(1),
+                            showToday: !_isCurrentMonth,
+                            onToday: _goToCurrentMonth,
                           ),
                           _MonthSummary(data: shown),
                           const SizedBox(height: DionSpacing.lg),
@@ -279,10 +281,18 @@ class _MonthSelector extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
 
+  /// Whether [month] differs from the month the device clock is in; while
+  /// false the jump-to-current button hides but keeps its slot so the title
+  /// stays centered.
+  final bool showToday;
+  final VoidCallback onToday;
+
   const _MonthSelector({
     required this.month,
     required this.onPrevious,
     required this.onNext,
+    required this.showToday,
+    required this.onToday,
   });
 
   @override
@@ -311,6 +321,22 @@ class _MonthSelector extends StatelessWidget {
             icon: const Icon(Icons.chevron_right),
             tooltip: 'Next month',
             onPressed: onNext,
+          ),
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: IgnorePointer(
+              ignoring: !showToday,
+              child: AnimatedOpacity(
+                duration: DionDuration.fast,
+                opacity: showToday ? 1 : 0,
+                child: DionIconbutton(
+                  icon: const Icon(Icons.today),
+                  tooltip: 'Back to current month',
+                  onPressed: showToday ? onToday : null,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -698,6 +724,9 @@ class _DayTreemap extends StatelessWidget {
           DionImage.fromLink(
             link: cover,
             boxFit: BoxFit.cover,
+            // A month grid builds up to ~42 cells with up to four tiles each;
+            // without a decode bound every cover loads at native resolution.
+            cacheWidth: 128,
             errorWidget: _TileFallback(release: releases[index]),
             loadingBuilder: (context) => ColoredBox(
               color: context.theme.colorScheme.surfaceContainerHighest,

@@ -279,6 +279,16 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     );
   }
 
+  Stream<EntrySaved> getCalendarEntries(int page, int limit) {
+    return adapter.queryDataClasses<EntrySaved>(
+      query:
+          'SELECT * FROM type::table(\$entry) '
+          "WHERE entry.status != 'Complete' "
+          'ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
+      vars: {'entry': entryTable.tb, 'limit': limit, 'offset': page},
+    );
+  }
+
   Stream<EntrySaved> getEntriesInCategory(
     Category? category,
     int page,
