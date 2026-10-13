@@ -575,15 +575,15 @@ class _DayCell extends StatelessWidget {
           left: 0,
           top: 0,
           child: Container(
-            width: 20,
-            height: 20,
+            width: context.isCompactWindow ? 15 : 20,
+            height: context.isCompactWindow ? 15 : 20,
             decoration: BoxDecoration(
               color: isToday
                   ? accent
                   : context.theme.colorScheme.surfaceContainer,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(DionRadius.md),
-                bottomRight: Radius.circular(DionRadius.xl),
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(DionRadius.md),
+                bottomRight: Radius.circular(context.isCompactWindow?DionRadius.md:DionRadius.lg),
               ),
             ),
             child: Text(
@@ -591,6 +591,7 @@ class _DayCell extends StatelessWidget {
               '${date.day}',
               style: context.labelSmall?.copyWith(
                 fontWeight: FontWeight.w600,
+                fontSize: context.isCompactWindow ? 10 : 12,
                 color: isToday
                     ? Colors.white
                     : context.theme.colorScheme.onSurface,
@@ -598,44 +599,47 @@ class _DayCell extends StatelessWidget {
             ),
           ),
         ),
-        if (hasActivity)
-          Positioned(
-            left: 5,
-            bottom: 4,
-            child: Container(
-              width: 15,
-              height: 15,
-              decoration: BoxDecoration(
-                color: _heatColor(context, intensity, saturation: 1),
-                shape: BoxShape.circle,
-                border: Border.all(color: context.theme.colorScheme.surface),
-              ),
-            ),
-          ),
-        if (hasReleases)
-          Positioned(
-            right: 3,
-            bottom: 3,
-            child: Container(
-              width: 17,
-              height: 17,
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(DionRadius.xl),
-                border: Border.all(color: context.theme.colorScheme.surface),
-              ),
-              child: Text(
-                textAlign: .center,
-                releases.length <= 9 ? '${releases.length}' : '9+',
-                style: const TextStyle(
-                  fontSize: 9.5,
-                  height: 1.3,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+        // if (hasActivity) Im not sure how to visualize this in a nice way
+        //   Positioned(
+        //     left: 0,
+        //     bottom: 0,
+        //     child: Container(
+        //       width: 15,
+        //       height: 15,
+        //       decoration: BoxDecoration(
+        //         color: _heatColor(context, intensity, saturation: 1),
+        //         borderRadius: const BorderRadius.only(
+        //           topRight: Radius.circular(DionRadius.xl),
+        //           bottomLeft: Radius.circular(DionRadius.md),
+        //         ),
+        //         border: Border.all(color: context.theme.colorScheme.surfaceContainer),
+        //       ),
+        //     ),
+        //   ),
+        // if (hasReleases)
+        //   Positioned(
+        //     right: 3,
+        //     bottom: 3,
+        //     child: Container(
+        //       width: 17,
+        //       height: 17,
+        //       decoration: BoxDecoration(
+        //         color: accent,
+        //         borderRadius: BorderRadius.circular(DionRadius.xl),
+        //         border: Border.all(color: context.theme.colorScheme.surface),
+        //       ),
+        //       child: Text(
+        //         textAlign: .center,
+        //         releases.length <= 9 ? '${releases.length}' : '9+',
+        //         style: const TextStyle(
+        //           fontSize: 9.5,
+        //           height: 1.3,
+        //           fontWeight: FontWeight.w700,
+        //           color: Colors.white,
+        //         ),
+        //       ),
+        //     ),
+        //   ),
         if (!inMonth)
           Positioned.fill(
             child: IgnorePointer(
