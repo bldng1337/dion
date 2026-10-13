@@ -266,14 +266,22 @@ class _MonthData {
 
 /// Heat tint for a day cell; [intensity] 0..1 blends the surface color
 /// towards the accent. Shared with the footer legend.
-Color _heatColor(BuildContext context, double intensity, {double saturation=0.58}) {
+Color _heatColor(
+  BuildContext context,
+  double intensity, {
+  double saturation = 0.58,
+}) {
   final base = context.isDarkMode
       ? context.theme.colorScheme.surfaceContainer
       : context.surfaceMuted;
   final accent = context.isDarkMode
       ? DionColors.primary
       : DionColors.primaryDark;
-  return Color.lerp(base, accent, 0.12 + saturation * intensity.clamp(0.0, 1.0))!;
+  return Color.lerp(
+    base,
+    accent,
+    0.12 + saturation * intensity.clamp(0.0, 1.0),
+  )!;
 }
 
 class _MonthSelector extends StatelessWidget {
@@ -427,13 +435,13 @@ class _MonthGrid extends StatelessWidget {
     final cells = <Widget>[];
     for (var i = 0; i < totalCells; i++) {
       final date = first.subtract(Duration(days: leading - i));
-      final seen = <(EntryId,String)>{};
-      final entries=data
+      final seen = <(EntryId, String)>{};
+      final entries = data
           .activitiesFor(date)
           .where((a) => a is EpisodeActivity && a.duration > Duration.zero)
           .map((e) => (e as EpisodeActivity).entry)
           .where((e) {
-            final containsEntry=seen.contains((e.id, e.mediaType.name));
+            final containsEntry = seen.contains((e.id, e.mediaType.name));
             seen.add((e.id, e.mediaType.name));
             return !containsEntry;
           })
@@ -515,7 +523,11 @@ class _DayCell extends StatelessWidget {
             child: ClipRRect(
               borderRadius: _cellRadius,
               child: _DayTreemap(
-                releases: releases.take(4).map((r) => r.entry).where((r)=>r.cover!=null).toList(),
+                releases: releases
+                    .take(4)
+                    .map((r) => r.entry)
+                    .where((r) => r.cover != null)
+                    .toList(),
               ),
             ),
           ),
@@ -524,29 +536,37 @@ class _DayCell extends StatelessWidget {
             child: ClipRRect(
               borderRadius: _cellRadius,
               child: _DayTreemap(
-                releases: entries.take(4).where((r)=>r.cover!=null).toList(),
+                releases: entries
+                    .take(4)
+                    .where((r) => r.cover != null)
+                    .toList(),
               ),
             ),
           ),
         if (isFuture)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: _cellRadius,
-                    color: context.theme.colorScheme.surface.withValues(
-                      alpha: 0.5,
-                    ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: _cellRadius,
+                  color: context.theme.colorScheme.surface.withValues(
+                    alpha: 0.5,
                   ),
                 ),
               ),
             ),
+          ),
         Positioned.fill(
           child: IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: _cellRadius,
-                border: Border.all(color: isToday?accent:context.theme.colorScheme.surfaceContainer, width: 1.5),
+                border: Border.all(
+                  color: isToday
+                      ? accent
+                      : context.theme.colorScheme.surfaceContainer,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -558,7 +578,9 @@ class _DayCell extends StatelessWidget {
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: isToday?accent:context.theme.colorScheme.surfaceContainer,
+              color: isToday
+                  ? accent
+                  : context.theme.colorScheme.surfaceContainer,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(DionRadius.md),
                 bottomRight: Radius.circular(DionRadius.xl),
@@ -569,7 +591,9 @@ class _DayCell extends StatelessWidget {
               '${date.day}',
               style: context.labelSmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: isToday?Colors.white:context.theme.colorScheme.onSurface,
+                color: isToday
+                    ? Colors.white
+                    : context.theme.colorScheme.onSurface,
               ),
             ),
           ),
@@ -602,7 +626,7 @@ class _DayCell extends StatelessWidget {
               ),
               child: Text(
                 textAlign: .center,
-                releases.length<=9?'${releases.length}':'9+',
+                releases.length <= 9 ? '${releases.length}' : '9+',
                 style: const TextStyle(
                   fontSize: 9.5,
                   height: 1.3,
@@ -612,19 +636,19 @@ class _DayCell extends StatelessWidget {
               ),
             ),
           ),
-          if (!inMonth)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: _cellRadius,
-                    color: context.theme.colorScheme.surface.withValues(
-                      alpha: 0.5,
-                    ),
+        if (!inMonth)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: _cellRadius,
+                  color: context.theme.colorScheme.surface.withValues(
+                    alpha: 0.5,
                   ),
                 ),
               ),
             ),
+          ),
       ],
     );
 

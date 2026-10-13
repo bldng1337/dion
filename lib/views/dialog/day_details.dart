@@ -12,8 +12,7 @@ import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
-import 'package:flutter/material.dart'
-    show IconButton, Icons, VisualDensity;
+import 'package:flutter/material.dart' show IconButton, Icons, VisualDensity;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
@@ -36,11 +35,8 @@ Future<void> showDayDetails(
 }) {
   return showDionPanel(
     context: context,
-    builder: (dialogContext) => _DayDetailsPanel(
-      day: day,
-      releases: releases,
-      activities: activities,
-    ),
+    builder: (dialogContext) =>
+        _DayDetailsPanel(day: day, releases: releases, activities: activities),
   );
 }
 
@@ -112,7 +108,9 @@ class _DayDetailsPanel extends StatelessWidget {
                     const _MutedText('No activity recorded for this day.')
                   else
                     _ActivityList(
-                      activities: activities.whereType<EpisodeActivity>().toList(),
+                      activities: activities
+                          .whereType<EpisodeActivity>()
+                          .toList(),
                     ),
                 ],
               ),
@@ -163,11 +161,7 @@ List<MediaStatChip> mediaStatChips(Iterable<EpisodeActivity> activities) {
   }
   return [
     for (final MapEntry(key: verb, :value) in durations.entries)
-      MediaStatChip(
-        label: verb,
-        icon: icons[verb]!,
-        duration: value,
-      ),
+      MediaStatChip(label: verb, icon: icons[verb]!, duration: value),
   ];
 }
 
@@ -306,22 +300,25 @@ class _ReleaseRow extends StatelessWidget {
                       Icon(
                         manual ? Icons.event : Icons.auto_awesome,
                         size: 12,
-                        color: context.theme.colorScheme.onSurface
-                            .withValues(alpha: 0.45),
+                        color: context.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.45,
+                        ),
                       ).paddingOnly(right: 4),
                       Text(
                         manual ? 'Set manually' : 'Predicted',
                         style: context.labelSmall?.copyWith(
-                          color: context.theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: context.theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                       const Spacer(),
                       Text(
                         release.release.formatrelative(allowFromNow: true),
                         style: context.labelSmall?.copyWith(
-                          color: context.theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: context.theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -389,9 +386,8 @@ class _ActivityListState extends State<_ActivityList> {
       future: _future,
       loading: (context) =>
           const DionProgressBar().paddingSymmetric(vertical: DionSpacing.lg),
-      builder: (context, items) => Column(
-        children: [for (final item in items) item.render(context)],
-      ),
+      builder: (context, items) =>
+          Column(children: [for (final item in items) item.render(context)]),
     );
   }
 }

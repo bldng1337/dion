@@ -72,7 +72,6 @@ class LibrarySort {
     descending: descending ?? this.descending,
   );
 
-
   String? get _column => switch (key) {
     LibrarySortKey.none => null,
     LibrarySortKey.title => 'sort_title',

@@ -64,20 +64,22 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
 
   @override
   void initState() {
-    Observer(() async {
-      if (!mounted) return;
-      final categories = await locate<Database>().getCategories();
-      if (!mounted) return;
-      setState(() {
-        this.categories = categories;
-      });
-      _refreshCounts();
-    }, locate<Database>().getListenable(DBEvent.categoryUpdated)).disposedBy(
-      scope,
-    );
-    Observer(_refreshCounts, locate<Database>().getListenable(
-      DBEvent.entryAddedOrRemoved,
-    )).disposedBy(scope);
+    Observer(
+      () async {
+        if (!mounted) return;
+        final categories = await locate<Database>().getCategories();
+        if (!mounted) return;
+        setState(() {
+          this.categories = categories;
+        });
+        _refreshCounts();
+      },
+      locate<Database>().getListenable(DBEvent.categoryUpdated),
+    ).disposedBy(scope);
+    Observer(
+      _refreshCounts,
+      locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
+    ).disposedBy(scope);
 
     super.initState();
   }
@@ -316,10 +318,13 @@ class _EntryGridState extends State<EntryGrid>
       },
     )..disposedBy(scope);
     _rebuildController();
-    Observer(() {
-      _reloadDebounce.run();
-    }, locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
-        callOnInit: false).disposedBy(scope);
+    Observer(
+      () {
+        _reloadDebounce.run();
+      },
+      locate<Database>().getListenable(DBEvent.entryAddedOrRemoved),
+      callOnInit: false,
+    ).disposedBy(scope);
     super.initState();
   }
 

@@ -654,8 +654,7 @@ class EntrySaved
           episode: (json['episode'] as int?) ?? 0,
           savedSettings: EntrySavedSettings.fromJson(json['settings']),
           extensionSettings: {},
-        )
-          ..notePersistedScope();
+        )..notePersistedScope();
     }
     final entry = rust.JsonEntryDetailed.fromJson(
       json['entry'] as Map<String, dynamic>,

@@ -433,8 +433,8 @@ class _ResultPanel extends StatelessWidget {
     final truncated = full.length > _maxRenderChars;
     final preview = truncated
         ? '${full.substring(0, _maxRenderChars)}\n… '
-            '[truncated, ${full.length - _maxRenderChars} more '
-            'characters — use the copy button for the full output]'
+              '[truncated, ${full.length - _maxRenderChars} more '
+              'characters — use the copy button for the full output]'
         : full;
     return _BorderedBlock(
       accent: DionColors.success,

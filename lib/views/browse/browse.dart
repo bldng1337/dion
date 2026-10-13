@@ -132,16 +132,20 @@ class EntryDisplay extends StatefulWidget {
   State<EntryDisplay> createState() => _EntryDisplayState();
 }
 
-class _EntryDisplayState extends State<EntryDisplay> with StateDisposeScopeMixin {
+class _EntryDisplayState extends State<EntryDisplay>
+    with StateDisposeScopeMixin {
   late Entry item;
   late final GlobalKey _cardKey = GlobalKey();
   @override
   void initState() {
     item = widget.entry;
-    Observer(() {
-      if (mounted) setState(() {});
-    }, locate<Database>().getListenable(DBEvent.entryUpdated),
-        callOnInit: false).disposedBy(scope);
+    Observer(
+      () {
+        if (mounted) setState(() {});
+      },
+      locate<Database>().getListenable(DBEvent.entryUpdated),
+      callOnInit: false,
+    ).disposedBy(scope);
     super.initState();
   }
 
