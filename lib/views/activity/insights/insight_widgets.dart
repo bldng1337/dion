@@ -308,7 +308,7 @@ class BarStrip extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _inHighlight(i)
                             ? accent
-                            : context.theme.colorScheme.surfaceContainerHighest,
+                            : context.theme.colorScheme.onSurfaceVariant,
                         borderRadius: BorderRadius.circular(DionRadius.xs),
                       ),
                     ),

@@ -77,7 +77,7 @@ class TotalTrackedCard extends InsightCard<TotalTrackedData> {
           caption: 'tracked in the last year',
         ),
         Text(
-          '${data.titles} titles · ${data.episodes} '
+          '${data.titles} titles · ${data.episodes.abs()} '
           '${data.episodes == 1 ? 'episode' : 'episodes'} in the last 6 months',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
