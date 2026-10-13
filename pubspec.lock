@@ -802,13 +802,11 @@ packages:
     source: hosted
     version: "4.1.0"
   flutter_surrealdb:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      path: "."
-      ref: e1548fa510c0ffdd88c90c707fb39b537c894563
-      resolved-ref: e1548fa510c0ffdd88c90c707fb39b537c894563
-      url: "https://github.com/bldng1337/flutter_surrealdb.git"
-    source: git
+      path: "../flutter_surrealdb"
+      relative: true
+    source: path
     version: "0.0.1"
   flutter_svg:
     dependency: "direct main"
@@ -1217,11 +1215,9 @@ packages:
   metis:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "0de8a3dee79b7831f88e08b4b4f23d8ce440ab27"
-      resolved-ref: "0de8a3dee79b7831f88e08b4b4f23d8ce440ab27"
-      url: "https://github.com/bldng1337/metis.git"
-    source: git
+      path: "../metis"
+      relative: true
+    source: path
     version: "0.0.1"
   mime:
     dependency: transitive
