@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:dionysos/data/activity/activity.dart';
+import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
@@ -24,56 +26,162 @@ import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:metis/metis.dart';
 import 'package:path_provider/path_provider.dart';
 
-const archiveVersion = 2;
+const archiveVersion = 3;
+
+Map<String, dynamic> _readJsonMap(Archive archive, String name) =>
+    json.decode(utf8.decode(archive.findFile(name)!.content))
+        as Map<String, dynamic>;
+
+List<dynamic> _readJsonList(Archive archive, String name) =>
+    json.decode(utf8.decode(archive.findFile(name)!.content)) as List<dynamic>;
+
+// The settings tree is a lazy top-level final; referencing it builds every
+// preference-backed Setting and registers it in preferenceCollection.
+void _ensureSettingsBuilt() => settings.toString();
+
 Future<void> applyBackup(Archive archive) async {
   final db = locate<Database>();
-  final meta = json.decode(
-    String.fromCharCodes(archive.findFile('dionmeta.json')!.content),
-  ) as Map<String, dynamic>;
+  final meta = _readJsonMap(archive, 'dionmeta.json');
+  final categoriesByName = {
+    for (final category in await db.getCategories()) category.name: category,
+  };
   switch (meta['version'] as int) {
     case 1:
-      final entries = json.decode(
-        String.fromCharCodes(archive.findFile('entrydata.json')!.content),
-      ) as List<dynamic>;
-      for (final entry in entries) {
-        final entryData = await EntrySaved.fromJson(
-          entry as Map<String, dynamic>,
-        );
-        await db.updateEntry(entryData);
-      }
+      await _restoreEntries(archive, db, categoriesByName);
     case 2:
-      final entries = json.decode(
-        String.fromCharCodes(archive.findFile('entrydata.json')!.content),
-      ) as List<dynamic>;
-      for (final entry in entries) {
-        entry['categories'] = await db.getCategoriesByName(
-          (entry['categories'] as List<dynamic>).cast<String>(),
-        );
-        final entrydata = await EntrySaved.fromJson(
-          entry as Map<String, dynamic>,
-        );
-        await db.updateEntry(entrydata);
-      }
-      final activities = json.decode(
-        String.fromCharCodes(archive.findFile('activitydata.json')!.content),
-      ) as List<dynamic>;
-      for (final activity in activities) {
-        activity['time'] = DateTime.parse(activity['time'] as String);
-        final activityData = Activity.fromJson(
-          activity as Map<String, dynamic>,
-        );
-        await db.addActivity(activityData);
-      }
+      // V2 backups carry no category definitions; entry-referenced names are
+      // recreated instead of being silently dropped.
+      await _restoreEntries(archive, db, categoriesByName);
+      await _restoreActivities(archive, db);
+    case 3:
+      await _restoreCategories(archive, db, categoriesByName);
+      await _restoreEntries(archive, db, categoriesByName);
+      await _restoreActivities(archive, db);
+      await _restoreExtensions(archive, db);
+      _ensureSettingsBuilt();
+      await _restoreSettings(archive);
     default:
       logger.w('Unknown backup version: ${meta['version']}');
       return;
   }
 }
 
+/// Restores category definitions before entries so entry references resolve.
+/// A locally existing category with the same name keeps its record id
+/// (entries resolve by name) but adopts the backup's sort order.
+Future<void> _restoreCategories(
+  Archive archive,
+  Database db,
+  Map<String, Category> categoriesByName,
+) async {
+  for (final raw in _readJsonList(archive, 'categorydata.json')) {
+    final json = Map<String, dynamic>.from(raw as Map);
+    json['id'] = DBRecord.fromJson(json['id'] as Map<String, dynamic>);
+    final category = Category.fromJson(json);
+    final existing = categoriesByName[category.name];
+    if (existing == null) {
+      await db.updateCategory(category);
+      categoriesByName[category.name] = category;
+    } else if (existing.index != category.index) {
+      final updated = existing.copyWith(index: category.index);
+      await db.updateCategory(updated);
+      categoriesByName[category.name] = updated;
+    }
+  }
+}
+
+/// Resolves an entry's serialized categories to [Category] objects, creating
+/// missing ones. V1 backups stored record references, later versions store
+/// names; both are matched against local categories by name.
+Future<List<Category>> _resolveEntryCategories(
+  Database db,
+  dynamic raw,
+  Map<String, Category> categoriesByName,
+) async {
+  if (raw is! List) return [];
+  final categories = <Category>[];
+  for (final item in raw) {
+    if (item is Map) {
+      final json = Map<String, dynamic>.from(item);
+      json['id'] = DBRecord.fromJson(json['id'] as Map<String, dynamic>);
+      final category = Category.fromJson(json);
+      final resolved = categoriesByName.putIfAbsent(
+        category.name,
+        () => category,
+      );
+      if (identical(resolved, category)) {
+        await db.updateCategory(category);
+      }
+      categories.add(resolved);
+    } else if (item is String) {
+      var category = categoriesByName[item];
+      if (category == null) {
+        category = Category.construct(item, categoriesByName.length);
+        await db.updateCategory(category);
+        categoriesByName[item] = category;
+      }
+      categories.add(category);
+    }
+  }
+  return categories;
+}
+
+Future<void> _restoreEntries(
+  Archive archive,
+  Database db,
+  Map<String, Category> categoriesByName,
+) async {
+  for (final raw in _readJsonList(archive, 'entrydata.json')) {
+    final entry = Map<String, dynamic>.from(raw as Map);
+    entry['categories'] = await _resolveEntryCategories(
+      db,
+      entry['categories'],
+      categoriesByName,
+    );
+    final entryData = await EntrySaved.fromJson(entry);
+    await db.updateEntry(entryData);
+  }
+}
+
+Future<void> _restoreActivities(Archive archive, Database db) async {
+  for (final raw in _readJsonList(archive, 'activitydata.json')) {
+    final activity = Map<String, dynamic>.from(raw as Map);
+    activity['time'] = DateTime.parse(activity['time'] as String);
+    await db.addActivity(Activity.fromJson(activity));
+  }
+}
+
+Future<void> _restoreExtensions(Archive archive, Database db) async {
+  for (final raw in _readJsonList(archive, 'extensiondata.json')) {
+    final json = Map<String, dynamic>.from(raw as Map);
+    json['id'] = DBRecord.fromJson(json['id'] as Map<String, dynamic>);
+    await db.setExtensionMetaData(ExtensionMetaData.fromJson(json));
+  }
+}
+
+/// Applies backed-up setting values to the live settings; each Setting's
+/// onChange persists the value. Directory settings are skipped: absolute
+/// paths do not transfer between devices or platforms.
+Future<void> _restoreSettings(Archive archive) async {
+  final data = _readJsonMap(archive, 'settingsdata.json');
+  final settingsById = {
+    for (final setting in preferenceCollection.settings)
+      setting.metadata.id: setting,
+  };
+  for (final MapEntry(:key, :value) in data.entries) {
+    final setting = settingsById[key];
+    if (setting == null) continue;
+    final parsed = setting.metadata.parse(value as String);
+    if (parsed != null) setting.value = parsed;
+  }
+}
+
 Future<Archive> createBackup() async {
   final db = locate<Database>();
+  _ensureSettingsBuilt();
   final archive = Archive();
   final entries = [];
   int ind = 0;
@@ -90,6 +198,12 @@ Future<Archive> createBackup() async {
     );
   }
   archive.addFile(ArchiveFile.string('entrydata.json', json.encode(entries)));
+  archive.addFile(
+    ArchiveFile.string(
+      'categorydata.json',
+      json.encode((await db.getCategories()).map((c) => c.toJson()).toList()),
+    ),
+  );
   final activities = [];
   int actInd = 0;
   while (activities.length % 100 == 0) {
@@ -108,10 +222,33 @@ Future<Archive> createBackup() async {
   );
   archive.addFile(
     ArchiveFile.string(
+      'extensiondata.json',
+      json.encode(
+        (await db.getExtensionsMetadata()).map((e) => e.toDBJson()).toList(),
+      ),
+    ),
+  );
+  final settingsData = <String, String>{};
+  for (final setting in preferenceCollection.settings) {
+    final metadata = setting.metadata;
+    if (metadata is PreferenceDirectoryMetaData) continue;
+    settingsData[metadata.id] = metadata.stringify(setting.value);
+  }
+  archive.addFile(
+    ArchiveFile.string('settingsdata.json', json.encode(settingsData)),
+  );
+  archive.addFile(
+    ArchiveFile.string(
       'dionmeta.json',
       json.encode({
         'version': archiveVersion,
-        'content': ['entries', 'activities'],
+        'content': [
+          'entries',
+          'categories',
+          'activities',
+          'extensions',
+          'settings',
+        ],
       }),
     ),
   );

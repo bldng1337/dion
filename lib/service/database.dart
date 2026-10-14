@@ -241,17 +241,6 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     return res.nonNulls.toList();
   }
 
-  Future<List<Category>> getCategoriesByName(Iterable<String> names) async {
-    if (names.isEmpty) return [];
-    final res = await adapter
-        .queryDataClasses<Category>(
-          query: 'SELECT * FROM type::table(\$category) WHERE name IN \$names',
-          vars: {'category': categoryTable.tb, 'names': names.toList()},
-        )
-        .toList();
-    return res;
-  }
-
   Future<int> getNumEntries() async {
     return await _countSQL(
       query: 'SELECT count() FROM type::table(\$entry) GROUP ALL;',
@@ -761,6 +750,15 @@ ORDER BY total DESC
       constructExtensionDBRecord(extdata.id),
     );
     return data ?? ExtensionMetaData.empty(extdata.id);
+  }
+
+  Future<List<ExtensionMetaData>> getExtensionsMetadata() async {
+    return await adapter
+        .queryDataClasses<ExtensionMetaData>(
+          query: 'SELECT * FROM type::table(\$extension)',
+          vars: {'extension': extensionTable.tb},
+        )
+        .toList();
   }
 
   Future<void> setExtensionMetaData(ExtensionMetaData data) async {
