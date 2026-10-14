@@ -1,6 +1,9 @@
 import 'dart:convert';
 
-const int dionSyncProtocolVersion = 2;
+// v3: metis sync protocol v2 (cursor pagination in /querySyncData, HLC-guarded
+// push). A v2 peer cannot parse v3 requests (it would read a missing offset),
+// so the header gate plus metis's repo version check keep them from talking.
+const int dionSyncProtocolVersion = 3;
 
 const String dionSyncMdnsService = '_dionsync._tcp';
 

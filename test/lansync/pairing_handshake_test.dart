@@ -33,7 +33,7 @@ class _FakeSyncRepo extends SyncRepo {
   Future<SyncRepoData> getSyncPointData() async =>
       const SyncRepoData(tables: {}, version: 1, entries: 0);
   @override
-  Stream<SyncData> querySyncData(int offset, int limit) async* {}
+  Stream<SyncData> querySyncData(DBRecord? after, int limit) async* {}
   @override
   Future<SyncData?> getSyncData(DBRecord id) async => null;
   @override

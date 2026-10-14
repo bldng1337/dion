@@ -723,10 +723,17 @@ ORDER BY total DESC
   }
 
   Future<void> clear() async {
-    await db.query('DELETE entry');
-    await db.query('DELETE activity');
-    await db.query('DELETE category');
-    await db.query('DELETE extension');
+    final crdtTable = db.getAdapter<CrdtAdapter>().crdtTableName;
+    await db.writeTransaction((txn) async {
+      await txn.query('DELETE entry');
+      await txn.query('DELETE activity');
+      await txn.query('DELETE category');
+      await txn.query('DELETE extension');
+      await txn.query(
+        'DELETE FROM type::table(\$crdt)',
+        vars: {'crdt': crdtTable},
+      );
+    });
     _downloadedUidsCache = null;
     if (has<ImageStoreService>()) {
       locate<ImageStoreService>().schedulePrune();
