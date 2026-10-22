@@ -15,6 +15,7 @@ import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/platform.dart';
+import 'package:dionysos/utils/release_prediction.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/utils/storage.dart';
@@ -136,6 +137,9 @@ Future<void> _restoreEntries(
 ) async {
   for (final raw in _readJsonList(archive, 'entrydata.json')) {
     final entry = Map<String, dynamic>.from(raw as Map);
+    // Archives written before the runtime update kept raw source timestamp
+    // strings; repair them to the ISO form the runtime now strict-parses.
+    repairLegacyTimestamps(entry);
     entry['categories'] = await _resolveEntryCategories(
       db,
       entry['categories'],

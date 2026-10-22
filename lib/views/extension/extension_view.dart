@@ -46,7 +46,6 @@ class _ExtensionViewState extends State<ExtensionView>
     with StateDisposeScopeMixin {
   Extension? extension;
   Object? error;
-  int? _extensionSize;
 
   @override
   void initState() {
@@ -66,25 +65,8 @@ class _ExtensionViewState extends State<ExtensionView>
       setState(() {
         extension = ext;
       });
-      _calculateExtensionSize();
     } catch (e) {
       error = e;
-    }
-  }
-
-  Future<void> _calculateExtensionSize() async {
-    if (extension == null) return;
-    try {
-      final sourceExt = locate<ExtensionService>();
-      final extensionPath = await sourceExt.getExtensionStorageDir(extension!);
-      final size = await getDirectorySize(extensionPath);
-      if (mounted) {
-        setState(() {
-          _extensionSize = size;
-        });
-      }
-    } catch (e) {
-      logger.w('Failed to calculate extension size', error: e);
     }
   }
 
@@ -164,8 +146,6 @@ class _ExtensionViewState extends State<ExtensionView>
                       [
                         if (extension!.data.license.isNotEmpty)
                           'License: ${extension!.data.license}',
-                        if (_extensionSize != null)
-                          'Storage: ${formatBytes(_extensionSize!)}',
                       ].join(' • '),
                       style: context.bodySmall,
                     ),
@@ -194,6 +174,10 @@ class _ExtensionViewState extends State<ExtensionView>
                   // Accounts section
                   AccountsView(extension: extension!),
                   const Divider(),
+                  // Storage section: what the extension discloses to the
+                  // runtime, with a cache-clearing action.
+                  ExtensionStorageSection(extension: extension!),
+                  const Divider(),
                   // Auto-add rules section (EntryProcessor extensions only)
                   if (extension!
                           .getExtensionTypeOrNull<
@@ -208,6 +192,158 @@ class _ExtensionViewState extends State<ExtensionView>
                     DionRuntimeSettingView(setting: e),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ExtensionStorageSection extends StatefulWidget {
+  final Extension extension;
+  const ExtensionStorageSection({super.key, required this.extension});
+
+  @override
+  State<ExtensionStorageSection> createState() =>
+      _ExtensionStorageSectionState();
+}
+
+class _ExtensionStorageSectionState extends State<ExtensionStorageSection>
+    with StateDisposeScopeMixin {
+  rust.StorageUsage? usage;
+  bool clearing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsage();
+  }
+
+  Future<void> _loadUsage() async {
+    try {
+      final u = await widget.extension.storageUsage();
+      if (mounted) {
+        setState(() => usage = u);
+      }
+    } catch (e) {
+      logger.w(
+        'Failed to load storage usage of ${widget.extension.id}',
+        error: e,
+      );
+    }
+  }
+
+  Future<void> _clearCache() async {
+    setState(() => clearing = true);
+    try {
+      await widget.extension.clearCache();
+      showToast('Cache cleared', ToastKind.success);
+    } catch (e) {
+      logger.w('Failed to clear cache of ${widget.extension.id}', error: e);
+      showToast('Failed to clear cache', ToastKind.error);
+    } finally {
+      if (mounted) {
+        setState(() => clearing = false);
+      }
+    }
+    await _loadUsage();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final usage = this.usage;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Storage',
+          style: context.titleMedium?.copyWith(
+            color: context.theme.colorScheme.primary,
+          ),
+        ).paddingSymmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.sm,
+        ),
+        if (usage == null)
+          Text(
+                'Storage usage unavailable',
+                style: context.bodySmall?.copyWith(
+                  color: context.theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+              .paddingSymmetric(horizontal: DionSpacing.lg)
+              .paddingOnly(bottom: DionSpacing.sm)
+        else ...[
+          _StorageRow(
+            label: 'Cache',
+            description: 'Downloaded and cached data',
+            bytes: usage.cache,
+          ).paddingSymmetric(horizontal: DionSpacing.lg),
+          _StorageRow(
+            label: 'Extension',
+            description: 'The installed extension itself',
+            bytes: usage.extensionBytes,
+          ).paddingSymmetric(horizontal: DionSpacing.lg),
+          _StorageRow(
+            label: 'Data',
+            description: 'Settings, cookies and extension files',
+            bytes: usage.data,
+          ).paddingSymmetric(horizontal: DionSpacing.lg),
+          DionTextbutton(
+                type: ButtonType.elevated,
+                onPressed: clearing || usage.cache <= 0 ? null : _clearCache,
+                child: clearing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: DionProgressBar(size: 14),
+                      )
+                    : const Text('Clear Cache'),
+              )
+              .paddingSymmetric(horizontal: DionSpacing.lg)
+              .paddingOnly(top: DionSpacing.xs, bottom: DionSpacing.sm),
+        ],
+      ],
+    );
+  }
+}
+
+class _StorageRow extends StatelessWidget {
+  final String label;
+  final String description;
+  final double bytes;
+
+  const _StorageRow({
+    required this.label,
+    required this.description,
+    required this.bytes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: DionSpacing.xs),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: context.bodyMedium),
+                Text(
+                  description,
+                  style: context.bodySmall?.copyWith(
+                    color: context.theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            formatBytes(bytes),
+            style: context.bodyMedium?.copyWith(
+              color: context.theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],

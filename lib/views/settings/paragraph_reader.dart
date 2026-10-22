@@ -267,6 +267,26 @@ class ParagraphReaderSettings extends StatelessWidget {
           ).conditional(settings.readerSettings.paragraphreader.text.bionic),
 
           SettingTitle(
+            title: 'Audio',
+            subtitle: 'Background narration audio provided by the source',
+            children: [
+              SettingToggle(
+                title: 'Background Audio',
+                description: 'Play the chapter audio while reading',
+                setting: settings.readerSettings.paragraphreader.music,
+              ),
+              SettingSlider(
+                title: 'Audio Volume',
+                description: 'Volume level for background audio',
+                min: 0.0,
+                max: 100.0,
+                step: 5.0,
+                setting: settings.readerSettings.paragraphreader.volume,
+              ).conditional(settings.readerSettings.paragraphreader.music),
+            ],
+          ),
+
+          SettingTitle(
             title: 'Text to Speech',
             subtitle: 'Voice playback preferences',
             children: [

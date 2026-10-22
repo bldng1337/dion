@@ -16,7 +16,6 @@ import 'package:dionysos/service/extension.dart'
         WrapAlignment;
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/design_tokens.dart';
-import 'package:dionysos/utils/release_prediction.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
@@ -230,9 +229,7 @@ class EpisodeTile extends StatelessWidget {
     final isWide = !context.isCompactWindow;
     final hasCover = episodepath.episode.cover != null;
     final height = hasCover ? (isWide ? 110.0 : 80.0) : 70.0;
-    final releaseTime = episodepath.episode.timestamp == null
-        ? null
-        : parseEpisodeTimestamp(episodepath.episode.timestamp!);
+    final releaseTime = episodepath.episode.timestamp;
     // Locked episodes are announcements: the source listed them ahead of
     // their release, so they are shown, but not opened, selected or
     // downloaded until a fetch lists them without the flag.

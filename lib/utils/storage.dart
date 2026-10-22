@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-String formatBytes(int bytes, {int decimals = 2}) {
+String formatBytes(num bytes, {int decimals = 2}) {
   if (bytes <= 0) return '0 B';
   const suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   final i = (log(bytes) / log(1024)).floor();

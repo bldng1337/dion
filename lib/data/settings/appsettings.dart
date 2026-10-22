@@ -552,6 +552,14 @@ final settings = (
           const PreferenceDoubleMetaData('paragraphreader.text.bionicweight'),
         )..addCollection(preferenceCollection),
       ),
+      music: Setting(
+        true,
+        const PreferenceBoolMetaData('paragraphreader.music'),
+      )..addCollection(preferenceCollection),
+      volume: Setting(
+        50.0,
+        const PreferenceDoubleMetaData('paragraphreader.volume'),
+      )..addCollection(preferenceCollection),
       tts: (
         language: Setting(
           'en-US',

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/activity/episode.dart';
@@ -264,26 +262,6 @@ class _MonthData {
   static DateTime _dayKey(DateTime d) => DateTime(d.year, d.month, d.day);
 }
 
-/// Heat tint for a day cell; [intensity] 0..1 blends the surface color
-/// towards the accent. Shared with the footer legend.
-Color _heatColor(
-  BuildContext context,
-  double intensity, {
-  double saturation = 0.58,
-}) {
-  final base = context.isDarkMode
-      ? context.theme.colorScheme.surfaceContainer
-      : context.surfaceMuted;
-  final accent = context.isDarkMode
-      ? DionColors.primary
-      : DionColors.primaryDark;
-  return Color.lerp(
-    base,
-    accent,
-    0.12 + saturation * intensity.clamp(0.0, 1.0),
-  )!;
-}
-
 class _MonthSelector extends StatelessWidget {
   final DateTime month;
   final VoidCallback onPrevious;
@@ -455,7 +433,6 @@ class _MonthGrid extends StatelessWidget {
           releases: data.releasesFor(date),
           entries: entries,
           duration: data.durationFor(date),
-          maxDuration: data.maxDayDuration,
           onTap: () => onDayTap(date),
         ),
       );
@@ -483,7 +460,6 @@ class _DayCell extends StatelessWidget {
   final List<DayRelease> releases;
   final List<Entry> entries;
   final Duration duration;
-  final Duration maxDuration;
   final VoidCallback? onTap;
 
   const _DayCell({
@@ -494,7 +470,6 @@ class _DayCell extends StatelessWidget {
     required this.releases,
     required this.entries,
     required this.duration,
-    required this.maxDuration,
     this.onTap,
   });
 
@@ -504,14 +479,6 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasReleases = releases.isNotEmpty;
     final hasActivity = duration > Duration.zero;
-    final intensity = hasActivity && maxDuration > Duration.zero
-        ? sqrt(
-            (duration.inMilliseconds / maxDuration.inMilliseconds).clamp(
-              0.0,
-              1.0,
-            ),
-          )
-        : 0.0;
     final accent = context.isDarkMode
         ? DionColors.primary
         : DionColors.primaryDark;
@@ -583,7 +550,9 @@ class _DayCell extends StatelessWidget {
                   : context.theme.colorScheme.surfaceContainer,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(DionRadius.md),
-                bottomRight: Radius.circular(context.isCompactWindow?DionRadius.md:DionRadius.lg),
+                bottomRight: Radius.circular(
+                  context.isCompactWindow ? DionRadius.md : DionRadius.lg,
+                ),
               ),
             ),
             child: Text(

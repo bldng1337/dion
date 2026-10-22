@@ -25,9 +25,13 @@ void main() {
       test('Completable completes with future', () async {
         final completable = Completable<int>();
         completable.complete(Future.value(42));
-        expect(completable.isCompleted, isFalse);
+        // isCompleted tracks the complete() call (sync-safe access), not the
+        // settling of a completed-with future; isResolved tracks the value.
+        expect(completable.isCompleted, isTrue);
+        expect(completable.isResolved, isFalse);
         await completable.future;
         expect(completable.isCompleted, isTrue);
+        expect(completable.isResolved, isTrue);
         expect(await completable.future, 42);
         expect(completable.value, 42);
       });

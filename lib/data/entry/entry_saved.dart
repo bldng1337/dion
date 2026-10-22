@@ -634,7 +634,11 @@ class EntrySaved
                         )
                       : null,
                   description: ep['description'] as String?,
-                  timestamp: ep['timestamp'] as String?,
+                  // V1 rows kept the raw source string; lenient-parse it
+                  // into the DateTime the runtime model now carries.
+                  timestamp: ep['timestamp'] == null
+                      ? null
+                      : parseEpisodeTimestamp(ep['timestamp'] as String),
                 ),
               )
               .toList(),

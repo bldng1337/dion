@@ -29,6 +29,11 @@
 /// and regeneration is cheap.
 library;
 
+// DateTime is not const-constructible, so fixtures carrying timestamps
+// cannot be const, and the const lint fires on every still-constable
+// constructor inside them.
+// ignore_for_file: prefer_const_constructors
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -42,7 +47,9 @@ import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/file_utils.dart';
+import 'package:dionysos/utils/release_prediction.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/settings/storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -234,11 +241,10 @@ const _derivedEntryColumns = {
   'search_text',
 };
 
-Map<String, dynamic> _withoutDerivedEntryColumns(
-  Map<String, dynamic> json,
-) => Map.fromEntries(
-  json.entries.where((e) => !_derivedEntryColumns.contains(e.key)),
-);
+Map<String, dynamic> _withoutDerivedEntryColumns(Map<String, dynamic> json) =>
+    Map.fromEntries(
+      json.entries.where((e) => !_derivedEntryColumns.contains(e.key)),
+    );
 
 void _assertLosslessRoundTrip(
   Object? reserialized,
@@ -295,7 +301,7 @@ EntryImpl get comprehensiveBasicEntry => const EntryImpl(
   _boundExtensionId,
 );
 
-const _episodes = [
+final _episodes = [
   rust.Episode(
     id: rust.EpisodeId(uid: 'ep-1'),
     name: 'First',
@@ -310,21 +316,21 @@ const _episodes = [
       url: 'https://img.example.com/ep2.jpg',
       header: {'Cookie': 'c=1'},
     ),
-    timestamp: '2026-01-02T03:04:05Z',
+    timestamp: DateTime.utc(2026, 1, 2, 3, 4, 5),
   ),
   rust.Episode(
     id: rust.EpisodeId(uid: 'ep-3'),
     name: 'Announced',
     url: 'https://cdn.example.com/3',
-    timestamp: '2030-01-01T00:00:00Z',
+    timestamp: DateTime.utc(2030),
     announced: true,
   ),
 ];
 
 /// A [rust.CustomUI] tree exercising *every* widget variant of the runtime
 /// schema plus both interaction kinds, so payload drift cannot hide in an
-/// uncovered branch.
-const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
+/// uncovered branch. Non-const because of its Timestamp widget.
+final rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
   scrollable: false,
   mainAxisAlignment: rust.MainAxisAlignment.spaceBetween,
   crossAxisAlignment: rust.CrossAxisAlignment.stretch,
@@ -350,7 +356,7 @@ const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
     ),
     rust.CustomUI.link(link: 'https://example.com', label: 'link label'),
     rust.CustomUI.timestamp(
-      timestamp: '2026-08-27T00:00:00Z',
+      timestamp: DateTime.utc(2026, 8, 27),
       display: rust.TimestampType.relative,
     ),
     rust.CustomUI.spinner(),
@@ -433,7 +439,7 @@ const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
       title: rust.CustomUI.text(text: 'tile title'),
       subtitle: rust.CustomUI.link(link: 'https://tile.example.com'),
       trailing: rust.CustomUI.timestamp(
-        timestamp: 'ts',
+        timestamp: DateTime.utc(2026),
         display: rust.TimestampType.absolute,
       ),
       onClick: rust.Interaction.invoke(handler: 'tileTap', payload: ''),
@@ -511,7 +517,8 @@ const rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
   ],
 );
 
-rust.EntryDetailed get comprehensiveDetailed => const rust.EntryDetailed(
+// Non-const because it carries _episodes and comprehensiveCustomUI.
+rust.EntryDetailed get comprehensiveDetailed => rust.EntryDetailed(
   id: rust.EntryId(uid: 'entry-comprehensive-detailed', iddata: ' Detailed'),
   url: 'https://example.com/comprehensive-detailed',
   titles: ['Comprehensive Detailed', 'Second Title'],
@@ -792,7 +799,7 @@ Map<String, dynamic> _legacyV1BackupEntry(EntrySaved saved) {
             'cover': episode.cover?.url,
             'coverheader': episode.cover?.header,
             'description': episode.description,
-            'timestamp': episode.timestamp,
+            'timestamp': episode.timestamp?.toIso8601String(),
           },
       ],
     },
@@ -862,9 +869,12 @@ Future<metis.AdapterSurrealDB> _connectStore(Directory dir) async {
 // ---------------------------------------------------------------------------
 
 void main() {
-  setUpAll(() {
+  setUpAll(() async {
     registerFallbackValue(const metis.DBRecord('category', 'fallback'));
-    return metis.SurrealDB.ensureInitialized();
+    await metis.SurrealDB.ensureInitialized();
+    // Backup fixtures build the settings tree, which reads initial values
+    // through PreferenceService.
+    await PreferenceService.ensureInitialized();
   });
 
   if (_writingEnabled) {
@@ -895,7 +905,9 @@ void main() {
           },
           'saved': {
             for (final (i, saved) in savedEntrySamples.indexed)
-              'saved-$i': saved.toJson(),
+              // Derived columns are storage, not versioned payload; the
+              // reader compares against this shape stripped of them.
+              'saved-$i': _withoutDerivedEntryColumns(saved.toJson()),
           },
         });
         await writeFixture('category', categorySerializeVersion.current, {
@@ -1172,6 +1184,19 @@ Future<void> _checkEntryJsonVersions() async {
         final document =
             jsonDecode(await entity.readAsString()) as Map<String, dynamic>;
 
+        // Fixtures written before the runtime update carry raw source
+        // timestamp strings (now DateTimes) and the previous serialize
+        // version. Normalize them the same way the app's ingestion paths
+        // (database migration, backup restore) do, so the comparison stays
+        // about payload content.
+        repairLegacyTimestamps(document);
+        for (final sample in [
+          ...?((document['entries'] as Map<String, dynamic>?)?.values),
+          ...?((document['saved'] as Map<String, dynamic>?)?.values),
+        ]) {
+          (sample as Map)['version'] = entrySerializeVersion.current;
+        }
+
         for (final sample
             in (document['entries'] as Map<String, dynamic>).entries) {
           await _guarded(
@@ -1205,9 +1230,7 @@ Future<void> _checkEntryJsonVersions() async {
                 _hydrateRecordMaps(sample.value),
               );
               _assertLosslessRoundTrip(
-                _normalized(
-                  _withoutDerivedEntryColumns(parsed.toJson()),
-                ),
+                _normalized(_withoutDerivedEntryColumns(parsed.toJson())),
                 _normalized(sample.value),
                 'EntrySaved',
               );

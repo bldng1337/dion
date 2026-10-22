@@ -426,14 +426,13 @@ packages:
     source: hosted
     version: "3.3.0"
   epubx:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "."
-      ref: "1c0347b20c9123866bff760f8571ec50fefb037d"
-      resolved-ref: "1c0347b20c9123866bff760f8571ec50fefb037d"
-      url: "https://github.com/rbcprolabs/epubx.dart"
-    source: git
-    version: "4.0.1"
+      name: epubx
+      sha256: "0ab9354efa177c4be52c46f857bc15bf83f83a92667fb673465c8f89fca26db3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
   equatable:
     dependency: transitive
     description:
@@ -1523,11 +1522,11 @@ packages:
     dependency: "direct main"
     description:
       path: "dart/rdion_runtime"
-      ref: "44252b09eb62f49bcf63f2080d37d903abc3f123"
-      resolved-ref: "44252b09eb62f49bcf63f2080d37d903abc3f123"
+      ref: "52a0fb745a275f861a5d7e5050d4a053bcf50782"
+      resolved-ref: "52a0fb745a275f861a5d7e5050d4a053bcf50782"
       url: "https://github.com/bldng1337/dion-runtime.git"
     source: git
-    version: "0.0.1"
+    version: "0.1.0"
   record_use:
     dependency: transitive
     description:

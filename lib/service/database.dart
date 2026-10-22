@@ -18,12 +18,13 @@ import 'package:dionysos/service/lansync/lansync_service.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/change.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/release_prediction.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
 
-const dbVersion = 3;
+const dbVersion = 4;
 const entryTable = DBTable('entry');
 const categoryTable = DBTable('category');
 const activityTable = DBTable('activity');
@@ -130,6 +131,13 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       // reaches back into the service (EntrySaved.fromJson ->
       // handleCategories) is a circular dependency.
       onMigrate: (migrateDb, from, to) async {
+        if (from < 4) {
+          // v4 rewrites raw source timestamps (RFC-2822, epoch digits, ...)
+          // into ISO-8601. Must run before any entry re-hydration: the
+          // runtime now deserializes those fields as DateTimes through a
+          // strict ISO parser, so unrewritten rows would fail to load.
+          await _migrateLegacyTimestamps(db, entryTable);
+        }
         if (from < 2) {
           final adapter = db.getAdapter<DBDataClassAdapter>();
           await _migrateBatched<Activity>(adapter, activityTable);
@@ -185,6 +193,43 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
         }
       }
       if (batch.length < batchSize) break;
+      offset += batchSize;
+    }
+  }
+
+  /// Rewrites every `timestamp` string in an entry row into ISO-8601 and
+  /// re-saves the row. Rows written before the runtime update kept episode
+  /// and custom-UI timestamps exactly as the source emitted them; the
+  /// runtime now deserializes those fields as DateTimes, so hydration
+  /// strict-parses. Runs on raw rows because hydrating first would throw.
+  Future<void> _migrateLegacyTimestamps(
+    AdapterSurrealDB db,
+    DBTable table,
+  ) async {
+    const batchSize = 200;
+    var offset = 0;
+    while (true) {
+      final [res as List<dynamic>] = await db.query(
+        'SELECT * FROM type::table(\$table) ORDER BY id LIMIT \$limit START \$offset FETCH categories',
+        vars: {'table': table.tb, 'limit': batchSize, 'offset': offset},
+      );
+      if (res.isEmpty) break;
+      for (final row in res) {
+        try {
+          final json = Map<String, dynamic>.from(row as Map);
+          if (!repairLegacyTimestamps(json)) continue;
+          await db.getAdapter<DBDataClassAdapter>().save(
+            await EntrySaved.fromJson(json),
+          );
+        } catch (e, stack) {
+          logger.e(
+            'Failed to migrate timestamps of ${table.tb} record',
+            error: e,
+            stackTrace: stack,
+          );
+        }
+      }
+      if (res.length < batchSize) break;
       offset += batchSize;
     }
   }

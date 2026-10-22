@@ -36,8 +36,16 @@ class ReleasePrediction {
 }
 
 DateTime? parseEpisodeTimestamp(String raw) {
-  final s = raw.trim();
+  var s = raw.trim();
   if (s.isEmpty) return null;
+  // Temporal.ZonedDateTime strings end in an Olson zone annotation the
+  // parsers below do not understand; the offset before it already carries
+  // the instant.
+  final zoneAnnotation = RegExp(r'\[[A-Za-z0-9_+-]+/[A-Za-z0-9_+-]+\]$')
+      .firstMatch(s);
+  if (zoneAnnotation != null) {
+    s = s.substring(0, zoneAnnotation.start).trim();
+  }
   if (s.codeUnits.every((c) => c >= 0x30 && c <= 0x39)) {
     return _epochFromDigits(int.tryParse(s));
   }
@@ -134,17 +142,61 @@ DateTime? _tryParseRfc2822(String s) {
   return naive.subtract(Duration(minutes: offsetMinutes));
 }
 
+/// Rewrites every `timestamp` string anywhere inside a serialized entry
+/// [json] into ISO-8601, in place. Rows written before the runtime update
+/// kept timestamps exactly as the source emitted them (RFC-2822, epoch
+/// digits, ...); the runtime now deserializes those fields as DateTimes
+/// through a strict ISO parser. Returns whether anything changed.
+bool repairLegacyTimestamps(dynamic json) {
+  var changed = false;
+  void walk(dynamic node) {
+    if (node is List) {
+      for (final item in node) {
+        walk(item);
+      }
+      return;
+    }
+    if (node is! Map) return;
+    final raw = node['timestamp'];
+    if (raw is String) {
+      final parsed = parseEpisodeTimestamp(raw);
+      if (parsed != null) {
+        // UTC-stable form: rows must read back identically on any device.
+        final iso = parsed.toUtc().toIso8601String();
+        if (iso != raw) {
+          node['timestamp'] = iso;
+          changed = true;
+        }
+      } else if (node['type'] == 'Timestamp') {
+        // Custom-UI Timestamp requires a parseable value; degrade to a text
+        // node showing the raw string rather than failing hydration.
+        node
+          ..clear()
+          ..['type'] = 'Text'
+          ..['text'] = raw;
+        changed = true;
+      } else {
+        // Episode timestamps are nullable; row maps may be string-valued,
+        // so remove instead of assigning null.
+        node.remove('timestamp');
+        changed = true;
+      }
+    }
+    for (final value in node.values) {
+      walk(value);
+    }
+  }
+
+  walk(json);
+  return changed;
+}
+
 ReleasePrediction? predictNextRelease(
-  Iterable<String?> timestamps, {
+  Iterable<DateTime?> timestamps, {
   DateTime? now,
 }) {
-  final parsed = <DateTime>[];
-  for (final raw in timestamps) {
-    if (raw == null) continue;
-    final time = parseEpisodeTimestamp(raw);
-    if (time != null) parsed.add(time);
-  }
-  parsed.sort((a, b) => a.compareTo(b));
+  final parsed = timestamps.nonNulls.toList()..sort();
+  // Same instant emitted twice (multi-source or re-listed) is one release.
   final times = <DateTime>[];
   for (final time in parsed) {
     if (times.isEmpty ||

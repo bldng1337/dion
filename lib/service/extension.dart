@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry/entry.dart';
@@ -505,6 +504,18 @@ class Extension extends ChangeNotifier {
 
   Future<void> removePermission(rust.Permission permission) async {
     await _proxy.removePermission(permission: permission);
+  }
+
+  /// Storage the extension reports for itself, split into cache / extension
+  /// bundle / data buckets.
+  Future<rust.StorageUsage> storageUsage() {
+    return _proxy.storageUsage();
+  }
+
+  /// Drops the runtime-managed caches (extension cache module and HTTP
+  /// cache); settings, cookies and extension-written files are kept.
+  Future<void> clearCache() {
+    return _proxy.clearCache();
   }
 
   DataSource<Entry> search(String filter, {rust.CancelToken? token}) {
@@ -1291,16 +1302,6 @@ class ExtensionService with ChangeNotifier {
     return _adapters.values
         .where((adapter) => adapter._extensions.any((e) => identical(e, ext)))
         .firstOrNull;
-  }
-
-  Future<Directory> getExtensionStorageDir(Extension ext) async {
-    final dir = await locateAsync<DirectoryProvider>();
-    final adapter = getAdapterForExtension(ext);
-    final adapterName = adapter?.name ?? 'dion';
-    return dir.extensionpath
-        .sub('${adapterName}_extensions')
-        .sub('data')
-        .sub(sanitizePathSegment(ext.id));
   }
 
   static Future<void> ensureInitialized() async {

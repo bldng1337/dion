@@ -13,8 +13,11 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
 import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
 import 'package:dionysos/views/view/session.dart';
@@ -23,9 +26,11 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -52,6 +57,8 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   late final ScrollController controller;
 
   TtsController? _tts;
+  Player? _musicPlayer;
+  int _currentIndex = 0;
 
   void onScroll() {
     final epdata = widget.source.episode.data;
@@ -73,6 +80,10 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       }
       if (position != null && position != 0) {
         widget.source.episode.data.progress = position.toString();
+      }
+      if (position != null && position != _currentIndex) {
+        _currentIndex = position;
+        _playBackgroundAudio();
       }
     }
     if (lastscrollOffset < controller.offset - 500) {
@@ -120,9 +131,97 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     );
   }
 
+  /// Starts the audio span covering the current paragraph, if the source
+  /// provides one. Background audio stays paused while read-aloud is active
+  /// so narration is not talked over.
+  void _playBackgroundAudio() {
+    final player = _musicPlayer;
+    if (player == null) return;
+    final tts = _tts;
+    if (tts != null && tts.state != TtsState.stopped) {
+      if (player.state.playing) player.pause();
+      return;
+    }
+    final spans = widget.sourcedata.audio;
+    if (spans == null || spans.isEmpty) return;
+    final span = spans
+        .where((e) => _currentIndex >= e.from && _currentIndex <= e.to)
+        .firstOrNull;
+    if (span == null) {
+      if (player.state.playing) player.pause();
+      return;
+    }
+    final medias = player.state.playlist.medias;
+    if (player.state.playing &&
+        medias.isNotEmpty &&
+        medias[0].extras?['url'] == span.link.url) {
+      return;
+    }
+    player.open(
+      Media(
+        span.link.url,
+        httpHeaders: span.link.header,
+        extras: {'url': span.link.url},
+      ),
+    );
+  }
+
+  void _syncMusicWithTts() {
+    final tts = _tts;
+    if (tts == null) return;
+    switch (tts.state) {
+      case TtsState.playing:
+        if (_musicPlayer?.state.playing ?? false) _musicPlayer!.pause();
+      case TtsState.stopped:
+        _playBackgroundAudio();
+      case TtsState.paused:
+        break;
+    }
+  }
+
+  Future<void> _initMusicPlayer() async {
+    if (_musicPlayer != null) return;
+    if (widget.sourcedata.audio?.isEmpty ?? true) return;
+    _musicPlayer = Player(
+      configuration: const PlayerConfiguration(
+        title: 'dion',
+        logLevel: kDebugMode ? MPVLogLevel.debug : MPVLogLevel.info,
+      ),
+    );
+    final handler = await AudioPlayerHandler.create(
+      widget.supplier,
+      _musicPlayer!,
+      gonext: () {
+        if (mounted) {
+          widget.source.episode.goNext(widget.supplier);
+        }
+      },
+      goprev: () {
+        if (mounted) {
+          widget.source.episode.goPrev(widget.supplier);
+        }
+      },
+    );
+    if (!mounted) {
+      // The reader was closed while the handler was created; dispose the
+      // handler (detaching its source listener) and the player instead of
+      // registering them (disposedBy would throw on the disposed scope).
+      await handler.dispose();
+      await _musicPlayer!.dispose();
+      _musicPlayer = null;
+      return;
+    }
+    locate<PlayerService>().setSession(handler..disposedBy(scope));
+    _musicPlayer!.setPlaylistMode(PlaylistMode.loop);
+    _musicPlayer!.setVolume(psettings.volume.value);
+    _playBackgroundAudio();
+  }
+
   @override
   void initState() {
     WakelockPlus.toggle(enable: true);
+    _currentIndex =
+        int.tryParse(widget.source.episode.data.progress ?? '0') ?? 0;
     controller = ScrollController(onAttach: (position) => jumpToProgress())
       ..disposedBy(scope);
 
@@ -131,6 +230,26 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
     supplierObserver = Observer(jumpToProgress, widget.supplier)
       ..disposedBy(scope);
+
+    Observer(() async {
+      if (psettings.music.value) {
+        await _initMusicPlayer();
+        safeSetState();
+      } else {
+        safeSetState(() {
+          _musicPlayer?.dispose();
+          _musicPlayer = null;
+          // Only drop the media session if it is ours; read-aloud may own it.
+          if (locate<PlayerService>().currentSession is AudioPlayerHandler) {
+            locate<PlayerService>().clearSession();
+          }
+        });
+      }
+    }, psettings.music).disposedBy(scope);
+    Observer(() {
+      _musicPlayer?.setVolume(psettings.volume.value);
+    }, psettings.volume).disposedBy(scope);
+
     super.initState();
   }
 
@@ -147,6 +266,8 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     _tts = tts;
     tts.removeListener(_followTts);
     tts.addListener(_followTts);
+    tts.removeListener(_syncMusicWithTts);
+    tts.addListener(_syncMusicWithTts);
     if (tts.state == TtsState.stopped) {
       tts.loadParagraphs(
         widget.sourcedata.paragraphs,
@@ -161,6 +282,9 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   @override
   void dispose() {
     _tts?.removeListener(_followTts);
+    _tts?.removeListener(_syncMusicWithTts);
+    _musicPlayer?.dispose();
+    _musicPlayer = null;
     widget.source.episode.save();
     WakelockPlus.toggle(enable: false);
     super.dispose();
@@ -295,6 +419,27 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                           },
                         ),
                         actions: [
+                          if (_musicPlayer != null)
+                            StreamBuilder<bool>(
+                              stream: _musicPlayer!.stream.playing,
+                              builder: (context, snapshot) => DionIconbutton(
+                                tooltip: 'Background Audio',
+                                icon: Icon(
+                                  (snapshot.data ?? false)
+                                      ? Icons.music_off
+                                      : Icons.music_note,
+                                ),
+                                onPressed: () async {
+                                  final player = _musicPlayer;
+                                  if (player == null) return;
+                                  if (player.state.playing) {
+                                    await player.pause();
+                                  } else {
+                                    await player.play();
+                                  }
+                                },
+                              ),
+                            ),
                           if (tts != null)
                             ListenableBuilder(
                               listenable: tts,

@@ -218,6 +218,13 @@ class MockExtension with ChangeNotifier implements Extension {
   Future<void> removePermission(rust.Permission permission) async {}
 
   @override
+  Future<rust.StorageUsage> storageUsage() async =>
+      const rust.StorageUsage(cache: 0, extensionBytes: 0, data: 0);
+
+  @override
+  Future<void> clearCache() async {}
+
+  @override
   Future<rust.EventResult?> event({
     required rust.EventData event,
     rust.CancelToken? token,

@@ -106,12 +106,8 @@ class CustomUIWidget extends StatelessWidget {
         ),
       ).onTap(() => launchUrl(Uri.parse(link.link))),
       final CustomUI_Timestamp timestamp => switch (timestamp.display) {
-        TimestampType.relative => Text(
-          DateTime.tryParse(timestamp.timestamp)?.formatrelative() ?? '',
-        ),
-        TimestampType.absolute => Text(
-          DateTime.tryParse(timestamp.timestamp)?.toString() ?? '',
-        ),
+        TimestampType.relative => Text(timestamp.timestamp.formatrelative()),
+        TimestampType.absolute => Text(timestamp.timestamp.toString()),
       },
       final CustomUI_EntryCard entryCard => EntryCard(
         entry: EntryImpl(entryCard.entry, element.extension.id),
