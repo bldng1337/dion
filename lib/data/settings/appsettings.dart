@@ -5,6 +5,7 @@ import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/binding.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/data/text_replacement.dart';
 import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
@@ -171,6 +172,21 @@ class PreferenceBindingListMetaData
   @override
   String stringify(List<InputBinding> value) =>
       json.encode(value.map((b) => b.toJson()).toList());
+}
+
+class PreferenceReplaceListMetaData
+    extends PreferenceMetaData<List<TextReplacement>> {
+  const PreferenceReplaceListMetaData(super.id);
+
+  @override
+  List<TextReplacement>? parse(String value) =>
+      (json.decode(value) as List<dynamic>)
+          .map((e) => TextReplacement.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+  @override
+  String stringify(List<TextReplacement> value) =>
+      json.encode(value.map((r) => r.toJson()).toList());
 }
 
 enum ReaderMode { paginated, infinite }
@@ -552,6 +568,10 @@ final settings = (
           const PreferenceDoubleMetaData('paragraphreader.text.bionicweight'),
         )..addCollection(preferenceCollection),
       ),
+      replacements: Setting(
+        <TextReplacement>[],
+        const PreferenceReplaceListMetaData('paragraphreader.replacements'),
+      )..addCollection(preferenceCollection),
       music: Setting(
         true,
         const PreferenceBoolMetaData('paragraphreader.music'),

@@ -6,6 +6,7 @@ import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
+import 'package:dionysos/data/text_replacement.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/extension.dart';
@@ -165,6 +166,7 @@ class EntrySavedSettings {
 
   Setting<int, SettingMetaData> downloadNextEpisodes;
   Setting<bool, SettingMetaData> deleteOnFinish;
+  Setting<List<TextReplacement>, SettingMetaData> replacements;
 
   EntrySavedSettings({
     bool? reverse,
@@ -172,6 +174,7 @@ class EntrySavedSettings {
     int? downloadNextEpisodes,
     bool? deleteOnFinish,
     bool? onlyShowBookmarked,
+    List<TextReplacement>? replacements,
   }) : reverse = Setting(reverse ?? false, const SettingMetaData()),
        hideFinishedEpisodes = Setting(
          hideFinishedEpisodes ?? false,
@@ -188,6 +191,10 @@ class EntrySavedSettings {
        deleteOnFinish = Setting(
          deleteOnFinish ?? false,
          const SettingMetaData(),
+       ),
+       replacements = Setting(
+         replacements ?? const [],
+         const SettingMetaData(),
        );
 
   factory EntrySavedSettings.defaultSettings() {
@@ -202,6 +209,9 @@ class EntrySavedSettings {
       downloadNextEpisodes: json['downloadNextEpisodes'] as int,
       deleteOnFinish: json['deleteOnFinish'] as bool,
       onlyShowBookmarked: json['onlyShowBookmarked'] as bool,
+      replacements: (json['replacements'] as List<dynamic>?)
+          ?.map((e) => TextReplacement.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -212,6 +222,7 @@ class EntrySavedSettings {
       'downloadNextEpisodes': downloadNextEpisodes.value,
       'deleteOnFinish': deleteOnFinish.value,
       'onlyShowBookmarked': onlyShowBookmarked.value,
+      'replacements': replacements.value.map((e) => e.toJson()).toList(),
     };
   }
 }

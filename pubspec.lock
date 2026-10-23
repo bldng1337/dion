@@ -426,13 +426,14 @@ packages:
     source: hosted
     version: "3.3.0"
   epubx:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: epubx
-      sha256: "0ab9354efa177c4be52c46f857bc15bf83f83a92667fb673465c8f89fca26db3"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.0"
+      path: "."
+      ref: "1c0347b20c9123866bff760f8571ec50fefb037d"
+      resolved-ref: "1c0347b20c9123866bff760f8571ec50fefb037d"
+      url: "https://github.com/rbcprolabs/epubx.dart"
+    source: git
+    version: "4.0.1"
   equatable:
     dependency: transitive
     description:

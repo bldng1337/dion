@@ -7,6 +7,7 @@ import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_bindings.dart';
 import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_font.dart';
+import 'package:dionysos/widgets/settings/setting_replace_list.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
@@ -90,6 +91,17 @@ class ParagraphReaderSettings extends StatelessWidget {
                 max: 1.0,
                 step: 0.1,
                 setting: settings.readerSettings.paragraphreader.text.weight,
+              ),
+            ],
+          ),
+
+          // Text Replacement Section
+          SettingTitle(
+            title: 'Text Replacement',
+            subtitle: 'Replace text in every entry. Select text in the reader to add rules per entry.',
+            children: [
+              SettingReplaceList(
+                setting: settings.readerSettings.paragraphreader.replacements,
               ),
             ],
           ),

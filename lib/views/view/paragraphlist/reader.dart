@@ -1,9 +1,11 @@
 import 'dart:math';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/data/text_replacement.dart';
 import 'package:dionysos/service/extension.dart'
     hide
         Alignment,
@@ -18,6 +20,7 @@ import 'package:dionysos/service/extension.dart'
         WrapAlignment;
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/views/customui.dart';
+import 'package:dionysos/views/dialog/text_replacement.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
@@ -197,7 +200,14 @@ class ReaderSelectable extends StatelessWidget {
 class ReaderRenderParagraph extends StatelessWidget {
   final Paragraph text;
   final Extension extension;
-  const ReaderRenderParagraph(this.text, this.extension, {super.key});
+
+  final EntryDetailed? entry;
+  const ReaderRenderParagraph(
+    this.text,
+    this.extension, {
+    super.key,
+    this.entry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -211,10 +221,34 @@ class ReaderRenderParagraph extends StatelessWidget {
           psettings.text.size,
           psettings.text.weight,
           psettings.text.bionic,
+          psettings.replacements,
+          _savedEntry(entry)?.savedSettings.replacements,
         ]),
-        builder: (context, child) => makeParagraph(context, text),
+        builder: (context, child) => makeParagraph(context, replaced(text)),
       ),
     );
+  }
+
+  Paragraph replaced(Paragraph paragraph) {
+    final rules = effectiveReplacements(entry);
+    if (rules.isEmpty) return paragraph;
+    return switch (paragraph) {
+      final Paragraph_Text text => text.copyWith(
+        content: applyTextReplacements(text.content, rules),
+      ),
+      final Paragraph_Mixed mixed => mixed.copyWith(
+        content: [
+          for (final content in mixed.content)
+            if (content is MixedContent_Text)
+              content.copyWith(
+                content: applyTextReplacements(content.content, rules),
+              )
+            else
+              content,
+        ],
+      ),
+      _ => paragraph,
+    };
   }
 
   Widget makeParagraph(BuildContext context, Paragraph text) {
@@ -229,6 +263,7 @@ class ReaderRenderParagraph extends StatelessWidget {
                     e,
                     extension,
                     const TextStyle(),
+                    entry: entry,
                   ),
                 )
                 .toList(growable: false),
@@ -427,7 +462,11 @@ class ReaderRenderParagraph extends StatelessWidget {
                   for (final cell in row.cells)
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: ReaderRenderParagraph(cell, extension),
+                      child: ReaderRenderParagraph(
+                        cell,
+                        extension,
+                        entry: entry,
+                      ),
                     ),
                 ],
               ),
@@ -600,8 +639,9 @@ InlineSpan wrapMixedContent(
   BuildContext context,
   MixedContent content,
   Extension extension,
-  TextStyle style,
-) {
+  TextStyle style, {
+  EntryDetailed? entry,
+}) {
   switch (content) {
     case final MixedContent_Text text:
       if (psettings.text.bionic.value) {
@@ -672,7 +712,11 @@ InlineSpan wrapMixedContent(
                   for (final cell in row.cells)
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: ReaderRenderParagraph(cell, extension),
+                      child: ReaderRenderParagraph(
+                        cell,
+                        extension,
+                        entry: entry,
+                      ),
                     ),
                 ],
               ),
@@ -726,12 +770,24 @@ TextSpan renderSpan(
   );
 }
 
-List<ContextMenuItem> quoteContextItems(
+EntrySaved? _savedEntry(EntryDetailed? entry) =>
+    entry is EntrySaved ? entry : null;
+
+List<TextReplacement> effectiveReplacements(EntryDetailed? entry) {
+  final saved = _savedEntry(entry);
+  return [
+    ...psettings.replacements.value,
+    if (saved != null) ...saved.savedSettings.replacements.value,
+  ];
+}
+
+List<ContextMenuItem> readerContextItems(
   BuildContext context,
   EpisodePath episode,
   String selectedText,
 ) {
   if (episode.entry is! EntrySaved) return const [];
+  final entry = episode.entry as EntrySaved;
   return [
     ContextMenuItem(
       label: 'Save as Quote',
@@ -750,5 +806,53 @@ List<ContextMenuItem> quoteContextItems(
         }
       },
     ),
+    ContextMenuItem(
+      label: 'Add to Replace List',
+      icon: Icons.find_replace,
+      onTap: () => _addReplacement(
+        context,
+        entry,
+        episode,
+        TextReplacement(find: selectedText),
+      ),
+    ),
+    ContextMenuItem(
+      label: 'Replace With…',
+      icon: Icons.edit_note,
+      onTap: () async {
+        final rule = await showReplacementEditor(
+          context,
+          find: selectedText,
+          autofocusReplacement: true,
+        );
+        if (rule == null || !context.mounted) return;
+        await _addReplacement(context, entry, episode, rule);
+      },
+    ),
   ];
+}
+
+Future<void> _addReplacement(
+  BuildContext context,
+  EntrySaved entry,
+  EpisodePath episode,
+  TextReplacement rule,
+) async {
+  entry.savedSettings.replacements.value = [
+    ...entry.savedSettings.replacements.value,
+    rule,
+  ];
+  await episode.save();
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          rule.isStripping
+              ? '"${rule.find}" added to replace list'
+              : '"${rule.find}" will be replaced',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 }

@@ -161,7 +161,7 @@ class _InfiniteParagraphListReaderState
                   },
                   child: ReaderSelectable(
                     selectionContextItems: (text) =>
-                        quoteContextItems(context, sourcepath.episode, text),
+                        readerContextItems(context, sourcepath.episode, text),
                     child: ReaderWrapScreen(
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,6 +171,7 @@ class _InfiniteParagraphListReaderState
                               (e) => ReaderRenderParagraph(
                                 e,
                                 widget.supplier.episode.entry.extension!,
+                                entry: widget.supplier.episode.entry,
                               ),
                             )
                             .toList(),

@@ -24,6 +24,7 @@ import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/dropdown/multi_dropdown.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
+import 'package:dionysos/widgets/settings/setting_replace_list.dart';
 import 'package:dionysos/widgets/settings/setting_slider.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -251,6 +252,9 @@ class _SettingsPopupState extends State<SettingsPopup>
                     const SizedBox(height: 24),
                     _buildSectionHeader(context, 'DOWNLOADS'),
                     _buildDownloadsSection(context),
+                    const SizedBox(height: 24),
+                    _buildSectionHeader(context, 'TEXT REPLACEMENT'),
+                    _buildReplacementSection(context),
                     if (extsettings.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       _buildSectionHeader(context, 'EXTENSION'),
@@ -422,6 +426,22 @@ class _SettingsPopupState extends State<SettingsPopup>
             setting: widget.entry.savedSettings.deleteOnFinish,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReplacementSection(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(
+          color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          width: 0.5,
+        ),
+      ),
+      child: SettingReplaceList(
+        setting: widget.entry.savedSettings.replacements,
       ),
     );
   }

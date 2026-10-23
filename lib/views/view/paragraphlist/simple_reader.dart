@@ -400,7 +400,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
           ],
           child: ReaderSelectable(
             selectionContextItems: (text) =>
-                quoteContextItems(context, widget.source.episode, text),
+                readerContextItems(context, widget.source.episode, text),
             child: Stack(
               children: [
                 ScrollConfiguration(
@@ -544,6 +544,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       ReaderRenderParagraph(
         paragraphs[index],
         widget.supplier.episode.entry.extension!,
+        entry: widget.supplier.episode.entry,
       ),
     );
     if (tts == null) return paragraph;
