@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - v*
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
 
 # concurrency:
 #   group: ${{ github.workflow }}-${{ github.ref_name }}
@@ -243,5 +248,6 @@ jobs:
           name: dion-${{ matrix.os }}-${{ matrix.build_mode }}
       - uses: ncipollo/release-action@v1
         with:
+          tag: ${{ inputs.tag || github.ref_name }}
           artifacts: "./output/*"
           allowUpdates: true

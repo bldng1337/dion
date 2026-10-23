@@ -7,15 +7,19 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.name }}
 
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 2  # Fetch the current and previous commit
-        token: ${{ secrets.PAT }}
 
     - name: Get Previous Version
       id: prev_version
@@ -39,6 +43,7 @@ jobs:
         fi
     - run: echo "${{ steps.current_version.outputs.value }} ${{ steps.prev_version.outputs.value }}"
     - name: Create and Push Tag
+      id: tag
       if: steps.version_changed.outputs.changed == 'true'
       run: |
         tag_name="v${{ steps.current_version.outputs.value }}"
@@ -46,3 +51,12 @@ jobs:
         git config --global user.name "GitHub Actions"
         git tag "$tag_name"
         git push origin "$tag_name"
+        echo "name=$tag_name" >> $GITHUB_OUTPUT
+
+  build:
+    needs: create-release
+    if: needs.create-release.outputs.tag != ''
+    uses: ./.github/workflows/build.yml
+    with:
+      tag: ${{ needs.create-release.outputs.tag }}
+    secrets: inherit
