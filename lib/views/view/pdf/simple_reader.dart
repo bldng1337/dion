@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart'
     hide
@@ -17,8 +19,10 @@ import 'package:dionysos/service/extension.dart'
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/source_file.dart';
+import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/progress.dart';
@@ -101,6 +105,13 @@ class _SimplePdfReaderState extends State<SimplePdfReader>
     }
   }
 
+  Future<void> _openNote() async {
+    await openChapterNote(context, widget.source.episode);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final epdata = widget.source.episode.data;
@@ -124,85 +135,103 @@ class _SimplePdfReaderState extends State<SimplePdfReader>
             message: 'Error loading pdf source',
           );
         },
-        builder: (context, file) => Stack(
-          children: [
-            PdfViewer.file(
-              file.path,
-              initialPageNumber: savedPage,
-              params: PdfViewerParams(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                onViewerReady: (document, controller) {
-                  if (_controller != null) return;
-                  _savedPage = controller.pageNumber ?? savedPage;
-                  controller.addListener(_onViewChanged);
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
-                      setState(() => _controller = controller);
-                    }
-                  });
-                },
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: SafeArea(
-                bottom: false,
-                child: AppBar(
-                  primary: false,
-                  title: DionTextScroll(widget.source.name),
-                  leading: DionIconbutton(
-                    tooltip: 'Back',
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () {
-                      context.pop();
-                    },
-                  ),
-                  actions: [
-                    if (_controller != null)
-                      ListenableBuilder(
-                        listenable: _controller!,
-                        builder: (context, _) {
-                          final controller = _controller!;
-                          return Padding(
-                            padding: const EdgeInsets.only(
-                              right: DionSpacing.md,
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${controller.pageNumber ?? 1} / ${controller.pageCount}',
-                                style: DionTypography.bodySmall(
-                                  context.textSecondary,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    DionIconbutton(
-                      tooltip: epdata.bookmark
-                          ? 'Remove Bookmark'
-                          : 'Add Bookmark',
-                      icon: Icon(
-                        epdata.bookmark
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                      ),
-                      onPressed: _toggleBookmark,
-                    ),
-                    DionIconbutton(
-                      tooltip: 'Open in Browser',
-                      icon: const Icon(Icons.open_in_browser),
-                      onPressed: () => launchUrl(
-                        Uri.parse(widget.source.episode.episode.url),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        builder: (context, file) => BindingDispatcher(
+          actions: [
+            BindingAction(
+              setting: settings.readerSettings.pdfreader.bindings.openNote,
+              onTrigger: () => _openNote(),
             ),
           ],
+          child: Stack(
+            children: [
+              PdfViewer.file(
+                file.path,
+                initialPageNumber: savedPage,
+                params: PdfViewerParams(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  onViewerReady: (document, controller) {
+                    if (_controller != null) return;
+                    _savedPage = controller.pageNumber ?? savedPage;
+                    controller.addListener(_onViewChanged);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() => _controller = controller);
+                      }
+                    });
+                  },
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: AppBar(
+                    primary: false,
+                    title: DionTextScroll(widget.source.name),
+                    leading: DionIconbutton(
+                      tooltip: 'Back',
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () {
+                        context.pop();
+                      },
+                    ),
+                    actions: [
+                      if (_controller != null)
+                        ListenableBuilder(
+                          listenable: _controller!,
+                          builder: (context, _) {
+                            final controller = _controller!;
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                right: DionSpacing.md,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${controller.pageNumber ?? 1} / ${controller.pageCount}',
+                                  style: DionTypography.bodySmall(
+                                    context.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      DionIconbutton(
+                        tooltip: epdata.bookmark
+                            ? 'Remove Bookmark'
+                            : 'Add Bookmark',
+                        icon: Icon(
+                          epdata.bookmark
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                        ),
+                        onPressed: _toggleBookmark,
+                      ),
+                      if (widget.source.episode.entry is EntrySaved)
+                        DionIconbutton(
+                          tooltip: 'Chapter Note',
+                          icon: Icon(
+                            epdata.note == null
+                                ? Icons.sticky_note_2_outlined
+                                : Icons.sticky_note_2,
+                          ),
+                          onPressed: _openNote,
+                        ),
+                      DionIconbutton(
+                        tooltip: 'Open in Browser',
+                        icon: const Icon(Icons.open_in_browser),
+                        onPressed: () => launchUrl(
+                          Uri.parse(widget.source.episode.episode.url),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

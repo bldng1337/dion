@@ -5,6 +5,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart'
@@ -25,12 +26,14 @@ import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/detail/library_picker.dart';
 import 'package:dionysos/views/dialog/next_release.dart';
+import 'package:dionysos/views/note/wiki_link.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
+import 'package:dionysos/widgets/note_markdown.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart' show Colors, FontWeight, Icons;
 import 'package:flutter/widgets.dart';
@@ -66,7 +69,9 @@ class EntryInfo extends StatelessWidget {
         _buildHeaderSection(context),
         _buildGenresSection(context),
         _buildLibraryButton(context),
+        if (entry is EntrySaved) _UserRatingSection(entry: entry as EntrySaved),
         _buildDescriptionSection(context),
+        if (entry is EntrySaved) _EntryNoteSection(entry: entry as EntrySaved),
         _buildCustomUISection(context),
         if (entry is EntryDetailed) ChapterInfo(entry: entry as EntryDetailed),
       ].whereType<Widget>().toList(),
@@ -861,6 +866,112 @@ class _LibraryButtonState extends State<_LibraryButton> {
         ),
       ),
     ).paddingOnly(bottom: 28);
+  }
+}
+
+class _UserRatingSection extends StatefulWidget {
+  final EntrySaved entry;
+
+  const _UserRatingSection({required this.entry});
+
+  @override
+  State<_UserRatingSection> createState() => _UserRatingSectionState();
+}
+
+class _UserRatingSectionState extends State<_UserRatingSection> {
+  int? _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.entry.userRating?.round();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          'YOUR RATING',
+          style: context.labelMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+            letterSpacing: 1.0,
+            color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+        ).paddingOnly(right: DionSpacing.md),
+        StarRatingInput(
+          value: _value,
+          size: 20,
+          onChanged: (value) {
+            setState(() {
+              _value = value;
+            });
+            widget.entry.userRating = value?.toDouble();
+            unawaited(widget.entry.save());
+          },
+        ),
+      ],
+    ).paddingOnly(bottom: 20);
+  }
+}
+
+class _EntryNoteSection extends StatelessWidget {
+  final EntrySaved entry;
+
+  const _EntryNoteSection({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: locate<Database>().getListenable(DBEvent.entryUpdated),
+      builder: (context, _) {
+        final note = entry.note?.trim() ?? '';
+        if (note.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Clickable(
+              onTap: () => context.push('/note', extra: [entry]),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.sticky_note_2_outlined,
+                    size: 13,
+                    color: context.theme.colorScheme.onSurface.withValues(
+                      alpha: 0.8,
+                    ),
+                  ),
+                  const SizedBox(width: DionSpacing.xs + 2),
+                  Text(
+                    'NOTES',
+                    style: context.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.0,
+                      color: context.theme.colorScheme.onSurface.withValues(
+                        alpha: 0.8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: DionSpacing.sm),
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 12,
+                    color: context.theme.colorScheme.onSurface.withValues(
+                      alpha: 0.45,
+                    ),
+                  ),
+                ],
+              ),
+            ).paddingOnly(bottom: DionSpacing.xs),
+            NoteMarkdown(
+              data: note,
+              onWikiLink: (target) => openWikiLink(context, entry, target),
+            ),
+          ],
+        ).paddingOnly(bottom: 24);
+      },
+    );
   }
 }
 

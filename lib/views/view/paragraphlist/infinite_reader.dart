@@ -1,3 +1,4 @@
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart'
@@ -12,6 +13,7 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
 import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -67,6 +69,13 @@ class _InfiniteParagraphListReaderState
     }
   }
 
+  Future<void> _openNote() async {
+    await openChapterNote(context, widget.supplier.episode);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -100,6 +109,16 @@ class _InfiniteParagraphListReaderState
             }
           },
         ),
+        if (widget.supplier.episode.entry is EntrySaved)
+          DionIconbutton(
+            tooltip: 'Chapter Note',
+            icon: Icon(
+              widget.supplier.episode.data.note == null
+                  ? Icons.sticky_note_2_outlined
+                  : Icons.sticky_note_2,
+            ),
+            onPressed: _openNote,
+          ),
         DionIconbutton(
           tooltip: 'Open in Browser',
           icon: const Icon(Icons.open_in_browser),
@@ -127,6 +146,11 @@ class _InfiniteParagraphListReaderState
                   .bindings
                   .toggleBookmark,
               onTrigger: _toggleBookmark,
+            ),
+            BindingAction(
+              setting:
+                  settings.readerSettings.paragraphreader.bindings.openNote,
+              onTrigger: () => _openNote(),
             ),
           ],
           child: ScrollConfiguration(

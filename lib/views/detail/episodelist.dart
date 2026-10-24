@@ -319,7 +319,9 @@ class EpisodeTile extends StatelessWidget {
                       ],
                     ),
 
-                  if (epdata.finished || epdata.bookmark) ...[
+                  if (epdata.finished ||
+                      epdata.bookmark ||
+                      epdata.note != null) ...[
                     const Spacer(),
                     Row(
                       children: [
@@ -329,6 +331,13 @@ class EpisodeTile extends StatelessWidget {
                             size: 14,
                             color: context.theme.colorScheme.primary,
                             semanticLabel: 'Bookmarked',
+                          ).paddingOnly(right: 2),
+                        if (epdata.note != null)
+                          Icon(
+                            Icons.sticky_note_2,
+                            size: 14,
+                            color: context.theme.colorScheme.primary,
+                            semanticLabel: 'Has note',
                           ).paddingOnly(right: 2),
                       ],
                     ).paddingOnly(top: 6),

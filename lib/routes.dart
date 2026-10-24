@@ -16,6 +16,7 @@ import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/views/extension/extension_manager.dart';
 import 'package:dionysos/views/extension/extension_view.dart';
 import 'package:dionysos/views/loading.dart';
+import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/settings/about.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/developer.dart';
@@ -162,6 +163,22 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         transition: Transition.fade,
         title: 'Saved Quotes',
       ),
+    ),
+    GoRoute(
+      path: '/note',
+      pageBuilder: (context, state) {
+        final extra = state.extra! as List<Object?>;
+        return getTransition(
+          context,
+          state,
+          NoteEditorPage(
+            entry: extra[0]! as EntrySaved,
+            episodeIndex: extra.length > 1 ? extra[1] as int? : null,
+          ),
+          transition: Transition.fade,
+          title: 'Note',
+        );
+      },
     ),
     GoRoute(
       path: '/migrate',

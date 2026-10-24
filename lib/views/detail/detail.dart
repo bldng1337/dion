@@ -172,6 +172,20 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         safeSetState();
       },
     ),
+    if (entry is EntrySaved &&
+        (selected.length == 1 || (selected.isEmpty && hovered != null)))
+      ContextMenuItem(
+        label: 'Note',
+        icon: Icons.sticky_note_2_outlined,
+        onTap: () async {
+          final index = selected.isNotEmpty ? selected.first : hovered!;
+          selected.clear();
+          setState(() {});
+          if (context.mounted) {
+            await context.push('/note', extra: [entry!, index]);
+          }
+        },
+      ),
     if (selected.length == 1 || (selected.isEmpty && hovered != null))
       ContextMenuItem(
         label: 'Open in Browser',
@@ -348,6 +362,14 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   Widget buildDetailScreen(BuildContext context) {
     final actions = [
+      if (entry is EntrySaved)
+        DionIconbutton(
+          tooltip: 'Note',
+          onPressed: () {
+            context.push('/note', extra: [entry!]);
+          },
+          icon: const Icon(Icons.sticky_note_2_outlined, size: 18),
+        ),
       if (entry is EntrySaved)
         ListenableBuilder(
           listenable: locate<Database>().getListenable(DBEvent.entryUpdated),

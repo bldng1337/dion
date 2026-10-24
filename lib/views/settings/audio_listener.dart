@@ -117,6 +117,12 @@ class AudioListenerSettings extends StatelessWidget {
                 icon: Icons.bookmark_border,
                 setting: settings.audioBookSettings.bindings.toggleBookmark,
               ),
+              SettingBindings(
+                title: 'Open Note',
+                description: 'Inputs that open the chapter note',
+                icon: Icons.sticky_note_2_outlined,
+                setting: settings.audioBookSettings.bindings.openNote,
+              ),
             ],
           ),
         ],

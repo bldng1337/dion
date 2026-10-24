@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart'
     hide
@@ -18,8 +20,10 @@ import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/source_file.dart';
+import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -122,6 +126,13 @@ class _SimpleEpubReaderState extends State<SimpleEpubReader>
     }
   }
 
+  Future<void> _openNote() async {
+    await openChapterNote(context, widget.source.episode);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _showTableOfContents() {
     final controller = _controller;
     if (controller == null) return;
@@ -206,59 +217,77 @@ class _SimpleEpubReaderState extends State<SimpleEpubReader>
             message: 'Error loading epub source',
           );
         },
-        builder: (context, controller) => Stack(
-          children: [
-            EpubView(
-              controller: controller,
-              onExternalLinkPressed: (href) => launchUrl(Uri.parse(href)),
-              onDocumentError: (error) =>
-                  logger.e('Error loading epub document', error: error),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: SafeArea(
-                bottom: false,
-                child: AppBar(
-                  primary: false,
-                  title: DionTextScroll(widget.source.name),
-                  leading: DionIconbutton(
-                    tooltip: 'Back',
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () {
-                      context.pop();
-                    },
-                  ),
-                  actions: [
-                    DionIconbutton(
-                      tooltip: 'Table of Contents',
-                      icon: const Icon(Icons.toc),
-                      onPressed: _showTableOfContents,
-                    ),
-                    DionIconbutton(
-                      tooltip: epdata.bookmark
-                          ? 'Remove Bookmark'
-                          : 'Add Bookmark',
-                      icon: Icon(
-                        epdata.bookmark
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                      ),
-                      onPressed: _toggleBookmark,
-                    ),
-                    DionIconbutton(
-                      tooltip: 'Open in Browser',
-                      icon: const Icon(Icons.open_in_browser),
-                      onPressed: () => launchUrl(
-                        Uri.parse(widget.source.episode.episode.url),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        builder: (context, controller) => BindingDispatcher(
+          actions: [
+            BindingAction(
+              setting: settings.readerSettings.epubreader.bindings.openNote,
+              onTrigger: () => _openNote(),
             ),
           ],
+          child: Stack(
+            children: [
+              EpubView(
+                controller: controller,
+                onExternalLinkPressed: (href) => launchUrl(Uri.parse(href)),
+                onDocumentError: (error) =>
+                    logger.e('Error loading epub document', error: error),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: AppBar(
+                    primary: false,
+                    title: DionTextScroll(widget.source.name),
+                    leading: DionIconbutton(
+                      tooltip: 'Back',
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () {
+                        context.pop();
+                      },
+                    ),
+                    actions: [
+                      DionIconbutton(
+                        tooltip: 'Table of Contents',
+                        icon: const Icon(Icons.toc),
+                        onPressed: _showTableOfContents,
+                      ),
+                      DionIconbutton(
+                        tooltip: epdata.bookmark
+                            ? 'Remove Bookmark'
+                            : 'Add Bookmark',
+                        icon: Icon(
+                          epdata.bookmark
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                        ),
+                        onPressed: _toggleBookmark,
+                      ),
+                      if (widget.source.episode.entry is EntrySaved)
+                        DionIconbutton(
+                          tooltip: 'Chapter Note',
+                          icon: Icon(
+                            epdata.note == null
+                                ? Icons.sticky_note_2_outlined
+                                : Icons.sticky_note_2,
+                          ),
+                          onPressed: _openNote,
+                        ),
+                      DionIconbutton(
+                        tooltip: 'Open in Browser',
+                        icon: const Icon(Icons.open_in_browser),
+                        onPressed: () => launchUrl(
+                          Uri.parse(widget.source.episode.episode.url),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

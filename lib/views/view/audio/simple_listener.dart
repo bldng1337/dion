@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart'
@@ -20,6 +21,7 @@ import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/view/chapters/chapter_controller.dart';
 import 'package:dionysos/views/view/chapters/chapter_markers.dart';
 import 'package:dionysos/views/view/chapters/chapter_progress_bar.dart';
@@ -325,6 +327,13 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     }
   }
 
+  Future<void> _openNote() async {
+    await openChapterNote(context, widget.source.episode);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   String getTitle(Player player) {
     if (player.state.playlist.medias.isEmpty ||
         player.state.playlist.medias.length <= player.state.playlist.index) {
@@ -403,6 +412,16 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             }
           },
         ),
+        if (widget.source.episode.entry is EntrySaved)
+          DionIconbutton(
+            tooltip: 'Chapter Note',
+            icon: Icon(
+              epdata.note == null
+                  ? Icons.sticky_note_2_outlined
+                  : Icons.sticky_note_2,
+            ),
+            onPressed: _openNote,
+          ),
         ListenableBuilder(
           listenable: chapterController!,
           builder: (context, _) {
@@ -460,6 +479,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           BindingAction(
             setting: settings.audioBookSettings.bindings.toggleBookmark,
             onTrigger: _toggleBookmark,
+          ),
+          BindingAction(
+            setting: settings.audioBookSettings.bindings.openNote,
+            onTrigger: () => _openNote(),
           ),
         ],
         child: Container(

@@ -98,6 +98,13 @@ class ImageListReaderSettings extends StatelessWidget {
                     .toggleBookmark,
               ),
               SettingBindings(
+                title: 'Open Note',
+                description: 'Inputs that open the chapter note',
+                icon: Icons.sticky_note_2_outlined,
+                setting:
+                    settings.readerSettings.imagelistreader.bindings.openNote,
+              ),
+              SettingBindings(
                 title: 'Jump Down',
                 description: 'Inputs that scroll down',
                 icon: Icons.arrow_downward,

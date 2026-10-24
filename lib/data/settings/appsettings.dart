@@ -339,6 +339,10 @@ final settings = (
         <InputBinding>[const KeyBind(LogicalKeyboardKey.keyB, ctrl: true)],
         const PreferenceBindingListMetaData('audiobook.bindings.bookmark'),
       )..addCollection(preferenceCollection),
+      openNote: Setting(
+        <InputBinding>[const KeyBind(LogicalKeyboardKey.keyN, ctrl: true)],
+        const PreferenceBindingListMetaData('audiobook.bindings.note'),
+      )..addCollection(preferenceCollection),
     ),
     // subtitle: Setting( TODO
     //   true,
@@ -363,6 +367,12 @@ final settings = (
       toggleBookmark: Setting(
         <InputBinding>[const KeyBind(LogicalKeyboardKey.keyB, ctrl: true)],
         const PreferenceBindingListMetaData('video.bindings.bookmark'),
+      )..addCollection(preferenceCollection),
+      openNote: Setting(
+        <InputBinding>[
+          const KeyBind(LogicalKeyboardKey.keyN, ctrl: true, shift: true),
+        ],
+        const PreferenceBindingListMetaData('video.bindings.note'),
       )..addCollection(preferenceCollection),
     ),
     chapters: chapterSettings('video'),
@@ -453,6 +463,10 @@ final settings = (
           const PreferenceBindingListMetaData(
             'imagelistreader.bindings.bookmark',
           ),
+        )..addCollection(preferenceCollection),
+        openNote: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.keyN, ctrl: true)],
+          const PreferenceBindingListMetaData('imagelistreader.bindings.note'),
         )..addCollection(preferenceCollection),
         jumpDown: Setting(
           <InputBinding>[
@@ -639,6 +653,10 @@ final settings = (
             'paragraphreader.bindings.bookmark',
           ),
         )..addCollection(preferenceCollection),
+        openNote: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.keyN, ctrl: true)],
+          const PreferenceBindingListMetaData('paragraphreader.bindings.note'),
+        )..addCollection(preferenceCollection),
         jumpDown: Setting(
           <InputBinding>[
             const KeyBind(LogicalKeyboardKey.arrowDown),
@@ -659,6 +677,22 @@ final settings = (
           const PreferenceBindingListMetaData(
             'paragraphreader.bindings.toggletts',
           ),
+        )..addCollection(preferenceCollection),
+      ),
+    ),
+    epubreader: (
+      bindings: (
+        openNote: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.keyN, ctrl: true)],
+          const PreferenceBindingListMetaData('epubreader.bindings.note'),
+        )..addCollection(preferenceCollection),
+      ),
+    ),
+    pdfreader: (
+      bindings: (
+        openNote: Setting(
+          <InputBinding>[const KeyBind(LogicalKeyboardKey.keyN, ctrl: true)],
+          const PreferenceBindingListMetaData('pdfreader.bindings.note'),
         )..addCollection(preferenceCollection),
       ),
     ),

@@ -197,6 +197,13 @@ class ParagraphReaderSettings extends StatelessWidget {
                     .toggleBookmark,
               ),
               SettingBindings(
+                title: 'Open Note',
+                description: 'Inputs that open the chapter note',
+                icon: Icons.sticky_note_2_outlined,
+                setting:
+                    settings.readerSettings.paragraphreader.bindings.openNote,
+              ),
+              SettingBindings(
                 title: 'Jump Down',
                 description: 'Inputs that scroll the page down',
                 icon: Icons.arrow_downward,

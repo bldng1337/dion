@@ -21,6 +21,7 @@ import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/widgets/binding_dispatcher.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -272,6 +273,13 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     }
   }
 
+  Future<void> _openNote() async {
+    await openChapterNote(context, widget.source.episode);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _jumpDown() {
     if (!scrollController.hasClients) return;
     final position = scrollController.position;
@@ -339,6 +347,10 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
             setting:
                 settings.readerSettings.imagelistreader.bindings.toggleBookmark,
             onTrigger: _toggleBookmark,
+          ),
+          BindingAction(
+            setting: settings.readerSettings.imagelistreader.bindings.openNote,
+            onTrigger: () => _openNote(),
           ),
           BindingAction(
             setting: settings.readerSettings.imagelistreader.bindings.jumpDown,
@@ -435,6 +447,16 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                         }
                       },
                     ),
+                    if (widget.source.episode.entry is EntrySaved)
+                      DionIconbutton(
+                        tooltip: 'Chapter Note',
+                        icon: Icon(
+                          epdata.note == null
+                              ? Icons.sticky_note_2_outlined
+                              : Icons.sticky_note_2,
+                        ),
+                        onPressed: _openNote,
+                      ),
                     DionIconbutton(
                       tooltip: 'Open in Browser',
                       icon: const Icon(Icons.open_in_browser),

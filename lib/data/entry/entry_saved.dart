@@ -87,12 +87,14 @@ class EpisodeData {
   String? progress;
   List<SavedQuote> quotes;
   List<SavedImage> images;
+  String? note;
   EpisodeData({
     required this.bookmark,
     required this.finished,
     this.progress,
     List<SavedQuote>? quotes,
     List<SavedImage>? images,
+    this.note,
   }) : quotes = quotes ?? [],
        images = images ?? [];
   EpisodeData.empty() : this(bookmark: false, finished: false, progress: null);
@@ -103,6 +105,7 @@ class EpisodeData {
       bookmark == other.bookmark &&
       finished == other.finished &&
       progress == other.progress &&
+      note == other.note &&
       _listEquals(quotes, other.quotes) &&
       _listEquals(images, other.images);
 
@@ -111,6 +114,7 @@ class EpisodeData {
     bookmark,
     finished,
     progress,
+    note,
     Object.hashAll(quotes),
     Object.hashAll(images),
   );
@@ -118,7 +122,8 @@ class EpisodeData {
   @override
   String toString() {
     return 'EpisodeData{bookmark: $bookmark, finished: $finished, '
-        'progress: $progress, quotes: $quotes, images: $images}';
+        'progress: $progress, quotes: $quotes, images: $images, '
+        'note: $note}';
   }
 
   Map<String, dynamic> toJson() {
@@ -128,6 +133,7 @@ class EpisodeData {
       'progress': progress,
       'quotes': quotes.map((e) => e.toJson()).toList(),
       'images': images.map((e) => e.toJson()).toList(),
+      'note': note,
     };
   }
 
@@ -146,6 +152,7 @@ class EpisodeData {
               ?.map((e) => SavedImage.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      note: json['note'] as String?,
     );
   }
 }
@@ -301,6 +308,10 @@ class EntrySaved
   List<EntryExtension> entryExtensions;
   List<EntryExtension> sourceExtensions;
 
+  double? userRating;
+
+  String? note;
+
   DateTime? lastRefreshed;
 
   DateTime? predictedNextRelease;
@@ -325,6 +336,8 @@ class EntrySaved
     required this.extensionSettings,
     this.entryExtensions = const [],
     this.sourceExtensions = const [],
+    this.userRating,
+    this.note,
     this.lastRefreshed,
     this.predictedNextRelease,
     this.releaseInterval,
@@ -573,6 +586,8 @@ class EntrySaved
       'categories': categories.map((e) => e.id).toList(),
       'entryExtensions': entryExtensions.map((e) => e.toJson()).toList(),
       'sourceExtensions': sourceExtensions.map((e) => e.toJson()).toList(),
+      'userRating': userRating,
+      'note': note,
       'savedSettings': savedSettings.toJson(),
       'lastRefreshed': lastRefreshed?.toIso8601String(),
       'predictedNextRelease': predictedNextRelease?.toIso8601String(),
@@ -712,6 +727,8 @@ class EntrySaved
               .toList() ??
           [],
       lastRefreshed: DateTime.tryParse(json['lastRefreshed'] as String? ?? ''),
+      userRating: (json['userRating'] as num?)?.toDouble(),
+      note: json['note'] as String?,
       predictedNextRelease: DateTime.tryParse(
         json['predictedNextRelease'] as String? ?? '',
       ),

@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/extension.dart'
@@ -18,6 +19,7 @@ import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/view/paragraphlist/reader.dart';
 import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
 import 'package:dionysos/views/view/session.dart';
@@ -309,6 +311,13 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     }
   }
 
+  Future<void> _openNote() async {
+    await openChapterNote(context, widget.source.episode);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _jumpDown() {
     if (!controller.hasClients) return;
     final position = controller.position;
@@ -382,6 +391,11 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                   .bindings
                   .toggleBookmark,
               onTrigger: _toggleBookmark,
+            ),
+            BindingAction(
+              setting:
+                  settings.readerSettings.paragraphreader.bindings.openNote,
+              onTrigger: () => _openNote(),
             ),
             BindingAction(
               setting:
@@ -466,6 +480,16 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                             ),
                             onPressed: _toggleBookmark,
                           ),
+                          if (widget.source.episode.entry is EntrySaved)
+                            DionIconbutton(
+                              tooltip: 'Chapter Note',
+                              icon: Icon(
+                                epdata.note == null
+                                    ? Icons.sticky_note_2_outlined
+                                    : Icons.sticky_note_2,
+                              ),
+                              onPressed: _openNote,
+                            ),
                           DionIconbutton(
                             tooltip: 'Open in Browser',
                             icon: const Icon(Icons.open_in_browser),
