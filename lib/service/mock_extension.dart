@@ -139,12 +139,18 @@ class MockExtension with ChangeNotifier implements Extension {
   }
 
   @override
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
+  Future<EntryDetailed> detail(
+    Entry e, {
+    rust.CancelToken? token,
+    bool full = false,
+  }) async {
     if (e.boundExtensionId != id) {
       throw Exception(
         'Extension mismatch: expected $id, got ${e.boundExtensionId}',
       );
     }
+    // The mock rebuilds the detailed entry locally, so a full refresh has no
+    // separate by-id path to exercise.
     final detailed = _buildDetailed(e);
     if (e is EntrySaved) {
       // Same contract as the real extension: refresh replaces the source

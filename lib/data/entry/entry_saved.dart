@@ -465,9 +465,12 @@ class EntrySaved
   }
 
   @override
-  FutureOr<EntryDetailed> refresh({CancelToken? token}) async {
+  FutureOr<EntryDetailed> refresh({
+    CancelToken? token,
+    bool full = false,
+  }) async {
     final previousReleased = releasedEpisodes;
-    await locate<ExtensionService>().detail(this, token: token);
+    await locate<ExtensionService>().detail(this, token: token, full: full);
     lastRefreshed = DateTime.now();
     updateReleasePrediction();
     if (releasedEpisodes > previousReleased) {

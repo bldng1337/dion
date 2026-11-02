@@ -136,7 +136,11 @@ class MockTrackerExtension with ChangeNotifier implements Extension {
   }
 
   @override
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) {
+  Future<EntryDetailed> detail(
+    Entry e, {
+    rust.CancelToken? token,
+    bool full = false,
+  }) {
     throw UnsupportedError('MockTrackerExtension provides no entries');
   }
 

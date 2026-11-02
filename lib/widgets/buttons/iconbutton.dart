@@ -10,8 +10,15 @@ import 'package:flutter/material.dart';
 class DionIconbutton extends StatelessWidget {
   final String? tooltip;
   final FutureOr<void> Function()? onPressed; // ignore: avoid_futureor_void
+  final FutureOr<void> Function()? onLongPress; // ignore: avoid_futureor_void
   final Widget? icon;
-  const DionIconbutton({super.key, this.onPressed, this.icon, this.tooltip});
+  const DionIconbutton({
+    super.key,
+    this.onPressed,
+    this.onLongPress,
+    this.icon,
+    this.tooltip,
+  });
 
   ButtonStyle _getButtonStyle(BuildContext context) {
     return ButtonStyle(
@@ -62,6 +69,11 @@ class DionIconbutton extends StatelessWidget {
           onPressed: () {
             setFuture(onPressed?.call());
           },
+          onLongPress: onLongPress == null
+              ? null
+              : () {
+                  setFuture(onLongPress!.call());
+                },
           style: _getButtonStyle(context),
         ),
       ),
@@ -72,6 +84,7 @@ class DionIconbutton extends StatelessWidget {
   Widget _buildCupertino(BuildContext context) {
     final button = CupertinoButton(
       onPressed: onPressed,
+      onLongPress: onLongPress,
       child: icon ?? const Icon(Icons.question_mark),
     );
     // CupertinoButton has no tooltip support, so provide the accessible

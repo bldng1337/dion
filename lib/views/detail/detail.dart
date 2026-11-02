@@ -37,6 +37,7 @@ import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -312,6 +313,25 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
     }
   }
 
+  Future<void> refreshEntry({bool full = false}) async {
+    try {
+      if (tok.isDisposed) {
+        tok = CancelToken()..disposedBy(scope);
+      }
+      final e = await (entry! as EntrySaved).refresh(token: tok, full: full);
+      entry = e;
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e, stack) {
+      error = e;
+      errstack = stack;
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -396,25 +416,10 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         ),
       if (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
         DionIconbutton(
-          tooltip: 'Refresh',
-          onPressed: () async {
-            try {
-              if (tok.isDisposed) {
-                tok = CancelToken()..disposedBy(scope);
-              }
-              final e = await (entry! as EntrySaved).refresh(token: tok);
-              entry = e;
-              if (mounted) {
-                setState(() {});
-              }
-            } catch (e, stack) {
-              error = e;
-              errstack = stack;
-              if (mounted) {
-                setState(() {});
-              }
-            }
-          },
+          tooltip: 'Refresh (hold Shift or long press for full refresh)',
+          onPressed: () =>
+              refreshEntry(full: HardwareKeyboard.instance.isShiftPressed),
+          onLongPress: () => refreshEntry(full: true),
           icon: const Icon(Icons.refresh, size: 18),
         ),
       if (entry is EntrySaved)

@@ -339,7 +339,11 @@ class Extension extends ChangeNotifier {
     _activeViews.removeLast().dismiss();
   }
 
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
+  Future<EntryDetailed> detail(
+    Entry e, {
+    rust.CancelToken? token,
+    bool full = false,
+  }) async {
     if (e.boundExtensionId != id) {
       throw Exception(
         'Extension mismatch: expected $id, got ${e.boundExtensionId}',
@@ -351,11 +355,17 @@ class Extension extends ChangeNotifier {
       // extension chain over the fresh original.
       case final EntrySaved saved:
         await locate<ExtensionService>().withEntryLock(saved, () async {
-          final refreshRes = await _proxy.refresh(
-            entry: saved.original,
-            settings: saved.extensionSettings,
-            // token: token,
-          );
+          final refreshRes = full
+              ? await _proxy.detail(
+                  entryid: saved.original.id,
+                  settings: saved.extensionSettings,
+                  // token: token,
+                )
+              : await _proxy.refresh(
+                  entry: saved.original,
+                  settings: saved.extensionSettings,
+                  // token: token,
+                );
           saved.original = refreshRes.entry;
           saved.generation++;
           saved.extensionSettings = refreshRes.settings;
@@ -1155,12 +1165,16 @@ class ExtensionService with ChangeNotifier {
     }
   }
 
-  Future<EntryDetailed> detail(Entry e, {rust.CancelToken? token}) async {
+  Future<EntryDetailed> detail(
+    Entry e, {
+    rust.CancelToken? token,
+    bool full = false,
+  }) async {
     final ext = e.extension;
     if (ext == null) {
       throw Exception('Extension not found for id ${e.boundExtensionId}');
     }
-    return await ext.detail(e, token: token);
+    return await ext.detail(e, token: token, full: full);
   }
 
   Extension getExtension(String id) {
