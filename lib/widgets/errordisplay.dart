@@ -59,6 +59,86 @@ class ErrorAction {
   const ErrorAction({required this.label, this.onTap});
 }
 
+String errorText(Object? e) {
+  final msg = e.toString().trim();
+  if (msg.isEmpty) {
+    return 'Unknown Error';
+  }
+  return msg;
+}
+
+void showErrorPopup(
+  BuildContext context, {
+  required Object e,
+  StackTrace? s,
+  List<ErrorAction>? actions,
+}) {
+  showDialog(
+    context: context,
+    builder: (context) => DionDialog(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.report_problem,
+                      color: context.theme.colorScheme.error,
+                      size: 20,
+                    ).paddingOnly(right: 8),
+                    Expanded(
+                      child: Text(errorText(e), style: context.titleMedium),
+                    ),
+                  ],
+                ).paddingOnly(bottom: 12),
+                if (s != null)
+                  Text(
+                    s.toString(),
+                    style: context.bodySmall?.copyWith(
+                      color: context.theme.colorScheme.onSurface.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                  ).paddingOnly(bottom: 12),
+              ],
+            ),
+          ).paddingOnly(bottom: 12).expanded(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              DionTextbutton(
+                type: ButtonType.ghost,
+                onPressed: () => context.pop(),
+                child: const Text('Ok'),
+              ).paddingOnly(right: 8),
+              DionTextbutton(
+                child: const Text('Copy Error'),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: '$e\n\n$s')).then((a) {
+                    if (context.mounted) {
+                      context.pop();
+                    }
+                  });
+                },
+              ).paddingOnly(right: 8),
+              ...?actions?.map(
+                (action) => DionTextbutton(
+                  onPressed: action.onTap,
+                  child: Text(action.label),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ).paddingAll(16),
+    ),
+  );
+}
+
 class ErrorDisplay extends StatelessWidget {
   final Object? e;
   final StackTrace? s;
@@ -75,82 +155,11 @@ class ErrorDisplay extends StatelessWidget {
   });
 
   String getErrorMessage() {
-    final msg = e.toString().trim();
-    if (msg.isEmpty) {
-      return 'Unknown Error';
-    }
-    return msg;
+    return errorText(e);
   }
 
   void _showErrorPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => DionDialog(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.report_problem,
-                        color: context.theme.colorScheme.error,
-                        size: 20,
-                      ).paddingOnly(right: 8),
-                      Expanded(
-                        child: Text(
-                          getErrorMessage(),
-                          style: context.titleMedium,
-                        ),
-                      ),
-                    ],
-                  ).paddingOnly(bottom: 12),
-                  if (s != null)
-                    Text(
-                      s!.toString(),
-                      style: context.bodySmall?.copyWith(
-                        color: context.theme.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ),
-                      ),
-                    ).paddingOnly(bottom: 12),
-                ],
-              ),
-            ).paddingOnly(bottom: 12).expanded(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                DionTextbutton(
-                  type: ButtonType.ghost,
-                  onPressed: () => context.pop(),
-                  child: const Text('Ok'),
-                ).paddingOnly(right: 8),
-                DionTextbutton(
-                  child: const Text('Copy Error'),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: '$e\n\n$s'))
-                        .then((a) {
-                          if (context.mounted) {
-                            context.pop();
-                          }
-                        });
-                  },
-                ).paddingOnly(right: 8),
-                ...?actions?.map(
-                  (action) => DionTextbutton(
-                    onPressed: action.onTap,
-                    child: Text(action.label),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ).paddingAll(16),
-      ),
-    );
+    showErrorPopup(context, e: e!, s: s, actions: actions);
   }
 
   @override

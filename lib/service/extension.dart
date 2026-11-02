@@ -229,25 +229,27 @@ class Extension extends ChangeNotifier {
     final db = locate<Database>();
     var fetched = 0;
     return PageAsyncSource((page) async {
-      final res = await _proxy.browse(page: page, token: token);
-      final entries = await Future.wait(
-        res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
-          final saved = await db.isSaved(entry);
-          if (saved != null) {
-            return saved;
-          }
-          return entry;
-        }).toList(),
-      );
-      fetched += entries.length;
-      if (res.hasnext != null && !res.hasnext!) {
-        return Page.last(entries);
-      }
-      if (res.length != null && fetched >= res.length!) {
-        return Page.last(entries);
-      }
-      return Page.more(entries);
-    })..name = name;
+        final res = await _proxy.browse(page: page, token: token);
+        final entries = await Future.wait(
+          res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
+            final saved = await db.isSaved(entry);
+            if (saved != null) {
+              return saved;
+            }
+            return entry;
+          }).toList(),
+        );
+        fetched += entries.length;
+        if (res.hasnext != null && !res.hasnext!) {
+          return Page.last(entries);
+        }
+        if (res.length != null && fetched >= res.length!) {
+          return Page.last(entries);
+        }
+        return Page.more(entries);
+      })
+      ..name = name
+      ..iconUrl = data.icon;
   }
 
   Future<void> runAction(rust.Action action, {rust.CancelToken? token}) async {
@@ -522,26 +524,32 @@ class Extension extends ChangeNotifier {
     final db = locate<Database>();
     var fetched = 0;
     return PageAsyncSource((page) async {
-      final res = await _proxy.search(page: page, filter: filter, token: token);
-      final entries = await Future.wait(
-        res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
-          final saved = await db.isSaved(entry);
-          if (saved != null) {
-            return saved;
-          }
-          return entry;
-        }).toList(),
-      );
-      fetched += entries.length;
-      // See browse(): res.length is the total item count, not a page count.
-      if (res.hasnext != null && !res.hasnext!) {
-        return Page.last(entries);
-      }
-      if (res.length != null && fetched >= res.length!) {
-        return Page.last(entries);
-      }
-      return Page.more(entries);
-    })..name = name;
+        final res = await _proxy.search(
+          page: page,
+          filter: filter,
+          token: token,
+        );
+        final entries = await Future.wait(
+          res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
+            final saved = await db.isSaved(entry);
+            if (saved != null) {
+              return saved;
+            }
+            return entry;
+          }).toList(),
+        );
+        fetched += entries.length;
+        // See browse(): res.length is the total item count, not a page count.
+        if (res.hasnext != null && !res.hasnext!) {
+          return Page.last(entries);
+        }
+        if (res.length != null && fetched >= res.length!) {
+          return Page.last(entries);
+        }
+        return Page.more(entries);
+      })
+      ..name = name
+      ..iconUrl = data.icon;
   }
 
   Future<void> onEntryActivity(

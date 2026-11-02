@@ -2,17 +2,25 @@ import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/utils/color.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
+import 'package:dionysos/widgets/image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:inline_result/inline_result.dart';
 
 abstract class DataSource<T> {
   String name = 'Unknown';
+
+  String? iconUrl;
+
+  Object? error;
+  StackTrace? errorTrace;
   StreamController<List<Result<T>>>? streamController;
   Future<void> requestMore();
   bool get isfinished;
@@ -23,6 +31,14 @@ abstract class DataSource<T> {
 
   /// Bumps the generation, invalidating any in-flight request.
   void bumpGeneration() => _generation++;
+
+  void fail(Object e, StackTrace? stack) {
+    final exception = e is Exception ? e : Exception(e.toString());
+    error = exception;
+    errorTrace = stack;
+    logger.e('Source "$name" failed', error: e, stackTrace: stack);
+    streamController?.add(<Result<T>>[Result.failure(exception, stack)]);
+  }
 }
 
 class StreamSource<T> extends DataSource<T> {
@@ -52,12 +68,10 @@ class StreamSource<T> extends DataSource<T> {
         }
         streamController?.add(e.map((e) => Result.success(e)).toList());
       },
-      onError: (e, stack) {
+      onError: (Object e, Object stack) {
         if (generation != _generation) return;
         try {
-          streamController?.add(<Result<T>>[
-            Result.failure(e as Exception, stack is StackTrace ? stack : null),
-          ]);
+          fail(e, stack is StackTrace ? stack : null);
         } finally {
           isfinished = true;
         }
@@ -80,6 +94,8 @@ class StreamSource<T> extends DataSource<T> {
     index = 0;
     isfinished = false;
     requesting = false;
+    error = null;
+    errorTrace = null;
   }
 
   @override
@@ -129,21 +145,10 @@ class SingleStreamSource<T> extends DataSource<T> {
         delivered++;
         streamController?.add([Result.success(e)]);
       },
-      onError: (e, stack) {
+      onError: (Object e, Object stack) {
         if (generation != _generation) return;
         try {
-          if (e is Exception) {
-            streamController?.add(<Result<T>>[
-              Result.failure(e, stack is StackTrace ? stack : null),
-            ]);
-          } else {
-            streamController?.add(<Result<T>>[
-              Result.failure(
-                Exception(e.toString()),
-                stack is StackTrace ? stack : null,
-              ),
-            ]);
-          }
+          fail(e, stack is StackTrace ? stack : null);
         } finally {
           isfinished = true;
         }
@@ -170,6 +175,8 @@ class SingleStreamSource<T> extends DataSource<T> {
     index = 0;
     isfinished = false;
     requesting = false;
+    error = null;
+    errorTrace = null;
   }
 
   @override
@@ -225,12 +232,10 @@ class AsyncStreamSource<T> extends DataSource<T> {
         }
         streamController?.add(e.map((e) => Result.success(e)).toList());
       },
-      onError: (e, stack) {
+      onError: (Object e, Object stack) {
         if (generation != _generation) return;
         try {
-          streamController?.add(<Result<T>>[
-            Result.failure(e as Exception, stack is StackTrace ? stack : null),
-          ]);
+          fail(e, stack is StackTrace ? stack : null);
         } finally {
           isfinished = true;
         }
@@ -253,6 +258,8 @@ class AsyncStreamSource<T> extends DataSource<T> {
     index = 0;
     isfinished = false;
     requesting = false;
+    error = null;
+    errorTrace = null;
   }
 
   @override
@@ -308,9 +315,7 @@ class AsyncSource<T> extends DataSource<T> {
         return;
       }
       try {
-        streamController?.add(<Result<T>>[
-          Result.failure(e as Exception, stack),
-        ]);
+        fail(e, stack);
       } catch (e1) {
         logger.e(
           'Error putting error $e1 into stream',
@@ -330,6 +335,8 @@ class AsyncSource<T> extends DataSource<T> {
     index = 0;
     isfinished = false;
     requesting = false;
+    error = null;
+    errorTrace = null;
   }
 
   @override
@@ -402,9 +409,7 @@ class PageAsyncSource<T> extends DataSource<T> {
         return;
       }
       try {
-        streamController?.add(<Result<T>>[
-          Result.failure(e as Exception, stack),
-        ]);
+        fail(e, stack);
       } catch (e1) {
         logger.e(
           'Error putting error $e1 into stream',
@@ -424,6 +429,8 @@ class PageAsyncSource<T> extends DataSource<T> {
     index = 0;
     isfinished = false;
     requesting = false;
+    error = null;
+    errorTrace = null;
   }
 
   @override
@@ -495,6 +502,61 @@ class DataSourceController<T> extends ChangeNotifier {
     _streamSub.cancel();
     streamController.close();
     super.dispose();
+  }
+}
+
+class SourceIndicator<T> extends StatelessWidget {
+  final DataSource<T> source;
+  const SourceIndicator({super.key, required this.source});
+
+  @override
+  Widget build(BuildContext context) {
+    final errored = source.error != null;
+    return Clickable(
+      onLongTap: errored
+          ? () =>
+                showErrorPopup(context, e: source.error!, s: source.errorTrace)
+          : null,
+      child: DionBadge(
+        color: errored
+            ? context.theme.colorScheme.error.withValues(alpha: 0.2)
+            : source.isfinished
+            ? source.name.color.withValues(alpha: 0.4)
+            : source.name.color,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (source.iconUrl?.isNotEmpty ?? false)
+              DionImage(
+                imageUrl: source.iconUrl,
+                width: 16,
+                height: 16,
+                errorWidget: const Icon(Icons.extension, size: 14),
+              ).paddingOnly(right: DionSpacing.xs),
+            Text(source.name).paddingOnly(right: DionSpacing.xs),
+            if (source.requesting)
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: const CircularProgressIndicator(
+                  color: Colors.white70,
+                  strokeWidth: 2,
+                ).paddingAll(2),
+              )
+            else if (errored)
+              Icon(
+                Icons.report_problem,
+                size: 20,
+                color: context.theme.colorScheme.error,
+              ).paddingAll(2)
+            else if (source.isfinished)
+              const Icon(Icons.done_all, size: 20).paddingAll(2)
+            else
+              const Icon(Icons.check, size: 20).paddingAll(2),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -585,39 +647,10 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                     listenable: widget.controller,
                     builder: (context, child) => ListView(
                       padding: EdgeInsets.zero,
-                      shrinkWrap: true,
                       scrollDirection: Axis.horizontal,
                       children: [
-                        ...widget.controller.sources.map(
-                          (e) => DionBadge(
-                            color: e.name.color,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (e.isfinished)
-                                  const Icon(
-                                    Icons.close,
-                                    size: 20,
-                                  ).paddingAll(2),
-                                if (!e.isfinished && !e.requesting)
-                                  const Icon(
-                                    Icons.check,
-                                    size: 20,
-                                  ).paddingAll(2),
-                                if (e.requesting)
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: const CircularProgressIndicator(
-                                      color: Colors.white70,
-                                      strokeWidth: 2,
-                                    ).paddingAll(2),
-                                  ),
-                                Text(e.name).paddingAll(2),
-                              ],
-                            ),
-                          ).paddingHorizontal(4),
-                        ),
+                        for (final source in widget.controller.sources)
+                          SourceIndicator(source: source).paddingHorizontal(4),
                       ],
                     ),
                   ),
@@ -626,11 +659,13 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
             ListenableBuilder(
               listenable: widget.controller,
               builder: (context, child) {
-                // Give loading and empty states a visible (and announced)
-                // placeholder instead of a silently blank area.
+                final items = widget.showDataSources
+                    ? widget.controller.items
+                          .where((r) => r.isSuccess)
+                          .toList(growable: false)
+                    : widget.controller.items;
                 Widget content;
-                if (widget.controller.finished &&
-                    widget.controller.items.isEmpty) {
+                if (widget.controller.finished && items.isEmpty) {
                   content = Center(
                     child: Semantics(
                       liveRegion: true,
@@ -640,8 +675,7 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                       ),
                     ),
                   );
-                } else if (widget.controller.items.isEmpty &&
-                    widget.controller.loading) {
+                } else if (items.isEmpty && widget.controller.loading) {
                   content = const Center(child: CircularProgressIndicator());
                 } else {
                   content = GridView.builder(
@@ -653,10 +687,9 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                           maxCrossAxisExtent: 220,
                         ),
                     itemCount:
-                        widget.controller.items.length +
-                        (widget.controller.finished ? 0 : 1),
+                        items.length + (widget.controller.finished ? 0 : 1),
                     itemBuilder: (context, index) {
-                      if (index == widget.controller.items.length) {
+                      if (index == items.length) {
                         if (!widget.controller.loading) {
                           return DionTextbutton(
                             child: const Text('Load More'),
@@ -667,11 +700,15 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
                         }
                         return const Center(child: CircularProgressIndicator());
                       }
-                      return widget.controller.items[index].fold(
+                      return items[index].fold(
                         onSuccess: (item) => widget.itemBuilder(context, item),
                         onFailure: (e, stacktrace) {
                           if (widget.errorBuilder == null) {
-                            return ErrorDisplay(e: e, s: stacktrace);
+                            return ErrorDisplay(
+                              e: e,
+                              s: stacktrace,
+                              logError: false,
+                            );
                           }
                           return widget.errorBuilder!(context, e, stacktrace);
                         },
@@ -778,13 +815,14 @@ class _DynamicListState<T> extends State<DynamicList<T>>
   Widget build(BuildContext context) {
     loadMore();
     final filter = widget.filter;
-    final items = filter == null
-        ? widget.controller.items
-        : widget.controller.items
-              .where(
-                (r) => r.fold(onSuccess: filter, onFailure: (_, _) => true),
-              )
-              .toList(growable: false);
+    final items = widget.controller.items
+        .where(
+          (r) => r.fold(
+            onSuccess: (item) => filter?.call(item) ?? true,
+            onFailure: (_, _) => !widget.showDataSources,
+          ),
+        )
+        .toList(growable: false);
     return CustomScrollView(
       controller: controller,
       slivers: [
@@ -811,33 +849,10 @@ class _DynamicListState<T> extends State<DynamicList<T>>
               height: 40,
               child: ListView(
                 padding: EdgeInsets.zero,
-                shrinkWrap: true,
                 scrollDirection: Axis.horizontal,
                 children: [
-                  ...widget.controller.sources.map(
-                    (e) => DionBadge(
-                      color: e.name.color,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (e.isfinished)
-                            const Icon(Icons.close, size: 20).paddingAll(2),
-                          if (!e.isfinished && !e.requesting)
-                            const Icon(Icons.check, size: 20).paddingAll(2),
-                          if (e.requesting)
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: const CircularProgressIndicator(
-                                color: Colors.white70,
-                                strokeWidth: 2,
-                              ).paddingAll(2),
-                            ),
-                          Text(e.name).paddingAll(2),
-                        ],
-                      ),
-                    ).paddingHorizontal(4),
-                  ),
+                  for (final source in widget.controller.sources)
+                    SourceIndicator(source: source).paddingHorizontal(4),
                 ],
               ),
             ).paddingAll(5),
@@ -860,7 +875,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
               onSuccess: (item) => widget.itemBuilder(context, item),
               onFailure: (e, stacktrace) {
                 if (widget.errorBuilder == null) {
-                  return ErrorDisplay(e: e, s: stacktrace);
+                  return ErrorDisplay(e: e, s: stacktrace, logError: false);
                 }
                 return widget.errorBuilder!(context, e, stacktrace);
               },
@@ -945,9 +960,14 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
   @override
   Widget build(BuildContext context) {
     loadMore();
+    final items = widget.showDataSources
+        ? widget.controller.items
+              .where((r) => r.isSuccess)
+              .toList(growable: false)
+        : widget.controller.items;
     return Column(
       children: [
-        if (widget.controller.finished && widget.controller.items.isEmpty)
+        if (widget.controller.finished && items.isEmpty)
           Center(
             child: Semantics(
               liveRegion: true,
@@ -957,7 +977,7 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
               ),
             ).paddingAll(16),
           )
-        else if (widget.controller.items.isEmpty && widget.controller.loading)
+        else if (items.isEmpty && widget.controller.loading)
           const Center(child: CircularProgressIndicator())
         else ...[
           if (widget.showDataSources)
@@ -965,44 +985,19 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
               height: 40,
               child: ListView(
                 padding: EdgeInsets.zero,
-                shrinkWrap: true,
                 scrollDirection: Axis.horizontal,
                 children: [
-                  ...widget.controller.sources.map(
-                    (e) => DionBadge(
-                      color: e.name.color,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (e.isfinished)
-                            const Icon(Icons.close, size: 20).paddingAll(2),
-                          if (!e.isfinished && !e.requesting)
-                            const Icon(Icons.check, size: 20).paddingAll(2),
-                          if (e.requesting)
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: const CircularProgressIndicator(
-                                color: Colors.white70,
-                                strokeWidth: 2,
-                              ).paddingAll(2),
-                            ),
-                          Text(e.name).paddingAll(2),
-                        ],
-                      ),
-                    ).paddingHorizontal(4),
-                  ),
+                  for (final source in widget.controller.sources)
+                    SourceIndicator(source: source).paddingHorizontal(4),
                 ],
               ),
             ).paddingAll(5),
           ListView.builder(
             padding: EdgeInsets.zero,
             controller: controller,
-            itemCount:
-                widget.controller.items.length +
-                (widget.controller.finished ? 0 : 1),
+            itemCount: items.length + (widget.controller.finished ? 0 : 1),
             itemBuilder: (context, index) {
-              if (index == widget.controller.items.length) {
+              if (index == items.length) {
                 if (!widget.controller.loading) {
                   return DionTextbutton(
                     child: const Text('Load More'),
@@ -1013,11 +1008,11 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
                 }
                 return const Center(child: CircularProgressIndicator());
               }
-              return widget.controller.items[index].fold(
+              return items[index].fold(
                 onSuccess: (item) => widget.itemBuilder(context, item),
                 onFailure: (e, stacktrace) {
                   if (widget.errorBuilder == null) {
-                    return ErrorDisplay(e: e, s: stacktrace);
+                    return ErrorDisplay(e: e, s: stacktrace, logError: false);
                   }
                   return widget.errorBuilder!(context, e, stacktrace);
                 },
