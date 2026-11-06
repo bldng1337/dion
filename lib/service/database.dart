@@ -243,6 +243,9 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       final dir = await locateAsync<DirectoryProvider>();
       currentdb = await AdapterSurrealDB.connect(
         'surrealkv://${dir.databasepath.absolute.path}',
+        opts: const Options(
+          experimentalUpgradeFrom3X: true,
+        ),
         shareTag: dbShareTag,
       );
     }
