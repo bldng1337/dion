@@ -13,6 +13,7 @@ import 'package:dionysos/service/extension.dart'
         MainAxisSize,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
@@ -25,7 +26,7 @@ import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
-import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
@@ -107,10 +108,13 @@ class _BrowseState extends State<Browse>
             hintText: 'Search',
             style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
             keyboardType: TextInputType.text,
-            hintStyle: const WidgetStatePropertyAll(
-              TextStyle(color: Colors.grey),
+            hintStyle: WidgetStatePropertyAll(
+              TextStyle(color: context.textTertiary),
             ),
-            onSubmitted: (s) => context.go('/search/$s'),
+            onSubmitted: (s) {
+              if (s.trim().isEmpty) return;
+              context.go('/search/${Uri.encodeComponent(s)}');
+            },
           ).paddingAll(5),
           DynamicGrid<Entry>(
             itemBuilder: (BuildContext context, item) =>

@@ -2,6 +2,7 @@ import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/extension.dart' hide TextStyle;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/settings/search_settings.dart';
@@ -9,7 +10,7 @@ import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
-import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
@@ -101,15 +102,15 @@ class _SearchState extends State<Search>
             hintText: 'Search',
             style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
             keyboardType: TextInputType.text,
-            hintStyle: const WidgetStatePropertyAll(
-              TextStyle(color: Colors.grey),
+            hintStyle: WidgetStatePropertyAll(
+              TextStyle(color: context.textTertiary),
             ),
             onSubmitted: (s) {
               if (s.isEmpty) {
                 context.go('/browse');
                 return;
               }
-              context.go('/search/$s');
+              context.go('/search/${Uri.encodeComponent(s)}');
             },
           ).paddingAll(5),
           if (datacontroller == null)
