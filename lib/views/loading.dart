@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dionysos/service/applinks.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
@@ -11,17 +13,17 @@ import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/notification.dart';
 import 'package:dionysos/service/periodic_service.dart';
 import 'package:dionysos/service/player.dart';
-import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/service/task.dart';
+import 'package:dionysos/utils/restart.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/update.dart';
 import 'package:dionysos/views/dialog/pairing.dart';
 import 'package:dionysos/widgets/app_loader.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:restart_app/restart_app.dart';
 
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key});
@@ -30,13 +32,23 @@ class LoadingView extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppLoader(
       actions: [
-        ErrorAction(label: 'Restart', onTap: () => Restart.restartApp()),
+        const ErrorAction(label: 'Restart', onTap: restartApp),
         ErrorAction(
           label: 'Delete Data',
           onTap: () async {
+            final confirmed = await showConfirmDialog(
+              context,
+              title: 'Delete All Data',
+              message:
+                  'Permanently delete your library, downloads, extensions and '
+                  'settings? This cannot be undone.',
+              confirmLabel: 'Delete',
+              destructive: true,
+            );
+            if (!confirmed) return;
             final dir = await locateAsync<DirectoryProvider>();
             await dir.clear();
-            Restart.restartApp();
+            await restartApp();
           },
         ),
       ],
