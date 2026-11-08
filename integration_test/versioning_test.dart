@@ -655,7 +655,7 @@ List<EntrySaved> get savedEntrySamples => [
           ),
         ],
       ),
-    ],
+    },
     entryExtensions: [
       EntryExtension(
         extensionId: 'entry.ext.a',
@@ -800,7 +800,10 @@ Map<String, dynamic> _legacyV1BackupEntry(EntrySaved saved) {
       ],
     },
     'categories': [],
-    'episodedata': [for (final ed in saved.episodedata) ed.toJson()],
+    'episodedata': [
+      for (final episode in detailed.episodes)
+        saved.getEpisodeDataById(episode.id.uid).toJson(),
+    ],
     'episode': saved.episode,
     'settings': saved.savedSettings.toJson(),
   };
