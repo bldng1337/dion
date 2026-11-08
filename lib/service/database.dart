@@ -278,8 +278,13 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
   }
 
   Future<void> removeCategory(Category category) async {
+    await db.query(
+      'UPDATE type::table(\$entry) SET categories -= \$category '
+      'WHERE categories CONTAINS \$category;',
+      vars: {'entry': entryTable.tb, 'category': category.id},
+    );
     await adapter.delete(category);
-    notifyListeners([DBEvent.categoryUpdated]);
+    notifyListeners([DBEvent.categoryUpdated, DBEvent.entryAddedOrRemoved]);
   }
 
   Future<List<Category>> getCategoriesbyId(Iterable<DBRecord> ids) async {

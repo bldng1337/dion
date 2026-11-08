@@ -520,6 +520,7 @@ class EntrySaved
       }
       final json = await _rowWithPatch(change.patch);
       final fresh = await EntrySaved.fromJson(json);
+      final categoriesChanged = !_sameCategories(fresh);
       boundExtensionId = fresh.boundExtensionId;
       entry = fresh.entry;
       original = fresh.original;
@@ -535,8 +536,13 @@ class EntrySaved
       predictedNextRelease = fresh.predictedNextRelease;
       releaseInterval = fresh.releaseInterval;
       nextReleaseOverride = fresh.nextReleaseOverride;
+      userRating = fresh.userRating;
+      note = fresh.note;
       _persistedCategoryIds = fresh._persistedCategoryIds;
-      locate<Database>().notifyListeners([DBEvent.entryUpdated]);
+      locate<Database>().notifyListeners([
+        if (categoriesChanged) DBEvent.entryAddedOrRemoved,
+        DBEvent.entryUpdated,
+      ]);
     } catch (e, stack) {
       logger.e(
         'Failed to apply live database change to $dbId',
@@ -544,6 +550,12 @@ class EntrySaved
         stackTrace: stack,
       );
     }
+  }
+
+  bool _sameCategories(EntrySaved other) {
+    final ids = {for (final c in categories) c.id};
+    return ids.length == other.categories.length &&
+        other.categories.every((c) => ids.contains(c.id));
   }
 
   Future<Map<String, dynamic>> _rowWithPatch(
