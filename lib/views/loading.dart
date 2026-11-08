@@ -144,12 +144,6 @@ class LoadingView extends StatelessWidget {
             await PeriodicService.ensureInitialized();
           },
         ),
-        (
-          'Checking for updates',
-          () async {
-            await checkVersion();
-          },
-        ),
       ],
       onComplete: (context) async {
         await Future.delayed(const Duration(milliseconds: 1));
@@ -163,6 +157,7 @@ class LoadingView extends StatelessWidget {
         if (pending != null) {
           await locate<AppLinksService>().handleLink(pending, coldStart: true);
         }
+        unawaited(checkVersion());
       },
     );
   }
