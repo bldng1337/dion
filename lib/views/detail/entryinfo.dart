@@ -75,7 +75,7 @@ class EntryInfo extends StatelessWidget {
         _buildCustomUISection(context),
         if (entry is EntryDetailed) ChapterInfo(entry: entry as EntryDetailed),
       ].whereType<Widget>().toList(),
-    ).paddingSymmetric(horizontal: 20, vertical: 12);
+    ).paddingSymmetric(horizontal: 20, vertical: DionSpacing.md);
   }
 
   Widget _buildHeaderSection(BuildContext context) {
@@ -93,7 +93,7 @@ class EntryInfo extends StatelessWidget {
             ),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(DionRadius.sm),
                 boxShadow: [
                   BoxShadow(
                     color: context.theme.colorScheme.onSurface.withValues(
@@ -112,7 +112,7 @@ class EntryInfo extends StatelessWidget {
                 boxFit: BoxFit.cover,
               ),
             ),
-          ).paddingOnly(right: 16),
+          ).paddingOnly(right: DionSpacing.lg),
 
         Expanded(
           child: Column(
@@ -154,7 +154,7 @@ class EntryInfo extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: context.theme.colorScheme.surfaceContainerHighest
                             .withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(DionRadius.sm),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -182,7 +182,7 @@ class EntryInfo extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ).paddingOnly(right: 8),
+                    ).paddingOnly(right: DionSpacing.sm),
                   ],
 
                   // Status
@@ -239,7 +239,7 @@ class EntryInfo extends StatelessWidget {
                             letterSpacing: -0.2,
                           ),
                         ),
-                      ).paddingOnly(right: 4),
+                      ).paddingOnly(right: DionSpacing.xs),
                       if (entry.views != null) ...[
                         Container(
                           width: 1,
@@ -248,7 +248,7 @@ class EntryInfo extends StatelessWidget {
                           color: context.theme.colorScheme.onSurface.withValues(
                             alpha: 0.12,
                           ),
-                        ).paddingOnly(right: 4),
+                        ).paddingOnly(right: DionSpacing.xs),
                       ],
                     ],
                     if (entry.views != null) ...[
@@ -264,7 +264,7 @@ class EntryInfo extends StatelessWidget {
                               size: 13,
                               color: context.theme.colorScheme.onSurface
                                   .withValues(alpha: 0.4),
-                            ).paddingOnly(right: 4),
+                            ).paddingOnly(right: DionSpacing.xs),
                             Text(
                               NumberFormat.compact().format(entry.views),
                               style: context.labelSmall?.copyWith(
@@ -319,7 +319,7 @@ class EntryInfo extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: chipColor.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Text(
@@ -375,7 +375,7 @@ class EntryInfo extends StatelessWidget {
           ),
         ),
       ],
-    ).paddingOnly(bottom: 24);
+    ).paddingOnly(bottom: DionSpacing.xl);
   }
 
   Widget _buildCustomUIContainer(
@@ -384,12 +384,12 @@ class EntryInfo extends StatelessWidget {
     required Extension extension,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DionSpacing.lg),
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surfaceContainerHighest.withValues(
           alpha: 0.3,
         ),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.05),
           width: 0.5,
@@ -462,10 +462,13 @@ Widget _buildWarningBox(
   FutureOr<void> Function()? onTap,
 }) {
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    padding: const EdgeInsets.symmetric(
+      horizontal: DionSpacing.md,
+      vertical: 10,
+    ),
     decoration: BoxDecoration(
       color: context.theme.colorScheme.errorContainer.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(3),
+      borderRadius: BorderRadius.circular(DionRadius.sm),
       border: Border.all(
         color: context.theme.colorScheme.error.withValues(alpha: 0.2),
         width: 0.5,
@@ -500,7 +503,7 @@ Widget _buildWarningBox(
           ),
       ],
     ),
-  ).paddingOnly(bottom: 16);
+  ).paddingOnly(bottom: DionSpacing.lg);
 }
 
 Widget isEntryDetailed({
@@ -610,7 +613,7 @@ class _ChapterInfoState extends State<ChapterInfo> {
             size: 13,
             color: context.theme.colorScheme.onSurface.withValues(alpha: 0.8),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: DionSpacing.xs),
           _metaText(context, label),
         ],
       ),
@@ -660,7 +663,7 @@ class _ChapterInfoState extends State<ChapterInfo> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _metaText(context, '•'),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DionSpacing.sm),
                     part,
                   ],
                 ),
@@ -853,7 +856,7 @@ class _LibraryButtonState extends State<_LibraryButton> {
               Icon(
                 _isInLibrary ? Icons.check_circle : Icons.add_circle_outline,
                 size: 18,
-              ).paddingOnly(right: 8),
+              ).paddingOnly(right: DionSpacing.sm),
               Text(
                 _isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY',
                 style: context.labelMedium?.copyWith(
@@ -969,7 +972,7 @@ class _EntryNoteSection extends StatelessWidget {
               onWikiLink: (target) => openWikiLink(context, entry, target),
             ),
           ],
-        ).paddingOnly(bottom: 24);
+        ).paddingOnly(bottom: DionSpacing.xl);
       },
     );
   }

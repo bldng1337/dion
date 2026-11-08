@@ -162,7 +162,7 @@ class EpisodeTile extends StatelessWidget {
               builder: (context, child) =>
                   switch (snapshot.data?.task?.taskstatus) {
                     TaskStatus.idle => Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(DionSpacing.sm),
                       child: Icon(
                         Icons.pending_outlined,
                         size: 18,
@@ -207,7 +207,7 @@ class EpisodeTile extends StatelessWidget {
                 color: context.theme.colorScheme.primary.withValues(
                   alpha: 0.15,
                 ),
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(DionRadius.sm),
               ),
               child: DionIconbutton(
                 tooltip: 'Delete Download',
@@ -248,7 +248,7 @@ class EpisodeTile extends StatelessWidget {
       child: DionContainer(
         height: height,
         color: isSelected
-            ? context.theme.colorScheme.primary.lighten(70)
+            ? context.theme.colorScheme.primary.withValues(alpha: 0.18)
             : null,
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -257,8 +257,8 @@ class EpisodeTile extends StatelessWidget {
             if (episodepath.episode.cover != null)
               ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(3),
-                  bottomLeft: Radius.circular(3),
+                  topLeft: Radius.circular(DionRadius.sm),
+                  bottomLeft: Radius.circular(DionRadius.sm),
                 ),
                 child: DionImage.fromLink(
                   link: episodepath.episode.cover,
@@ -267,7 +267,7 @@ class EpisodeTile extends StatelessWidget {
                 ),
               )
             else
-              const SizedBox(width: 16),
+              const SizedBox(width: DionSpacing.lg),
 
             Expanded(
               child: Column(
@@ -303,7 +303,7 @@ class EpisodeTile extends StatelessWidget {
                             Icons.schedule,
                             size: 12,
                             color: context.theme.colorScheme.primary,
-                          ).paddingOnly(right: 4),
+                          ).paddingOnly(right: DionSpacing.xs),
                         Text(
                           locked
                               ? (releaseTime.isAfter(DateTime.now())

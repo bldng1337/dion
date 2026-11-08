@@ -86,7 +86,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
                     color: context.theme.colorScheme.onSurface.withValues(
                       alpha: 0.3,
                     ),
-                  ).paddingOnly(bottom: 12),
+                  ).paddingOnly(bottom: DionSpacing.md),
                   Text(
                     'No saved quotes or images yet',
                     style: context.bodyLarge?.copyWith(
@@ -159,17 +159,22 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
 
   Widget _buildQuoteCard(
     BuildContext context,
-    int episodeIndex,
+    String episodeIndex,
     SavedQuote quote,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      padding: const EdgeInsets.fromLTRB(
+        14,
+        DionSpacing.md,
+        10,
+        DionSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surfaceContainerHighest.withValues(
           alpha: 0.4,
         ),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border(
           left: BorderSide(
             color: context.theme.colorScheme.primary.withValues(alpha: 0.6),
@@ -240,7 +245,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
           width: 100,
           height: 140,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
             child: DionImage(
               imageUrl: image.url,
               httpHeaders: image.headers,

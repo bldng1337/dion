@@ -295,8 +295,8 @@ class _ExtensionStorageSectionState extends State<ExtensionStorageSection>
                 onPressed: clearing || usage.cache <= 0 ? null : _clearCache,
                 child: clearing
                     ? const SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: DionSpacing.lg,
+                        height: DionSpacing.lg,
                         child: DionProgressBar(size: 14),
                       )
                     : const Text('Clear Cache'),
@@ -439,11 +439,12 @@ class _AutoAddSectionState extends State<AutoAddSection>
           'it is not attached to yet. Add it to them?',
         ),
         actions: [
-          TextButton(
+          DionTextbutton(
+            type: ButtonType.ghost,
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Not now'),
           ),
-          TextButton(
+          DionTextbutton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Add'),
           ),

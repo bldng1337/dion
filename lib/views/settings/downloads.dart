@@ -350,8 +350,8 @@ class _DownloadsSummary extends StatelessWidget {
             ),
             if (scanning)
               const SizedBox(
-                width: 16,
-                height: 16,
+                width: DionSpacing.lg,
+                height: DionSpacing.lg,
                 child: DionProgressBar(size: 16),
               ),
           ],
@@ -440,7 +440,7 @@ class _EntrySection extends StatelessWidget {
           onEnter: (_) => onHover(entry.path.path),
           child: DionContainer(
             color: selected
-                ? context.theme.colorScheme.primary.lighten(70)
+                ? context.theme.colorScheme.primary.withValues(alpha: 0.18)
                 : null,
             child: Padding(
               padding: const EdgeInsets.all(DionSpacing.sm),
@@ -567,7 +567,7 @@ class _EntrySection extends StatelessWidget {
           onEnter: (_) => onHover(ep.path.path),
           child: DionContainer(
             color: selected
-                ? context.theme.colorScheme.primary.lighten(70)
+                ? context.theme.colorScheme.primary.withValues(alpha: 0.18)
                 : null,
             child: Padding(
               padding: const EdgeInsets.symmetric(

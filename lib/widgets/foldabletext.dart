@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:flutter/material.dart';
 
 class Foldabletext extends StatefulWidget {
@@ -81,7 +82,7 @@ class _FoldabletextState extends State<Foldabletext> {
           return StatefulBuilder(
             builder: (context, setState) =>
                 AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 200),
+                  duration: DionDuration.normal,
                   crossFadeState: _isExpanded
                       ? CrossFadeState.showSecond
                       : CrossFadeState.showFirst,

@@ -11,6 +11,7 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
@@ -103,7 +104,7 @@ class _PermissionViewState extends State<PermissionView>
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const DionProgressBar().paddingAll(16);
+      return const DionProgressBar().paddingAll(DionSpacing.lg);
     }
 
     if (permissions == null || permissions!.isEmpty) {
@@ -116,7 +117,7 @@ class _PermissionViewState extends State<PermissionView>
               size: 20,
               color: context.theme.colorScheme.primary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: DionSpacing.sm),
             Text(
               'No permissions granted',
               style: context.bodyMedium?.copyWith(
@@ -124,8 +125,8 @@ class _PermissionViewState extends State<PermissionView>
               ),
             ),
           ],
-        ).paddingAll(12),
-      ).paddingSymmetric(horizontal: 16, vertical: 8);
+        ).paddingAll(DionSpacing.md),
+      ).paddingSymmetric(horizontal: DionSpacing.lg, vertical: DionSpacing.sm);
     }
 
     return Column(
@@ -136,35 +137,42 @@ class _PermissionViewState extends State<PermissionView>
           style: context.titleMedium?.copyWith(
             color: context.theme.colorScheme.primary,
           ),
-        ).paddingSymmetric(horizontal: 16, vertical: 8),
+        ).paddingSymmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.sm,
+        ),
         ...permissions!.map(
-          (permission) => DionContainer(
-            type: ContainerType.outlined,
-            child: DionListTile(
-              leading: Icon(
-                _getPermissionIcon(permission),
-                color: context.theme.colorScheme.primary,
-              ),
-              title: Text(
-                _getPermissionTitle(permission),
-                style: context.bodyMedium,
-              ),
-              subtitle: Text(
-                _getPermissionDescription(permission),
-                style: context.bodySmall?.copyWith(
-                  color: context.theme.colorScheme.onSurfaceVariant,
+          (permission) =>
+              DionContainer(
+                type: ContainerType.outlined,
+                child: DionListTile(
+                  leading: Icon(
+                    _getPermissionIcon(permission),
+                    color: context.theme.colorScheme.primary,
+                  ),
+                  title: Text(
+                    _getPermissionTitle(permission),
+                    style: context.bodyMedium,
+                  ),
+                  subtitle: Text(
+                    _getPermissionDescription(permission),
+                    style: context.bodySmall?.copyWith(
+                      color: context.theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: DionIconbutton(
+                    tooltip: 'Revoke permission',
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: context.theme.colorScheme.error,
+                    ),
+                    onPressed: () => _revokePermission(permission),
+                  ),
                 ),
+              ).paddingSymmetric(
+                horizontal: DionSpacing.lg,
+                vertical: DionSpacing.xs,
               ),
-              trailing: DionIconbutton(
-                tooltip: 'Revoke permission',
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: context.theme.colorScheme.error,
-                ),
-                onPressed: () => _revokePermission(permission),
-              ),
-            ),
-          ).paddingSymmetric(horizontal: 16, vertical: 4),
         ),
       ],
     );

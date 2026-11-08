@@ -164,7 +164,7 @@ class _CategoryPickerOverlayState extends State<_CategoryPickerOverlay>
                     constraints: BoxConstraints(maxHeight: maxHeight),
                     decoration: BoxDecoration(
                       color: context.theme.scaffoldBackgroundColor,
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(DionRadius.sm),
                       border: Border.all(
                         color: context.theme.colorScheme.onSurface.withValues(
                           alpha: 0.15,
@@ -254,7 +254,7 @@ class _CategoryPickerBodyState extends State<_CategoryPickerBody>
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4, left: 2, top: 10),
+      padding: const EdgeInsets.only(bottom: DionSpacing.xs, left: 2, top: 10),
       child: Text(
         title,
         style: context.labelSmall?.copyWith(

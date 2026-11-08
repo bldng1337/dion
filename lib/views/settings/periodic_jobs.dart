@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
@@ -10,6 +11,7 @@ import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
@@ -61,7 +63,9 @@ class _PeriodicJobsSettingsState extends State<PeriodicJobsSettings> {
           ),
           SettingTitle(
             title: 'Jobs',
-            subtitle: 'Scheduled background tasks. Tap to run now.',
+            subtitle: Platform.isWindows
+                ? 'Scheduled tasks; on Windows they run while the app is open. Tap to run now.'
+                : 'Scheduled background tasks. Tap to run now.',
             children: [
               if (jobs.isEmpty)
                 Padding(
@@ -212,7 +216,7 @@ class _JobRow extends StatelessWidget {
               child: DionProgressBar(size: 20),
             )
           else
-            IconButton(
+            DionIconbutton(
               icon: const Icon(Icons.play_arrow, size: 20),
               tooltip: 'Run now',
               onPressed: onRun,

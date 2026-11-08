@@ -521,7 +521,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                         SliverToBoxAdapter(
                           child: DionTextbutton(
                             child: const Text('Previous')
-                                .paddingSymmetric(vertical: 16),
+                                .paddingSymmetric(vertical: DionSpacing.lg),
                             onPressed: () =>
                                 widget.source.episode.goPrev(widget.supplier),
                           ),
@@ -530,7 +530,9 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                         child: EpisodeTitle(episode: widget.source.episode),
                       ),
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: DionSpacing.xxl,
+                        ),
                         sliver: SuperSliverList.builder(
                           listController: listController,
                           itemBuilder: (context, index) =>
@@ -542,7 +544,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
                         SliverToBoxAdapter(
                           child: DionTextbutton(
                             child: const Text('Next')
-                                .paddingSymmetric(vertical: 16),
+                                .paddingSymmetric(vertical: DionSpacing.lg),
                             onPressed: () =>
                                 widget.source.episode.goNext(widget.supplier),
                           ),

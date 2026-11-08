@@ -13,6 +13,7 @@ import 'package:dionysos/service/extension.dart'
         MainAxisSize,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -135,11 +136,11 @@ class Card extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       clipBehavior: Clip.antiAliasWithSaveLayer,
-      borderRadius: BorderRadius.circular(3),
+      borderRadius: BorderRadius.circular(DionRadius.sm),
       child: onTap != null
           ? Clickable(onTap: onTap, child: buildCard(context))
           : buildCard(context),
-    ).paddingAll(4);
+    ).paddingAll(DionSpacing.xs);
   }
 }
 

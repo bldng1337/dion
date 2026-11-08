@@ -15,7 +15,10 @@ import 'package:dionysos/utils/version.dart';
 import 'package:dionysos/views/extension/extension_meta.dart';
 import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/widgets/dialog.dart';
+import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
@@ -25,17 +28,7 @@ import 'package:dionysos/widgets/tabbar.dart';
 import 'package:dionysos/widgets/text_scroll.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart'
-    show
-        AlertDialog,
-        Colors,
-        ConstrainedBox,
-        FilterChip,
-        Icons,
-        InputDecoration,
-        TextButton,
-        TextField,
-        Tooltip,
-        showDialog;
+    show ConstrainedBox, FilterChip, Icons, Tooltip, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
@@ -329,7 +322,7 @@ class _ExtensionListState extends State<ExtensionList>
                                                     .theme
                                                     .colorScheme
                                                     .primary
-                                              : Colors.grey,
+                                              : context.textTertiary,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -364,7 +357,7 @@ class _ExtensionListState extends State<ExtensionList>
                                       Text(
                                         'Update available: v${update.version}',
                                         style: const TextStyle(
-                                          color: Colors.green,
+                                          color: DionColors.success,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -378,7 +371,7 @@ class _ExtensionListState extends State<ExtensionList>
                                         tooltip: 'Update',
                                         icon: const Icon(
                                           Icons.system_update_alt,
-                                          color: Colors.green,
+                                          color: DionColors.success,
                                         ),
                                         onPressed: () async {
                                           await update.install();
@@ -389,7 +382,7 @@ class _ExtensionListState extends State<ExtensionList>
                                       tooltip: 'Uninstall',
                                       icon: const Icon(
                                         Icons.delete_outline,
-                                        color: Colors.red,
+                                        color: DionColors.error,
                                       ),
                                       onPressed: () => sourceExt.uninstall(ext),
                                     ),
@@ -581,8 +574,8 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('No repositories configured'),
-            const SizedBox(height: 16),
-            TextButton(
+            const SizedBox(height: DionSpacing.lg),
+            DionTextbutton(
               // The repositories listener on this state re-resolves when the
               // dialog adds a repo, so nothing else is needed here.
               onPressed: () => showAddRepositoryDialog(context),
@@ -896,7 +889,7 @@ class RemoteExtensionTile extends StatelessWidget {
                     }
                   },
                 )
-              : const Icon(Icons.check, color: Colors.green),
+              : const Icon(Icons.check, color: DionColors.success),
         );
       },
     );
@@ -923,21 +916,22 @@ class _AddRepositoryDialogState extends State<_AddRepositoryDialog>
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return DionAlertDialog(
       title: const Text('Add Repository'),
-      content: TextField(
+      content: DionTextbox(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(hintText: 'https://...'),
+        hintText: 'https://...',
         onChanged: (_) => setState(() {}),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
-        TextButton(
+        DionTextbutton(
+          type: ButtonType.ghost,
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        TextButton(
+        DionTextbutton(
           onPressed: _controller.text.trim().isEmpty ? null : _submit,
           child: const Text('Add'),
         ),

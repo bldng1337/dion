@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:flutter/cupertino.dart';
 
 enum ContainerType { ghost, filled, outlined }
@@ -35,7 +36,7 @@ class DionContainer extends StatelessWidget {
             (type == ContainerType.filled
                 ? context.theme.colorScheme.primary.lighten(20)
                 : null),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color:
               borderColor ??

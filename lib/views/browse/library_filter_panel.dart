@@ -2,6 +2,7 @@ import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/extension.dart'
     hide
+        ButtonType,
         ContainerType,
         CrossAxisAlignment,
         EdgeInsets,
@@ -9,8 +10,11 @@ import 'package:dionysos/service/extension.dart'
         MainAxisSize,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/drawer.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:flutter/material.dart';
@@ -78,7 +82,7 @@ class _LibraryFilterPanelState extends State<_LibraryFilterPanel> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DionSpacing.lg),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -92,20 +96,21 @@ class _LibraryFilterPanelState extends State<_LibraryFilterPanel> {
                 ),
                 const Spacer(),
                 if (_filters.isActive || _sort.isActive)
-                  TextButton(
+                  DionTextbutton(
+                    type: ButtonType.ghost,
                     onPressed: () {
                       _setFilters(LibraryFilters.empty);
                       _setSort(const LibrarySort());
                     },
                     child: const Text('Reset'),
                   ),
-                TextButton(
+                DionTextbutton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Done'),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DionSpacing.sm),
             _SortSection(sort: _sort, onChanged: _setSort),
             const _Divider(),
             _FilterSection(
@@ -221,13 +226,13 @@ class _SortSection extends StatelessWidget {
               ),
             ),
             if (sort.key != LibrarySortKey.none)
-              IconButton(
+              DionIconbutton(
                 tooltip: sort.descending ? 'Descending' : 'Ascending',
                 onPressed: () =>
                     onChanged(sort.copyWith(descending: !sort.descending)),
                 icon: Icon(
                   sort.descending ? Icons.south : Icons.north,
-                  color: Colors.grey,
+                  color: context.textTertiary,
                 ),
               ),
           ],
@@ -246,12 +251,12 @@ class _FilterSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: DionSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
+          const SizedBox(height: DionSpacing.xs),
           Wrap(spacing: 6, children: chips),
         ],
       ),

@@ -842,7 +842,7 @@ class _DynamicListState<T> extends State<DynamicList<T>>
                   'No results found',
                   style: context.textTheme.bodyLarge,
                 ),
-              ).paddingAll(16),
+              ).paddingAll(DionSpacing.lg),
             ),
           )
         else if (widget.controller.items.isEmpty && widget.controller.loading)
@@ -984,7 +984,7 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
                 'No results found',
                 style: context.textTheme.bodyLarge,
               ),
-            ).paddingAll(16),
+            ).paddingAll(DionSpacing.lg),
           )
         else if (items.isEmpty && widget.controller.loading)
           const Center(child: CircularProgressIndicator())

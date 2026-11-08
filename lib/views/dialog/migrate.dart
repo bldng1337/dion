@@ -28,12 +28,12 @@ import 'package:dionysos/widgets/container/card.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
-import 'package:flutter/material.dart'
-    show Colors, Icons, ScaffoldMessenger, SnackBar, showDialog;
+import 'package:flutter/material.dart' show Colors, Icons, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
@@ -217,8 +217,7 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
     } catch (e, stack) {
       logger.e('Migration failed', error: e, stackTrace: stack);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Migration failed: $e')));
+        showErrorPopup(context, e: e, s: stack);
       }
     } finally {
       if (mounted) setState(() => loading = false);
@@ -253,8 +252,8 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
                 autofocus: true,
                 style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
                 keyboardType: TextInputType.text,
-                hintStyle: const WidgetStatePropertyAll(
-                  TextStyle(color: Colors.grey),
+                hintStyle: WidgetStatePropertyAll(
+                  TextStyle(color: context.textTertiary),
                 ),
                 onSubmitted: runSearch,
               ).paddingAll(5),
@@ -286,7 +285,10 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
 
   Widget _buildSourceHeader(BuildContext context, EntrySaved source) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.lg,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -299,7 +301,7 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
         children: [
           if (source.cover?.url != null)
             ClipRRect(
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(DionRadius.sm),
               child: DionImage(
                 imageUrl: source.cover!.url,
                 httpHeaders: source.cover?.header,
@@ -307,7 +309,7 @@ class _MigrateEntryPageState extends State<MigrateEntryPage>
                 height: 56,
                 boxFit: BoxFit.cover,
               ),
-            ).paddingOnly(right: 12),
+            ).paddingOnly(right: DionSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,7 +400,7 @@ class _MigrateConfirmDialog extends StatelessWidget {
                 style: context.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
-              ).paddingOnly(bottom: 16),
+              ).paddingOnly(bottom: DionSpacing.lg),
               Row(
                 children: [
                   Expanded(
@@ -412,7 +414,9 @@ class _MigrateConfirmDialog extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DionSpacing.sm,
+                    ),
                     child: Icon(
                       Icons.arrow_forward,
                       color: context.theme.colorScheme.onSurface.withValues(
@@ -462,7 +466,7 @@ class _MigrateConfirmDialog extends StatelessWidget {
                     type: ButtonType.ghost,
                     onPressed: () => Navigator.of(context).pop(false),
                     child: const Text('Cancel'),
-                  ).paddingOnly(right: 8),
+                  ).paddingOnly(right: DionSpacing.sm),
                   DionTextbutton(
                     onPressed: () => Navigator.of(context).pop(true),
                     child: const Text('Migrate'),
@@ -504,10 +508,10 @@ class _EntryPreview extends StatelessWidget {
             fontSize: 10,
             color: context.theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
-        ).paddingOnly(bottom: 4),
+        ).paddingOnly(bottom: DionSpacing.xs),
         if (cover?.url != null)
           ClipRRect(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
             child: DionImage(
               imageUrl: cover!.url,
               httpHeaders: cover?.header,
@@ -559,7 +563,11 @@ class _Notice extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: color).paddingOnly(right: 8, top: 1),
+        Icon(
+          icon,
+          size: 18,
+          color: color,
+        ).paddingOnly(right: DionSpacing.sm, top: 1),
         Expanded(
           child: Text(
             text,

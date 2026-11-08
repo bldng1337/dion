@@ -70,14 +70,6 @@ class _MaterialTabBarState extends State<MaterialTabBar>
 
   void createController() {
     controller = TabController(length: tabcount, vsync: this);
-    controller.addListener(() {
-      // if (controller.index == tabcount - 1 && widget.trailing != null) {
-      //   controller.offset = 0;
-      //   final safeIndex = (tabcount - 2).clamp(0, tabcount - 2);
-      //   controller.index = safeIndex;
-      //   controller.animateTo(safeIndex);
-      // }
-    });
   }
 
   @override

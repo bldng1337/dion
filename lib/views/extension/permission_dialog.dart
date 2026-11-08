@@ -76,7 +76,7 @@ class PermissionRequestDialog extends StatelessWidget {
       ),
       Permission_ArbitraryNetwork() => Text(
         'This extension wants unrestricted network access to any domain.',
-        style: context.bodyMedium?.copyWith(color: Colors.orange),
+        style: context.bodyMedium?.copyWith(color: DionColors.warning),
       ),
     };
   }
@@ -91,7 +91,7 @@ class PermissionRequestDialog extends StatelessWidget {
       title: Row(
         children: [
           Icon(_getPermissionIcon(), size: 24),
-          const SizedBox(width: 8),
+          const SizedBox(width: DionSpacing.sm),
           Text('Permission Request', style: context.titleLarge),
         ],
       ),
@@ -111,7 +111,7 @@ class PermissionRequestDialog extends StatelessWidget {
                     width: 48,
                     height: 48,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DionSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,9 +129,9 @@ class PermissionRequestDialog extends StatelessWidget {
                     ),
                   ),
                 ],
-              ).paddingAll(12),
+              ).paddingAll(DionSpacing.md),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DionSpacing.lg),
 
             // Permission type
             Text(
@@ -140,14 +140,14 @@ class PermissionRequestDialog extends StatelessWidget {
                 color: context.theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DionSpacing.sm),
 
             // Permission details
             _buildPermissionDetails(context),
 
             // Optional message from extension
             if (message != null && message!.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: DionSpacing.lg),
               DionContainer(
                 type: ContainerType.filled,
                 color: context.theme.colorScheme.surfaceContainerHighest,
@@ -159,7 +159,7 @@ class PermissionRequestDialog extends StatelessWidget {
                       size: 18,
                       color: context.theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DionSpacing.sm),
                     Expanded(
                       child: Text(
                         message!,
@@ -169,7 +169,7 @@ class PermissionRequestDialog extends StatelessWidget {
                       ),
                     ),
                   ],
-                ).paddingAll(12),
+                ).paddingAll(DionSpacing.md),
               ),
             ],
           ],
@@ -257,7 +257,7 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
       ),
       Permission_ArbitraryNetwork() => Text(
         'Can access any network domain',
-        style: context.bodySmall?.copyWith(color: Colors.orange),
+        style: context.bodySmall?.copyWith(color: DionColors.warning),
       ),
     };
   }
@@ -268,7 +268,7 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
       title: Row(
         children: [
           const Icon(Icons.security, size: 24),
-          const SizedBox(width: 8),
+          const SizedBox(width: DionSpacing.sm),
           Text('Permissions Requested', style: context.titleLarge),
         ],
       ),
@@ -283,14 +283,14 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 48,
-                    height: 48,
+                    width: DionSpacing.xxxl,
+                    height: DionSpacing.xxxl,
                     child: DionImage.fromLink(
                       link: extension.cover,
                       errorWidget: const Icon(Icons.extension),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: DionSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,16 +305,16 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
                     ),
                   ),
                 ],
-              ).paddingAll(12),
+              ).paddingAll(DionSpacing.md),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DionSpacing.lg),
             Text(
               'This extension declares the following permissions. '
               'They are granted on install and can be revoked later '
               "in the extension's permission settings.",
               style: context.bodyMedium,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: DionSpacing.md),
             ...extension.permissions!.map(
               (permission) => DionContainer(
                 type: ContainerType.outlined,
@@ -325,7 +325,7 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
                       size: 20,
                       color: context.theme.colorScheme.primary,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: DionSpacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,8 +339,8 @@ class ExtensionInstallConsentDialog extends StatelessWidget {
                       ),
                     ),
                   ],
-                ).paddingAll(12),
-              ).paddingSymmetric(vertical: 4),
+                ).paddingAll(DionSpacing.md),
+              ).paddingSymmetric(vertical: DionSpacing.xs),
             ),
           ],
         ),
@@ -371,7 +371,7 @@ Future<bool> showExtensionLinkInstallDialog(
   final confirmed = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => AlertDialog(
+    builder: (context) => DionAlertDialog(
       title: const Text('Install extension?'),
       content: Text('dion will download and install an extension from:\n$url'),
       actions: [

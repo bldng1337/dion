@@ -46,7 +46,12 @@ class DateHeader implements IRenderable {
   @override
   Widget render(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 8),
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        DionSpacing.xxl,
+        20,
+        DionSpacing.sm,
+      ),
       child: Row(
         children: [
           Text(
@@ -70,7 +75,7 @@ class DateHeader implements IRenderable {
                       Icons.timelapse,
                       size: 13,
                       color: context.theme.colorScheme.onSurfaceVariant,
-                    ).paddingOnly(right: 4),
+                    ).paddingOnly(right: DionSpacing.xs),
                     Text(
                       duration.formatrelative(),
                       style: context.labelSmall?.copyWith(
@@ -130,9 +135,12 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
     };
     if (extension == null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.xs,
+        ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(DionRadius.sm),
           child: DionContainer(
             color: context.theme.colorScheme.surfaceContainer,
             child: Row(
@@ -144,7 +152,12 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                 // Content
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    padding: const EdgeInsets.fromLTRB(
+                      14,
+                      14,
+                      14,
+                      DionSpacing.md,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -189,13 +202,16 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DionSpacing.lg,
+        vertical: 5,
+      ),
       child: Clickable(
         onTap: () {
           context.push('/detail', extra: [entry]);
         },
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(DionRadius.sm),
           child: DionContainer(
             color: context.theme.colorScheme.surfaceContainer,
             child: Row(
@@ -207,7 +223,12 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                 // Content
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    padding: const EdgeInsets.fromLTRB(
+                      14,
+                      14,
+                      14,
+                      DionSpacing.md,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -282,7 +303,7 @@ class _ActivityCover extends StatelessWidget {
                 entry.mediaType.icon,
                 size: 11,
                 color: context.theme.colorScheme.onSurface,
-              ).paddingAll(4),
+              ).paddingAll(DionSpacing.xs),
             ),
           ),
         ],

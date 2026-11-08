@@ -15,6 +15,7 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
@@ -227,10 +228,10 @@ class _SettingsPopupState extends State<SettingsPopup>
       constraints: const BoxConstraints(maxWidth: 600),
       decoration: BoxDecoration(
         color: context.theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -245,35 +246,35 @@ class _SettingsPopupState extends State<SettingsPopup>
                     if (controller != null) ...[
                       _buildSectionHeader(context, 'CATEGORIES'),
                       _buildCategorySection(context),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: DionSpacing.xl),
                     ],
                     _buildSectionHeader(context, 'EPISODES'),
                     _buildEpisodesSection(context),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: DionSpacing.xl),
                     _buildSectionHeader(context, 'DOWNLOADS'),
                     _buildDownloadsSection(context),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: DionSpacing.xl),
                     _buildSectionHeader(context, 'TEXT REPLACEMENT'),
                     _buildReplacementSection(context),
                     if (extsettings.isNotEmpty) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: DionSpacing.xl),
                       _buildSectionHeader(context, 'EXTENSION'),
                       _buildExtensionSection(context),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: DionSpacing.xl),
                     _buildSectionHeader(context, 'ENTRY EXTENSIONS'),
                     _buildEntryExtensionsSection(
                       context,
                       availableEntryExtensions,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: DionSpacing.xl),
                     _buildSectionHeader(context, 'SOURCE EXTENSIONS'),
                     _buildSourceExtensionsSection(
                       context,
                       availableSourceExtensions,
                     ),
                     if (kDebugMode) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: DionSpacing.xl),
                       _buildSectionHeader(context, 'DEBUG'),
                       Text(
                         'Uid: ${widget.entry.id.uid} ${widget.entry.id.uid.length}',
@@ -332,7 +333,7 @@ class _SettingsPopupState extends State<SettingsPopup>
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 2),
+      padding: const EdgeInsets.only(bottom: DionSpacing.md, left: 2),
       child: Text(
         title,
         style: context.labelSmall?.copyWith(
@@ -347,10 +348,10 @@ class _SettingsPopupState extends State<SettingsPopup>
 
   Widget _buildCategorySection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(DionSpacing.md),
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
           width: 0.5,
@@ -375,7 +376,7 @@ class _SettingsPopupState extends State<SettingsPopup>
     return Container(
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
           width: 0.5,
@@ -406,7 +407,7 @@ class _SettingsPopupState extends State<SettingsPopup>
     return Container(
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
           width: 0.5,
@@ -434,7 +435,7 @@ class _SettingsPopupState extends State<SettingsPopup>
     return Container(
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
           width: 0.5,
@@ -450,7 +451,7 @@ class _SettingsPopupState extends State<SettingsPopup>
     return Container(
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
           width: 0.5,
@@ -474,7 +475,7 @@ class _SettingsPopupState extends State<SettingsPopup>
     return Container(
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
           width: 0.5,
@@ -485,7 +486,7 @@ class _SettingsPopupState extends State<SettingsPopup>
         children: [
           if (widget.entry.entryExtensions.isEmpty)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(DionSpacing.lg),
               child: Text(
                 'No entry extensions added',
                 style: context.bodyMedium?.copyWith(
@@ -527,7 +528,7 @@ class _SettingsPopupState extends State<SettingsPopup>
     return Container(
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
         border: Border.all(
           color: context.theme.colorScheme.onSurface.withValues(alpha: 0.06),
           width: 0.5,
@@ -538,7 +539,7 @@ class _SettingsPopupState extends State<SettingsPopup>
         children: [
           if (widget.entry.sourceExtensions.isEmpty)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(DionSpacing.lg),
               child: Text(
                 'No source extensions added',
                 style: context.bodyMedium?.copyWith(
@@ -620,7 +621,10 @@ class _SettingsPopupState extends State<SettingsPopup>
         if (settings.isNotEmpty) ...[
           _buildDivider(context),
           Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 8),
+            padding: const EdgeInsets.only(
+              left: DionSpacing.lg,
+              bottom: DionSpacing.sm,
+            ),
             child: Text(
               'Settings from $extensionName',
               style: context.labelSmall?.copyWith(
@@ -677,7 +681,10 @@ class _SettingsPopupState extends State<SettingsPopup>
         if (settings.isNotEmpty) ...[
           _buildDivider(context),
           Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 8),
+            padding: const EdgeInsets.only(
+              left: DionSpacing.lg,
+              bottom: DionSpacing.sm,
+            ),
             child: Text(
               'Settings from $extensionName',
               style: context.labelSmall?.copyWith(
@@ -707,7 +714,7 @@ class _SettingsPopupState extends State<SettingsPopup>
 
     return StatefulBuilder(
       builder: (context, setLocalState) => Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(DionSpacing.md),
         child: Row(
           children: [
             Expanded(
@@ -727,7 +734,7 @@ class _SettingsPopupState extends State<SettingsPopup>
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: DionSpacing.sm),
             DionIconbutton(
               tooltip: 'Add Extension',
               icon: const Icon(Icons.add),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
 import 'package:flutter/cupertino.dart';
@@ -28,7 +29,9 @@ class Togglebutton extends StatelessWidget {
       // Keep the tappable area at an accessible size even for small icons.
       minimumSize: const WidgetStatePropertyAll(Size(40, 40)),
       shape: WidgetStateProperty.all(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DionRadius.sm),
+        ),
       ),
       overlayColor: WidgetStateProperty.resolveWith((states) {
         return context.theme.colorScheme.primary.withValues(alpha: 0.1);
@@ -93,12 +96,15 @@ class Togglebutton extends StatelessWidget {
                   ? CupertinoColors.systemGrey
                   : CupertinoColors.systemGrey4,
             ),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
             color: selected
                 ? CupertinoColors.systemGrey.withValues(alpha: 0.1)
                 : CupertinoColors.systemGrey6,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DionSpacing.md,
+            vertical: DionSpacing.sm,
+          ),
           child: Icon(
             selected ? CupertinoIcons.checkmark_square : CupertinoIcons.square,
             color: selected

@@ -16,6 +16,7 @@ import 'package:dionysos/service/extension.dart'
         TextStyle,
         WrapAlignment;
 import 'package:dionysos/utils/autoadd.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -168,7 +169,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
           _buildExtensionRow(context, ext, attachedIds),
         if (!hasRows)
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(DionSpacing.md),
             child: Text(
               'No extensions available',
               style: context.bodyMedium?.copyWith(
@@ -191,7 +192,10 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
     return InkWell(
       onTap: () => _toggleId(attachedIds, ext.id),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DionSpacing.sm,
+          vertical: 2,
+        ),
         child: Row(
           children: [
             Checkbox(
@@ -203,7 +207,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
             Expanded(child: Text(ext.name, style: context.bodyMedium)),
             if (_autoIds.contains(ext.id))
               DionBadge(child: Text('auto', style: context.bodySmall))
-                  .paddingOnly(right: 4),
+                  .paddingOnly(right: DionSpacing.xs),
           ],
         ),
       ),
@@ -218,7 +222,10 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
     return InkWell(
       onTap: () => _toggleId(attachedIds, id),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DionSpacing.sm,
+          vertical: 2,
+        ),
         child: Row(
           children: [
             Checkbox(
@@ -249,7 +256,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4, left: 2, top: 10),
+      padding: const EdgeInsets.only(bottom: DionSpacing.xs, left: 2, top: 10),
       child: Text(
         title,
         style: context.labelSmall?.copyWith(
@@ -292,14 +299,14 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return const Padding(
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(DionSpacing.md),
                 child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
               );
             }
             final categories = snapshot.data!;
             if (categories.isEmpty) {
               return Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(DionSpacing.md),
                 child: Text(
                   'No categories yet',
                   style: context.bodyMedium?.copyWith(
@@ -323,7 +330,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
                     }),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: DionSpacing.sm,
                         vertical: 2,
                       ),
                       child: Row(
@@ -352,7 +359,11 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
         ),
         _buildSectionHeader(context, 'NEW CATEGORY'),
         Padding(
-          padding: const EdgeInsets.only(left: 8, right: 8, bottom: 4),
+          padding: const EdgeInsets.only(
+            left: DionSpacing.sm,
+            right: DionSpacing.sm,
+            bottom: DionSpacing.xs,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -362,7 +373,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
                   onSubmitted: (_) => _addCategory(),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: DionSpacing.sm),
               DionIconbutton(
                 tooltip: 'Add Category',
                 icon: const Icon(Icons.add),
@@ -434,7 +445,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
                     constraints: BoxConstraints(maxHeight: maxHeight),
                     decoration: BoxDecoration(
                       color: context.theme.scaffoldBackgroundColor,
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(DionRadius.sm),
                       border: Border.all(
                         color: context.theme.colorScheme.onSurface.withValues(
                           alpha: 0.15,
@@ -455,7 +466,12 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                          padding: const EdgeInsets.fromLTRB(
+                            DionSpacing.md,
+                            DionSpacing.md,
+                            DionSpacing.md,
+                            0,
+                          ),
                           child: Row(
                             children: [
                               Expanded(
@@ -469,7 +485,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
                                   child: const Text('EXTENSIONS'),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: DionSpacing.sm),
                               Expanded(
                                 child: DionTextbutton(
                                   type: !_extensionsTab
@@ -486,14 +502,19 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
                         ),
                         Flexible(
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(DionSpacing.md),
                             child: _extensionsTab
                                 ? _buildExtensionsTab(context)
                                 : _buildCategoriesTab(context),
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          padding: const EdgeInsets.fromLTRB(
+                            DionSpacing.md,
+                            0,
+                            DionSpacing.md,
+                            DionSpacing.md,
+                          ),
                           child: Row(
                             children: [
                               Expanded(
@@ -503,7 +524,7 @@ class _LibrarySaveSheetState extends State<LibrarySaveSheet>
                                   child: const Text('CANCEL'),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: DionSpacing.sm),
                               Expanded(
                                 child: DionTextbutton(
                                   onPressed: () => widget.onCommit(

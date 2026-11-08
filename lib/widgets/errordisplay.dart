@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
@@ -89,12 +90,12 @@ void showErrorPopup(
                       Icons.report_problem,
                       color: context.theme.colorScheme.error,
                       size: 20,
-                    ).paddingOnly(right: 8),
+                    ).paddingOnly(right: DionSpacing.sm),
                     Expanded(
                       child: Text(errorText(e), style: context.titleMedium),
                     ),
                   ],
-                ).paddingOnly(bottom: 12),
+                ).paddingOnly(bottom: DionSpacing.md),
                 if (s != null)
                   Text(
                     s.toString(),
@@ -103,10 +104,10 @@ void showErrorPopup(
                         alpha: 0.7,
                       ),
                     ),
-                  ).paddingOnly(bottom: 12),
+                  ).paddingOnly(bottom: DionSpacing.md),
               ],
             ),
-          ).paddingOnly(bottom: 12).expanded(),
+          ).paddingOnly(bottom: DionSpacing.md).expanded(),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -114,7 +115,7 @@ void showErrorPopup(
                 type: ButtonType.ghost,
                 onPressed: () => context.pop(),
                 child: const Text('Ok'),
-              ).paddingOnly(right: 8),
+              ).paddingOnly(right: DionSpacing.sm),
               DionTextbutton(
                 child: const Text('Copy Error'),
                 onPressed: () {
@@ -124,7 +125,7 @@ void showErrorPopup(
                     }
                   });
                 },
-              ).paddingOnly(right: 8),
+              ).paddingOnly(right: DionSpacing.sm),
               ...?actions?.map(
                 (action) => DionTextbutton(
                   onPressed: action.onTap,
@@ -134,7 +135,7 @@ void showErrorPopup(
             ],
           ),
         ],
-      ).paddingAll(16),
+      ).paddingAll(DionSpacing.lg),
     ),
   );
 }
@@ -217,7 +218,7 @@ class ErrorDisplay extends StatelessWidget {
                     ),
                   ),
                 ],
-              ).paddingSymmetric(horizontal: 8, vertical: 6),
+              ).paddingSymmetric(horizontal: DionSpacing.sm, vertical: 6),
             ),
           );
         }
@@ -248,7 +249,7 @@ class ErrorDisplay extends StatelessWidget {
                           Icons.report_problem,
                           color: context.theme.colorScheme.error,
                           size: 20,
-                        ).paddingOnly(right: 8),
+                        ).paddingOnly(right: DionSpacing.sm),
                         Flexible(
                           child: Text(
                             getErrorMessage(),
@@ -257,12 +258,12 @@ class ErrorDisplay extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ).paddingSymmetric(horizontal: 8, vertical: 6),
+                    ).paddingSymmetric(horizontal: DionSpacing.sm, vertical: 6),
                     if (s != null && maxHeight > 120)
                       Padding(
                         padding: const EdgeInsets.only(
                           left: 36,
-                          right: 8,
+                          right: DionSpacing.sm,
                           bottom: 6,
                         ),
                         child: Text(
@@ -279,7 +280,9 @@ class ErrorDisplay extends StatelessWidget {
                       ),
                     if (actions != null)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DionSpacing.sm,
+                        ),
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 4,

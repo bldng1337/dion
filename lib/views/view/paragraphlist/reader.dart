@@ -19,6 +19,7 @@ import 'package:dionysos/service/extension.dart'
         TextStyle,
         WrapAlignment;
 import 'package:dionysos/utils/async.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/dialog/text_replacement.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
@@ -461,7 +462,7 @@ class ReaderRenderParagraph extends StatelessWidget {
                 children: [
                   for (final cell in row.cells)
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(DionSpacing.sm),
                       child: ReaderRenderParagraph(
                         cell,
                         extension,
@@ -499,7 +500,11 @@ class EpisodeTitle extends StatelessWidget {
           height: 1.1,
         );
         final title = Container(
-          padding: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+          padding: const EdgeInsets.only(
+            bottom: 20,
+            left: DionSpacing.lg,
+            right: DionSpacing.lg,
+          ),
           alignment: Alignment.center,
           child: Text(
             episode.name,
@@ -538,8 +543,8 @@ class EpisodeTitle extends StatelessWidget {
           final titleOnImage = Container(
             padding: const EdgeInsets.only(
               bottom: 60,
-              left: 16,
-              right: 16,
+              left: DionSpacing.lg,
+              right: DionSpacing.lg,
               top: 30,
             ),
             alignment: Alignment.center,
@@ -711,7 +716,7 @@ InlineSpan wrapMixedContent(
                 children: [
                   for (final cell in row.cells)
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(DionSpacing.sm),
                       child: ReaderRenderParagraph(
                         cell,
                         extension,

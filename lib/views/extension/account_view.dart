@@ -10,6 +10,7 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/container/container.dart';
@@ -34,7 +35,7 @@ class AccountsView extends StatelessWidget {
               size: 20,
               color: context.theme.colorScheme.primary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: DionSpacing.sm),
             Text(
               'No accounts configured',
               style: context.bodyMedium?.copyWith(
@@ -42,8 +43,8 @@ class AccountsView extends StatelessWidget {
               ),
             ),
           ],
-        ).paddingAll(12),
-      ).paddingSymmetric(horizontal: 16, vertical: 8);
+        ).paddingAll(DionSpacing.md),
+      ).paddingSymmetric(horizontal: DionSpacing.lg, vertical: DionSpacing.sm);
     }
 
     return Column(
@@ -54,7 +55,10 @@ class AccountsView extends StatelessWidget {
           style: context.titleMedium?.copyWith(
             color: context.theme.colorScheme.primary,
           ),
-        ).paddingSymmetric(horizontal: 16, vertical: 8),
+        ).paddingSymmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.sm,
+        ),
         ...extension.accounts.map((account) => _AccountTile(account: account)),
       ],
     );
@@ -124,7 +128,7 @@ class _AccountTile extends StatelessWidget {
                           ? context.theme.colorScheme.primary
                           : context.theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: DionSpacing.xs),
                     Text(
                       isLoggedIn ? 'Logged in' : 'Not logged in',
                       style: context.bodySmall?.copyWith(
@@ -145,7 +149,10 @@ class _AccountTile extends StatelessWidget {
                   isLoggedIn ? _logoutAccount() : _authenticateAccount(context),
             ),
           ),
-        ).paddingSymmetric(horizontal: 16, vertical: 4);
+        ).paddingSymmetric(
+          horizontal: DionSpacing.lg,
+          vertical: DionSpacing.xs,
+        );
       },
     );
   }

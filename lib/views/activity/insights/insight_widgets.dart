@@ -148,7 +148,7 @@ class InsightHero extends StatelessWidget {
               style: DionTypography.displayLarge(color).copyWith(fontSize: 26),
             ),
             if (unit != null) ...[
-              const SizedBox(width: 4),
+              const SizedBox(width: DionSpacing.xs),
               Text(
                 unit!,
                 style: DionTypography.titleMedium(

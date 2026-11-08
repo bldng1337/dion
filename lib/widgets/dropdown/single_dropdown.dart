@@ -228,7 +228,7 @@ class _DionDropdownSheetRow<T> extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 24,
+                  width: DionSpacing.xl,
                   child: selected
                       ? Icon(
                           Icons.check,

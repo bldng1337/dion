@@ -1,6 +1,7 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/activity/entry_duration.dart';
 import 'package:dionysos/data/entry/entry.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/container/container.dart';
@@ -154,7 +155,7 @@ class _CoverFallback extends StatelessWidget {
       alignment: Alignment.center,
       child: FittedBox(
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(DionSpacing.sm),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -166,7 +167,7 @@ class _CoverFallback extends StatelessWidget {
                   color: context.theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DionSpacing.xs),
               Icon(
                 entry.mediaType.icon,
                 size: 18,
@@ -190,7 +191,12 @@ class ActivityTreemapPanel extends StatelessWidget {
     return DionContainer(
       color: context.theme.colorScheme.surfaceContainer,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        padding: const EdgeInsets.fromLTRB(
+          DionSpacing.lg,
+          DionSpacing.md,
+          DionSpacing.lg,
+          DionSpacing.md,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -201,7 +207,7 @@ class ActivityTreemapPanel extends StatelessWidget {
                 letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DionSpacing.xs),
             Expanded(child: ActivityTreemap(entries: entries)),
           ],
         ),

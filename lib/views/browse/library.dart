@@ -212,8 +212,8 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
               hintText: 'Search library',
               style: const WidgetStatePropertyAll(TextStyle(fontSize: 20)),
               keyboardType: TextInputType.text,
-              hintStyle: const WidgetStatePropertyAll(
-                TextStyle(color: Colors.grey),
+              hintStyle: WidgetStatePropertyAll(
+                TextStyle(color: context.textTertiary),
               ),
               onChanged: _onSearchChanged,
               onSubmitted: _runSearch,
@@ -390,7 +390,7 @@ class _CountBadge extends StatelessWidget {
     final value = count;
     final visible = value != null && value > 0;
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: DionDuration.normal,
       child: visible
           ? Container(
               key: const ValueKey(true),
@@ -401,7 +401,7 @@ class _CountBadge extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: _hPad),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: context.theme.primaryColor,
+                color: context.theme.colorScheme.primary,
                 borderRadius: DionRadius.small,
               ),
               child: Text(

@@ -421,7 +421,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                                     return const SizedBox.shrink();
                                   }
                                   return SizedBox(
-                                    width: 24,
+                                    width: DionSpacing.xl,
                                     height: 2,
                                     child: DionProgressBar(
                                       type: DionProgressType.linear,
@@ -482,7 +482,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                   SliverToBoxAdapter(
                     child: DionTextbutton(
                       child: const Text('Previous')
-                          .paddingSymmetric(vertical: 16),
+                          .paddingSymmetric(vertical: DionSpacing.lg),
                       onPressed: () =>
                           widget.source.episode.goPrev(widget.supplier),
                     ),

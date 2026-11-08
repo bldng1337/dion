@@ -14,20 +14,16 @@ import 'package:dionysos/service/extension.dart'
         TextStyle,
         WrapAlignment;
 import 'package:dionysos/service/network.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:flutter/material.dart'
-    show
-        Dialog,
-        FocusNode,
-        IconButton,
-        Icons,
-        LinearProgressIndicator,
-        TextInputType;
+    show Dialog, FocusNode, Icons, LinearProgressIndicator, TextInputType;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -91,9 +87,9 @@ class _ApiKeyAuthDialogState extends State<ApiKeyAuthDialog>
               'Enter your API key for ${widget.account.extension.name}',
               style: context.bodyMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DionSpacing.sm),
             Text('Domain: ${widget.account.domain}', style: context.bodyMedium),
-            const SizedBox(height: 16),
+            const SizedBox(height: DionSpacing.lg),
             DionTextbox(
               controller: _apiKeyController,
               autofocus: true,
@@ -101,7 +97,7 @@ class _ApiKeyAuthDialogState extends State<ApiKeyAuthDialog>
               onSubmitted: (_) => _handleSubmit(),
             ),
             if (_error != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: DionSpacing.sm),
               Text(
                 _error!,
                 style: context.bodySmall?.copyWith(
@@ -171,20 +167,20 @@ class _UserPassAuthDialogState extends State<UserPassAuthDialog>
               'Login to ${widget.account.extension.name}',
               style: context.bodyMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DionSpacing.sm),
             Text('Domain: ${widget.account.domain}', style: context.bodyMedium),
-            const SizedBox(height: 16),
+            const SizedBox(height: DionSpacing.lg),
             Text('Username', style: context.bodySmall),
-            const SizedBox(height: 4),
+            const SizedBox(height: DionSpacing.xs),
             DionTextbox(
               controller: _usernameController,
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
               onSubmitted: (_) => _passwordFocusNode.requestFocus(),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: DionSpacing.md),
             Text('Password', style: context.bodySmall),
-            const SizedBox(height: 4),
+            const SizedBox(height: DionSpacing.xs),
             DionTextbox(
               controller: _passwordController,
               focusNode: _passwordFocusNode,
@@ -192,7 +188,7 @@ class _UserPassAuthDialogState extends State<UserPassAuthDialog>
               onSubmitted: (_) => _handleSubmit(),
             ),
             if (_error != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: DionSpacing.sm),
               Text(
                 _error!,
                 style: context.bodySmall?.copyWith(
@@ -379,22 +375,22 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
               'Authorize ${widget.account.extension.name}',
               style: context.bodyMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DionSpacing.sm),
             Text('Domain: ${widget.account.domain}', style: context.bodyMedium),
-            const SizedBox(height: 16),
+            const SizedBox(height: DionSpacing.lg),
             if (_loading)
               const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24.0),
+                  padding: EdgeInsets.all(DionSpacing.xl),
                   child: DionProgressBar(),
                 ),
               )
             else if (_error != null)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(DionSpacing.md),
                 decoration: BoxDecoration(
                   color: context.theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(DionRadius.sm),
                 ),
                 child: Row(
                   children: [
@@ -403,7 +399,7 @@ class _OAuthAuthDialogState extends State<OAuthAuthDialog>
                       color: context.theme.colorScheme.error,
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DionSpacing.sm),
                     Expanded(
                       child: Text(
                         _error!,
@@ -464,14 +460,14 @@ class UnsupportedAuthDialog extends StatelessWidget {
               'Extension: ${account.extension.name}',
               style: context.bodyMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DionSpacing.sm),
             Text('Domain: ${account.domain}', style: context.bodyMedium),
-            const SizedBox(height: 16),
+            const SizedBox(height: DionSpacing.lg),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(DionSpacing.md),
               decoration: BoxDecoration(
                 color: context.theme.colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(DionRadius.sm),
               ),
               child: Row(
                 children: [
@@ -480,7 +476,7 @@ class UnsupportedAuthDialog extends StatelessWidget {
                     color: context.theme.colorScheme.error,
                     size: 20,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DionSpacing.sm),
                   Expanded(
                     child: Text(
                       '$authType authentication is not yet supported.',
@@ -613,7 +609,7 @@ class _CookieAuthDialogState extends State<CookieAuthDialog> {
     return Dialog(
       insetPadding: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(3)),
+        borderRadius: BorderRadius.all(Radius.circular(DionRadius.sm)),
       ),
       child: SizedBox(
         width: size.width * 0.85,
@@ -621,7 +617,12 @@ class _CookieAuthDialogState extends State<CookieAuthDialog> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 4, 4),
+              padding: const EdgeInsets.fromLTRB(
+                DionSpacing.lg,
+                DionSpacing.md,
+                DionSpacing.xs,
+                DionSpacing.xs,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -634,7 +635,7 @@ class _CookieAuthDialogState extends State<CookieAuthDialog> {
                       ],
                     ),
                   ),
-                  IconButton(
+                  DionIconbutton(
                     tooltip: 'Close',
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
@@ -646,7 +647,7 @@ class _CookieAuthDialogState extends State<CookieAuthDialog> {
               LinearProgressIndicator(value: _progress / 100),
             if (_error != null)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: DionSpacing.lg),
                 child: Text(
                   _error!,
                   style: context.bodySmall?.copyWith(

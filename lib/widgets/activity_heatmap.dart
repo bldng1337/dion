@@ -1,5 +1,6 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:contribution_heatmap/contribution_heatmap.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:flutter/gestures.dart';
@@ -225,7 +226,7 @@ class _ActivityHeatmapState extends State<ActivityHeatmap> {
                 cellSize: cellSize,
                 padding: const EdgeInsets.symmetric(
                   horizontal: padX,
-                  vertical: 12,
+                  vertical: DionSpacing.md,
                 ),
                 weekdayLabel: WeekdayLabel.githubLike,
                 onCellTap: _showActivityInfo,
@@ -298,7 +299,7 @@ class _ActivityTooltip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: padH, vertical: padV),
           decoration: BoxDecoration(
             color: theme.colorScheme.inverseSurface,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(DionRadius.md),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x33000000),
@@ -324,7 +325,12 @@ class ActivityHeatmapPanel extends StatelessWidget {
     return DionContainer(
       color: context.theme.colorScheme.surfaceContainer,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        padding: const EdgeInsets.fromLTRB(
+          DionSpacing.lg,
+          DionSpacing.md,
+          DionSpacing.sm,
+          DionSpacing.md,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -336,7 +342,7 @@ class ActivityHeatmapPanel extends StatelessWidget {
                 letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DionSpacing.xs),
             ActivityHeatmap(activityData: activityData),
           ],
         ),

@@ -146,7 +146,7 @@ class CustomUIWidget extends StatelessWidget {
           child: CustomUIWidget(
             ui: card.bottom,
             element: element.child('card/bottom'),
-          ).paddingAll(8),
+          ).paddingAll(DionSpacing.sm),
         ),
         leadingBadges: [
           CustomUIWidget(ui: card.top, element: element.child('card/top')),
@@ -704,7 +704,7 @@ class _CustomUITextInputState extends State<_CustomUITextInput>
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: TextField(
+      child: DionTextbox(
         controller: _controller,
         onChanged: (_) => _onChange(),
         onSubmitted: (_) => _fireCommit(),

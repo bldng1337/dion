@@ -187,7 +187,7 @@ class MediaStatChip extends StatelessWidget {
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -303,7 +303,7 @@ class _ReleaseRow extends StatelessWidget {
                         color: context.theme.colorScheme.onSurface.withValues(
                           alpha: 0.45,
                         ),
-                      ).paddingOnly(right: 4),
+                      ).paddingOnly(right: DionSpacing.xs),
                       Text(
                         manual ? 'Set manually' : 'Predicted',
                         style: context.labelSmall?.copyWith(

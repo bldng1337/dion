@@ -142,7 +142,7 @@ class _SettingSliderTile extends StatelessWidget {
 
           // Slider
           const SizedBox(height: DionSpacing.sm),
-          SizedBox(height: 32, child: slider),
+          SizedBox(height: DionSpacing.xxl, child: slider),
         ],
       ),
     );

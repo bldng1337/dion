@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/platform.dart';
 import 'package:dionysos/utils/share.dart';
@@ -95,7 +96,10 @@ class _LogViewState extends State<LogView> {
           const SettingTitle(title: 'Logs'),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DionSpacing.lg,
+              vertical: DionSpacing.sm,
+            ),
             child: Row(
               children: [
                 FilterChip(
@@ -111,7 +115,7 @@ class _LogViewState extends State<LogView> {
                     });
                   },
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: DionSpacing.sm),
                 FilterChip(
                   label: const Text('Info'),
                   selected: _isLevelSelected(Level.info),
@@ -125,7 +129,7 @@ class _LogViewState extends State<LogView> {
                     });
                   },
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: DionSpacing.sm),
                 FilterChip(
                   label: const Text('Warning'),
                   selected: _isLevelSelected(Level.warning),
@@ -133,7 +137,7 @@ class _LogViewState extends State<LogView> {
                     _toggleLevel(Level.warning);
                   },
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: DionSpacing.sm),
                 FilterChip(
                   label: const Text('Error'),
                   selected: _isLevelSelected(Level.error),
@@ -147,7 +151,7 @@ class _LogViewState extends State<LogView> {
                     });
                   },
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: DionSpacing.sm),
                 FilterChip(
                   label: const Text('Background'),
                   selected: _backgroundOnly,
@@ -157,7 +161,7 @@ class _LogViewState extends State<LogView> {
                     });
                   },
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: DionSpacing.lg),
                 TextButton.icon(
                   onPressed: () {
                     store.clear();
@@ -191,16 +195,16 @@ class _LogViewState extends State<LogView> {
                       final filteredLogs = _filteredLogs;
 
                       if (filteredLogs.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
                             'No logs found',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: context.textTertiary),
                           ),
                         );
                       }
 
                       return ListView.separated(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(DionSpacing.sm),
                         itemCount: filteredLogs.length,
                         separatorBuilder: (context, index) =>
                             const Divider(height: 1),
@@ -237,9 +241,9 @@ class _LogItemState extends State<_LogItem> {
   Color _getColor(Level level) {
     return switch (level) {
       Level.all || Level.info => Colors.blue,
-      Level.trace || Level.debug => Colors.green,
-      Level.warning => Colors.orange,
-      Level.error || Level.fatal => Colors.red,
+      Level.trace || Level.debug => DionColors.success,
+      Level.warning => DionColors.warning,
+      Level.error || Level.fatal => DionColors.error,
       _ => Colors.grey, // off and deprecated levels (verbose/wtf/nothing)
     };
   }
@@ -262,7 +266,10 @@ class _LogItemState extends State<_LogItem> {
     final isBackground = record.source != kLogSourceMain;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.symmetric(
+        vertical: DionSpacing.sm,
+        horizontal: DionSpacing.xs,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -270,7 +277,7 @@ class _LogItemState extends State<_LogItem> {
             _getIcon(record.level),
             color: color,
             size: 20,
-          ).paddingOnly(top: 2, right: 8),
+          ).paddingOnly(top: 2, right: DionSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,7 +291,7 @@ class _LogItemState extends State<_LogItem> {
                       ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(DionRadius.sm),
                       ),
                       child: Text(
                         record.level.name.toUpperCase(),
@@ -296,7 +303,7 @@ class _LogItemState extends State<_LogItem> {
                       ),
                     ),
                     if (isBackground) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: DionSpacing.xs),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
@@ -304,7 +311,7 @@ class _LogItemState extends State<_LogItem> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.deepPurple.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(DionRadius.sm),
                         ),
                         child: const Text(
                           'BG',
@@ -316,7 +323,7 @@ class _LogItemState extends State<_LogItem> {
                         ),
                       ),
                     ],
-                    const SizedBox(width: 8),
+                    const SizedBox(width: DionSpacing.sm),
                     Text(
                       time,
                       style: TextStyle(
@@ -336,14 +343,14 @@ class _LogItemState extends State<_LogItem> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: DionSpacing.xs),
                 if (record.message != 'FlutterError')
                   Text(record.message, style: context.bodyMedium),
                 if (record.error != null)
                   Text(
                     record.error!,
                     style: const TextStyle(color: Colors.redAccent),
-                  ).paddingOnly(top: 4),
+                  ).paddingOnly(top: DionSpacing.xs),
                 if (record.stackTrace != null)
                   GestureDetector(
                     onTap: () {
@@ -352,12 +359,12 @@ class _LogItemState extends State<_LogItem> {
                       });
                     },
                     child: Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(top: DionSpacing.xs),
+                      padding: const EdgeInsets.all(DionSpacing.sm),
                       decoration: BoxDecoration(
                         color: context.theme.colorScheme.surfaceContainerHighest
                             .withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(DionRadius.sm),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +379,7 @@ class _LogItemState extends State<_LogItem> {
                                 size: 14,
                                 color: context.theme.hintColor,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: DionSpacing.xs),
                               Text(
                                 _stackExpanded
                                     ? 'Stack trace'

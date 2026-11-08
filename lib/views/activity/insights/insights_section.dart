@@ -48,7 +48,12 @@ class _InsightsSectionState extends State<InsightsSection> {
         final (_, selections) = data;
         if (selections.isEmpty) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+            DionSpacing.lg,
+            DionSpacing.lg,
+            DionSpacing.lg,
+            DionSpacing.xs,
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               const gap = 12.0;
@@ -97,7 +102,7 @@ class _CardChrome extends StatelessWidget {
       child: DionContainer(
         color: context.theme.colorScheme.surfaceContainer,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          padding: const EdgeInsets.fromLTRB(14, DionSpacing.md, 14, 14),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

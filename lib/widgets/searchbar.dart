@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +36,7 @@ class DionSearchbar extends StatelessWidget {
       DionThemeMode.material => SearchBar(
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
             side: BorderSide(
               color: context.theme.colorScheme.onSurface.withValues(
                 alpha: 0.15,

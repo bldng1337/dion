@@ -382,8 +382,8 @@ class _TaskListItem extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 24,
-                height: 24,
+                width: DionSpacing.xl,
+                height: DionSpacing.xl,
                 child: _TaskStatusGlyph(
                   hasError: hasError,
                   isRunning: isRunning,
@@ -459,8 +459,8 @@ class _TaskStatusGlyph extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           SizedBox(
-            width: 24,
-            height: 24,
+            width: DionSpacing.xl,
+            height: DionSpacing.xl,
             child: CircularProgressIndicator(
               value: hasProgress ? progress : null,
               strokeWidth: 2,
@@ -647,7 +647,7 @@ class NavScaff extends StatelessWidget {
                       .map(
                         (e) => CupertinoButton(
                           alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(DionSpacing.lg),
                           child: Row(
                             children: [
                               Icon(e.ico).paddingAll(5),

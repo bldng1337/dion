@@ -163,7 +163,7 @@ class _NoteEditorPageState extends State<NoteEditorPage>
 
   void _debounceSuggestions(void Function() query) {
     _suggestDebounce?.cancel();
-    _suggestDebounce = Timer(const Duration(milliseconds: 200), query);
+    _suggestDebounce = Timer(DionDuration.normal, query);
   }
 
   List<_NoteSuggestion> _chapterSuggestions(
@@ -480,8 +480,8 @@ class _NoteEditorPageState extends State<NoteEditorPage>
                   padding: EdgeInsets.all(DionSpacing.lg),
                   child: Center(
                     child: SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: DionSpacing.lg,
+                      height: DionSpacing.lg,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),

@@ -6,10 +6,12 @@ import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:flutter/material.dart'
-    show AlertDialog, Icons, InkWell, Material, TextButton, showDialog;
+    show Icons, InkWell, Material, showDialog;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
@@ -29,7 +31,7 @@ class DebugTask extends Task {
       progress = i / max;
       status = 'Running $i';
       if (canceled) break;
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(DionDuration.fast);
     }
     if (!canceled && Random().nextBool()) {
       throw Exception('Random Test Exception');
@@ -200,19 +202,18 @@ Future<bool> _confirmDialog({
 }) async {
   final result = await showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => DionAlertDialog(
       title: Text(title),
       content: Text(message),
       actions: [
-        TextButton(
+        DionTextbutton(
+          type: ButtonType.ghost,
           onPressed: () => Navigator.pop(context, false),
           child: const Text('Cancel'),
         ),
-        TextButton(
+        DionTextbutton(
           onPressed: () => Navigator.pop(context, true),
-          style: destructive
-              ? TextButton.styleFrom(foregroundColor: DionColors.error)
-              : null,
+          color: destructive ? DionColors.error : null,
           child: Text(confirmLabel),
         ),
       ],

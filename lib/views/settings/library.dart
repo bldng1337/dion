@@ -101,28 +101,30 @@ void showUpdateDialog(BuildContext context, Category category) {
               controller: controller,
               onChanged: (value) => categoryname = value,
             ),
-            DionTextbutton(
-              onPressed: () async {
-                if (categoryname.isEmpty) {
-                  await db.removeCategory(category);
-                  if (!context.mounted) {
-                    return;
-                  }
-                  Navigator.pop(context);
-                  return;
-                }
-                if (categoryname == category.name) {
-                  Navigator.pop(context);
-                  return;
-                }
-                await db.updateCategory(category.copyWith(name: categoryname));
-                if (!context.mounted) {
-                  return;
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Update'),
-            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                DionTextbutton(
+                  type: ButtonType.ghost,
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ).paddingOnly(right: DionSpacing.sm),
+                DionTextbutton(
+                  onPressed: () async {
+                    final name = categoryname.trim();
+                    if (name.isEmpty) return;
+                    if (name != category.name) {
+                      await db.updateCategory(category.copyWith(name: name));
+                    }
+                    if (!context.mounted) {
+                      return;
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Update'),
+                ),
+              ],
+            ).paddingOnly(top: DionSpacing.md),
           ],
         ).paddingAll(15),
       );

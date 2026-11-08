@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
 import 'package:dionysos/widgets/progress.dart';
@@ -25,7 +26,7 @@ class ActionButton extends StatelessWidget {
               ? context.theme.disabledColor
               : context.theme.appBarTheme.foregroundColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
             side: BorderSide(
               color: onPressed == null
                   ? context.theme.disabledColor
@@ -54,7 +55,7 @@ class ActionButton extends StatelessWidget {
               ? context.theme.disabledColor
               : context.theme.appBarTheme.foregroundColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(DionRadius.sm),
             side: BorderSide(
               color: onPressed == null
                   ? context.theme.disabledColor
@@ -79,7 +80,7 @@ class ActionButton extends StatelessWidget {
 
   Widget _buildCupertino(BuildContext context) {
     final button = CupertinoButton.filled(
-      borderRadius: BorderRadius.circular(3),
+      borderRadius: BorderRadius.circular(DionRadius.sm),
       color: onPressed == null
           ? CupertinoColors.systemGrey4
           : CupertinoTheme.of(context).primaryColor,
