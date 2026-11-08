@@ -290,7 +290,6 @@ class TaskManager extends ChangeNotifier {
       return;
     }
     final wantService = runningCount > 0;
-    final text = '$runningCount task${runningCount == 1 ? '' : 's'} running';
     if (wantService == _foregroundServiceRunning) {
       if (wantService && text != _foregroundServiceText) {
         await FlutterForegroundTask.updateService(
