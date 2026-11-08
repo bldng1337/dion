@@ -86,8 +86,12 @@ DEFINE INDEX IF NOT EXISTS entry_sort_chapters_idx ON TABLE entry FIELDS sort_to
 DEFINE INDEX IF NOT EXISTS entry_sort_read_idx ON TABLE entry FIELDS sort_chapters_read;
 DEFINE INDEX IF NOT EXISTS entry_sort_unread_idx ON TABLE entry FIELDS sort_chapters_unread;
 DEFINE INDEX IF NOT EXISTS entry_sort_rating_idx ON TABLE entry FIELDS sort_rating;
-DEFINE ANALYZER IF NOT EXISTS dion_search TOKENIZERS blank FILTERS ascii, lowercase;
-DEFINE INDEX IF NOT EXISTS entry_search_ft ON TABLE entry FIELDS search_text FULLTEXT ANALYZER dion_search BM25(1.2, 0.75);
+-- Prefix tokens make a half-typed word match; punct splits titles like
+-- Fate/Zero.
+REMOVE INDEX IF EXISTS entry_search_ft ON TABLE entry;
+REMOVE ANALYZER IF EXISTS dion_search;
+DEFINE ANALYZER IF NOT EXISTS dion_search_v2 TOKENIZERS blank, punct FILTERS ascii, lowercase, edgengram(1, 32);
+DEFINE INDEX IF NOT EXISTS entry_search_v2_ft ON TABLE entry FIELDS search_text FULLTEXT ANALYZER dion_search_v2 BM25(1.2, 0.75);
 DEFINE INDEX IF NOT EXISTS activity_time_idx ON TABLE activity FIELDS time;
 DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry.entry.id.uid;
       ''');
