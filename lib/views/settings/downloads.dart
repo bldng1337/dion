@@ -644,13 +644,10 @@ class _EntrySection extends StatelessWidget {
   String _episodeName(DownloadedEpisode ep) {
     final number = ep.number;
     final saved = entry.entry;
-    if (saved != null &&
-        number != null &&
-        number >= 0 &&
-        number < saved.episodes.length) {
+    if (saved != null && number != null && number < saved.episodes.length) {
       return saved.episodes[number].name;
     }
-    return number != null ? 'Episode ${number + 1}' : ep.path.name;
+    return ep.name ?? ep.path.name;
   }
 }
 

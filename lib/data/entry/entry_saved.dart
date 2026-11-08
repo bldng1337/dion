@@ -9,6 +9,7 @@ import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/text_replacement.dart';
 import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/json_patch.dart';
 import 'package:dionysos/utils/log.dart';
@@ -477,6 +478,7 @@ class EntrySaved
   }) async {
     final previousReleased = releasedEpisodes;
     await locate<ExtensionService>().detail(this, token: token, full: full);
+    unawaited(pruneHangingDownloads(this));
     lastRefreshed = DateTime.now();
     updateReleasePrediction();
     if (releasedEpisodes > previousReleased) {

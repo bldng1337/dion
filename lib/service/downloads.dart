@@ -8,6 +8,7 @@ import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/extension.dart';
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/internetfile.dart';
@@ -18,12 +19,8 @@ import 'package:dionysos/utils/storage.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' show Row;
 import 'package:rhttp/rhttp.dart' as rhttp;
 
-const downloadVersion = 2;
-
-/// Index versions this build can read. v2 renamed the media file key to
-/// `filename` and can hold direct-file video; v1 entries still read
-/// unchanged from their stored filenames.
-const _readableDownloadVersions = [1, 2];
+/// v3 keys episode folders by episode id.
+const downloadVersion = 3;
 
 void _indexChapters(Map<String, dynamic> index, List<Chapter>? chapters) {
   if (chapters == null || chapters.isEmpty) return;
@@ -54,14 +51,88 @@ List<Chapter>? _chaptersFromIndex(dynamic raw) {
   ];
 }
 
+List<ImageListAudio>? _audioFromIndex(dynamic raw, Directory dir) {
+  if (raw is! List) return null;
+  return [
+    for (final e in raw)
+      ImageListAudio(
+        from: e['from'] as int,
+        to: e['to'] as int,
+        link: Link(url: dir.getFile(e['name'] as String).fileURL),
+      ),
+  ];
+}
+
 class DownloadTask extends Task {
   final EpisodePath ep;
+
+  final Episode episode;
+  final Directory _dir;
   final CancelToken token = CancelToken();
   final rhttp.CancelToken rhttpToken = rhttp.CancelToken();
-  DownloadTask(this.ep) : super('Downloading ${ep.episode.name}');
+  DownloadTask(this.ep)
+    : episode = ep.episode,
+      _dir = DownloadService._getDownloadPath(ep),
+      super('Downloading ${ep.episode.name}');
+
+  bool matches(EpisodePath other) =>
+      _dir.path == DownloadService._getDownloadPath(other).path;
+
+  Map<String, dynamic> get _episodeInfo => {
+    'id': episode.id.uid,
+    'name': episode.name,
+  };
+
+  Future<List<Map<String, dynamic>>> _downloadAudioSpans(
+    Directory dir,
+    List<ImageListAudio> spans,
+  ) async {
+    status = 'Downloading Audio';
+    final result = <Map<String, dynamic>>[];
+    for (final (index, span) in spans.indexed) {
+      final file = await InternetFile.streamToFile(
+        span.link.url,
+        InternetFile.fromURI(span.link.url, dir, filename: 'audio$index'),
+        headers: span.link.header,
+        onReceiveProgress: (current) =>
+            progress = (index + current) / spans.length,
+        rhttpToken: rhttpToken,
+        resolveEnding: true,
+      );
+      result.add({'name': file.filename, 'from': span.from, 'to': span.to});
+    }
+    progress = null;
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> _downloadSubtitles(
+    Directory dir,
+    List<Subtitles> subs,
+  ) async {
+    final result = <Map<String, dynamic>>[];
+    for (final (index, sub) in subs.indexed) {
+      try {
+        final file = await InternetFile.streamToFile(
+          sub.url.url,
+          InternetFile.fromURI(sub.url.url, dir, filename: 'subtitle$index'),
+          headers: sub.url.header,
+          rhttpToken: rhttpToken,
+        );
+        result.add({
+          'filename': file.filename,
+          'title': sub.title,
+          'lang': sub.lang,
+        });
+      } catch (e, stack) {
+        if (rhttpToken.isCancelled) rethrow;
+        logger.w('Failed to download subtitle', error: e, stackTrace: stack);
+      }
+    }
+    return result;
+  }
 
   Future<void> handleMetadata(Directory dir) async {
-    final cover = ep.episode.cover;
+    final cover = episode.cover;
     if (cover != null) {
       status = 'Fetching Thumbnail';
       await InternetFile.streamToFile(
@@ -222,21 +293,34 @@ class DownloadTask extends Task {
     if (rhttpToken.isCancelled) return;
     final download = locate<DownloadService>();
     await download._ratelimitFor(ep).acquire();
-    final dir = DownloadService._getDownloadPath(ep);
+    final position = ep.entry.episodes.indexWhere(
+      (e) => e.id.uid == episode.id.uid,
+    );
+    if (position == -1) {
+      throw StateError('${episode.name} is no longer listed by the source');
+    }
+    final dir = _dir;
     await dir.create(recursive: true);
     // Written before any content so an interrupted download can be told
     // apart from a finished one by the finished flag flipping to true.
     await dir
         .getFile('index.json')
         .writeAsString(
-          jsonEncode({'version': downloadVersion, 'finished': false}),
+          jsonEncode({
+            'version': downloadVersion,
+            'finished': false,
+            'episode': _episodeInfo,
+          }),
         );
     await handleMetadata(dir);
 
     status = 'Fetching Source';
-    final source = await ep.loadSource(token);
+    final source = await EpisodePath(ep.entry, position).loadSource(token);
 
-    final Map<String, dynamic> index = {'version': downloadVersion};
+    final Map<String, dynamic> index = {
+      'version': downloadVersion,
+      'episode': _episodeInfo,
+    };
 
     switch (source.source) {
       case final Source_Paragraphlist paragraphs:
@@ -258,6 +342,9 @@ class DownloadTask extends Task {
             localImages[image.url] = Link(url: file.fileURL);
           }
           progress = null;
+        }
+        if (paragraphs.audio case final spans?) {
+          index['audio'] = await _downloadAudioSpans(dir, spans);
         }
         status = 'Writing Content';
         await dir
@@ -326,31 +413,8 @@ class DownloadTask extends Task {
           imagedata.add(file.filename);
         }
         index['images'] = imagedata;
-        if (data.audio != null) {
-          status = 'Downloading Audio';
-          final audiodata = [];
-          for (final (index, audio) in data.audio!.indexed) {
-            final file = await InternetFile.streamToFile(
-              audio.link.url,
-              InternetFile.fromURI(
-                audio.link.url,
-                dir,
-                filename: 'audio$index',
-              ),
-              headers: audio.link.header,
-              onReceiveProgress: (current) =>
-                  progress = (index + current) / data.audio!.length,
-              rhttpToken: rhttpToken,
-              resolveEnding: true,
-            );
-            progress = null;
-            audiodata.add({
-              'name': file.filename,
-              'from': audio.from,
-              'to': audio.to,
-            });
-          }
-          index['audio'] = audiodata;
+        if (data.audio case final spans?) {
+          index['audio'] = await _downloadAudioSpans(dir, spans);
         }
       case final Source_Video data:
         status = 'Downloading Video';
@@ -368,6 +432,8 @@ class DownloadTask extends Task {
         index['name'] = source.name;
         index['filename'] = media.file.filename;
         _indexChapters(index, data.chapters);
+        status = 'Downloading Subtitles';
+        index['subtitles'] = await _downloadSubtitles(dir, data.sub);
       case final Source_Audio data:
         status = 'Downloading Audio';
         final source = data.sources[0];
@@ -393,7 +459,7 @@ class DownloadTask extends Task {
   @override
   void onFailed(Object? error) {
     locate<DownloadService>().downloadsRevision++;
-    final dir = DownloadService._getDownloadPath(ep);
+    final dir = _dir;
     if (dir.existsSync()) {
       dir
           .delete(recursive: true)
@@ -415,7 +481,7 @@ class DownloadTask extends Task {
     // partial download directory has to be removed here; otherwise it would
     // be mistaken for a finished download.
     locate<DownloadService>().downloadsRevision++;
-    final dir = DownloadService._getDownloadPath(ep);
+    final dir = _dir;
     if (dir.existsSync()) {
       try {
         await dir.delete(recursive: true);
@@ -430,12 +496,15 @@ enum Status { nodownload, downloading, downloaded }
 
 class DownloadedEpisode {
   final Directory path;
+
   final int? number;
+  final String? name;
   final int size;
   final bool finished;
   const DownloadedEpisode({
     required this.path,
     required this.number,
+    required this.name,
     required this.size,
     required this.finished,
   });
@@ -484,7 +553,36 @@ class DownloadService {
   }
 
   static Future<void> ensureInitialized() async {
-    register<DownloadService>(DownloadService());
+    final service = DownloadService();
+    register<DownloadService>(service);
+    unawaited(service._sweepDeadDownloads());
+  }
+
+  Future<void> _sweepDeadDownloads() async {
+    try {
+      final root = (await locateAsync<DirectoryProvider>()).downloadspath;
+      if (!await root.exists()) return;
+      final dead = <Directory>[];
+      await for (final ext in root.list()) {
+        if (ext is! Directory) continue;
+        await for (final entry in ext.list()) {
+          if (entry is! Directory) continue;
+          await for (final episode in entry.list()) {
+            if (episode is Directory && await _readIndex(episode) == null) {
+              dead.add(episode);
+            }
+          }
+        }
+      }
+      // A download queued while this walk ran is partial but very much alive.
+      final active = _activeDownloadPaths();
+      dead.removeWhere((dir) => active.contains(dir.path));
+      if (dead.isEmpty) return;
+      logger.i('Removing ${dead.length} dead download folders');
+      await deleteDownloadDirs(dead);
+    } catch (e, stack) {
+      logger.w('Sweeping dead downloads failed', error: e, stackTrace: stack);
+    }
   }
 
   Future<void> download(Iterable<EpisodePath> eps) async {
@@ -514,7 +612,7 @@ class DownloadService {
       return const DownloadStatus(Status.downloaded);
     }
     final task = mngr.getTask(
-      (e) => e is DownloadTask && e.ep == ep,
+      (e) => e is DownloadTask && e.matches(ep),
       categoryids: ['download', ep.extensionid],
     );
     return DownloadStatus(
@@ -526,7 +624,7 @@ class DownloadService {
   Stream<DownloadStatus> getStatus(EpisodePath ep) {
     final mngr = locate<TaskManager>();
     final stream = mngr.onTaskChange(
-      (e) => e is DownloadTask && e.ep == ep,
+      (e) => e is DownloadTask && e.matches(ep),
       categoryids: ['download', ep.extensionid],
     );
     StreamSubscription<FileSystemEvent>? filewatcher;
@@ -543,15 +641,14 @@ class DownloadService {
           return;
         }
         final path = _getDownloadPath(ep);
-        path
-            .exists()
-            .then((value) {
+        _readIndex(path)
+            .then((index) {
               if (cancelled) return;
               // Cancel any previous watcher before (re)assigning so repeated
               // status transitions don't leak native file-system watchers.
               filewatcher?.cancel();
               filewatcher = null;
-              if (value) {
+              if (index != null) {
                 controller.add(const DownloadStatus(Status.downloaded));
                 filewatcher = path.watch(events: FileSystemEvent.delete).listen(
                   (event) {
@@ -583,8 +680,8 @@ class DownloadService {
     try {
       final index = jsonDecode(await dir.getFile('index.json').readAsString());
       if (index is! Map) return null;
-      if (!_readableDownloadVersions.contains(index['version'])) return null;
-      if (index['finished'] == false) return null;
+      if (index['version'] != downloadVersion) return null;
+      if (index['finished'] != true) return null;
       return Map<String, dynamic>.from(index);
     } catch (_) {
       // A missing or broken index belongs to an interrupted download.
@@ -607,6 +704,7 @@ class DownloadService {
           paragraphs: (json.decode(
             await path.getFile('data.txt').readAsString(),
           ) as List<dynamic>).map((e) => JsonParagraph.fromJson(e)).toList(),
+          audio: _audioFromIndex(index['audio'], path),
         );
       case 'epub':
         return Source.epub(
@@ -618,20 +716,11 @@ class DownloadService {
         );
       case 'imagelist':
         final images = index['images'] as List<dynamic>;
-        final audio = index['audio'] as List<dynamic>?;
         return Source.imagelist(
           links: images
               .map((e) => Link(url: path.getFile(e as String).fileURL))
               .toList(),
-          audio: audio
-              ?.map(
-                (e) => ImageListAudio(
-                  from: e['from'] as int,
-                  to: e['to'] as int,
-                  link: Link(url: path.getFile(e['name'] as String).fileURL),
-                ),
-              )
-              .toList(),
+          audio: _audioFromIndex(index['audio'], path),
         );
       case 'audio':
         final file = _mediaFile(index, path);
@@ -662,7 +751,14 @@ class DownloadService {
               name: index['name'] as String,
             ),
           ],
-          sub: [],
+          sub: [
+            for (final sub in (index['subtitles'] as List<dynamic>?) ?? [])
+              Subtitles(
+                title: sub['title'] as String,
+                lang: sub['lang'] as String,
+                url: Link(url: path.getFile(sub['filename'] as String).fileURL),
+              ),
+          ],
           chapters: _chaptersFromIndex(index['chapters']),
         );
       default:
@@ -670,20 +766,22 @@ class DownloadService {
     }
   }
 
-  /// The downloaded playlist or media file: the v2 `filename` key, falling
-  /// back to v1's `playlist`.
   static File? _mediaFile(Map<String, dynamic> index, Directory path) {
-    final filename = index['filename'] ?? index['playlist'];
+    final filename = index['filename'];
     if (filename is! String) return null;
     return path.getFile(filename);
   }
 
   static Directory _getDownloadPath(EpisodePath ep) {
-    final dir = locate<DirectoryProvider>().downloadspath;
-    return dir
-        .sub(pathEncode(ep.extensionid))
-        .sub(pathEncode(ep.entry.id.uid))
-        .sub(pathEncode(ep.episodenumber.toString()));
+    return _entryDownloadPath(
+      ep.entry,
+    ).sub(pathEncode(ep.episode.id.uid));
+  }
+
+  static Directory _entryDownloadPath(EntryDetailed entry) {
+    return locate<DirectoryProvider>().downloadspath
+        .sub(pathEncode(entry.boundExtensionId))
+        .sub(pathEncode(entry.id.uid));
   }
 
   Future<void> deleteEpisodes(Iterable<EpisodePath> eps) async {
@@ -707,7 +805,11 @@ class DownloadService {
     if (!await path.exists()) {
       return;
     }
-    await path.sub(pathEncode(ext.id)).delete(recursive: true);
+    final extensionPath = path.sub(pathEncode(ext.id));
+    if (!await extensionPath.exists()) {
+      return;
+    }
+    await extensionPath.delete(recursive: true);
     downloadsRevision++;
   }
 
@@ -760,14 +862,7 @@ class DownloadService {
 
     // Directories of in-flight downloads only hold partial data and are
     // managed by their task; hide them until the task finishes or cleans up.
-    final active = <String>{
-      for (final task
-          in locate<TaskManager>().root.traverseBreathFirst().expand(
-            (cat) => cat.tasks,
-          ))
-        if (task is DownloadTask && !task.finished)
-          _getDownloadPath(task.ep).path,
-    };
+    final active = _activeDownloadPaths();
 
     // Directory names are sanitised one-way, so entries can only be matched
     // by re-encoding their ids, never by decoding the directory name.
@@ -794,10 +889,16 @@ class DownloadService {
         await for (final epEntity in entryEntity.list()) {
           if (epEntity is! Directory) continue;
           if (active.contains(epEntity.path)) continue;
+          final savedEpisodes =
+              entriesByKey['${extEntity.name}/${entryEntity.name}']?.episodes;
+          final position = savedEpisodes?.indexWhere(
+            (e) => pathEncode(e.id.uid) == epEntity.name,
+          );
           episodes.add(
             DownloadedEpisode(
               path: epEntity,
-              number: int.tryParse(epEntity.name),
+              number: position == null || position < 0 ? null : position,
+              name: await _episodeName(epEntity),
               size: await getDirectorySize(epEntity),
               finished: await _isFinished(epEntity),
             ),
@@ -820,6 +921,15 @@ class DownloadService {
 
   Future<bool> _isFinished(Directory dir) async {
     return await _readIndex(dir) != null;
+  }
+
+  Future<String?> _episodeName(Directory dir) async {
+    try {
+      final index = jsonDecode(await dir.getFile('index.json').readAsString());
+      return index['episode']?['name'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> deleteDownloadDirs(Iterable<Directory> dirs) async {
@@ -848,4 +958,39 @@ class DownloadService {
   }
 }
 
-String pathEncode(String path) => sanitizePathSegment(path);
+Set<String> _activeDownloadPaths() {
+  if (!has<TaskManager>()) return const {};
+  return {
+    for (final task
+        in locate<TaskManager>().root.traverseBreathFirst().expand(
+          (cat) => cat.tasks,
+        ))
+      if (task is DownloadTask && !task.finished) task._dir.path,
+  };
+}
+
+Future<void> pruneHangingDownloads(EntryDetailed entry) async {
+  // An empty list is far more likely a broken source than a wiped entry.
+  if (entry.episodes.isEmpty) return;
+  try {
+    final dir = DownloadService._entryDownloadPath(entry);
+    if (!await dir.exists()) return;
+    final listed = {for (final e in entry.episodes) pathEncode(e.id.uid)};
+    final active = _activeDownloadPaths();
+    var removed = false;
+    await for (final child in dir.list()) {
+      if (child is! Directory) continue;
+      if (listed.contains(child.name) || active.contains(child.path)) continue;
+      logger.i('Removing hanging download ${child.path}');
+      await child.delete(recursive: true);
+      removed = true;
+    }
+    if (removed && has<DownloadService>()) {
+      locate<DownloadService>().downloadsRevision++;
+    }
+  } catch (e, stack) {
+    logger.w('Checking for hanging downloads failed', error: e, stackTrace: stack);
+  }
+}
+
+String pathEncode(String path) => ImageStoreService.hashUrl(path);

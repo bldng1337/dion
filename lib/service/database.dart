@@ -726,16 +726,15 @@ ORDER BY total DESC
     if (has<ImageStoreService>()) {
       locate<ImageStoreService>().forgetEntry(entry);
     }
-    final download = locate<DownloadService>();
+    if (!has<DownloadService>()) return;
     try {
-      await download.deleteEntry(entry);
+      await locate<DownloadService>().deleteEntry(entry);
     } catch (e, stack) {
       logger.e(
         'Failed to cleanup downloads for entry',
         error: e,
         stackTrace: stack,
       );
-      // TODO: Consider whether to rethrow or continue
     }
   }
 

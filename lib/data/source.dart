@@ -138,8 +138,13 @@ class SourceSupplier with ChangeNotifier implements Disposable {
   Future<SourcePath> _loadSource(EpisodePath eppath) async {
     final download = locate<DownloadService>();
     final dowloadStatus = await download.getCurrentStatus(eppath); //Do we really want to wait for the download to finish? In case it is large the user could still stream it while downloading but that would stress the server more
-    if (dowloadStatus.task?.task != null) {
-      await dowloadStatus.task?.task;
+    final running = dowloadStatus.task;
+    if (running != null && running.running) {
+      try {
+        await running.task;
+      } catch (e) {
+        logger.w('Download failed; streaming instead', error: e);
+      }
     }
     if (await download.isDownloaded(eppath)) {
       try {
