@@ -1186,8 +1186,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "5b17d11e6a5e9a33688f514798e6482e49523a45"
-      resolved-ref: "5b17d11e6a5e9a33688f514798e6482e49523a45"
+      ref: "328a261154ef267de93b45dd56a1e62f18b96f92"
+      resolved-ref: "328a261154ef267de93b45dd56a1e62f18b96f92"
       url: "https://github.com/bldng1337/metis.git"
     source: git
     version: "0.0.1"

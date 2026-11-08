@@ -11,11 +11,11 @@ import 'package:dionysos/data/versioning.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
-import 'package:dionysos/utils/json_patch.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/release_prediction.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:metis/adapter/dataclass.dart';
+import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
@@ -291,6 +291,73 @@ class EntryExtension {
   }
 }
 
+const entrySyncFields = FieldCrdt(
+  groups: {
+    // What a refresh rewrites. `entry` is folded from `original` and the extension patches, so these only make sense together.
+    'source': [
+      'entry',
+      'original',
+      'generation',
+      'entryExtensions',
+      'sourceExtensions',
+      'lastRefreshed',
+      'predictedNextRelease',
+      'releaseInterval',
+    ],
+  },
+  passive: {'source', 'extensionSettings'},
+  lww: {
+    'userRating': null,
+    'note': null,
+    'episode': 0,
+    'nextReleaseOverride': null,
+    'savedSettings': null,
+    'extensionSettings': null,
+  },
+  maps: {
+    'episodedata': FieldMap(
+      fields: {
+        'bookmark': false,
+        'finished': false,
+        'progress': null,
+        'note': null,
+      },
+      sets: {'quotes', 'images'},
+    ),
+  },
+  sets: {'categories'},
+  derived: {
+    'version',
+    'sort_title',
+    'sort_total_chapters',
+    'sort_chapters_read',
+    'sort_chapters_unread',
+    'sort_rating',
+    'search_text',
+  },
+  recompute: recomputeEntryColumns,
+);
+
+Map<String, dynamic> recomputeEntryColumns(Map<String, dynamic> row) {
+  final entry = row['entry'] as Map;
+  final episodes = entry['episodes'] as List;
+  final titles = entry['titles'] as List;
+  final data = row['episodedata'] as Map? ?? const {};
+  final readCount = episodes.where((episode) {
+    final item = data[(episode as Map)['id']['uid']];
+    return item is Map && item['finished'] == true;
+  }).length;
+  return {
+    ...row,
+    'sort_title': titles.isEmpty ? '' : titles.first,
+    'sort_total_chapters': episodes.length,
+    'sort_chapters_read': readCount,
+    'sort_chapters_unread': max(0, episodes.length - readCount),
+    'sort_rating': entry['rating'] ?? 0,
+    'search_text': [...titles, ...?(entry['author'] as List?)].join(' '),
+  };
+}
+
 class EntrySaved
     with DBConstClass, DBModifiableClass, DBLiveClass
     implements EntryDetailed {
@@ -510,18 +577,13 @@ class EntrySaved
   }
 
   @override
-  void onDBChange(DBChange change) {
-    unawaited(_onDBChange(change));
-  }
-
-  Future<void> _onDBChange(DBChange change) async {
+  Future<void> onDBChange(DBChange change) async {
     try {
       if (change.deleted) {
         locate<Database>().notifyListeners([DBEvent.entryAddedOrRemoved]);
         return;
       }
-      final json = await _rowWithPatch(change.patch);
-      final fresh = await EntrySaved.fromJson(json);
+      final fresh = await EntrySaved.fromJson(await _changedRow(change));
       final categoriesChanged = !_sameCategories(fresh);
       boundExtensionId = fresh.boundExtensionId;
       entry = fresh.entry;
@@ -560,26 +622,14 @@ class EntrySaved
         other.categories.every((c) => ids.contains(c.id));
   }
 
-  Future<Map<String, dynamic>> _rowWithPatch(
-    List<Map<String, dynamic>> patch,
-  ) async {
-    final json = await toDBJson();
-    // The patch addresses the full row; toJson omits the id.
-    json['id'] = dbId;
-    try {
-      applyJsonPatch(json, patch);
-    } catch (e) {
-      logger.w(
-        'Patch failed for live change on $dbId, re-reading row',
-        error: e,
-      );
-      final row = await locate<Database>().db.select(dbId);
-      if (row is! Map) {
-        throw StateError('Row $dbId vanished during live change: $row');
-      }
-      return Map<String, dynamic>.from(row);
+  Future<Map<String, dynamic>> _changedRow(DBChange change) async {
+    final state = change.state;
+    if (state != null) return state;
+    final row = await locate<Database>().db.select(dbId);
+    if (row is! Map) {
+      throw StateError('Row $dbId vanished during live change: $row');
     }
-    return json;
+    return Map<String, dynamic>.from(row);
   }
 
   Future<void> onEntryActivity(
@@ -597,20 +647,16 @@ class EntrySaved
   }
 
   Map<String, dynamic> toJson() {
-    final readCount = entry.episodes
-        .where((e) => _episodedata[e.id.uid]?.finished ?? false)
-        .length;
-    return {
+    return recomputeEntryColumns({
       'version': entrySerializeVersion.current,
       'entry': entry.toJson(),
       'original': original.toJson(),
       'generation': generation,
       'extensionid': boundExtensionId,
-      // A list rather than a map: episode ids are often urls, which would need escaping in the JSON patches a map key ends up in.
-      'episodedata': [
+      'episodedata': {
         for (final MapEntry(:key, :value) in _episodedata.entries)
-          if (!value.isEmpty) {...value.toJson(), 'episode': key},
-      ],
+          if (!value.isEmpty) key: value.toJson(),
+      },
       'episode': episode,
       'categories': categories.map((e) => e.id).toList(),
       'entryExtensions': entryExtensions.map((e) => e.toJson()).toList(),
@@ -625,13 +671,7 @@ class EntrySaved
       'extensionSettings': extensionSettings.map((key, value) {
         return MapEntry(key, value.toJson());
       }),
-      'sort_title': entry.titles.isEmpty ? '' : entry.titles.first,
-      'sort_total_chapters': entry.episodes.length,
-      'sort_chapters_read': readCount,
-      'sort_chapters_unread': max(0, entry.episodes.length - readCount),
-      'sort_rating': entry.rating ?? 0,
-      'search_text': [...entry.titles, ...?entry.author].join(' '),
-    };
+    });
   }
 
   static Future<List<Category>> handleCategories(dynamic categoryData) async {
@@ -659,6 +699,15 @@ class EntrySaved
     List<Episode> episodes,
   ) {
     final result = <String, EpisodeData>{};
+    if (raw is Map) {
+      for (final MapEntry(:key, :value) in raw.entries) {
+        final data = EpisodeData.fromJson(
+          Map<String, dynamic>.from(value as Map),
+        );
+        if (!data.isEmpty) result[key as String] = data;
+      }
+      return result;
+    }
     if (raw is! List) return result;
     for (final (index, item) in raw.indexed) {
       final json = item as Map<String, dynamic>;

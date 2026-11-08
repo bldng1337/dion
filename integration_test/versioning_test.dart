@@ -1244,13 +1244,16 @@ Future<void> _checkEntryJsonVersions() async {
               final parsed = await EntrySaved.fromJson(
                 _hydrateRecordMaps(sample.value),
               );
-              // Before v6 episode rows were positional and get rewritten to
-              // episode ids on read, and notes, ratings and replacements
-              // didn't exist yet, so those keys can't round-trip unchanged.
+              // Episode data was a list before v7. Before v6 notes, ratings
+              // and replacements didn't exist yet, so those keys can't
+              // round-trip unchanged either.
               Object? comparable(Object? json) {
-                if (int.parse(version) >= 6) return json;
+                final fixtureVersion = int.parse(version);
+                if (fixtureVersion >= 7) return json;
                 final copy = Map<String, dynamic>.from(json! as Map)
-                  ..remove('episodedata')
+                  ..remove('episodedata');
+                if (fixtureVersion >= 6) return copy;
+                copy
                   ..remove('userRating')
                   ..remove('note');
                 if (copy['savedSettings'] case final Map settings) {

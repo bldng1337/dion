@@ -24,7 +24,7 @@ import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
 
-const dbVersion = 5;
+const dbVersion = 6;
 const entryTable = DBTable('entry');
 const categoryTable = DBTable('category');
 const activityTable = DBTable('activity');
@@ -101,12 +101,13 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     dataclass.registerDataClass(entryTable, EntrySaved.fromJson);
     dataclass.registerDataClass(activityTable, Activity.fromJson);
     dataclass.registerDataClass(extensionTable, ExtensionMetaData.fromJson);
-    await db.setCrdtAdapter(
+    final crdt = await db.setCrdtAdapter(
       tablesToSync: const {
         SyncTable(
           version: dbVersion,
           range: VersionRange.exact(dbVersion),
           table: entryTable,
+          fields: entrySyncFields,
         ),
         SyncTable(
           version: dbVersion,
@@ -135,7 +136,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       // through the registered fromJson callbacks, so any fromJson that
       // reaches back into the service (EntrySaved.fromJson ->
       // handleCategories) is a circular dependency.
-      onMigrate: (migrateDb, from, to) async {
+      onMigrate: (migrateDb, from, to) => crdt.runUnstamped(() async {
         if (from < 4) {
           // v4 rewrites raw source timestamps (RFC-2822, epoch digits, ...)
           // into ISO-8601. Must run before any entry re-hydration: the
@@ -152,11 +153,12 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
             fetch: 'categories',
           );
         }
-        if (from < 5) {
-          // v3 backfills the derived sort_* and search_text columns and v5
-          // rewrites episode data from list positions to episode ids; both
-          // only need every entry re-saved through toJson. The indexes were
-          // defined above, so each re-save maintains them.
+        if (from < 6) {
+          // v3 backfills the derived sort_* and search_text columns, v5
+          // rewrites episode data from list positions to episode ids and v6
+          // stores it as an object keyed by episode; all only need every
+          // entry re-saved through toJson. The indexes were defined above, so
+          // each re-save maintains them.
           final adapter = db.getAdapter<DBDataClassAdapter>();
           await _migrateBatched<EntrySaved>(
             adapter,
@@ -164,7 +166,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
             fetch: 'categories',
           );
         }
-      },
+      }),
       onCreate: (db) {},
     );
     this.db = db;
@@ -189,7 +191,9 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       if (batch.isEmpty) break;
       for (final item in batch) {
         try {
-          await adapter.save(item);
+          // A whole write: the stored shape differs from toJson, which a diff
+          // against the just-loaded instance cannot see.
+          await adapter.save(item, full: true);
         } catch (e, stack) {
           logger.e(
             'Failed to migrate ${table.tb} record',
@@ -770,16 +774,18 @@ ORDER BY total DESC
   }
 
   Future<void> clear() async {
-    final crdtTable = db.getAdapter<CrdtAdapter>().crdtTableName;
+    final crdt = db.getAdapter<CrdtAdapter>();
     await db.writeTransaction((txn) async {
       await txn.query('DELETE entry');
       await txn.query('DELETE activity');
       await txn.query('DELETE category');
       await txn.query('DELETE extension');
-      await txn.query(
-        'DELETE FROM type::table(\$crdt)',
-        vars: {'crdt': crdtTable},
-      );
+      for (final table in [crdt.crdtTableName, crdt.fieldsTableName]) {
+        await txn.query(
+          'DELETE FROM type::table(\$crdt)',
+          vars: {'crdt': table},
+        );
+      }
     });
     _downloadedUidsCache = null;
     if (has<ImageStoreService>()) {

@@ -45,5 +45,10 @@ void main() {
           'leftover crdt rows would sync back as fresh tombstones '
           'and delete everything on paired devices',
     );
+    expect(
+      (await db.db.query('COUNT(SELECT * FROM crdt_fields)')).first,
+      0,
+      reason: 'stamps must not outlive the rows they describe',
+    );
   });
 }
