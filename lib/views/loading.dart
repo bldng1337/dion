@@ -60,13 +60,7 @@ class LoadingView extends StatelessWidget {
           },
         ),
         (
-          'PreferenceService',
-          () async {
-            await PreferenceService.ensureInitialized();
-          },
-        ),
-        (
-          'LAN Sync',
+          'LAN sync',
           () async {
             await LanSyncService.ensureInitialized();
             registerPairingDialog();

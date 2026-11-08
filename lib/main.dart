@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/periodic_service.dart';
 import 'package:dionysos/service/preference.dart';
@@ -36,30 +37,43 @@ void main() async {
   if (!Platform.isWindows) {
     await Workmanager().initialize(backgroundTaskDispatcher);
   }
+  // The first frame already needs the theme setting.
+  await PreferenceService.ensureInitialized();
   final route = getRoutes();
   appRouter = route;
   initApp(route: route);
 }
 
 void initApp({required RouterConfig<Object> route}) {
-  const theme = DionTheme.material;
+  final appearance = settings.appearance.theme;
   runApp(
-    InheritedDionTheme(
-      theme: theme,
-      child: switch (theme.mode) {
-        DionThemeMode.material => MaterialApp.router(
-          title: 'dion',
-          theme: getTheme(theme.brightness),
-          routerConfig: route,
-          scaffoldMessengerKey: scaffoldMessengerKey,
-        ),
-        DionThemeMode.cupertino => CupertinoApp.router(
-          title: 'dion',
-          theme: MaterialBasedCupertinoThemeData(
-            materialTheme: getTheme(theme.brightness),
-          ),
-          routerConfig: route,
-        ),
+    ListenableBuilder(
+      listenable: appearance,
+      builder: (context, _) {
+        final theme = DionTheme(
+          mode: DionThemeMode.material,
+          brightness: appearance.value == AppTheme.dark
+              ? Brightness.dark
+              : Brightness.light,
+        );
+        return InheritedDionTheme(
+          theme: theme,
+          child: switch (theme.mode) {
+            DionThemeMode.material => MaterialApp.router(
+              title: 'dion',
+              theme: getTheme(theme.brightness),
+              routerConfig: route,
+              scaffoldMessengerKey: scaffoldMessengerKey,
+            ),
+            DionThemeMode.cupertino => CupertinoApp.router(
+              title: 'dion',
+              theme: MaterialBasedCupertinoThemeData(
+                materialTheme: getTheme(theme.brightness),
+              ),
+              routerConfig: route,
+            ),
+          },
+        );
       },
     ),
   );

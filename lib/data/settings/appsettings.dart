@@ -238,6 +238,16 @@ class ChapterAutoSkipSettings {
 }
 
 final settings = (
+  appearance: (
+    theme: Setting(
+      AppTheme.light,
+      const PreferenceEnumMetaData(
+        'appearance.theme',
+        AppTheme.values,
+        labels: {AppTheme.light: 'Light', AppTheme.dark: 'Dark'},
+      ),
+    )..addCollection(preferenceCollection),
+  ),
   // Defaults skip metered connections and low battery but never wait for a
   // charger: waiting for unmetered Wi-Fi is free, while charging-only would
   // leave a phone on battery permanently out of date.

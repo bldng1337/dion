@@ -386,7 +386,7 @@ ThemeData getTheme(Brightness b) {
       ),
       behavior: SnackBarBehavior.floating,
       backgroundColor: isDark
-          ? DionColors.surfaceMuted
+          ? DionColors.surfaceMutedDark
           : DionColors.textPrimary,
       contentTextStyle: TextStyle(
         color: isDark ? DionColors.textPrimaryDark : Colors.white,
@@ -395,7 +395,7 @@ ThemeData getTheme(Brightness b) {
 
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: isDark ? DionColors.surfaceMuted : DionColors.textPrimary,
+        color: isDark ? DionColors.surfaceMutedDark : DionColors.textPrimary,
         borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       textStyle: TextStyle(
