@@ -255,7 +255,7 @@ class Extension extends ChangeNotifier {
   Future<void> runAction(rust.Action action, {rust.CancelToken? token}) async {
     switch (action) {
       case final rust.Action_OpenBrowser browse:
-        logger.i('Opening browser for url ${browse.url} for extension $data');
+        logger.i('Opening browser for extension ${data.id}');
         await launchUrl(Uri.parse(browse.url));
       case final rust.Action_Popup popup:
         final navContext = _navigatorContextOrNull();
