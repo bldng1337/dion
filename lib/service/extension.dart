@@ -597,11 +597,11 @@ class Extension extends ChangeNotifier {
         if (!(extension.isenabled && processor != null)) {
           continue;
         }
-        if (!processor.sourcetypes.contains(res.source.type)) {
+        if (!processor.sourcetypes.contains(resSource.type)) {
           continue;
         }
         final mapRes = await extension._proxy.mapSource(
-          source: res.source,
+          source: resSource,
           epid: ep.episode.id,
           settings: entryExtension.extensionSettings,
           token: token,
