@@ -237,7 +237,12 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           if (!mounted) {
             return;
           }
-          widget.source.episode.goNext(widget.source);
+          final episode = widget.source.episode;
+          if (episode.hasnext) {
+            episode.goNext(widget.source);
+          } else {
+            episode.markFinished();
+          }
         })
         .disposedBy(scope);
     player.stream.playing
@@ -257,7 +262,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           widget.source.episode.data.progress =
               '$playlistindex:${event.inMilliseconds}';
           final duration = player.state.duration;
-          if (duration > Duration.zero &&
+          if (widget.source.episode.hasnext &&
+              duration > Duration.zero &&
               event.inMilliseconds / duration.inMilliseconds > 0.5) {
             widget.source.cache.preload(widget.source.episode.next);
           }

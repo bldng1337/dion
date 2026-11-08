@@ -76,8 +76,9 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     if (listController.isAttached) {
       final position = listController.unobstructedVisibleRange?.$1;
 
-      if ((listController.visibleRange?.$2 ?? 0) >=
-          listController.numberOfItems / 2) {
+      if (widget.supplier.episode.hasnext &&
+          (listController.visibleRange?.$2 ?? 0) >=
+              listController.numberOfItems / 2) {
         widget.supplier.cache.preload(widget.supplier.episode.next);
       }
       if (position != null && position != 0) {

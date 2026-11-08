@@ -148,8 +148,9 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
 
     if (listController.isAttached) {
       final position = listController.unobstructedVisibleRange?.$1;
-      if ((listController.visibleRange?.$2 ?? 0) >=
-          widget.sourcedata.links.length / 2) {
+      if (widget.source.episode.hasnext &&
+          (listController.visibleRange?.$2 ?? 0) >=
+              widget.sourcedata.links.length / 2) {
         widget.supplier.cache.preload(widget.source.episode.next);
       }
 
@@ -492,7 +493,8 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
                 if (widget.source.episode.hasnext)
                   SliverToBoxAdapter(
                     child: DionTextbutton(
-                      child: const Text('Next').paddingSymmetric(vertical: 16),
+                      child: const Text('Next')
+                          .paddingSymmetric(vertical: DionSpacing.lg),
                       onPressed: () =>
                           widget.source.episode.goNext(widget.supplier),
                     ),

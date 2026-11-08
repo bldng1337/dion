@@ -100,6 +100,17 @@ class _SimpleEpubReaderState extends State<SimpleEpubReader>
     if (cfi != null) {
       widget.source.episode.data.progress = cfi;
     }
+    _markFinishedAtEnd();
+  }
+
+  void _markFinishedAtEnd() {
+    final controller = _controller;
+    final value = controller?.currentValue;
+    if (controller == null || value == null) return;
+    final chapterCount = controller.tableOfContents().length;
+    if (chapterCount > 0 && value.chapterNumber >= chapterCount) {
+      widget.source.episode.markFinished();
+    }
   }
 
   @override

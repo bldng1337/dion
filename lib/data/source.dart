@@ -45,6 +45,12 @@ class EpisodePath {
   Future<void> save() =>
       entry is EntrySaved ? (entry as EntrySaved).save() : Future.value();
 
+  Future<void> markFinished() async {
+    if (data.finished) return;
+    data.finished = true;
+    await save();
+  }
+
   Future<void> goNext(SourceSupplier supplier) async {
     if (!hasnext) return;
     await supplier.setEpisodeByIndex(episodenumber + 1);
@@ -104,8 +110,11 @@ class SourceSupplier with ChangeNotifier implements Disposable {
     if (index < 0 || index >= entry.episodes.length) {
       throw RangeError.index(index, entry.episodes, 'index');
     }
-    episode.data.finished = true;
-    if (entry is EntrySaved) {
+    final movingForward = index > episode.episodenumber;
+    if (movingForward) {
+      episode.data.finished = true;
+    }
+    if (movingForward && entry is EntrySaved) {
       final download = locate<DownloadService>();
       download.download(
         Iterable.generate(

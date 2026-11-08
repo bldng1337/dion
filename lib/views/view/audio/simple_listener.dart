@@ -236,7 +236,12 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             return;
           }
           if (loading) return;
-          widget.source.episode.goNext(widget.source);
+          final episode = widget.source.episode;
+          if (episode.hasnext) {
+            episode.goNext(widget.source);
+          } else {
+            episode.markFinished();
+          }
         })
         .disposedBy(scope);
     player.stream.position
@@ -249,8 +254,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           if (secs != 0 && secs % 5 == 0) {
             SessionData.of(context)?.manager.keepSessionAlive(saveToDb: true);
           }
-          if (event.inMilliseconds / player.state.duration.inMilliseconds >
-              0.5) {
+          final total = player.state.duration.inMilliseconds;
+          if (widget.source.episode.hasnext &&
+              total > 0 &&
+              event.inMilliseconds / total > 0.5) {
             widget.source.cache.preload(widget.source.episode.next);
           }
         })
