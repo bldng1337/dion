@@ -8,6 +8,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/media_type.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/note/wiki_link.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -66,7 +67,12 @@ class _NoteEditorPageState extends State<NoteEditorPage>
   @override
   void initState() {
     super.initState();
-    _controller.addListener(_onTextChanged);
+    Observer(
+      _onTextChanged,
+      _controller,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
   }
 
   @override

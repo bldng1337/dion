@@ -11,7 +11,9 @@ import 'package:dionysos/service/extension.dart'
     hide Alignment, ButtonType, EdgeInsets, StackFit, WrapAlignment;
 import 'package:dionysos/utils/custom_ui_tokens.dart';
 import 'package:dionysos/utils/debounce.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
@@ -417,10 +419,13 @@ class _CustomUISlotState extends State<CustomUISlot> {
               ?.where((e) => e.metadata.id == sub.key)
               .firstOrNull;
           if (setting != null) {
-            setting.addListener(_scheduleReload);
-            _settingDisposers.add(
-              () => setting.removeListener(_scheduleReload),
+            final observer = Observer(
+              _scheduleReload,
+              setting,
+              callOnInit: false,
+              callIndirectly: false,
             );
+            _settingDisposers.add(observer.dispose);
           } else {
             // Fall back to the change bus so a Slot subscribed to a setting id
             // that has no live Setting object still rebuilds when it changes.

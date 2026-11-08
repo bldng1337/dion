@@ -59,6 +59,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
   late final ScrollController controller;
 
   TtsController? _tts;
+  List<Observer>? _ttsObservers;
   Player? _musicPlayer;
   int _currentIndex = 0;
 
@@ -229,7 +230,12 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
       ..disposedBy(scope);
 
     listController = ListController()..disposedBy(scope);
-    listController.addListener(onScroll);
+    Observer(
+      onScroll,
+      listController,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
 
     supplierObserver = Observer(jumpToProgress, widget.supplier)
       ..disposedBy(scope);
@@ -267,10 +273,17 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     final tts = TtsStateData.of(context);
     if (tts == null) return;
     _tts = tts;
-    tts.removeListener(_followTts);
-    tts.addListener(_followTts);
-    tts.removeListener(_syncMusicWithTts);
-    tts.addListener(_syncMusicWithTts);
+    if (_ttsObservers case final observers?) {
+      for (final observer in observers) {
+        observer.swapListener(tts);
+      }
+    } else {
+      _ttsObservers = [
+        for (final callback in [_followTts, _syncMusicWithTts])
+          Observer(callback, tts, callOnInit: false, callIndirectly: false)
+            ..disposedBy(scope),
+      ];
+    }
     if (tts.state == TtsState.stopped) {
       tts.loadParagraphs(
         widget.sourcedata.paragraphs,
@@ -284,8 +297,6 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
 
   @override
   void dispose() {
-    _tts?.removeListener(_followTts);
-    _tts?.removeListener(_syncMusicWithTts);
     _musicPlayer?.dispose();
     _musicPlayer = null;
     widget.source.episode.save();

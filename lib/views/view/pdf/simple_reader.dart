@@ -19,6 +19,7 @@ import 'package:dionysos/service/extension.dart'
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/source_file.dart';
@@ -83,7 +84,6 @@ class _SimplePdfReaderState extends State<SimplePdfReader>
 
   @override
   void dispose() {
-    _controller?.removeListener(_onViewChanged);
     widget.source.episode.save();
     WakelockPlus.toggle(enable: false);
     unawaited(
@@ -152,7 +152,12 @@ class _SimplePdfReaderState extends State<SimplePdfReader>
                   onViewerReady: (document, controller) {
                     if (_controller != null) return;
                     _savedPage = controller.pageNumber ?? savedPage;
-                    controller.addListener(_onViewChanged);
+                    Observer(
+                      _onViewChanged,
+                      controller,
+                      callOnInit: false,
+                      callIndirectly: false,
+                    ).disposedBy(scope);
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
                         setState(() => _controller = controller);

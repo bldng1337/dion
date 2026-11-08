@@ -1,11 +1,13 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 
 class ActiveTasksSettings extends StatelessWidget {
   const ActiveTasksSettings({super.key});
@@ -28,54 +30,55 @@ class _TasksBody extends StatefulWidget {
   State<_TasksBody> createState() => _TasksBodyState();
 }
 
-class _TasksBodyState extends State<_TasksBody> {
-  final Set<Task> _subscribed = {};
+class _TasksBodyState extends State<_TasksBody> with StateDisposeScopeMixin {
+  final Map<Task, Observer> _subscribed = {};
+  late final Observer _managerObserver;
 
   void _onChange() {
     if (!mounted) return;
     setState(() {});
   }
 
+  Observer _observe(Listenable listenable) =>
+      Observer(_onChange, listenable, callOnInit: false, callIndirectly: false);
+
+  void _clearSubscriptions() {
+    for (final observer in _subscribed.values) {
+      observer.dispose();
+    }
+    _subscribed.clear();
+  }
+
   @override
   void initState() {
     super.initState();
-    widget.manager.addListener(_onChange);
+    _managerObserver = _observe(widget.manager)..disposedBy(scope);
   }
 
   @override
   void didUpdateWidget(_TasksBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.manager != widget.manager) {
-      oldWidget.manager.removeListener(_onChange);
-      widget.manager.addListener(_onChange);
-      for (final task in _subscribed.toList()) {
-        task.removeListener(_onChange);
-      }
-      _subscribed.clear();
+      _managerObserver.swapListener(widget.manager);
+      _clearSubscriptions();
     }
   }
 
   @override
   void dispose() {
-    widget.manager.removeListener(_onChange);
-    for (final task in _subscribed) {
-      task.removeListener(_onChange);
-    }
+    _clearSubscriptions();
     super.dispose();
   }
 
   void _syncSubscriptions(List<Task> tasks) {
     final current = tasks.toSet();
-    for (final task in _subscribed.toList()) {
-      if (!current.contains(task)) {
-        task.removeListener(_onChange);
-        _subscribed.remove(task);
-      }
-    }
+    _subscribed.removeWhere((task, observer) {
+      if (current.contains(task)) return false;
+      observer.dispose();
+      return true;
+    });
     for (final task in tasks) {
-      if (_subscribed.add(task)) {
-        task.addListener(_onChange);
-      }
+      _subscribed.putIfAbsent(task, () => _observe(task));
     }
   }
 

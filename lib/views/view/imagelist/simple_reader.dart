@@ -208,7 +208,12 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
       onAttach: (position) => jumpToProgress(),
     )..disposedBy(scope);
     listController = ListController()..disposedBy(scope);
-    listController.addListener(onScroll);
+    Observer(
+      onScroll,
+      listController,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
 
     WakelockPlus.toggle(enable: true);
     Observer(() async {

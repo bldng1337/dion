@@ -599,9 +599,12 @@ class _DynamicGridState<T> extends State<DynamicGrid<T>>
   void initState() {
     controller = ScrollController()..disposedBy(scope);
     loadMore();
-    controller.addListener(() {
-      loadMore();
-    });
+    Observer(
+      loadMore,
+      controller,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
     super.initState();
   }
 
@@ -775,9 +778,12 @@ class _DynamicListState<T> extends State<DynamicList<T>>
       }
     }, widget.controller)..disposedBy(scope);
     loadMore();
-    controller.addListener(() {
-      loadMore();
-    });
+    Observer(
+      loadMore,
+      controller,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
     super.initState();
   }
 
@@ -921,9 +927,12 @@ class _DynamicListSeperatedState<T> extends State<DynamicListSeperated<T>>
       }
     }, widget.controller)..disposedBy(scope);
     loadMore();
-    controller.addListener(() {
-      loadMore();
-    });
+    Observer(
+      loadMore,
+      controller,
+      callOnInit: false,
+      callIndirectly: false,
+    ).disposedBy(scope);
     super.initState();
   }
 
