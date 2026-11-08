@@ -90,8 +90,6 @@ dependencies:
   flutter_inappwebview: ^6.1.5
   connectivity_plus: ^7.3.1
   battery_plus: ^7.1.1
-  firebase_core: ^4.15.0
-  firebase_crashlytics: ^5.4.0
   flutter_markdown_plus: 1.0.12
   markdown: ^7.3.1
   # feedback: ^3.1.0

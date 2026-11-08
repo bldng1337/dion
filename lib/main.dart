@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/periodic_service.dart';
-import 'package:dionysos/utils/crashlytics.dart';
+import 'package:dionysos/service/preference.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/theme.dart';
 import 'package:flutter/cupertino.dart';
@@ -20,7 +20,6 @@ GoRouter? appRouter;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initCrashlytics();
   FlutterError.onError = (details) {
     logger.e(
       'FlutterError',

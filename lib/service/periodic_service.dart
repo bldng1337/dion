@@ -16,7 +16,6 @@ import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/service/notification.dart';
 import 'package:dionysos/service/preference.dart';
-import 'package:dionysos/utils/crashlytics.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/string.dart';
@@ -247,10 +246,6 @@ void backgroundTaskDispatcher() {
   // can distinguish periodic job output from main-isolate logs.
   LogStore.instance.source = kLogSourceBackground;
   Workmanager().executeTask((task, inputData) async {
-    // The background isolate runs in its own FlutterEngine; Firebase and the
-    // fatal-error listener must be set up there too so a force close during a
-    // periodic job is reported like a main-isolate crash.
-    await initCrashlytics();
     logger.i('Background task dispatched: $task');
 
     if (!await seedBackgroundDependencies()) {
