@@ -109,7 +109,8 @@ class PreferenceFontMetaData extends PreferenceMetaData<Font> {
 class PreferenceEnumMetaData<T extends Enum> extends PreferenceMetaData<T>
     implements EnumMetaData<T> {
   final List<T> enumvalues;
-  const PreferenceEnumMetaData(super.id, this.enumvalues);
+  final Map<T, String>? labels;
+  const PreferenceEnumMetaData(super.id, this.enumvalues, {this.labels});
 
   @override
   T? parse(String value) =>
