@@ -233,12 +233,6 @@ class Settings extends StatelessWidget {
                 path: '/settings/library',
               ),
               SettingNav(
-                title: 'Updates',
-                subtitle: 'Update check and notification settings',
-                icon: Icons.update_outlined,
-                path: '/settings/update',
-              ),
-              SettingNav(
                 title: 'Active Tasks',
                 subtitle: 'Background processes and downloads',
                 icon: Icons.playlist_play_outlined,
