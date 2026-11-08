@@ -19,6 +19,7 @@ import 'package:dionysos/service/extension.dart'
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/note/note_editor.dart';
@@ -431,7 +432,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         ),
         if (widget.source.episode.entry is EntrySaved)
           DionIconbutton(
-            tooltip: 'Chapter Note',
+            tooltip:
+                '${widget.source.episode.entry.mediaType.episodeName} Note',
             icon: Icon(
               epdata.note == null
                   ? Icons.sticky_note_2_outlined

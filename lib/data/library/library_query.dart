@@ -52,9 +52,9 @@ enum LibrarySortKey {
   String get label => switch (this) {
     none => 'Default',
     title => 'Title',
-    totalChapters => 'Total chapters',
-    chaptersRead => 'Chapters read',
-    chaptersUnread => 'Chapters unread',
+    totalChapters => 'Total episodes',
+    chaptersRead => 'Episodes finished',
+    chaptersUnread => 'Episodes unfinished',
     rating => 'Rating',
   };
 }

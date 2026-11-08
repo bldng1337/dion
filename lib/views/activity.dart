@@ -169,8 +169,8 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                         // Action & Episode Info
                         Text(
                           (activity.fromepisode == activity.toepisode)
-                              ? '$action episode ${activity.fromepisode}'
-                              : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
+                              ? '$action ${entry.mediaType.getEpisodeNames(1).toLowerCase()} ${activity.fromepisode}'
+                              : '$action ${entry.mediaType.getEpisodeNames(2).toLowerCase()} ${activity.fromepisode}–${activity.toepisode}',
                           style: context.bodySmall?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: context.theme.colorScheme.onSurface
@@ -232,8 +232,8 @@ class EpisodeActivityItem extends ActivityItem<EpisodeActivity> {
                         // Action & Episode Info
                         Text(
                           (activity.fromepisode == activity.toepisode)
-                              ? '$action episode ${activity.fromepisode}'
-                              : '$action episodes ${activity.fromepisode}–${activity.toepisode}',
+                              ? '$action ${entry.mediaType.getEpisodeNames(1).toLowerCase()} ${activity.fromepisode}'
+                              : '$action ${entry.mediaType.getEpisodeNames(2).toLowerCase()} ${activity.fromepisode}–${activity.toepisode}',
                           style: context.bodySmall?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: context.theme.colorScheme.onSurface

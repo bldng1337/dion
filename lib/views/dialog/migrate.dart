@@ -17,7 +17,9 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/settings/search_settings.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -425,26 +427,26 @@ class _MigrateConfirmDialog extends StatelessWidget {
                       subtitle: target.boundExtensionId,
                       episodeInfo: targetEpisodeCount == null
                           ? null
-                          : '$targetEpisodeCount episodes',
+                          : '$targetEpisodeCount ${target.mediaType.getEpisodeNames(targetEpisodeCount).toLowerCase()}',
                       badge: 'To',
                     ),
                   ),
                 ],
-              ).paddingOnly(bottom: 16),
+              ).paddingOnly(bottom: DionSpacing.lg),
               if (loadError != null)
                 _Notice(
                   context,
                   icon: Icons.error_outline,
                   color: context.theme.colorScheme.error,
                   text: 'Could not fully load the target: $loadError',
-                ).paddingOnly(bottom: 12),
+                ).paddingOnly(bottom: DionSpacing.md),
               if (existing != null)
                 _Notice(
                   context,
                   icon: Icons.warning_amber_rounded,
                   color: context.theme.colorScheme.error,
                   text: 'This entry is already in your library. Its current progress will be replaced.',
-                ).paddingOnly(bottom: 12),
+                ).paddingOnly(bottom: DionSpacing.md),
               _Notice(
                 context,
                 icon: Icons.info_outline,

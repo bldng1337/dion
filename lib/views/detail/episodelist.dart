@@ -16,6 +16,7 @@ import 'package:dionysos/service/extension.dart'
         WrapAlignment;
 import 'package:dionysos/service/task.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
@@ -55,7 +56,10 @@ class _EpisodeListSliverState extends State<EpisodeListSliver> {
     if (eplist.isEmpty) {
       return SliverToBoxAdapter(
         child: Center(
-          child: Text('No Episodes', style: context.labelLarge).paddingAll(20),
+          child: Text(
+            'No ${widget.entry.mediaType.getEpisodeNames(0)}',
+            style: context.labelLarge,
+          ).paddingAll(20),
         ),
       );
     }
@@ -146,7 +150,7 @@ class EpisodeTile extends StatelessWidget {
           return switch (snapshot.data?.status) {
             Status.nodownload => DionContainer(
               child: DionIconbutton(
-                tooltip: 'Download Episode',
+                tooltip: 'Download ${episodepath.entry.mediaType.episodeName}',
                 icon: const Icon(Icons.download_outlined, size: 18),
                 onPressed: () async {
                   await locate<DownloadService>().download([episodepath]);
@@ -176,10 +180,10 @@ class EpisodeTile extends StatelessWidget {
                     TaskStatus.error => Container(
                       decoration: BoxDecoration(
                         color: context.theme.colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(DionRadius.sm),
                       ),
                       child: DionIconbutton(
-                        tooltip: 'Clear Download Error',
+                        tooltip: 'Retry Download',
                         icon: Icon(
                           Icons.error_outline,
                           size: 18,
