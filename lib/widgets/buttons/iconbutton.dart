@@ -36,10 +36,12 @@ class DionIconbutton extends StatelessWidget {
         if (onPressed == null) {
           return context.theme.disabledColor;
         }
-        if (states.contains(WidgetState.hovered)) {
-          return context.theme.colorScheme.primary.lighten(60);
+        final primary = context.theme.colorScheme.primary;
+        final dark = context.theme.brightness == Brightness.dark;
+        if (states.contains(WidgetState.hovered) != dark) {
+          return primary.lighten(60);
         }
-        return context.theme.colorScheme.primary.darken(60);
+        return primary.darken(60);
       }),
     );
   }
