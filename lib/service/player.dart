@@ -111,24 +111,25 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
   /// Publish a [MediaItem] derived from the current [source]. Registered as a
   /// listener on [source] in [_init] and removed in [dispose].
   void _publishMediaFromSource() {
+    final cover = eppath.cover;
     mediaItem.add(
       MediaItem(
         id: eppath.name,
         title: eppath.name,
         album: eppath.entry.title,
-        artist: eppath.entry.author?[0],
+        artist: eppath.entry.author?.firstOrNull,
         duration: player.state.duration,
-        artUri: eppath.cover != null ? Uri.tryParse(eppath.cover!.url) : null,
-        artHeaders: eppath.cover != null ? eppath.entry.cover!.header : null,
-        // rating: eppath.entry.rating != null
-        //     ? Rating.newStarRating(
-        //         RatingStyle.percentage,
-        //         (eppath.entry.rating ?? 0 * 100) as int,
-        //       )
-        //     : null,
+        artUri: cover != null ? Uri.tryParse(cover.url) : null,
+        artHeaders: cover?.header,
       ),
     );
   }
+
+  List<MediaControl> get _controls => [
+    if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
+    if (player.state.playing) MediaControl.pause else MediaControl.play,
+    if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
+  ];
 
   Future<void> _init() async {
     // Update position
@@ -146,31 +147,14 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
     // Update buffering
     _streamSubs.add(
       player.stream.buffering.listen((event) {
-        if (event) {
-          playbackState.add(
-            playbackState.value.copyWith(
-              controls: [
-                if (eppath.hasprev && goprev != null)
-                  MediaControl.skipToPrevious,
-                MediaControl.pause,
-                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-              ],
-              processingState: AudioProcessingState.buffering,
-            ),
-          );
-        } else {
-          playbackState.add(
-            playbackState.value.copyWith(
-              controls: [
-                if (eppath.hasprev && goprev != null)
-                  MediaControl.skipToPrevious,
-                MediaControl.play,
-                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-              ],
-              processingState: AudioProcessingState.ready,
-            ),
-          );
-        }
+        playbackState.add(
+          playbackState.value.copyWith(
+            controls: _controls,
+            processingState: event
+                ? AudioProcessingState.buffering
+                : AudioProcessingState.ready,
+          ),
+        );
       }),
     );
 
@@ -186,41 +170,15 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
     // Update playing
     _streamSubs.add(
       player.stream.playing.listen((event) {
-        if (event) {
-          playbackState.add(
-            playbackState.value.copyWith(
-              controls: [
-                if (eppath.hasprev && goprev != null)
-                  MediaControl.skipToPrevious,
-                MediaControl.pause,
-                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-              ],
-              playing: true,
-            ),
-          );
-        } else {
-          playbackState.add(
-            playbackState.value.copyWith(
-              controls: [
-                if (eppath.hasprev && goprev != null)
-                  MediaControl.skipToPrevious,
-                MediaControl.play,
-                if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-              ],
-              playing: false,
-            ),
-          );
-        }
+        playbackState.add(
+          playbackState.value.copyWith(controls: _controls, playing: event),
+        );
       }),
     );
 
     playbackState.add(
       playbackState.value.copyWith(
-        controls: [
-          if (eppath.hasprev && goprev != null) MediaControl.skipToPrevious,
-          if (player.state.playing) MediaControl.pause else MediaControl.play,
-          if (eppath.hasnext && gonext != null) MediaControl.skipToNext,
-        ],
+        controls: _controls,
         processingState: player.state.buffering
             ? AudioProcessingState.buffering
             : AudioProcessingState.ready,
@@ -235,22 +193,6 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
       }),
     );
     source.addListener(_publishMediaFromSource);
-    mediaItem.add(
-      MediaItem(
-        id: eppath.name,
-        title: eppath.name,
-        album: eppath.entry.title,
-        artist: eppath.entry.author?[0],
-        duration: player.state.duration,
-        artUri: eppath.cover != null ? Uri.tryParse(eppath.cover!.url) : null,
-        artHeaders: eppath.cover != null ? eppath.entry.cover!.header : null,
-        // rating: eppath.entry.rating != null
-        //     ? Rating.newStarRating(
-        //         RatingStyle.percentage,
-        //         (eppath.entry.rating ?? 0 * 100) as int,
-        //       )
-        //     : null,
-      ),
-    );
+    _publishMediaFromSource();
   }
 }
