@@ -71,23 +71,28 @@ class _SourceWrapperState extends State<SourceWrapper>
     }
   }
 
+  Widget _buildError(BuildContext context, Object error, [StackTrace? stack]) {
+    return widget.errorBuilder?.call(context, error) ??
+        NavScaff(
+          title: const Text('Error'),
+          child: ErrorDisplay(
+            e: error,
+            s: stack,
+            message: 'Error loading source',
+            actions: [
+              ErrorAction(label: 'Retry', onTap: widget.source.retry),
+            ],
+          ),
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     // First check if we have a synchronous result available
     final syncResult = widget.source.sourceResult;
     if (syncResult != null) {
       if (syncResult.isFailure) {
-        return widget.errorBuilder?.call(
-              context,
-              syncResult.exceptionOrNull!,
-            ) ??
-            NavScaff(
-              title: const Text('Error'),
-              child: ErrorDisplay(
-                e: syncResult.exceptionOrNull,
-                message: 'Error loading source',
-              ),
-            );
+        return _buildError(context, syncResult.exceptionOrNull!);
       }
       return widget.builder(context, syncResult.getOrThrow);
     }
@@ -97,27 +102,12 @@ class _SourceWrapperState extends State<SourceWrapper>
       future: _cachedFuture,
       builder: (context, item) {
         if (item.isFailure) {
-          return widget.errorBuilder?.call(context, item.exceptionOrNull!) ??
-              NavScaff(
-                title: const Text('Error'),
-                child: ErrorDisplay(
-                  e: item.exceptionOrNull,
-                  message: 'Error loading source',
-                ),
-              );
+          return _buildError(context, item.exceptionOrNull!);
         }
         return widget.builder(context, item.getOrThrow);
       },
       error: (context, error, stackTrace) =>
-          widget.errorBuilder?.call(context, error) ??
-          NavScaff(
-            title: const Text('Error'),
-            child: ErrorDisplay(
-              e: error,
-              s: stackTrace,
-              message: 'Error loading source',
-            ),
-          ),
+          _buildError(context, error, stackTrace),
       loading: (context) =>
           widget.loadingBuilder?.call(context) ??
           const NavScaff(title: Text('Loading...'), child: DionProgressBar()),

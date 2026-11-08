@@ -9,6 +9,7 @@ import 'package:dionysos/views/view/paragraphlist/reader.dart';
 import 'package:dionysos/views/view/pdf/pdf.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/video/video.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/widgets.dart';
@@ -47,6 +48,8 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   SourcePath? lastsource;
   Object? error;
 
+  int _loadGeneration = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -56,16 +59,17 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
       supplier = SourceSupplier(extra[0]! as EpisodePath)..disposedBy(scope);
       Observer(
         () async {
+          final generation = ++_loadGeneration;
           final source = await supplier!.cache.get(supplier!.episode);
-          if (source.isSuccess) {
-            safeSetState(() {
+          if (generation != _loadGeneration) return;
+          safeSetState(() {
+            if (source.isSuccess) {
               lastsource = source.getOrThrow;
-            });
-          } else {
-            safeSetState(() {
+              error = null;
+            } else {
               error = source.exceptionOrNull;
-            });
-          }
+            }
+          });
         },
         supplier!,
         callIndirectly: false,
@@ -74,15 +78,10 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
   }
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     if (supplier == null) {
       return const NavScaff(
-        title: Text('Loading(This should not happen)...'),
+        title: Text('Loading...'),
         child: Center(child: DionProgressBar()),
       );
     }
@@ -96,7 +95,19 @@ class _ViewSourceState extends State<ViewSource> with StateDisposeScopeMixin {
     if (error != null) {
       return NavScaff(
         title: const Text('Error'),
-        child: Center(child: Text('Error loading source: $error')),
+        child: ErrorDisplay(
+          e: error,
+          message: 'Error loading source',
+          actions: [
+            ErrorAction(
+              label: 'Retry',
+              onTap: () {
+                setState(() => error = null);
+                supplier!.retry();
+              },
+            ),
+          ],
+        ),
       );
     }
     if (lastsource == null) {

@@ -172,9 +172,18 @@ class SourceSupplier with ChangeNotifier implements Disposable {
     return eppath.loadSource(null);
   }
 
+  void retry() {
+    cache.invalidate(_episode);
+    cache.preload(_episode);
+    notifyListeners();
+  }
+
   set episode(EpisodePath path) {
     if (_episode == path) return;
     _episode = path;
+    if (cache.getValue(path)?.isFailure ?? false) {
+      cache.invalidate(path);
+    }
     final entry = path.entry;
     if (entry is EntrySaved) {
       entry.onEntryActivity(path.episodenumber, token: tok);

@@ -61,6 +61,8 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
   Object? exception;
   bool loading = false;
 
+  int _loadGeneration = 0;
+
   int getStreamIndex() {
     if ((currentAudio?.sources.length ?? 0) <= streamIndex.value) {
       return 0;
@@ -96,12 +98,14 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     )..disposedBy(scope);
     sourceObserver = Observer(
       () async {
+        final generation = ++_loadGeneration;
         if (mounted) {
           setState(() {
             loading = true;
           });
         }
         final res = await widget.source.cache.get(widget.source.episode);
+        if (generation != _loadGeneration) return;
         if (res.isFailure) {
           if (mounted) {
             setState(() {
@@ -121,18 +125,20 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
           }
           return;
         }
-        final startduration = Duration(
-          milliseconds: int.tryParse(source.episode.data.progress ?? '0') ?? 0,
-        );
+        final startduration = source.episode.data.finished
+            ? Duration.zero
+            : Duration(
+                milliseconds:
+                    int.tryParse(source.episode.data.progress ?? '0') ?? 0,
+              );
         if (mounted) {
           setState(() {
+            exception = null;
             currentAudio = source.source as Source_Audio;
           });
         }
         final stream = currentAudio!.sources[getStreamIndex()];
-        logger.d(
-          'Opening stream ${stream.url.url} with headers ${stream.url.header} at position $startduration',
-        );
+        logger.d('Opening audio stream at position $startduration');
         await player.open(
           Media(
             stream.url.url,
@@ -140,6 +146,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
             start: startduration,
           ),
         );
+        if (generation != _loadGeneration) return;
         unawaited(
           chapterController?.onMediaOpened(chapters: currentAudio!.chapters),
         );
@@ -396,7 +403,10 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
     if (exception != null) {
       return NavScaff(
         title: Text('Error loading ${widget.source.episode.name}'),
-        child: ErrorDisplay(e: exception),
+        child: ErrorDisplay(
+          e: exception,
+          actions: [ErrorAction(label: 'Retry', onTap: widget.source.retry)],
+        ),
       );
     }
     if (currentAudio == null || player == null) {

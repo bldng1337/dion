@@ -19,6 +19,7 @@ import 'package:dionysos/service/extension.dart'
         WrapAlignment;
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
@@ -64,6 +65,13 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
 
   bool loading = true;
 
+  int _loadGeneration = 0;
+
+  SubtitleTrack _subtitleTrack(Subtitles sub) => SubtitleTrack.uri(
+    isFileUrl(sub.url.url) ? fileFromUrl(sub.url.url).path : sub.url.url,
+    title: sub.title,
+  );
+
   List<Subtitles> get subtitles {
     if (currentVideo == null) return [];
     return currentVideo!.sub;
@@ -104,9 +112,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     )..disposedBy(scope);
     sourceObserver = Observer(
       () async {
+        final generation = ++_loadGeneration;
         loading = true;
         final res = await widget.source.cache.get(widget.source.episode);
-        if (!mounted) return;
+        if (!mounted || generation != _loadGeneration) return;
         if (res.isFailure) {
           setState(() {
             exception = res.exceptionOrNull;
@@ -118,6 +127,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
           return;
         }
         setState(() {
+          exception = null;
           currentVideo = source.source as Source_Video;
         });
         final prog = source.episode.data.progress?.split(':');
@@ -139,18 +149,18 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             start: startduration,
           ),
         );
+        if (generation != _loadGeneration) return;
         unawaited(
           chapterController?.onMediaOpened(chapters: currentVideo!.chapters),
         );
         loading = false;
-        await Future.delayed(const Duration(milliseconds: 100));
-        if (!mounted) return;
+        await Future.delayed(DionDuration.fast);
+        if (!mounted || generation != _loadGeneration) return;
         if (subtitles.isNotEmpty &&
             subtitleIndex.value >= 0 &&
             subtitleIndex.value < subtitles.length) {
-          final sub = subtitles[subtitleIndex.value];
           await player.setSubtitleTrack(
-            SubtitleTrack.uri(sub.url.url, title: sub.title),
+            _subtitleTrack(subtitles[subtitleIndex.value]),
           );
         }
       },
@@ -190,9 +200,8 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
             subtitleIndex.value >= subtitles.length) {
           return;
         }
-        final sub = subtitles[subtitleIndex.value];
         await player.setSubtitleTrack(
-          SubtitleTrack.uri(sub.url.url, title: sub.title),
+          _subtitleTrack(subtitles[subtitleIndex.value]),
         );
       },
       subtitleIndex,
@@ -627,7 +636,10 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
     if (exception != null) {
       return NavScaff(
         title: Text('Error loading ${widget.source.episode.name}'),
-        child: ErrorDisplay(e: exception),
+        child: ErrorDisplay(
+          e: exception,
+          actions: [ErrorAction(label: 'Retry', onTap: widget.source.retry)],
+        ),
       );
     }
     if (currentVideo == null || player == null || controller == null) {
