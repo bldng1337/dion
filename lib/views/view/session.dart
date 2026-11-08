@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:dionysos/data/activity/episode.dart';
@@ -131,8 +132,19 @@ class _SessionState extends State<Session>
   @override
   void dispose() {
     // Persist immediately on teardown.
-    updateSession();
-    saveSession();
+    final now = DateTime.now();
+    final idle = now.difference(lastKeepAlive) > const Duration(minutes: 1);
+    final ep = widget.source.episode;
+    unawaited(
+      locate<Database>().addActivity(
+        session.copyWith(
+          toepisode: max(ep.episodenumber, session.toepisode),
+          fromepisode: min(ep.episodenumber, session.fromepisode),
+          duration: (idle ? lastKeepAlive : now).difference(session.time),
+        ),
+      ),
+    );
+    unawaited(ep.save());
     super.dispose();
   }
 
