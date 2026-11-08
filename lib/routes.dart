@@ -9,7 +9,6 @@ import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/browse/library.dart';
 import 'package:dionysos/views/browse/search.dart';
 import 'package:dionysos/views/calendar.dart';
-import 'package:dionysos/views/custom_view.dart';
 import 'package:dionysos/views/detail/detail.dart';
 import 'package:dionysos/views/detail/saved_quotes.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
@@ -148,16 +147,6 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
           title: episodePath?.name ?? 'Viewer',
         );
       },
-    ),
-    GoRoute(
-      path: 'custom',
-      pageBuilder: (context, state) => getTransition(
-        context,
-        state,
-        const CustomUiView(),
-        transition: Transition.fade,
-        title: 'Viewer',
-      ),
     ),
     GoRoute(
       path: '/detail',
