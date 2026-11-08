@@ -19,6 +19,13 @@ typedef InitiatorPrompt = Future<bool> Function(
   String sasCode,
 );
 
+// These run under the sync lock, so a peer that vanishes mid-request must not
+// be able to hold it forever. Installing is slow: the peer downloads the
+// extension before answering.
+const _connectTimeout = Duration(seconds: 10);
+const _extensionListTimeout = Duration(seconds: 30);
+const _extensionInstallTimeout = Duration(minutes: 3);
+
 class LanSyncClient {
   final DeviceIdentity _identity;
 
@@ -176,7 +183,8 @@ class LanSyncClient {
     final context = _identity.buildContext(
       trustedCertPems: [pairedDevice.certPem],
     );
-    final client = HttpClient(context: context);
+    final client = HttpClient(context: context)
+      ..connectionTimeout = _connectTimeout;
     client.badCertificateCallback = (cert, host, port) {
       return fingerprintOf(cert.pem) == pairedDevice.fingerprint;
     };
@@ -236,7 +244,7 @@ class LanSyncClient {
     required String baseUrl,
   }) async {
     final client = _mtlsHttpClientFor(pairedDevice);
-    try {
+    Future<List<ExtensionSyncInfo>> fetch() async {
       final req = await client.postUrl(Uri.parse('$baseUrl/extensions/list'));
       req.headers.contentType = ContentType.json;
       req.headers.set(protocolVersionHeader, '$dionSyncProtocolVersion');
@@ -252,6 +260,10 @@ class LanSyncClient {
       return list
           .map((e) => ExtensionSyncInfo.fromJson(e as Map<String, dynamic>))
           .toList();
+    }
+
+    try {
+      return await fetch().timeout(_extensionListTimeout);
     } finally {
       client.close(force: true);
     }
@@ -265,7 +277,7 @@ class LanSyncClient {
     required ExtensionSyncInfo info,
   }) async {
     final client = _mtlsHttpClientFor(pairedDevice);
-    try {
+    Future<void> install() async {
       final req = await client.postUrl(
         Uri.parse('$baseUrl/extensions/install'),
       );
@@ -279,6 +291,10 @@ class LanSyncClient {
           'extensions/install failed for ${info.id}: ${res.statusCode} $body',
         );
       }
+    }
+
+    try {
+      await install().timeout(_extensionInstallTimeout);
     } finally {
       client.close(force: true);
     }
