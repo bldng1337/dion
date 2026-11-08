@@ -69,7 +69,7 @@ class TaskCategory extends TreeNode<TaskCategory> {
   void _dequeue(Task task) {
     if (!_tasks.remove(task)) return; // already gone, nothing to prune
     var cat = this;
-    while (cat.parent != null && cat.tasks.isEmpty) {
+    while (cat.parent != null && cat.tasks.isEmpty && cat.children.isEmpty) {
       cat.parent!._children.remove(cat);
       cat = cat.parent!;
     }
