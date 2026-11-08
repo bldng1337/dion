@@ -222,7 +222,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
 
   Widget _buildImageGrid(
     BuildContext context,
-    int episodeIndex,
+    String episodeIndex,
     EpisodeData data,
   ) {
     return Wrap(
@@ -236,7 +236,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
 
   Widget _buildImageTile(
     BuildContext context,
-    int episodeIndex,
+    String episodeIndex,
     SavedImage image,
   ) {
     return Stack(
