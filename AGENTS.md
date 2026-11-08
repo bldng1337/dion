@@ -18,8 +18,8 @@ Platform folders (`android/`, `windows/`, ...) hold only embedding/plugin config
 ## Services and lifetime
 
 - Services are singletons registered in the small service locator in `lib/utils/service.dart` (`register` / `locate`). They live for the whole app runtime and are never disposed — do not add teardown logic to them.
-- Services initialize sequentially during startup, before the main UI takes over. A new service follows the existing pattern: a static `ensureInitialized()` that constructs the instance and registers it.
-- A service that depends on another service during startup waits with `locateAsync<T>()`; `locateAsync` belongs in service initialization only. Everywhere else use `locate<T>()`.
+- Services initialize concurrently during startup, before the main UI takes over: the loading screen starts every task at once and waits for all of them. A new service follows the existing pattern: a static `ensureInitialized()` that constructs the instance and registers it.
+- A service that depends on another service during startup waits with `locateAsync<T>()`, since start order isn't guaranteed; `locateAsync` belongs in service initialization only. Everywhere else use `locate<T>()`.
 
 ## State, subscriptions and disposal
 
