@@ -390,6 +390,32 @@ Future<bool> showExtensionLinkInstallDialog(
   return confirmed == true;
 }
 
+Future<bool> showRepositoryLinkAddDialog(
+  BuildContext context,
+  String url,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => DionAlertDialog(
+      title: const Text('Add repository?'),
+      content: Text('Extensions from this repository will be offered:\n$url'),
+      actions: [
+        DionTextbutton(
+          type: ButtonType.ghost,
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        DionTextbutton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Add'),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true;
+}
+
 Future<bool> installExtensionWithConsent(
   BuildContext context, {
   required RemoteExtension extension,

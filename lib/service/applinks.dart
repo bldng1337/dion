@@ -90,7 +90,7 @@ class AppLinksService {
     try {
       initialLink = await _appLinks.getInitialLink();
       if (initialLink != null) {
-        logger.i('Received initial link: $initialLink');
+        logger.i('Received initial link: ${_loggable(initialLink!)}');
         _pendingLink = initialLink;
       }
     } catch (e, stack) {
@@ -99,7 +99,7 @@ class AppLinksService {
 
     _appLinks.uriLinkStream.listen(
       (uri) {
-        logger.i('Received deep link: $uri');
+        logger.i('Received deep link: ${_loggable(uri)}');
         // Feed linkStream listeners (e.g. the OAuth callback flow) before
         // routing the link through the app-level dispatcher.
         _linkController.add(uri);
@@ -133,7 +133,7 @@ class AppLinksService {
     // Everything below needs services that only exist after the loading
     // screen; park the link until loading replays it.
     if (!has<Database>() || !has<ExtensionService>()) {
-      logger.i('App not ready; deferring deep link $uri');
+      logger.i('App not ready; deferring deep link ${_loggable(uri)}');
       _pendingLink = uri;
       return;
     }
@@ -154,12 +154,15 @@ class AppLinksService {
     if (!_viewLinkPrefixes.any(path.startsWith)) {
       // Unknown hosts may belong to linkStream listeners such as the OAuth
       // callback flow, so they are ignored here rather than reported.
-      logger.i('Ignoring deep link $uri: not an app view');
+      logger.i('Ignoring deep link ${_loggable(uri)}: not an app view');
       return;
     }
-    logger.i('Navigating to $path from deep link $uri');
+    logger.i('Navigating to $path from deep link');
     appRouter?.go(path);
   }
+
+  /// Strip sensitive info for logging.
+  static String _loggable(Uri uri) => '${uri.scheme}://${uri.host}${uri.path}';
 
   Future<void> _openEntry(Uri uri, {required bool coldStart}) async {
     final uid = uri.queryParameters['uid'];
@@ -251,11 +254,19 @@ class AppLinksService {
       showToast('Repository already added', rust.ToastKind.warning);
       return;
     }
-    settings.extension.repositories.value = [...repos, url];
-    showToast('Repository added', rust.ToastKind.success);
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      logger.w('Repository link ignored: no navigator context');
+      return;
+    }
     if (coldStart) {
       appRouter?.go('/manage');
     }
+    if (!await showRepositoryLinkAddDialog(context, url)) {
+      return;
+    }
+    settings.extension.repositories.value = [...repos, url];
+    showToast('Repository added', rust.ToastKind.success);
   }
 
   Future<void> _registerWindowsScheme() async {
