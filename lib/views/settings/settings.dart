@@ -155,6 +155,23 @@ class Settings extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
         children: const [
           _SettingsSection(
+            title: 'App',
+            items: [
+              SettingNav(
+                title: 'Theme',
+                subtitle: 'Light and dark appearance',
+                icon: Icons.palette_outlined,
+                path: '/settings/theme',
+              ),
+              SettingNav(
+                title: 'App Updates',
+                subtitle: 'Update check and notification settings',
+                icon: Icons.update_outlined,
+                path: '/settings/update',
+              ),
+            ],
+          ),
+          _SettingsSection(
             title: 'Readers',
             items: [
               SettingNav(

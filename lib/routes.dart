@@ -18,6 +18,7 @@ import 'package:dionysos/views/extension/extension_view.dart';
 import 'package:dionysos/views/loading.dart';
 import 'package:dionysos/views/note/note_editor.dart';
 import 'package:dionysos/views/settings/about.dart';
+import 'package:dionysos/views/settings/appearance.dart';
 import 'package:dionysos/views/settings/audio_listener.dart';
 import 'package:dionysos/views/settings/developer.dart';
 import 'package:dionysos/views/settings/developer/log.dart';
@@ -207,17 +208,25 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         GoRoute(
           path: '/logs',
           pageBuilder: (context, state) =>
-              getTransition(context, state, const LogView()),
+              getTransition(context, state, const LogView(), title: 'Logs'),
         ),
         GoRoute(
           path: '/query',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const QueryDebugger()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const QueryDebugger(),
+            title: 'Query Debugger',
+          ),
         ),
         GoRoute(
           path: '/widgets',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const WidgetPlayground()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const WidgetPlayground(),
+            title: 'Widget Playground',
+          ),
         ),
       ],
     ),
@@ -227,24 +236,45 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
           getTransition(context, state, const Settings(), title: 'Settings'),
       routes: [
         GoRoute(
+          path: '/theme',
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const AppearanceSettings(),
+            title: 'Theme',
+          ),
+        ),
+        GoRoute(
           path: '/update',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const UpdateSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const UpdateSettings(),
+            title: 'App Updates',
+          ),
         ),
         GoRoute(
           path: '/paragraphreader',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const ParagraphReaderSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const ParagraphReaderSettings(),
+            title: 'Paragraph Reader Settings',
+          ),
         ),
         GoRoute(
           path: '/audiolistener',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const AudioListenerSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const AudioListenerSettings(),
+            title: 'Audio Listener Settings',
+          ),
         ),
         GoRoute(
           path: '/storage',
           pageBuilder: (context, state) =>
-              getTransition(context, state, const Storage()),
+              getTransition(context, state, const Storage(), title: 'Storage'),
         ),
         GoRoute(
           path: '/downloads',
@@ -257,23 +287,39 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         ),
         GoRoute(
           path: '/imagelistreader',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const ImageListReaderSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const ImageListReaderSettings(),
+            title: 'Image List Reader Settings',
+          ),
         ),
         GoRoute(
           path: '/videoplayer',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const VideoPlayerSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const VideoPlayerSettings(),
+            title: 'Video Player Settings',
+          ),
         ),
         GoRoute(
           path: '/sync',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const SyncSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const SyncSettings(),
+            title: 'Synchronisation',
+          ),
         ),
         GoRoute(
           path: '/devices',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const DevicesSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const DevicesSettings(),
+            title: 'Devices',
+          ),
         ),
         GoRoute(
           path: '/library',
@@ -286,23 +332,35 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
         ),
         GoRoute(
           path: '/tasks',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const ActiveTasksSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const ActiveTasksSettings(),
+            title: 'Active Tasks',
+          ),
         ),
         GoRoute(
           path: '/periodicjobs',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const PeriodicJobsSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const PeriodicJobsSettings(),
+            title: 'Periodic Jobs',
+          ),
         ),
         GoRoute(
           path: '/extension',
-          pageBuilder: (context, state) =>
-              getTransition(context, state, const ExtensionSettings()),
+          pageBuilder: (context, state) => getTransition(
+            context,
+            state,
+            const ExtensionSettings(),
+            title: 'Extension Settings',
+          ),
         ),
         GoRoute(
           path: '/about',
           pageBuilder: (context, state) =>
-              getTransition(context, state, const AboutSettings()),
+              getTransition(context, state, const AboutSettings(), title: 'About'),
         ),
       ],
     ),
