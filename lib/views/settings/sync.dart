@@ -1,8 +1,8 @@
 import 'package:dionysos/data/settings/appsettings.dart';
-import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_directory.dart';
+import 'package:dionysos/widgets/settings/setting_dropdown.dart';
 import 'package:dionysos/widgets/settings/setting_textbox.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
@@ -14,61 +14,71 @@ class SyncSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return NavScaff(
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
-        children: [
-          SettingTitle(
-            title: 'Synchronisation',
-            subtitle: 'Configure cloud sync and backup',
-            children: [
-              SettingToggle(
-                title: 'Enable Sync',
-                description: 'Automatically sync your library',
-                setting: settings.sync.enabled,
+      title: const Text('Synchronisation'),
+      child: ListenableBuilder(
+        listenable: settings.sync.mode,
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.only(bottom: DionSpacing.xxxl),
+          children: [
+            SettingTitle(
+              title: 'Synchronisation',
+              subtitle: 'How this device keeps its library in sync',
+              children: [
+                SettingDropdown(
+                  title: 'Sync Mode',
+                  description:
+                      'Merge with a database file in a folder, or sync '
+                      'directly with paired devices on your network',
+                  setting: settings.sync.mode,
+                ),
+              ],
+            ),
+            if (settings.sync.mode.value == SyncMode.file)
+              SettingTitle(
+                title: 'Local Database File',
+                subtitle: 'Merged into your library each time the app starts',
+                children: [
+                  SettingDirectory(
+                    title: 'Sync Directory',
+                    description: 'Folder holding the database to merge with',
+                    setting: settings.sync.path,
+                  ),
+                ],
               ),
-              SettingDirectory(
-                title: 'Sync Directory',
-                description: 'Folder to sync library data',
-                setting: settings.sync.path,
-              ).conditional(settings.sync.enabled),
-            ],
-          ),
-          SettingTitle(
-            title: 'Local Network Sync',
-            subtitle: 'Pair with other devices on your Wi-Fi to sync directly',
-            children: [
-              SettingToggle(
-                title: 'Enable LAN Sync',
-                description: 'Discover and pair with nearby devices',
-                setting: settings.sync.lan.enabled,
+            if (settings.sync.mode.value == SyncMode.lan)
+              SettingTitle(
+                title: 'LAN Sync',
+                subtitle:
+                    'Pair with other devices on your Wi-Fi to sync directly',
+                children: [
+                  SettingTextbox(
+                    title: 'Device Name',
+                    description: 'Shown to other devices when pairing',
+                    setting: settings.sync.lan.deviceName,
+                  ),
+                  SettingToggle(
+                    title: 'Discoverable',
+                    description: 'Let other devices find this device',
+                    setting: settings.sync.lan.discoverable,
+                  ),
+                  SettingToggle(
+                    title: 'Auto Sync',
+                    description:
+                        'Sync with paired devices automatically whenever both '
+                        'are online',
+                    setting: settings.sync.lan.autoSync,
+                  ),
+                  SettingToggle(
+                    title: 'Live Sync',
+                    description:
+                        'Push changes to online devices as they happen instead '
+                        'of waiting for the next sync',
+                    setting: settings.sync.lan.livesync,
+                  ),
+                ],
               ),
-              SettingTextbox(
-                title: 'Device Name',
-                description: 'Shown to other devices when pairing',
-                setting: settings.sync.lan.deviceName,
-              ).conditional(settings.sync.lan.enabled),
-              SettingToggle(
-                title: 'Discoverable',
-                description: 'Let other devices find this device',
-                setting: settings.sync.lan.discoverable,
-              ).conditional(settings.sync.lan.enabled),
-              SettingToggle(
-                title: 'Auto Sync',
-                description:
-                    'Sync with paired devices automatically whenever both are '
-                    'online',
-                setting: settings.sync.lan.autoSync,
-              ).conditional(settings.sync.lan.enabled),
-              SettingToggle(
-                title: 'Live Sync',
-                description:
-                    'Push changes to online devices as they happen instead of '
-                    'waiting for the next sync',
-                setting: settings.sync.lan.livesync,
-              ).conditional(settings.sync.lan.enabled),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

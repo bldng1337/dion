@@ -188,7 +188,7 @@ class Settings extends StatelessWidget {
             items: [
               SettingNav(
                 title: 'Synchronisation',
-                subtitle: 'Cloud sync and backup options',
+                subtitle: 'Sync with a local database file or over LAN',
                 icon: Icons.sync_outlined,
                 path: '/settings/sync',
               ),

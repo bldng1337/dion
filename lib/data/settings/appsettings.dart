@@ -120,11 +120,11 @@ class PreferenceEnumMetaData<T extends Enum> extends PreferenceMetaData<T>
 
   @override
   List<EnumValue<T>> get values =>
-      enumvalues.map((e) => EnumValue(e.name, e)).toList();
+      enumvalues.map((e) => EnumValue(getLabel(e), e)).toList();
 
   @override
   String getLabel(T value) {
-    return value.name;
+    return labels?[value] ?? value.name;
   }
 }
 
@@ -192,6 +192,10 @@ class PreferenceReplaceListMetaData
 enum ReaderMode { paginated, infinite }
 
 enum UpdateChannel { stable, beta, nightly }
+
+enum SyncMode { none, file, lan }
+
+enum AppTheme { light, dark }
 
 ChapterAutoSkipSettings chapterSettings(String prefix) =>
     ChapterAutoSkipSettings._(
@@ -398,15 +402,23 @@ final settings = (
     )..addCollection(preferenceCollection),
   ),
   sync: (
-    enabled: Setting(true, const PreferenceBoolMetaData('sync.enabled'))
-      ..addCollection(preferenceCollection),
+    mode: Setting(
+      SyncMode.lan,
+      const PreferenceEnumMetaData(
+        'sync.mode',
+        SyncMode.values,
+        labels: {
+          SyncMode.none: "Don't sync",
+          SyncMode.file: 'Local database file',
+          SyncMode.lan: 'LAN Sync',
+        },
+      ),
+    )..addCollection(preferenceCollection),
     path: Setting(
       null as Directory?,
       const PreferenceDirectoryMetaData('sync.path'),
     )..addCollection(preferenceCollection),
     lan: (
-      enabled: Setting(true, const PreferenceBoolMetaData('sync.lan.enabled'))
-        ..addCollection(preferenceCollection),
       deviceName: Setting(
         Platform.localHostname,
         const PreferenceStringMetaData('sync.lan.devicename'),

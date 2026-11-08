@@ -51,7 +51,8 @@ class Database extends KeyedChangeNotifier<DBEvent> {
     register<Database>(db);
     logger.i('Initialised Database!');
     await locateAsync<PreferenceService>(); //Rework this into a more sane way
-    if (settings.sync.enabled.value && settings.sync.path.value != null) {
+    if (settings.sync.mode.value == SyncMode.file &&
+        settings.sync.path.value != null) {
       logger.i('Syncing database with local file...');
       try {
         await locate<Database>().merge(settings.sync.path.value!.absolute.path);
