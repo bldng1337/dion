@@ -235,7 +235,18 @@ class _CategorySettingsState extends State<CategorySettings>
                 category: category,
                 onEdit: () => showUpdateDialog(context, category),
                 onDelete: () async {
-                  await locate<Database>().removeCategory(category);
+                  final confirmed = await showConfirmDialog(
+                    context,
+                    title: 'Delete Category',
+                    message:
+                        'Delete "${category.name}"? Its entries stay in your '
+                        'library.',
+                    confirmLabel: 'Delete',
+                    destructive: true,
+                  );
+                  if (confirmed) {
+                    await locate<Database>().removeCategory(category);
+                  }
                 },
               );
             },

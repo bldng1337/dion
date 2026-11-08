@@ -20,6 +20,7 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
@@ -362,7 +363,16 @@ class Storage extends StatelessWidget {
                 icon: Icons.delete_outline,
                 isDestructive: true,
                 onTap: () async {
-                  await locate<Database>().clear();
+                  final confirmed = await showConfirmDialog(
+                    context,
+                    title: 'Clear Database',
+                    message:
+                        'Permanently remove your whole library, including '
+                        'categories, progress, notes and activity history?',
+                    confirmLabel: 'Clear',
+                    destructive: true,
+                  );
+                  if (confirmed) await locate<Database>().clear();
                 },
               ),
               _StorageAction(
@@ -370,7 +380,15 @@ class Storage extends StatelessWidget {
                 description: 'Restore all settings to defaults',
                 icon: Icons.settings_backup_restore_outlined,
                 isDestructive: true,
-                onTap: () {
+                onTap: () async {
+                  final confirmed = await showConfirmDialog(
+                    context,
+                    title: 'Reset Settings',
+                    message: 'Restore all settings to their defaults?',
+                    confirmLabel: 'Reset',
+                    destructive: true,
+                  );
+                  if (!confirmed) return;
                   for (final setting in preferenceCollection.settings) {
                     setting.value = setting.intialValue;
                   }
