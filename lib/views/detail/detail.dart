@@ -22,6 +22,7 @@ import 'package:dionysos/service/extension.dart'
 import 'package:dionysos/utils/cancel_token.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/detail/entryinfo.dart';
@@ -55,223 +56,176 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
   late CancelToken tok;
   Object? error;
   StackTrace? errstack;
+
+  Object? refreshError;
+  StackTrace? refreshStack;
   List<int> selected = [];
   int? hovered;
   late final ScrollController _scrollController = ScrollController()
     ..disposedBy(scope);
 
-  List<ContextMenuItem> get contextItems => [
-    ContextMenuItem(
-      label: 'Bookmark',
-      icon: Icons.bookmark_border,
-      section: 'Actions',
-      onTap: () async {
-        final entry = this.entry;
-        if (entry is! EntrySaved) return;
-        for (final int i in selected) {
-          final data = entry.getEpisodeData(i);
-          data.bookmark = true;
-        }
-        if (hovered != null) {
-          final data = entry.getEpisodeData(hovered!);
-          data.bookmark = true;
-        }
-        selected.clear();
-        setState(() {});
-        await entry.save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Remove Bookmark',
-      icon: Icons.bookmark_remove,
-      onTap: () async {
-        final entry = this.entry;
-        if (entry is! EntrySaved) return;
-        for (final int i in selected) {
-          final data = entry.getEpisodeData(i);
-          data.bookmark = false;
-        }
-        if (hovered != null) {
-          final data = entry.getEpisodeData(hovered!);
-          data.bookmark = false;
-        }
-        selected.clear();
-        setState(() {});
-        await entry.save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Mark as finished',
-      icon: Icons.task_alt,
-      onTap: () async {
-        final entry = this.entry;
-        if (entry is! EntrySaved) return;
-        for (final int i in selected) {
-          final data = entry.getEpisodeData(i);
-          data.finished = true;
-        }
-        if (hovered != null) {
-          final data = entry.getEpisodeData(hovered!);
-          data.finished = true;
-        }
-        selected.clear();
-        setState(() {});
-        await entry.save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Mark as unfinished',
-      icon: Icons.circle_outlined,
-      onTap: () async {
-        final entry = this.entry;
-        if (entry is! EntrySaved) return;
-        for (final int i in selected) {
-          final data = entry.getEpisodeData(i);
-          data.finished = false;
-          data.progress = null;
-        }
-        if (hovered != null) {
-          final data = entry.getEpisodeData(hovered!);
-          data.finished = false;
-          data.progress = null;
-        }
-        selected.clear();
-        setState(() {});
-        await entry.save();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Download',
-      icon: Icons.download_outlined,
-      onTap: () async {
-        final download = locate<DownloadService>();
-        await download.download([
-          ...selected.map(
-            (index) => EpisodePath(entry! as EntryDetailed, index),
-          ),
-          if (hovered != null && !selected.contains(hovered))
-            EpisodePath(entry! as EntryDetailed, hovered!),
-        ]);
-        selected.clear();
-        safeSetState();
-      },
-    ),
-    ContextMenuItem(
-      label: 'Delete Download',
-      icon: Icons.delete_outline,
-      isDestructive: true,
-      onTap: () async {
-        final download = locate<DownloadService>();
-        await download.deleteEpisodes([
-          ...selected.map(
-            (index) => EpisodePath(entry! as EntryDetailed, index),
-          ),
-          if (hovered != null && !selected.contains(hovered))
-            EpisodePath(entry! as EntryDetailed, hovered!),
-        ]);
-        selected.clear();
-        safeSetState();
-      },
-    ),
-    if (entry is EntrySaved &&
-        (selected.length == 1 || (selected.isEmpty && hovered != null)))
+  bool _isSelectable(int index) =>
+      (entry! as EntryDetailed).episodes[index].announced != true;
+
+  String get _unitName => entry!.mediaType.episodeName.toLowerCase();
+  String get _unitNames => entry!.mediaType.getEpisodeNames(2).toLowerCase();
+
+  List<ContextMenuItem> get contextItems {
+    final target = hovered;
+    final targets = {...selected, ?target};
+    return [
       ContextMenuItem(
-        label: 'Note',
-        icon: Icons.sticky_note_2_outlined,
+        label: 'Bookmark',
+        icon: Icons.bookmark_border,
+        section: 'Actions',
+        onTap: () =>
+            _updateEpisodeData(targets, (data) => data.bookmark = true),
+      ),
+      ContextMenuItem(
+        label: 'Remove Bookmark',
+        icon: Icons.bookmark_remove,
+        onTap: () =>
+            _updateEpisodeData(targets, (data) => data.bookmark = false),
+      ),
+      ContextMenuItem(
+        label: 'Mark as finished',
+        icon: Icons.task_alt,
+        onTap: () =>
+            _updateEpisodeData(targets, (data) => data.finished = true),
+      ),
+      ContextMenuItem(
+        label: 'Mark as unfinished',
+        icon: Icons.circle_outlined,
+        onTap: () => _updateEpisodeData(targets, (data) {
+          data.finished = false;
+          data.progress = null;
+        }),
+      ),
+      ContextMenuItem(
+        label: 'Download',
+        icon: Icons.download_outlined,
         onTap: () async {
-          final index = selected.isNotEmpty ? selected.first : hovered!;
+          final download = locate<DownloadService>();
+          await download.download([
+            for (final index in targets)
+              if (_isSelectable(index))
+                EpisodePath(entry! as EntryDetailed, index),
+          ]);
           selected.clear();
-          setState(() {});
-          if (context.mounted) {
-            await context.push('/note', extra: [entry!, index]);
-          }
+          safeSetState();
         },
       ),
-    if (selected.length == 1 || (selected.isEmpty && hovered != null))
       ContextMenuItem(
-        label: 'Open in Browser',
-        icon: Icons.open_in_browser,
+        label: 'Delete Download',
+        icon: Icons.delete_outline,
+        isDestructive: true,
         onTap: () async {
-          if (selected.isEmpty) {
-            if (hovered == null) return;
+          final download = locate<DownloadService>();
+          await download.deleteEpisodes([
+            for (final index in targets)
+              EpisodePath(entry! as EntryDetailed, index),
+          ]);
+          selected.clear();
+          safeSetState();
+        },
+      ),
+      if (entry is EntrySaved && targets.length == 1)
+        ContextMenuItem(
+          label: 'Note',
+          icon: Icons.sticky_note_2_outlined,
+          onTap: () async {
+            final index = targets.single;
+            selected.clear();
+            setState(() {});
+            if (context.mounted) {
+              await context.push('/note', extra: [entry!, index]);
+            }
+          },
+        ),
+      if (targets.length == 1)
+        ContextMenuItem(
+          label: 'Open in Browser',
+          icon: Icons.open_in_browser,
+          onTap: () async {
             await launchUrl(
-              Uri.parse((entry! as EntryDetailed).episodes[hovered!].url),
+              Uri.parse((entry! as EntryDetailed).episodes[targets.single].url),
             );
-            return;
-          }
-          await launchUrl(
-            Uri.parse((entry! as EntryDetailed).episodes[selected.first].url),
-          );
+          },
+        ),
+      ContextMenuItem(
+        label: 'Select to this $_unitName',
+        icon: Icons.playlist_add_check,
+        section: 'Selection',
+        onTap: () async {
+          final end = max(selected.fold(-1, max), target ?? -1) + 1;
+          _select(Iterable.generate(end, (index) => index));
         },
       ),
-    ContextMenuItem(
-      label: 'Select to this episode',
-      icon: Icons.playlist_add_check,
-      section: 'Selection',
-      onTap: () async {
-        final index =
-            max(selected.fold(-1, (a, b) => max(a, b)), hovered ?? -1) + 1;
-        if (index < 0) return;
-        selected.clear();
-        selected.addAll(Iterable.generate(index, (index) => index));
-        setState(() {});
-      },
-    ),
-    if (entry is EntrySaved)
+      if (entry is EntrySaved)
+        ContextMenuItem(
+          label: 'Select finished $_unitNames',
+          icon: Icons.done_all,
+          onTap: () async {
+            final entry = this.entry! as EntrySaved;
+            _select(
+              entry.episodes.indexed
+                  .where((e) => entry.getEpisodeData(e.$1).finished)
+                  .map((e) => e.$1),
+            );
+          },
+        ),
+      if (entry is EntrySaved)
+        ContextMenuItem(
+          label: 'Select unfinished $_unitNames',
+          icon: Icons.remove_done,
+          onTap: () async {
+            final entry = this.entry! as EntrySaved;
+            _select(
+              entry.episodes.indexed
+                  .where((e) => !entry.getEpisodeData(e.$1).finished)
+                  .map((e) => e.$1),
+            );
+          },
+        ),
       ContextMenuItem(
-        label: 'Select finished episodes',
-        icon: Icons.done_all,
+        label: 'Select All',
+        icon: Icons.select_all,
         onTap: () async {
           final entry = this.entry;
-          if (entry is! EntrySaved) return;
-          selected.clear();
-          selected.addAll(
-            entry.episodes.indexed
-                .where((e) => entry.getEpisodeData(e.$1).finished)
-                .map((e) => e.$1)
-                .toList(),
-          );
-          setState(() {});
+          if (entry is! EntryDetailed) return;
+          _select(entry.episodes.indexed.map((e) => e.$1));
         },
       ),
-    if (entry is EntrySaved)
-      ContextMenuItem(
-        label: 'Select unfinished episodes',
-        icon: Icons.remove_done,
-        onTap: () async {
-          final entry = this.entry;
-          if (entry is! EntrySaved) return;
-          selected.clear();
-          selected.addAll(
-            entry.episodes.indexed
-                .where((e) => !entry.getEpisodeData(e.$1).finished)
-                .map((e) => e.$1)
-                .toList(),
-          );
-          setState(() {});
-        },
-      ),
-    ContextMenuItem(
-      label: 'Select All',
-      icon: Icons.select_all,
-      onTap: () async {
-        final entry = this.entry;
-        if (entry is! EntryDetailed) return;
-        selected.clear();
-        selected.addAll(entry.episodes.indexed.map((e) => e.$1).toList());
-        setState(() {});
-      },
-    ),
-    if (selected.isNotEmpty)
-      ContextMenuItem(
-        label: 'Clear Selection',
-        icon: Icons.clear_all,
-        onTap: () async {
-          selected.clear();
-          setState(() {});
-        },
-      ),
-  ];
+      if (selected.isNotEmpty)
+        ContextMenuItem(
+          label: 'Clear Selection',
+          icon: Icons.clear_all,
+          onTap: () async {
+            selected.clear();
+            setState(() {});
+          },
+        ),
+    ];
+  }
+
+  Future<void> _updateEpisodeData(
+    Set<int> targets,
+    void Function(EpisodeData data) update,
+  ) async {
+    final entry = this.entry;
+    if (entry is! EntrySaved) return;
+    targets.map(entry.getEpisodeData).forEach(update);
+    selected.clear();
+    setState(() {});
+    await entry.save();
+  }
+
+  void _select(Iterable<int> indices) {
+    selected
+      ..clear()
+      ..addAll(indices.where(_isSelectable));
+    setState(() {});
+  }
 
   Future<void> loadEntry() async {
     if (entry is EntrySaved) {
@@ -320,12 +274,14 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
       }
       final e = await (entry! as EntrySaved).refresh(token: tok, full: full);
       entry = e;
+      refreshError = null;
+      refreshStack = null;
       if (mounted) {
         setState(() {});
       }
     } catch (e, stack) {
-      error = e;
-      errstack = stack;
+      refreshError = e;
+      refreshStack = stack;
       if (mounted) {
         setState(() {});
       }
@@ -363,7 +319,18 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         child: ErrorDisplay(
           e: error,
           s: errstack,
-          actions: [ErrorAction(label: 'Reload', onTap: () => loadEntry())],
+          actions: [
+            ErrorAction(
+              label: 'Reload',
+              onTap: () {
+                setState(() {
+                  error = null;
+                  errstack = null;
+                });
+                loadEntry();
+              },
+            ),
+          ],
         ),
       );
     }
@@ -495,6 +462,17 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                 actions: [_buildActionsContainer(context, actions)],
                 leading: _buildLeadingButton(context),
               ),
+            if (refreshError != null)
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 76,
+                  child: ErrorDisplay(
+                    e: refreshError,
+                    s: refreshStack,
+                    message: 'Refresh failed',
+                  ),
+                ).paddingAll(DionSpacing.sm),
+              ),
             SliverToBoxAdapter(child: EntryInfo(entry: entry!)),
             if (entry is EntryDetailed)
               EpisodeListSliver(
@@ -504,6 +482,12 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
                   if (hovered == index) return;
                   setState(() {
                     hovered = index;
+                  });
+                },
+                onExit: (index) {
+                  if (hovered != index) return;
+                  setState(() {
+                    hovered = null;
                   });
                 },
                 onSelect: (index) {
@@ -524,24 +508,27 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
 
   Widget _buildActionsContainer(BuildContext context, List<Widget> actions) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 6,
+        vertical: DionSpacing.xs,
+      ),
+      margin: const EdgeInsets.only(right: DionSpacing.md),
       decoration: BoxDecoration(
         color: context.theme.appBarTheme.backgroundColor,
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       child: Row(children: actions),
-    ).paddingOnly(right: 8);
+    ).paddingOnly(right: DionSpacing.sm);
   }
 
   Widget _buildLeadingButton(BuildContext context) {
     return Center(
       child: Container(
-        margin: const EdgeInsets.only(left: 12),
+        margin: const EdgeInsets.only(left: DionSpacing.md),
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: context.theme.appBarTheme.backgroundColor,
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(DionRadius.sm),
         ),
         child: DionIconbutton(
           tooltip: 'Back',
