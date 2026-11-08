@@ -12,7 +12,17 @@ class Destination {
   final IconData ico;
   final String name;
   final String path;
-  Destination({required this.ico, required this.name, required this.path});
+
+  final List<String> relatedPaths;
+  Destination({
+    required this.ico,
+    required this.name,
+    required this.path,
+    this.relatedPaths = const [],
+  });
+
+  bool matches(String location) =>
+      location.startsWith(path) || relatedPaths.any(location.startsWith);
 }
 
 class _JobIndicator extends StatelessWidget {
@@ -537,10 +547,10 @@ class NavScaff extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int index = destination.indexWhere(
-      (element) =>
-          GoRouterState.of(context).fullPath?.startsWith(element.path) ?? false,
-    );
+    final fullPath = GoRouterState.of(context).fullPath;
+    final int index = fullPath == null
+        ? -1
+        : destination.indexWhere((element) => element.matches(fullPath));
     if (!context.isExpandedWindow && destination.length > 1) {
       return bottomNavBar(context, index);
     }

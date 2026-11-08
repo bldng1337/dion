@@ -38,6 +38,7 @@ import 'package:dionysos/views/settings/update_settings.dart';
 import 'package:dionysos/views/settings/videoplayer.dart';
 import 'package:dionysos/views/settings/widget_playground.dart';
 import 'package:dionysos/views/view/view.dart';
+import 'package:dionysos/widgets/errordisplay.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -46,7 +47,12 @@ final homedestinations = [
   Destination(ico: Icons.bookmark, name: 'Library', path: '/library'),
   Destination(ico: Icons.calendar_month, name: 'Calendar', path: '/calendar'),
   Destination(ico: Icons.update, name: 'Activity', path: '/activity'),
-  Destination(ico: Icons.search, name: 'Browse', path: '/browse'),
+  Destination(
+    ico: Icons.search,
+    name: 'Browse',
+    path: '/browse',
+    relatedPaths: const ['/search'],
+  ),
   Destination(ico: Icons.extension, name: 'Extensions', path: '/manage'),
   Destination(ico: Icons.settings, name: 'Settings', path: '/settings'),
 ];
@@ -56,9 +62,19 @@ GoRouter getRoutes({String initialLocation = '/'}) => GoRouter(
   extraCodec: const MyExtraCodec(),
   debugLogDiagnostics: true,
   initialLocation: initialLocation,
-  // redirect: (context, state) {
-  //   return null;
-  // },
+  errorBuilder: (context, state) => NavScaff(
+    title: const Text('Page Not Found'),
+    child: ErrorDisplay(
+      e: 'No page at ${state.uri}',
+      logError: false,
+      actions: [
+        ErrorAction(
+          label: 'Go to Library',
+          onTap: () => context.go('/library'),
+        ),
+      ],
+    ),
+  ),
   routes: [
     GoRoute(
       path: '/',
