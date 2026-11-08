@@ -7,6 +7,16 @@ class NetworkService {
 
   static Future<void> ensureInitialized() async {
     await Rhttp.init();
-    register<NetworkService>(NetworkService(await RhttpClient.create()));
+    register<NetworkService>(
+      NetworkService(
+        await RhttpClient.create(
+          settings: const ClientSettings(
+            timeoutSettings: TimeoutSettings(
+              connectTimeout: Duration(seconds: 20),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
