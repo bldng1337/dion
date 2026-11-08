@@ -134,7 +134,7 @@ Future<void> main() async {
       ),
     );
     int readCount(EntrySaved e) =>
-        e.episodedata.where((ep) => ep.finished).length;
+        e.episodedata.values.where((ep) => ep.finished).length;
     final readOrder = readSorted.map(readCount).toList();
     expect(readOrder, equals([...readOrder]..sort((a, b) => b.compareTo(a))),
         reason: 'chapters-read sort must be descending');
@@ -546,10 +546,10 @@ EntrySaved benchEntry(int i, {required List<Category> categories}) {
     entry: detailed,
     original: detailed,
     categories: categories,
-    episodedata: [
+    episodedata: {
       for (var e = 0; e < readCount; e++)
-        EpisodeData(bookmark: e % 7 == 0, finished: true),
-    ],
+        'bench-$i-ep-$e': EpisodeData(bookmark: e % 7 == 0, finished: true),
+    },
     boundExtensionId: _sourceIds[i % _sourceIds.length],
     episode: max(0, readCount - 1),
     savedSettings: EntrySavedSettings.defaultSettings(),

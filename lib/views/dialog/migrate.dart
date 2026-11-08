@@ -47,6 +47,7 @@ Future<EntrySaved> migrateEntry(EntrySaved source, Entry target) async {
   final detailed = await target.toDetailed();
   final newEpisodes = detailed.episodes.length;
   final db = locate<Database>();
+  final samePlace = detailed.dbId == source.dbId;
   final migrated = EntrySaved(
     entry: detailed.toRust,
     original: detailed.toRust,
@@ -58,19 +59,25 @@ Future<EntrySaved> migrateEntry(EntrySaved source, Entry target) async {
     extensionSettings: detailed.extensionSettings,
     categories: source.categories,
     savedSettings: source.savedSettings,
-    // Episode data is per-episode (bookmark/finished/progress) keep as many as
-    // fit the new entry. Extra data for episodes that no longer exist is dropped.
-    episodedata: source.episodedata.take(newEpisodes).toList(),
+    episodedata: {
+      for (final (index, episode) in detailed.episodes.indexed)
+        if (index < source.episodes.length)
+          episode.id.uid: source.getEpisodeData(index),
+    },
     episode: source.episode.clamp(0, newEpisodes - 1 < 0 ? 0 : newEpisodes - 1),
     entryExtensions: source.entryExtensions,
     sourceExtensions: source.sourceExtensions,
+    userRating: source.userRating,
+    note: source.note,
     lastRefreshed: DateTime.now(),
     predictedNextRelease: source.predictedNextRelease,
     releaseInterval: source.releaseInterval,
     nextReleaseOverride: source.nextReleaseOverride,
   );
   await db.addEntry(migrated);
-  await source.delete();
+  if (!samePlace) {
+    await source.delete();
+  }
   return migrated;
 }
 

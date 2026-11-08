@@ -618,10 +618,7 @@ List<EntrySaved> get savedEntrySamples => [
     boundExtensionId: _boundExtensionId,
     extensionSettings: {},
     episode: 1,
-    episodedata: [
-      EpisodeData(bookmark: true, finished: true),
-      EpisodeData(bookmark: false, finished: false, progress: '0.42'),
-    ],
+    episodedata: {},
   ),
   // Everything populated, including quotes/images and per-entry extensions.
   EntrySaved(
@@ -638,9 +635,8 @@ List<EntrySaved> get savedEntrySamples => [
     boundExtensionId: _boundExtensionId,
     extensionSettings: comprehensiveExtensionSettings,
     episode: 0,
-    episodedata: [
-      EpisodeData.empty(),
-      EpisodeData(
+    episodedata: {
+      comprehensiveDetailed.episodes.first.id.uid: EpisodeData(
         bookmark: true,
         finished: false,
         progress: '12.75',
@@ -1229,9 +1225,27 @@ Future<void> _checkEntryJsonVersions() async {
               final parsed = await EntrySaved.fromJson(
                 _hydrateRecordMaps(sample.value),
               );
+              // Before v6 episode rows were positional and get rewritten to
+              // episode ids on read, and notes, ratings and replacements
+              // didn't exist yet, so those keys can't round-trip unchanged.
+              Object? comparable(Object? json) {
+                if (int.parse(version) >= 6) return json;
+                final copy = Map<String, dynamic>.from(json! as Map)
+                  ..remove('episodedata')
+                  ..remove('userRating')
+                  ..remove('note');
+                if (copy['savedSettings'] case final Map settings) {
+                  copy['savedSettings'] = Map<String, dynamic>.from(settings)
+                    ..remove('replacements');
+                }
+                return copy;
+              }
+
               _assertLosslessRoundTrip(
-                _normalized(_withoutDerivedEntryColumns(parsed.toJson())),
-                _normalized(sample.value),
+                _normalized(
+                  comparable(_withoutDerivedEntryColumns(parsed.toJson())),
+                ),
+                _normalized(comparable(sample.value)),
                 'EntrySaved',
               );
             },
@@ -1418,7 +1432,9 @@ Future<void> _verifyRestoredBackup(Database db) async {
   }
   final knownCategoryNames = _categories.map((c) => c.name).toSet();
   for (final entry in entries) {
-    if (entry.episodedata.isEmpty) {
+    // Pre-v6 rows are positional, so an entry without episodes has no rows to
+    // attach them to.
+    if (entry.episodes.isNotEmpty && entry.episodedata.isEmpty) {
       throw StateError('${entry.id.uid}: episodedata empty after restore');
     }
     if (entry.boundExtensionId.isEmpty) {

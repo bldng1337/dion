@@ -204,7 +204,7 @@ class ImageStoreService {
     return [
       entry.cover?.url,
       entry.poster?.url,
-      for (final data in entry.episodedata)
+      for (final data in entry.episodedata.values)
         for (final image in data.images) image.url,
     ];
   }

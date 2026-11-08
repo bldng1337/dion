@@ -24,7 +24,7 @@ import 'package:metis/adapter/dataclass.dart';
 import 'package:metis/adapter/sync/repo.dart';
 import 'package:metis/metis.dart';
 
-const dbVersion = 4;
+const dbVersion = 5;
 const entryTable = DBTable('entry');
 const categoryTable = DBTable('category');
 const activityTable = DBTable('activity');
@@ -147,10 +147,11 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
             fetch: 'categories',
           );
         }
-        if (from < 3) {
-          // v3 backfills the derived sort_* and search_text columns by
-          // re-saving every entry (toJson computes them). The columns'
-          // indexes were defined above, so each re-save maintains them.
+        if (from < 5) {
+          // v3 backfills the derived sort_* and search_text columns and v5
+          // rewrites episode data from list positions to episode ids; both
+          // only need every entry re-saved through toJson. The indexes were
+          // defined above, so each re-save maintains them.
           final adapter = db.getAdapter<DBDataClassAdapter>();
           await _migrateBatched<EntrySaved>(
             adapter,

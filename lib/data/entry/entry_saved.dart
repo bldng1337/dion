@@ -99,6 +99,14 @@ class EpisodeData {
        images = images ?? [];
   EpisodeData.empty() : this(bookmark: false, finished: false, progress: null);
 
+  bool get isEmpty =>
+      !bookmark &&
+      !finished &&
+      progress == null &&
+      quotes.isEmpty &&
+      images.isEmpty &&
+      note == null;
+
   @override
   bool operator ==(Object other) =>
       other is EpisodeData &&
@@ -299,7 +307,7 @@ class EntrySaved
   Map<String, rust.Setting> extensionSettings;
   EntrySavedSettings savedSettings;
 
-  List<EpisodeData> _episodedata;
+  Map<String, EpisodeData> _episodedata;
   int episode;
 
   /// Category record ids as last persisted or hydrated. Null until the row was saved or read.
@@ -345,7 +353,7 @@ class EntrySaved
     required this._episodedata,
   });
 
-  List<EpisodeData> get episodedata => _episodedata;
+  Map<String, EpisodeData> get episodedata => _episodedata;
 
   bool get categoriesUnchangedSincePersisted {
     final persisted = _persistedCategoryIds;
@@ -358,23 +366,21 @@ class EntrySaved
     _persistedCategoryIds = {for (final c in categories) c.id};
   }
 
-  int get latestEpisode => min(
-    episodedata.lastIndexWhere((e) => e.finished == true) + 1,
-    totalEpisodes,
-  );
+  int get latestEpisode =>
+      entry.episodes.lastIndexWhere(
+        (e) => _episodedata[e.id.uid]?.finished ?? false,
+      ) +
+      1;
   int get totalEpisodes => episodes.length;
-  EpisodeData getEpisodeData(int episode) {
-    if (episodedata.length > episode) {
-      return episodedata[episode];
-    }
-    _episodedata = List.generate(episode + 1, (index) {
-      if (episodedata.length > index) {
-        return episodedata[index];
-      }
-      return EpisodeData.empty();
-    });
-    return _episodedata[episode];
+
+  EpisodeData getEpisodeData(int index) {
+    final list = entry.episodes;
+    if (index < 0 || index >= list.length) return EpisodeData.empty();
+    return getEpisodeDataById(list[index].id.uid);
   }
+
+  EpisodeData getEpisodeDataById(String uid) =>
+      _episodedata.putIfAbsent(uid, EpisodeData.empty);
 
   void setSetting(String key, dynamic value) {
     final setting = extensionSettings[key];
@@ -577,14 +583,20 @@ class EntrySaved
   }
 
   Map<String, dynamic> toJson() {
-    final readCount = episodedata.where((e) => e.finished).length;
+    final readCount = entry.episodes
+        .where((e) => _episodedata[e.id.uid]?.finished ?? false)
+        .length;
     return {
       'version': entrySerializeVersion.current,
       'entry': entry.toJson(),
       'original': original.toJson(),
       'generation': generation,
       'extensionid': boundExtensionId,
-      'episodedata': episodedata,
+      // A list rather than a map: episode ids are often urls, which would need escaping in the JSON patches a map key ends up in.
+      'episodedata': [
+        for (final MapEntry(:key, :value) in _episodedata.entries)
+          if (!value.isEmpty) {...value.toJson(), 'episode': key},
+      ],
       'episode': episode,
       'categories': categories.map((e) => e.id).toList(),
       'entryExtensions': entryExtensions.map((e) => e.toJson()).toList(),
@@ -609,22 +621,41 @@ class EntrySaved
   }
 
   static Future<List<Category>> handleCategories(dynamic categoryData) async {
-    if (categoryData == null) return [];
     if (categoryData is! List) return [];
-    if (categoryData.isEmpty) return [];
-    if (categoryData[0] is Category) {
-      return categoryData.cast<Category>();
+    final items = categoryData.nonNulls.toList();
+    if (items.isEmpty) return [];
+    if (items.first is Category) {
+      return items.whereType<Category>().toList();
     }
-    if (categoryData[0] is Map<String, dynamic>) {
-      return categoryData
-          .map((e) => Category.fromJson(e as Map<String, dynamic>))
+    if (items.first is Map<String, dynamic>) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(Category.fromJson)
           .toList();
     }
-    if (categoryData[0] is DBRecord) {
+    if (items.first is DBRecord) {
       final db = locate<Database>();
-      return await db.getCategoriesbyId(fromDynamic(categoryData).toList());
+      return await db.getCategoriesbyId(fromDynamic(items).toList());
     }
     return [];
+  }
+
+  static Map<String, EpisodeData> _parseEpisodeData(
+    dynamic raw,
+    List<Episode> episodes,
+  ) {
+    final result = <String, EpisodeData>{};
+    if (raw is! List) return result;
+    for (final (index, item) in raw.indexed) {
+      final json = item as Map<String, dynamic>;
+      final uid =
+          json['episode'] as String? ??
+          (index < episodes.length ? episodes[index].id.uid : null);
+      if (uid == null) continue;
+      final data = EpisodeData.fromJson(json);
+      if (!data.isEmpty) result[uid] = data;
+    }
+    return result;
   }
 
   static Future<EntrySaved> fromJson(Map<String, dynamic> json) async {
@@ -678,11 +709,7 @@ class EntrySaved
           // the best available refresh input until the next refresh.
           original: entry,
           categories: await handleCategories(json['categories']),
-          episodedata:
-              (json['episodedata'] as List<dynamic>?)
-                  ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
-                  .toList() ??
-              [],
+          episodedata: _parseEpisodeData(json['episodedata'], entry.episodes),
           boundExtensionId: json['extensionid'] as String,
           episode: (json['episode'] as int?) ?? 0,
           savedSettings: EntrySavedSettings.fromJson(json['settings']),
@@ -703,11 +730,7 @@ class EntrySaved
             ),
       generation: (json['generation'] as int?) ?? 0,
       categories: await handleCategories(json['categories']),
-      episodedata:
-          (json['episodedata'] as List<dynamic>?)
-              ?.map((e) => EpisodeData.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      episodedata: _parseEpisodeData(json['episodedata'], entry.episodes),
       boundExtensionId: json['extensionid'] as String,
       episode: (json['episode'] as int?) ?? 0,
       savedSettings: EntrySavedSettings.fromJson(json['savedSettings']),

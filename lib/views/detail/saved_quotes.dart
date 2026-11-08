@@ -4,6 +4,8 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/image_store.dart';
+import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -20,20 +22,14 @@ class SavedQuotesView extends StatefulWidget {
 }
 
 class _SavedQuotesViewState extends State<SavedQuotesView> {
-  List<(int, EpisodeData)> get _episodesWithContent {
-    final entry = widget.entry;
-    final result = <(int, EpisodeData)>[];
-    final count = entry.episodedata.length;
-    for (int i = 0; i < count; i++) {
-      final data = entry.episodedata[i];
-      if (data.quotes.isNotEmpty || data.images.isNotEmpty) {
-        result.add((i, data));
-      }
-    }
-    return result;
+  List<(String, EpisodeData)> get _episodesWithContent {
+    return [
+      for (final MapEntry(:key, :value) in widget.entry.episodedata.entries)
+        if (value.quotes.isNotEmpty || value.images.isNotEmpty) (key, value),
+    ];
   }
 
-  bool get _hasAnyContent => widget.entry.episodedata.any(
+  bool get _hasAnyContent => widget.entry.episodedata.values.any(
     (e) => e.quotes.isNotEmpty || e.images.isNotEmpty,
   );
 
@@ -45,7 +41,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
 
   void _backfillStoredImages() {
     final store = locate<ImageStoreService>();
-    for (final data in widget.entry.episodedata) {
+    for (final data in widget.entry.episodedata.values) {
       for (final image in data.images) {
         unawaited(
           store.store(
@@ -58,16 +54,16 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
     }
   }
 
-  Future<void> _deleteQuote(int episodeIndex, SavedQuote quote) async {
+  Future<void> _deleteQuote(String episodeId, SavedQuote quote) async {
     setState(() {
-      widget.entry.getEpisodeData(episodeIndex).quotes.remove(quote);
+      widget.entry.getEpisodeDataById(episodeId).quotes.remove(quote);
     });
     await widget.entry.save();
   }
 
-  Future<void> _deleteImage(int episodeIndex, SavedImage image) async {
+  Future<void> _deleteImage(String episodeId, SavedImage image) async {
     setState(() {
-      widget.entry.getEpisodeData(episodeIndex).images.remove(image);
+      widget.entry.getEpisodeDataById(episodeId).images.remove(image);
     });
     await widget.entry.save();
   }
@@ -114,7 +110,10 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
           }
           final episodes = _episodesWithContent;
           return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: DionSpacing.lg,
+            ),
             children: [
               for (final (index, data) in episodes) ...[
                 _buildEpisodeHeader(context, index),
@@ -131,19 +130,21 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
     );
   }
 
-  Widget _buildEpisodeHeader(BuildContext context, int episodeIndex) {
-    final episodes = widget.entry.episodes;
-    final name = episodeIndex < episodes.length
-        ? episodes[episodeIndex].name
-        : 'Episode ${episodeIndex + 1}';
+  Widget _buildEpisodeHeader(BuildContext context, String episodeId) {
+    final episode = widget.entry.episodes
+        .where((e) => e.id.uid == episodeId)
+        .firstOrNull;
+    final name =
+        episode?.name ??
+        'Removed ${widget.entry.mediaType.episodeName.toLowerCase()}';
     return Container(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: DionSpacing.sm),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surfaceContainerHighest.withValues(
           alpha: 0.5,
         ),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(DionRadius.sm),
       ),
       child: Text(
         name,
@@ -273,7 +274,7 @@ class _SavedQuotesViewState extends State<SavedQuotesView> {
 }
 
 bool entryHasSavedContent(EntrySaved entry) {
-  for (final data in entry.episodedata) {
+  for (final data in entry.episodedata.values) {
     if (data.quotes.isNotEmpty || data.images.isNotEmpty) {
       return true;
     }
