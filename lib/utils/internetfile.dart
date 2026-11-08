@@ -6,6 +6,7 @@ import 'package:dionysos/service/network.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:rhttp/rhttp.dart';
 import 'package:uuid/v4.dart';
 
@@ -123,6 +124,7 @@ class InternetFile {
         if (playlist) continue;
         if (sink != null) {
           sink.add(chunk);
+          await sink.flush();
           continue;
         }
         probe.add(chunk);
@@ -213,10 +215,10 @@ class InternetFile {
         headers: headers != null ? HttpHeaders.rawMap(headers) : null,
         cancelToken: rhttpToken,
       );
-      final m3u8 = res.body.split('\n');
       // trim() also strips a BOM; callers may reach a manifest through a
       // URL with no .m3u8/.m3u ending.
-      if (m3u8[0].trim() != '#EXTM3U') {
+      final m3u8 = const LineSplitter().convert(res.body);
+      if (m3u8.isEmpty || m3u8[0].trim() != '#EXTM3U') {
         throw Exception('Invalid m3u8 file $link');
       }
 
@@ -224,50 +226,66 @@ class InternetFile {
         await contentdir.create(recursive: true);
       }
 
-      final playlist = m3u8.sublist(1);
+      final playlist = selectBestVariant(m3u8.sublist(1));
       var part = 0;
-      final urimatcher = RegExp('URI="(.*)"');
+      final urimatcher = RegExp('URI="([^"]*)"');
       final newplaylist = <String>[];
-      for (var (index, e) in playlist.indexed) {
+      var followsStreamInf = false;
+      for (final (index, line) in playlist.indexed) {
         onReceiveProgress?.call(index / playlist.length.toDouble());
-        if (e.trim().isEmpty) continue;
-        final links = e.startsWith('#')
+        var e = line.trim();
+        if (e.isEmpty) continue;
+        final isTag = e.startsWith('#');
+        final isPlaylistUri = isTag
+            ? e.startsWith('#EXT-X-MEDIA:')
+            : followsStreamInf;
+        if (isTag) {
+          if (e.startsWith('#EXT-X-STREAM-INF')) followsStreamInf = true;
+        } else {
+          followsStreamInf = false;
+        }
+        final links = isTag
             ? urimatcher
                   .allMatches(e)
-                  .map((e) => e.group(1))
-                  .where((e) => e != null)
-                  .cast<String>()
-                  .map((e) => e.trim())
+                  .map((e) => e.group(1)!.trim())
                   .where((e) => e.isNotEmpty)
             : [e];
+        final partProgress = onReceiveProgress == null
+            ? null
+            : (double progress) => onReceiveProgress(
+                (progress + index) / playlist.length.toDouble(),
+              );
         for (final artefactLink in links) {
-          if (artefactLink.endsWith('.m3u8') || artefactLink.endsWith('.m3u')) {
-            final res = await downloadm3u8(
-              formatRelativeURI(artefactLink, link),
-              contentdir.getFile('artefact$part'),
-              headers: headers,
-              onReceiveProgress: onReceiveProgress != null
-                  ? (progress) => onReceiveProgress(
-                      (progress + index) / playlist.length.toDouble(),
-                    )
-                  : null,
-            );
-            part++;
-            e = e.replaceAll(artefactLink, res.relativePath(dir));
-          } else {
-            final res = await streamToFile(
-              formatRelativeURI(artefactLink, link),
-              contentdir.getFile('artefact$part'),
-              headers: headers,
-              onReceiveProgress: onReceiveProgress != null
-                  ? (progress) => onReceiveProgress(
-                      (progress + index) / playlist.length.toDouble(),
-                    )
-                  : null,
-            );
-            part++;
-            e = e.replaceAll(artefactLink, res.relativePath(dir));
+          final resolved = formatRelativeURI(artefactLink, link);
+          // data: keys and DRM key schemes have nothing to fetch.
+          if (!resolved.startsWith('http://') &&
+              !resolved.startsWith('https://')) {
+            continue;
           }
+          final File res;
+          if (isPlaylistUri || _pointsToPlaylist(artefactLink)) {
+            res = await downloadm3u8(
+              resolved,
+              contentdir.getFile('artefact$part.m3u8'),
+              headers: headers,
+              rhttpToken: rhttpToken,
+              onReceiveProgress: partProgress,
+            );
+          } else {
+            res = await streamToFile(
+              resolved,
+              fromURI(resolved, contentdir, filename: 'artefact$part'),
+              headers: headers,
+              rhttpToken: rhttpToken,
+              onReceiveProgress: partProgress,
+              resolveEnding: true,
+            );
+          }
+          part++;
+          e = e.replaceAll(
+            artefactLink,
+            res.relativePath(dir).replaceAll(r'\', '/'),
+          );
         }
         newplaylist.add(e);
       }
@@ -285,6 +303,52 @@ class InternetFile {
     return file;
   }
 
+  static bool _pointsToPlaylist(String link) {
+    final path = (Uri.tryParse(link)?.path ?? link).toLowerCase();
+    return path.endsWith('.m3u8') || path.endsWith('.m3u');
+  }
+
+  static final _bandwidth = RegExp(r'[:,]BANDWIDTH=(\d+)');
+  static final _renditionGroups = RegExp(
+    '(?:AUDIO|VIDEO|SUBTITLES)="([^"]*)"',
+  );
+  static final _groupId = RegExp('GROUP-ID="([^"]*)"');
+
+  @visibleForTesting
+  static List<String> selectBestVariant(List<String> lines) {
+    final variants = <(int, int, int)>[]; // (bandwidth, tag line, uri line)
+    for (var i = 0; i < lines.length; i++) {
+      if (!lines[i].trim().startsWith('#EXT-X-STREAM-INF')) continue;
+      final uriLine = lines.indexWhere(
+        (l) => l.trim().isNotEmpty && !l.trim().startsWith('#'),
+        i + 1,
+      );
+      if (uriLine == -1) continue;
+      final bandwidth = int.parse(
+        _bandwidth.firstMatch(lines[i])?.group(1) ?? '0',
+      );
+      variants.add((bandwidth, i, uriLine));
+    }
+    if (variants.isEmpty) return lines;
+    final best = variants.reduce((a, b) => b.$1 > a.$1 ? b : a);
+    final dropped = {
+      for (final variant in variants)
+        if (variant != best) ...[variant.$2, variant.$3],
+    };
+    final groups = _renditionGroups
+        .allMatches(lines[best.$2])
+        .map((m) => m.group(1))
+        .toSet();
+    return [
+      for (final (index, line) in lines.indexed)
+        if (!dropped.contains(index) &&
+            !line.trim().startsWith('#EXT-X-I-FRAME-STREAM-INF') &&
+            (!line.trim().startsWith('#EXT-X-MEDIA:') ||
+                groups.contains(_groupId.firstMatch(line)?.group(1))))
+          line,
+    ];
+  }
+
   static Function(int, int)? _toRhttpProgress(
     void Function(double)? onReceiveProgress,
   ) {
@@ -295,12 +359,8 @@ class InternetFile {
     };
   }
 
-  static String formatRelativeURI(String link, String location) {
-    if (!['http://', 'https://'].any((e) => link.startsWith(e))) {
-      return '${location.substring(0, location.lastIndexOf('/'))}/$link';
-    }
-    return link;
-  }
+  static String formatRelativeURI(String link, String location) =>
+      Uri.parse(location).resolve(link).toString();
 
   static String? _parseFileending(String url) {
     var link = url;

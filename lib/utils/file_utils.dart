@@ -56,9 +56,7 @@ extension FileUtils on File {
     final file = await create(recursive: true);
     final sink = file.openWrite();
     try {
-      await for (final chunk in stream) {
-        sink.add(chunk);
-      }
+      await sink.addStream(stream);
     } finally {
       await sink.close();
     }
