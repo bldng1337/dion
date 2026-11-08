@@ -190,7 +190,7 @@ Future<void> downloadUpdate(
   await InternetFile.streamToFile(
     asset.url,
     file,
-    headers: {'userAgent': 'bldng1337/dion'},
+    headers: {'User-Agent': 'bldng1337/dion'},
     onReceiveProgress: (prog) =>
         onReceiveProgress?.call(prog, 'Downloading ${asset.filename}'),
   );
@@ -202,7 +202,7 @@ Future<void> downloadUpdate(
       await Process.start(file.absolute.path, [
         '/SILENT',
         '/LANG=english',
-        '/SP',
+        '/SP-',
         '/CLOSEAPPLICATIONS',
         '/RESTARTAPPLICATIONS',
       ]);
@@ -337,9 +337,10 @@ Future<CheckResult> checkVersion({bool force = false}) async {
     logger.i('Checking for updates');
     final isNightlyChannel =
         settings.update.channel.value == UpdateChannel.nightly;
-    final update = isNightlyChannel
-        ? await checkNightlyUpdate()
-        : await checkUpdate();
+    final update =
+        await (isNightlyChannel ? checkNightlyUpdate() : checkUpdate()).timeout(
+          const Duration(seconds: 20),
+        );
     if (update == null) return CheckResult.upToDate;
     logger.i('New update available: ${update.version}');
     await notify(update, force: force);
