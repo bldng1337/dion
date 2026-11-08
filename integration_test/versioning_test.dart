@@ -843,6 +843,17 @@ Future<void> _closeDb(Database db) async {
 /// Opens a file-backed store. Windows can keep surrealkv files locked for a
 /// moment after a previous handle closes (os error 33), so opening retries
 /// briefly instead of reporting that race as a versioning failure.
+void _copyDirectory(Directory from, Directory to) {
+  for (final entity in from.listSync()) {
+    if (entity is File) {
+      entity.copySync(to.getFile(entity.filename).path);
+    } else if (entity is Directory) {
+      final target = to.sub(entity.name)..createSync();
+      _copyDirectory(entity, target);
+    }
+  }
+}
+
 Future<metis.AdapterSurrealDB> _connectStore(Directory dir) async {
   final deadline = DateTime.now().add(const Duration(seconds: 10));
   var delay = const Duration(milliseconds: 100);
@@ -850,6 +861,7 @@ Future<metis.AdapterSurrealDB> _connectStore(Directory dir) async {
     try {
       return await metis.AdapterSurrealDB.connect(
         'surrealkv://${dir.absolute.path}',
+        opts: const metis.Options(experimentalUpgradeFrom3X: true),
       );
     } catch (e) {
       final lockError = e.toString().contains('os error 33');
@@ -1003,8 +1015,12 @@ void main() {
         Database? opened;
         await _guarded(
           () async {
+            // Opening migrates the store in place; a copy keeps the fixture
+            // at its original version for the next run.
+            final copy = Directory.systemTemp.createTempSync('dion_db_');
+            _copyDirectory(entity, copy);
             final db = Database();
-            await db.initDB(await _connectStore(entity));
+            await db.initDB(await _connectStore(copy));
             opened = db;
             await _verifySeededContent(db);
           },
