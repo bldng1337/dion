@@ -859,6 +859,9 @@ class ExtensionAdapter with ChangeNotifier {
     }
     final db = await locateAsync<Database>();
     final newext = await Extension.fromProxy(ext, db);
+    if (newext.meta.removed) {
+      newext.meta = newext.meta.copyWith(removed: false);
+    }
     final old = _extensions
         .where((e) => e.data.id == newext.data.id)
         .firstOrNull;
