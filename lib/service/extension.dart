@@ -12,6 +12,7 @@ import 'package:dionysos/main.dart';
 import 'package:dionysos/service/customui_store.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
+import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/service/mock_extension.dart';

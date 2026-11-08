@@ -22,6 +22,7 @@ import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/container/card.dart';
 import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/widgets/dion_textbox.dart';
 import 'package:dionysos/widgets/dropdown/single_dropdown.dart';
 import 'package:dionysos/widgets/dynamic_grid.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -31,7 +32,7 @@ import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/settings/dion_runtime.dart';
 import 'package:dionysos/widgets/stardisplay.dart';
 import 'package:flutter/material.dart'
-    show Colors, Divider, Material, TextEditingController, TextField;
+    show Colors, Divider, Material, TextEditingController;
 import 'package:flutter/widgets.dart' hide Page;
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;

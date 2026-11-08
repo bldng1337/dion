@@ -568,7 +568,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
                             return const SizedBox.shrink();
                           }
                           return Padding(
-                            padding: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.only(top: DionSpacing.xs),
                             child: Text(
                               chapter.title,
                               textAlign: TextAlign.center,
