@@ -97,17 +97,22 @@ class LanSyncClient {
       // 2. local prompt (A)
       final sas = sasCodeString(_identity.fingerprint, peerFp!);
       final accepted = await onPrompt(peerInfo, peerFp!, sas);
-      if (!accepted) {
-        // Still inform B so it can discard the session.
-        await _sendConfirm(client, peer.httpUrl, sessionId, false);
-        return null;
-      }
-
       // 3. confirm sign the sessionId to prove continued possession.
       final confirmSig = signPayload(
         _identity.privateKeyPem,
         Uint8List.fromList(utf8.encode(sessionId)),
       );
+      if (!accepted) {
+        // Still inform B so it can discard the session.
+        await _sendConfirm(
+          client,
+          peer.httpUrl,
+          sessionId,
+          false,
+          signature: confirmSig,
+        );
+        return null;
+      }
       final result = await _sendConfirm(
         client,
         peer.httpUrl,

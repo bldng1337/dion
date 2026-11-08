@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/service/lansync/discovery.dart';
 import 'package:dionysos/service/lansync/lansync_service.dart';
@@ -9,8 +7,10 @@ import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
+import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/container/badge.dart';
 import 'package:dionysos/widgets/container/listtile.dart';
+import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
@@ -33,13 +33,6 @@ class _DevicesSettingsState extends State<DevicesSettings> {
   void initState() {
     super.initState();
     _service = locate<LanSyncService>();
-    unawaited(_service.startScanning());
-  }
-
-  @override
-  void dispose() {
-    unawaited(_service.stopScanning());
-    super.dispose();
   }
 
   Future<void> _pair(DiscoveredPeer peer) async {
@@ -76,15 +69,16 @@ class _DevicesSettingsState extends State<DevicesSettings> {
   Future<void> _unpair(PairedDevice device) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => DionAlertDialog(
         title: const Text('Unpair Device'),
         content: Text('Remove "${device.name}" from paired devices?'),
         actions: [
-          TextButton(
+          DionTextbutton(
+            type: ButtonType.ghost,
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          DionTextbutton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Unpair'),
           ),
@@ -109,6 +103,18 @@ class _DevicesSettingsState extends State<DevicesSettings> {
       child: ListenableBuilder(
         listenable: _service,
         builder: (context, _) {
+          if (!_service.isRunning) {
+            return ListView(
+              children: const [
+                SettingTitle(
+                  title: 'LAN Sync Is Off',
+                  subtitle:
+                      'Choose LAN Sync as the sync mode under Synchronisation '
+                      'to pair and sync with devices on your network',
+                ),
+              ],
+            );
+          }
           return ListenableBuilder(
             listenable: _service.pairingStore,
             builder: (context, _) {
@@ -221,7 +227,7 @@ class _DevicesSettingsState extends State<DevicesSettings> {
     return DionListTile(
       leading: Icon(
         Icons.check_circle,
-        color: online ? Colors.greenAccent : context.theme.disabledColor,
+        color: online ? DionColors.success : context.theme.disabledColor,
         size: 40,
       ),
       title: Text(device.name, style: context.titleMedium),

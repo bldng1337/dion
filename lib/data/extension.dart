@@ -11,17 +11,20 @@ class ExtensionMetaData with DBConstClass {
 
   final List<String> autoAddRules;
 
+  final bool removed;
+
   const ExtensionMetaData(
     this.id,
     this.enabled, {
     this.searchEnabled = true,
     this.autoAddRules = const [],
+    this.removed = false,
   });
   const ExtensionMetaData.empty(String id) : this(id, false);
 
   @override
   String toString() {
-    return 'ExtensionMetaData{id: $id, enabled: $enabled, searchEnabled: $searchEnabled, autoAddRules: $autoAddRules}';
+    return 'ExtensionMetaData{id: $id, enabled: $enabled, searchEnabled: $searchEnabled, autoAddRules: $autoAddRules, removed: $removed}';
   }
 
   ExtensionMetaData copyWith({
@@ -29,12 +32,14 @@ class ExtensionMetaData with DBConstClass {
     bool? enabled,
     bool? searchEnabled,
     List<String>? autoAddRules,
+    bool? removed,
   }) {
     return ExtensionMetaData(
       id ?? this.id,
       enabled ?? this.enabled,
       searchEnabled: searchEnabled ?? this.searchEnabled,
       autoAddRules: autoAddRules ?? this.autoAddRules,
+      removed: removed ?? this.removed,
     );
   }
 
@@ -46,6 +51,7 @@ class ExtensionMetaData with DBConstClass {
         autoAddRules:
             (json['autoAddRules'] as List<dynamic>?)?.cast<String>() ??
             const [],
+        removed: json['removed'] as bool? ?? false,
       );
 
   @override
@@ -59,6 +65,7 @@ class ExtensionMetaData with DBConstClass {
       'enabled': enabled,
       'searchEnabled': searchEnabled,
       'autoAddRules': autoAddRules,
+      if (removed) 'removed': true,
     };
   }
 }

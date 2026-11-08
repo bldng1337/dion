@@ -32,10 +32,9 @@ class LanSyncService extends ChangeNotifier {
   late final LiveSync liveSync;
 
   bool _running = false;
-  int _runEpoch = 0;
   final SyncLock _syncLock = SyncLock();
   final SyncLock _bringUpLock = SyncLock();
-  int _scanHolds = 0;
+  final SyncLock _lifecycleLock = SyncLock();
   Debouncer? _autoSyncDebouncer;
 
   LanSyncService();
@@ -71,17 +70,9 @@ class LanSyncService extends ChangeNotifier {
     // When a pairing is added/removed on this side, rebuild the trust store so mTLS accepts the peer.
     server.onPairingChanged = server.restart;
     server.extensionLister = listInstalledExtensions;
-    server.extensionInstaller = installExtensionFromLocation;
+    server.extensionInstaller = _installRequestedByPeer;
     client = LanSyncClient(identity);
-
-    // Bind the server first so we have a port to advertise.
-    try {
-      final port = await server.start();
-      discovery = LanDiscovery(identity: identity, port: port);
-    } catch (e) {
-      logger.e('LAN sync: failed to start server', error: e);
-      discovery = LanDiscovery(identity: identity, port: 0);
-    }
+    discovery = LanDiscovery(identity: identity, port: 0);
 
     liveSync = LiveSync(
       changes: crdt.watchChanges(),
@@ -117,43 +108,46 @@ class LanSyncService extends ChangeNotifier {
 
     Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
 
-    if (settings.sync.lan.enabled.value) {
-      unawaited(enable());
-    }
+    Observer(
+      _applySyncMode,
+      settings.sync.mode,
+      callIndirectly: false,
+    );
     pairingStore.addListener(_onPairingChanged);
+  }
+
+  void _applySyncMode() {
+    unawaited(settings.sync.mode.value == SyncMode.lan ? enable() : disable());
   }
 
   bool get isRunning => _running;
 
-  /// Enable advertising + continuous discovery. Discovery stays on while the
-  /// service is enabled: online status, autosync and live sync all resolve
-  /// peers through it, not just the devices page.
-  Future<void> enable() async {
+  Future<void> enable() => _lifecycleLock.run(() async {
     if (_running) return;
     _running = true;
-    final epoch = ++_runEpoch;
-    _scanHolds++;
-    await _applyBringUp();
-    if (epoch != _runEpoch) {
-      // disable() ran while bring-up was pending; roll the partial state back.
-      await discovery.stopAdvertising();
-      await _releaseScanning();
+    try {
+      discovery.port = await server.start();
+    } catch (e) {
+      logger.e('LAN sync: failed to start server', error: e);
+      _running = false;
+      notifyListeners();
       return;
     }
+    await _applyBringUp();
     _updateLiveSync();
     notifyListeners();
-  }
+  });
 
-  Future<void> disable() async {
+  Future<void> disable() => _lifecycleLock.run(() async {
     if (!_running) return;
     _running = false;
-    _runEpoch++;
     liveSync.stop();
     _autoSyncDebouncer?.cancel();
     await discovery.stopAdvertising();
-    await _releaseScanning();
+    await discovery.stopScanning();
+    await server.stop();
     notifyListeners();
-  }
+  });
 
   /// Whether [deviceId] is currently visible on the LAN.
   bool isOnline(String deviceId) =>
@@ -166,32 +160,12 @@ class LanSyncService extends ChangeNotifier {
         OnlinePeer(device: paired, httpUrl: p.httpUrl),
   ];
 
-  /// Discovery is refcounted: the devices page and the enabled service each
-  /// hold it open, scanning stops only when the last hold is released.
-  Future<void> startScanning() => _holdScanning();
-
-  Future<void> stopScanning() => _releaseScanning();
-
-  Future<void> _holdScanning() async {
-    _scanHolds++;
-    await _applyBringUp();
-  }
-
-  Future<void> _releaseScanning() async {
-    _scanHolds--;
-    if (_scanHolds <= 0) {
-      _scanHolds = 0;
-      await discovery.stopScanning();
-    }
-  }
-
   Future<void> _applyBringUp() => _bringUpLock.run(() async {
-    if (_running &&
-        settings.sync.lan.discoverable.value &&
-        !discovery.isAdvertising) {
+    if (!_running) return;
+    if (settings.sync.lan.discoverable.value && !discovery.isAdvertising) {
       await discovery.startAdvertising();
     }
-    if (_scanHolds > 0 && !discovery.isScanning) {
+    if (!discovery.isScanning) {
       await discovery.startScanning();
     }
   });
@@ -210,7 +184,7 @@ class LanSyncService extends ChangeNotifier {
       );
       if (paired != null) {
         await pairingStore.add(paired);
-        await server.restart();
+        if (server.isRunning) await server.restart();
         // The freshly paired device is usually still online; converge now.
         _scheduleAutoSync();
         return true;
@@ -225,7 +199,7 @@ class LanSyncService extends ChangeNotifier {
   /// Remove a paired device and rebuild the trust store.
   Future<void> unpair(String deviceId) async {
     await pairingStore.remove(deviceId);
-    await server.restart();
+    if (server.isRunning) await server.restart();
   }
 
   /// Sync with a paired device by id. Resolves the peer address from the
@@ -302,13 +276,15 @@ class LanSyncService extends ChangeNotifier {
   Future<void> _syncExtensions(OnlinePeer peer) async {
     final ours = await listInstalledExtensions();
     try {
+      final removed = await _removedExtensionIds();
       final theirs = await client.fetchPeerExtensions(
         pairedDevice: peer.device,
         baseUrl: peer.httpUrl,
       );
       final oursById = {for (final e in ours) e.id: e};
       for (final info in theirs) {
-        if (_needsInstall(info, oursById[info.id])) {
+        if (!removed.contains(info.id) &&
+            _needsInstall(info, oursById[info.id])) {
           logger.i(
             'LAN sync: installing extension ${info.id} shared by ${peer.device.name}',
           );
@@ -317,7 +293,8 @@ class LanSyncService extends ChangeNotifier {
       }
       final theirsById = {for (final e in theirs) e.id: e};
       for (final info in ours) {
-        if (_needsInstall(info, theirsById[info.id])) {
+        if (!removed.contains(info.id) &&
+            _needsInstall(info, theirsById[info.id])) {
           await client.installPeerExtension(
             pairedDevice: peer.device,
             baseUrl: peer.httpUrl,
@@ -332,6 +309,14 @@ class LanSyncService extends ChangeNotifier {
         stackTrace: st,
       );
     }
+  }
+
+  Future<Set<String>> _removedExtensionIds() async {
+    final metadata = await locate<Database>().getExtensionsMetadata();
+    return {
+      for (final meta in metadata)
+        if (meta.removed) meta.id,
+    };
   }
 
   bool _needsInstall(ExtensionSyncInfo info, ExtensionSyncInfo? current) {
@@ -370,9 +355,13 @@ class LanSyncService extends ChangeNotifier {
     ];
   }
 
-  /// Wired to the local `/extensions/install` sync route.
   Future<void> installExtensionFromLocation(String location) {
     return locate<ExtensionService>().install(location);
+  }
+
+  Future<void> _installRequestedByPeer(ExtensionSyncInfo info) async {
+    if ((await _removedExtensionIds()).contains(info.id)) return;
+    await installExtensionFromLocation(info.url);
   }
 
   void _onPeersChanged() {

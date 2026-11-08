@@ -47,7 +47,8 @@ const _mdnsTimeout = Duration(seconds: 5);
 
 class LanDiscovery {
   final DeviceIdentity _identity;
-  final int port;
+
+  int port;
 
   Registration? _registration;
   bool _advertising = false;

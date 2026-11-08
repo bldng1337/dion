@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:dionysos/service/lansync/crypto_util.dart';
 import 'package:dionysos/service/lansync/identity.dart';
+import 'package:dionysos/service/lansync/live_sync.dart';
 import 'package:dionysos/service/lansync/pairing_store.dart';
 import 'package:dionysos/service/lansync/protocol.dart';
 import 'package:dionysos/service/lansync/signing.dart';
@@ -18,14 +19,15 @@ class _PairSession {
   final String sessionId;
   final DeviceInfo peerInfo;
   final String peerFingerprint;
-  bool accepted;
+
+  /// Completes with the local user's answer to the pairing prompt.
+  final Completer<bool> decision = Completer();
   final DateTime expires;
 
   _PairSession({
     required this.sessionId,
     required this.peerInfo,
     required this.peerFingerprint,
-    required this.accepted,
     required this.expires,
   });
 
@@ -69,15 +71,23 @@ class LanSyncServer {
   /// `POST /extensions/list`. Returns an empty list until wired up.
   Future<List<ExtensionSyncInfo>> Function()? extensionLister;
 
-  /// Installs an extension from a location requested by a paired peer through
+  /// Installs an extension requested by a paired peer through
   /// `POST /extensions/install`. May be null (route then reports not
   /// implemented).
-  Future<void> Function(String location)? extensionInstaller;
+  Future<void> Function(ExtensionSyncInfo info)? extensionInstaller;
 
   HttpServer? _server;
   final Map<String, _PairSession> _sessions = {};
   static const _kSessionTtl = Duration(minutes: 2);
   Timer? _sessionSweeper;
+
+  final SyncLock _requestQueue = SyncLock();
+
+  bool _promptOpen = false;
+  DateTime _promptBlockedUntil = DateTime.fromMillisecondsSinceEpoch(0);
+
+  static const _kDeniedCooldown = Duration(seconds: 10);
+  static const _kMaxJsonBytes = 1024 * 1024;
 
   LanSyncServer({
     required this._identity,
@@ -140,20 +150,30 @@ class LanSyncServer {
     if (server == null) return;
     () async {
       await for (final req in server) {
-        try {
-          await _handle(req);
-        } catch (e, st) {
-          logger.e(
-            'LAN sync server: unhandled error',
-            error: e,
-            stackTrace: st,
-          );
-          _respond(req, HttpStatus.internalServerError, {
-            'error': 'internal error',
-          });
+        final path = req.requestedUri.path;
+        if (path == '/info' || path.startsWith('/pair/')) {
+          unawaited(_dispatch(req));
+        } else {
+          unawaited(_requestQueue.run(() => _dispatch(req)));
         }
       }
     }();
+  }
+
+  Future<void> _dispatch(HttpRequest req) async {
+    try {
+      await _handle(req);
+    } catch (e, st) {
+      logger.e('LAN sync server: unhandled error', error: e, stackTrace: st);
+      // The handler may have sent headers already, in which case all that is left to do is drop the connection.
+      try {
+        await _respond(req, HttpStatus.internalServerError, {
+          'error': 'internal error',
+        });
+      } catch (_) {
+        unawaited(req.response.detachSocket().then((s) => s.destroy()).catchError((_) {}));
+      }
+    }
   }
 
   Future<void> _handle(HttpRequest req) async {
@@ -266,7 +286,7 @@ class LanSyncServer {
       return;
     }
     try {
-      await installer(info.url);
+      await installer(info);
     } catch (e) {
       logger.w(
         'LAN sync: failed to install extension ${info.id} from ${info.url}',
@@ -336,19 +356,23 @@ class LanSyncServer {
       return;
     }
 
+    if (_promptOpen || DateTime.now().isBefore(_promptBlockedUntil)) {
+      _respond(req, HttpStatus.tooManyRequests, {
+        'error': 'another pairing request is pending',
+      }, version: dionSyncProtocolVersion);
+      return;
+    }
+    _promptOpen = true;
+
     final sessionId = const Uuid().v4();
     final session = _PairSession(
       sessionId: sessionId,
       peerInfo: peerInfo,
       peerFingerprint: peerFp,
-      accepted: false,
       expires: DateTime.now().add(_kSessionTtl),
     );
     _sessions[sessionId] = session;
 
-    // Respond with B's info + the sessionId. If B declined, we still return
-    // the info so A can show the prompt, but mark acceptance in the session;
-    // A's confirm will then fail.
     _respond(
       req,
       HttpStatus.ok,
@@ -357,16 +381,17 @@ class LanSyncServer {
     );
 
     final sas = sasCodeString(_identity.fingerprint, peerFp);
-    // Prompt the local user (B). This may take a while; we await it so the
-    // response reflects the outcome. The initiator (A) shows its own prompt
-    // only after receiving this response.
     bool accepted = false;
     try {
       accepted = await _onPairingRequest(peerInfo, peerFp, sas);
     } catch (e) {
       logger.w('LAN sync: pairing prompt failed', error: e);
     }
-    session.accepted = accepted;
+    _promptOpen = false;
+    if (!accepted) {
+      _promptBlockedUntil = DateTime.now().add(_kDeniedCooldown);
+    }
+    session.decision.complete(accepted);
   }
 
   Future<void> _handlePairConfirm(HttpRequest req) async {
@@ -407,7 +432,13 @@ class LanSyncServer {
       );
       return;
     }
-    if (!session.accepted || !msg.accept) {
+    final accepted =
+        msg.accept &&
+        await session.decision.future.timeout(
+          session.expires.difference(DateTime.now()),
+          onTimeout: () => false,
+        );
+    if (!accepted) {
       _respond(
         req,
         HttpStatus.ok,
@@ -442,9 +473,13 @@ class LanSyncServer {
 
   Future<Map<String, dynamic>?> _readJson(HttpRequest req) async {
     try {
-      final content = await utf8.decoder.bind(req).join();
-      if (content.isEmpty) return null;
-      final decoded = jsonDecode(content);
+      final bytes = BytesBuilder(copy: false);
+      await for (final chunk in req) {
+        bytes.add(chunk);
+        if (bytes.length > _kMaxJsonBytes) return null;
+      }
+      if (bytes.isEmpty) return null;
+      final decoded = jsonDecode(utf8.decode(bytes.takeBytes()));
       if (decoded is Map<String, dynamic>) return decoded;
       return null;
     } catch (_) {

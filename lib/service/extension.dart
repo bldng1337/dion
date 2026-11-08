@@ -875,6 +875,12 @@ class ExtensionAdapter with ChangeNotifier {
 
   Future<void> uninstall(Extension ext) async {
     await adapter.uninstall(ext: ext._proxy);
+    await locate<Database>().setExtensionMetaData(
+      ext.meta.copyWith(removed: true),
+    );
+    if (has<DownloadService>()) {
+      await locate<DownloadService>().deleteExtension(ext);
+    }
     _extensions.remove(ext);
     ext.dispose();
     notifyListeners();
