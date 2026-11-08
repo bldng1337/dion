@@ -128,6 +128,7 @@ class NotificationService {
     required String title,
     required String body,
     double? progress,
+    bool ongoing = true,
   }) async {
     if (!_isPlatformSupported()) {
       logger.d('Notifications not supported on this platform');
@@ -147,9 +148,9 @@ class NotificationService {
         channelId,
         channelName,
         channelDescription: channelDescription,
-        ongoing: true,
+        ongoing: ongoing,
         onlyAlertOnce: true,
-        showProgress: true,
+        showProgress: ongoing,
         indeterminate: progress == null,
         maxProgress: 100,
         progress: progress == null ? 0 : (progress.clamp(0, 1) * 100).round(),

@@ -226,13 +226,14 @@ class TaskManager extends ChangeNotifier {
     final running = tasks.where((task) => task.running).toList();
     final errorCount = tasks.where((task) => task.error != null).length;
 
-    await _syncForegroundService(running.length);
-
-    if (!has<NotificationService>()) return;
+    if (!has<NotificationService>()) {
+      await _syncForegroundService(running.length, '');
+      return;
+    }
+    final notifications = locate<NotificationService>();
     if (tasks.isEmpty) {
-      await locate<NotificationService>().cancelNotification(
-        _taskNotificationId,
-      );
+      await _syncForegroundService(0, '');
+      await notifications.cancelNotification(_taskNotificationId);
       return;
     }
 
@@ -262,7 +263,13 @@ class TaskManager extends ChangeNotifier {
       }
     }
 
-    await locate<NotificationService>().showProgressNotification(
+    await _syncForegroundService(running.length, body);
+    if (Platform.isAndroid && running.isNotEmpty) {
+      await notifications.cancelNotification(_taskNotificationId);
+      return;
+    }
+
+    await notifications.showProgressNotification(
       id: _taskNotificationId,
       channelId: taskChannelId,
       channelName: taskChannelName,
@@ -270,10 +277,11 @@ class TaskManager extends ChangeNotifier {
       title: 'dion',
       body: body,
       progress: progress,
+      ongoing: running.isNotEmpty,
     );
   }
 
-  Future<void> _syncForegroundService(int runningCount) async {
+  Future<void> _syncForegroundService(int runningCount, String text) async {
     if (!Platform.isAndroid) return;
     if (_foregroundServiceTransition) {
       // A start/stop is still settling; run another pass afterwards so the
