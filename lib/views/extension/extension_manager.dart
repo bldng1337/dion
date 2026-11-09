@@ -424,6 +424,10 @@ class _RepoReady extends _RepoResolution {
 class _RepoFailed extends _RepoResolution {
   final Object error;
   const _RepoFailed(super.url, this.error);
+
+
+  @override
+  String toString() => 'RepoFailed(url: $url, error: ${error.toString().split('\n').first})';
 }
 
 class ExtensionCatalog extends StatefulWidget {
@@ -738,7 +742,7 @@ class _ExtensionCatalogState extends State<ExtensionCatalog>
           ),
         ),
         final _RepoFailed failed => Tooltip(
-          message: 'Failed to load ${failed.url} ($failed). Tap to retry.',
+          message: 'Failed to load($failed). Tap to retry.',
           child: FilterChip(
             avatar: Icon(
               Icons.error_outline,
