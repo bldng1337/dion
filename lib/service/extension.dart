@@ -1258,19 +1258,29 @@ class ExtensionService with ChangeNotifier {
         return await adapter.getRepo(url);
       }
     }
-    if (url.contains('index.min.json')) {
+    if (url.contains('index.min.json') ||
+        url.endsWith('.pb') ||
+        url.endsWith('.pb.gz')) {
       final adapter = _adapters['mihon'];
-      if (adapter != null) {
-        return await adapter.getRepo(url);
+      if (adapter == null) {
+        throw Exception(
+          'Failed to get repo from $url: the mihon adapter is unavailable '
+          '(it failed to initialize at startup)',
+        );
       }
+      return await adapter.getRepo(url);
     }
+    final candidates = [
+      if (_adapters['mihon'] != null) _adapters['mihon']!,
+      if (_adapters['dion'] != null) _adapters['dion']!,
+    ];
     Object? lastError;
-    for (final adapter in _adapters.values) {
+    for (final adapter in candidates) {
       try {
         return await adapter.getRepo(url);
       } catch (e) {
         lastError = e;
-        logger.e('Failed to get repo from $url', error: e);
+        logger.w('${adapter.name} adapter failed to get repo from $url', error: e);
       }
     }
     // Surface the underlying cause so the UI can show why a repo is broken
