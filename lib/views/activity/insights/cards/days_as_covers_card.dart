@@ -35,35 +35,47 @@ class DaysAsCoversCard extends InsightCard<DaysAsCoversData> {
 
   @override
   Future<DaysAsCoversData?> compute(InsightContext context) async {
-    final today = InsightContext.dayKeyOf(context.now);
+    final today = context.today;
     final days = List.generate(7, (i) => today.subtract(Duration(days: 6 - i)));
-    final perDay = <DateTime, (String, Duration)>{};
+    final totals = <DateTime, Map<String, Duration>>{};
+    final entryByUid = <String, Entry>{};
     for (final activity in context.activities) {
       final day = InsightContext.dayKeyOf(activity.time);
       if (!days.contains(day)) continue;
       final uid = activity.entry.id.uid;
-      final current = perDay[day];
-      final total = (current?.$2 ?? Duration.zero) + activity.duration;
-      // Equal totals keep the first entry seen for the day.
-      if (current == null || total > current.$2) perDay[day] = (uid, total);
+      final perUid = totals.putIfAbsent(day, () => {});
+      perUid[uid] = (perUid[uid] ?? Duration.zero) + activity.duration;
+      entryByUid[uid] ??= context.entryFor(activity);
     }
     // Two active days make the strip read as a week, one is just a cover.
-    if (perDay.length < 2) return null;
+    if (totals.length < 2) return null;
+
+    Entry? topOf(DateTime day) {
+      final perUid = totals[day];
+      if (perUid == null) return null;
+      return entryByUid[perUid.entries
+          .reduce((a, b) => b.value > a.value ? b : a)
+          .key];
+    }
 
     return DaysAsCoversData(
       today: today,
-      days: [
-        for (final day in days)
-          (
-            day,
-            perDay[day] == null ? null : context.entriesByUid[perDay[day]!.$1],
-          ),
-      ],
+      days: [for (final day in days) (day, topOf(day))],
     );
   }
 
   @override
   Widget build(BuildContext context, DaysAsCoversData data) {
+    final scheme = context.theme.colorScheme;
+    final empty = DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(DionRadius.sm),
+        border: Border.all(
+          color: scheme.onSurface.withValues(alpha: 0.15),
+          width: 0.5,
+        ),
+      ),
+    );
     return Row(
       children: [
         for (final (day, entry) in data.days)
@@ -71,35 +83,29 @@ class DaysAsCoversCard extends InsightCard<DaysAsCoversData> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Expanded(
-                    child: entry == null
-                        ? DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                DionRadius.sm,
-                              ),
-                              border: Border.all(
-                                color: context.theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.15),
-                                width: 0.5,
-                              ),
-                            ),
-                          )
-                        : InsightCover.expand(entry: entry),
+                    child: Center(
+                      child: InsightAspectBox(
+                        child: entry == null
+                            ? empty
+                            : InsightCover(entry: entry),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: DionSpacing.xs),
                   Text(
                     Moment(day.toLocal()).format('dd'),
-                    style: context.labelSmall?.copyWith(
-                      fontSize: 9.5,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.clip,
+                    style: InsightStyles.axis(context).copyWith(
                       fontWeight: day == data.today
                           ? FontWeight.w700
                           : FontWeight.w500,
                       color: day == data.today
-                          ? context.theme.colorScheme.onSurface
-                          : context.theme.colorScheme.onSurfaceVariant,
+                          ? scheme.onSurface
+                          : scheme.onSurfaceVariant,
                     ),
                   ),
                 ],

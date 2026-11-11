@@ -1,7 +1,5 @@
-import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/entry/entry.dart';
-import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/media_type.dart';
 import 'package:dionysos/views/activity/insights/insight_card.dart';
 import 'package:dionysos/views/activity/insights/insight_widgets.dart';
@@ -45,52 +43,45 @@ class BingeCard extends InsightCard<BingeData> {
     // Shorter than 45 minutes is a session, not a binge.
     if (longest.duration < const Duration(minutes: 45)) return null;
     return BingeData(
-      entry: context.entriesByUid[longest.entry.id.uid] ?? longest.entry,
+      entry: context.entryFor(longest),
       duration: longest.duration,
-      episodes: longest.toepisode - longest.fromepisode + 1,
+      // Ranges are sometimes recorded backwards.
+      episodes: (longest.toepisode - longest.fromepisode).abs() + 1,
       day: InsightContext.dayKeyOf(longest.time),
     );
   }
 
   @override
   Widget build(BuildContext context, BingeData data) {
-    return Row(
-      children: [
-        InsightCover(entry: data.entry, width: 72),
-        const SizedBox(width: DionSpacing.md),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              InsightHero(
-                value: formatDurationCompact(data.duration),
-                caption: 'in one sitting',
-              ),
-              const Spacer(),
-              Text(
-                data.entry.title.trim(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: context.theme.colorScheme.onSurface,
-                ),
-              ),
-              Text(
-                '${data.episodes} '
-                '${data.entry.mediaType.getEpisodeNames(data.episodes).toLowerCase()}'
-                ' · ${formatDayLabel(data.day)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.labelSmall?.copyWith(
-                  color: context.theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+    final episodes = data.entry.mediaType
+        .getEpisodeNames(data.episodes)
+        .toLowerCase();
+    return InsightCoverLayout(
+      entry: data.entry,
+      child: InsightBody(
+        top: InsightHero(
+          value: formatDurationCompact(data.duration),
+          caption: 'in one sitting',
         ),
-      ],
+        bottom: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              data.entry.title.trim(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: InsightStyles.emphasis(context),
+            ),
+            Text(
+              '${data.episodes} $episodes · ${formatDayLabel(data.day)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: InsightStyles.label(context),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

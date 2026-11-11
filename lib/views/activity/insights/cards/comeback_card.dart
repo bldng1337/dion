@@ -1,6 +1,4 @@
-import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
-import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/views/activity/insights/insight_card.dart';
 import 'package:dionysos/views/activity/insights/insight_widgets.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +6,7 @@ import 'package:flutter/material.dart';
 class ComebackData {
   final Entry entry;
 
-  /// Days between the last two sessions on [entry].
+  /// Days between the two sessions on [entry] with the longest pause.
   final int gapDays;
   final DateTime returnedOn;
 
@@ -36,16 +34,18 @@ class ComebackCard extends InsightCard<ComebackData> {
     // Distinct active days per entry, then the largest gap between
     // consecutive days.
     final daysByUid = <String, Set<DateTime>>{};
+    final entryByUid = <String, Entry>{};
     for (final activity in context.activities) {
       final uid = activity.entry.id.uid;
       daysByUid
           .putIfAbsent(uid, () => {})
           .add(InsightContext.dayKeyOf(activity.time));
+      entryByUid[uid] ??= context.entryFor(activity);
     }
 
     String? topUid;
     var topGap = 0;
-    var topReturn = DateTime.now();
+    DateTime? topReturn;
     for (final MapEntry(key: uid, value: days) in daysByUid.entries) {
       if (days.length < 2) continue;
       final sorted = days.toList()..sort();
@@ -59,42 +59,48 @@ class ComebackCard extends InsightCard<ComebackData> {
       }
     }
     // Anything under a week is just a normal pause, not a comeback.
-    if (topUid == null || topGap < 7) return null;
-    final entry = context.entriesByUid[topUid];
-    if (entry == null) return null;
-    return ComebackData(entry: entry, gapDays: topGap, returnedOn: topReturn);
+    if (topUid == null || topReturn == null || topGap < 7) return null;
+    return ComebackData(
+      entry: entryByUid[topUid]!,
+      gapDays: topGap,
+      returnedOn: topReturn,
+    );
   }
 
   @override
   Widget build(BuildContext context, ComebackData data) {
-    return Row(
-      children: [
-        InsightCover(entry: data.entry, width: 72),
-        const SizedBox(width: DionSpacing.md),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              InsightHero(
-                value: '${data.gapDays}',
-                unit: 'days',
-                caption: 'away before coming back',
-              ),
-              const Spacer(),
-              Text(
-                'You returned to ${data.entry.title.trim()} '
-                'on ${formatDayLabel(data.returnedOn)}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: context.labelSmall?.copyWith(
-                  color: context.theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+    return InsightCoverLayout(
+      entry: data.entry,
+      child: InsightBody(
+        top: InsightHero(
+          value: '${data.gapDays}',
+          unit: 'days',
+          caption: 'away before coming back',
         ),
-      ],
+        bottom: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              data.entry.title.trim(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: InsightStyles.emphasis(context),
+            ),
+            Text(
+              'Picked back up ${_on(formatDayLabel(data.returnedOn))}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: InsightStyles.label(context),
+            ),
+          ],
+        ),
+      ),
     );
   }
+
+  String _on(String dayLabel) => switch (dayLabel) {
+    'Today' || 'Yesterday' => dayLabel.toLowerCase(),
+    _ => 'on $dayLabel',
+  };
 }

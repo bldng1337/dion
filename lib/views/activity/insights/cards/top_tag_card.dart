@@ -1,6 +1,6 @@
-import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/views/activity/insights/insight_card.dart';
 import 'package:dionysos/views/activity/insights/insight_widgets.dart';
 import 'package:flutter/material.dart';
@@ -55,15 +55,9 @@ class TopTagCard extends InsightCard<TopTagData> {
     }
     if (tagDuration.isEmpty) return null;
 
-    String? topTag;
-    var topTotal = Duration.zero;
-    for (final MapEntry(key: tag, :value) in tagDuration.entries) {
-      if (value > topTotal) {
-        topTotal = value;
-        topTag = tag;
-      }
-    }
-    if (topTag == null) return null;
+    final MapEntry(key: topTag, value: topTotal) = tagDuration.entries.reduce(
+      (a, b) => b.value > a.value ? b : a,
+    );
     final uids = tagUids[topTag]!;
     // A tag needs two titles and an hour before it says anything.
     if (uids.length < 2 || topTotal < const Duration(hours: 1)) return null;
@@ -87,37 +81,30 @@ class TopTagCard extends InsightCard<TopTagData> {
 
   @override
   Widget build(BuildContext context, TopTagData data) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return InsightAside(
+      aside: InsightCoverFan(entries: data.topEntries),
+      child: InsightBody(
+        top: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                '#${data.tag}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                  color: context.theme.colorScheme.onSurface,
-                ),
-              ),
+            Text(
+              '#${data.tag}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: InsightStyles.statement(context),
             ),
-            for (final entry in data.topEntries)
-              Transform.translate(
-                offset: Offset(-4.0 * data.topEntries.indexOf(entry), 0),
-                child: InsightCover(entry: entry, width: 26),
-              ),
+            const SizedBox(height: DionSpacing.xs),
+            InsightHero(value: formatDurationCompact(data.duration)),
           ],
         ),
-        const Spacer(),
-        InsightHero(
-          value: formatDurationCompact(data.duration),
-          caption: 'across ${data.entryCount} tagged titles',
+        bottom: Text(
+          'across ${data.entryCount} tagged titles',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: InsightStyles.label(context),
         ),
-      ],
+      ),
     );
   }
 }

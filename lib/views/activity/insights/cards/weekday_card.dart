@@ -67,30 +67,25 @@ class WeekdayCard extends InsightCard<WeekdayData> {
 
   @override
   Widget build(BuildContext context, WeekdayData data) {
-    final scheme = context.theme.colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '${_weekdayNames[data.topWeekday]} is your heaviest day — '
-          '${(data.share * 100).round()}% of your time.',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: context.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.1,
-            color: scheme.onSurface,
-          ),
-        ),
-        const Spacer(),
-        BarStrip(
-          values: data.perWeekday,
-          accent: scheme.primary,
-          highlightFrom: data.topWeekday,
-          highlightTo: data.topWeekday,
-        ),
-      ],
+    return InsightBody(
+      fillBottom: true,
+      minBottomHeight: 28,
+      top: Text(
+        '${_weekdayNames[data.topWeekday]} is your heaviest day, with '
+        '${(data.share * 100).round()}% of your time.',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: InsightStyles.statement(context),
+      ),
+      bottom: BarStrip.durations(
+        values: data.perWeekday,
+        accent: context.theme.colorScheme.primary,
+        highlightFrom: data.topWeekday,
+        highlightTo: data.topWeekday,
+        labels: {
+          for (var i = 0; i < 7; i++) i: _weekdayNames[i].substring(0, 1),
+        },
+      ),
     );
   }
 }

@@ -89,36 +89,37 @@ class TypicalTimeCard extends InsightCard<TypicalTimeData> {
 
   @override
   Widget build(BuildContext context, TypicalTimeData data) {
-    final scheme = context.theme.colorScheme;
     String hourLabel(int hour) => '${hour.toString().padLeft(2, '0')}:00';
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Most ${data.verbNoun} happens between '
-          '${hourLabel(data.fromHour)} and ${hourLabel(data.toHour)}.',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: context.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.1,
-            color: scheme.onSurface,
+    return InsightBody(
+      fillBottom: true,
+      minBottomHeight: 28,
+      top: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Most ${data.verbNoun} happens between '
+            '${hourLabel(data.fromHour)} and ${hourLabel(data.toHour)}.',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: InsightStyles.statement(context),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '${(data.share * 100).round()}% of your time in these hours',
-          style: context.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        const Spacer(),
-        BarStrip(
-          values: data.histogram,
-          accent: scheme.primary,
-          highlightFrom: data.fromHour,
-          highlightTo: (data.toHour + 23) % 24,
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            '${(data.share * 100).round()}% of your time in these hours',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: InsightStyles.label(context),
+          ),
+        ],
+      ),
+      bottom: BarStrip.durations(
+        values: data.histogram,
+        accent: context.theme.colorScheme.primary,
+        highlightFrom: data.fromHour,
+        highlightTo: (data.toHour + 23) % 24,
+        labels: const {0: '00', 6: '06', 12: '12', 18: '18'},
+      ),
     );
   }
 }

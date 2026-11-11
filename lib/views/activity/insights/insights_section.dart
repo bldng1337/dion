@@ -8,9 +8,26 @@ import 'package:dionysos/widgets/container/container.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:flutter/material.dart';
 
-/// The activity view's summary: one or two daily insight cards, picked from
-/// the applicable card types in `registry.dart`. Replaces the old heatmap +
-/// treemap summary.
+const _cardGap = DionSpacing.md;
+const _minCardWidth = 280.0;
+const _maxColumns = 3;
+const _baseCardHeight = 152.0;
+
+/// Card height for the ambient text scale. Card content is mostly text, so
+/// the frame grows with it rather than squeezing everything inside.
+double insightCardHeight(TextScaler scaler) =>
+    _baseCardHeight * (scaler.scale(14) / 14).clamp(1.0, 1.6);
+
+/// Columns that fit [width] without a card dropping below its minimum width.
+int insightColumnsFor(double width) =>
+    ((width + _cardGap) / (_minCardWidth + _cardGap)).floor().clamp(
+      1,
+      _maxColumns,
+    );
+
+/// The activity view's summary: a row of daily insight cards, picked from
+/// the applicable card types in `registry.dart`. Phones stack two cards;
+/// wider windows show one card per column.
 class InsightsSection extends StatefulWidget {
   const InsightsSection({super.key});
 
@@ -19,20 +36,20 @@ class InsightsSection extends StatefulWidget {
 }
 
 class _InsightsSectionState extends State<InsightsSection> {
-  late final Future<(InsightContext, List<InsightSelection<dynamic>>)> _future;
+  late final Future<List<InsightSelection<dynamic>>> _future;
 
   @override
   void initState() {
     super.initState();
     _future = () async {
       final insightContext = await InsightContext.load();
-      return (insightContext, await selectInsightCards(insightContext));
+      return selectInsightCards(insightContext);
     }();
   }
 
   @override
   Widget build(BuildContext context) {
-    return LoadingBuilder<(InsightContext, List<InsightSelection<dynamic>>)>(
+    return LoadingBuilder<List<InsightSelection<dynamic>>>(
       future: _future,
       loading: (context) => const DionProgressBar().paddingVertical(24),
       // A failed summary must not take the activity feed with it.
@@ -44,8 +61,7 @@ class _InsightsSectionState extends State<InsightsSection> {
         );
         return const SizedBox.shrink();
       },
-      builder: (context, data) {
-        final (_, selections) = data;
+      builder: (context, selections) {
         if (selections.isEmpty) return const SizedBox.shrink();
         return Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -55,25 +71,10 @@ class _InsightsSectionState extends State<InsightsSection> {
             DionSpacing.xs,
           ),
           child: LayoutBuilder(
-            builder: (context, constraints) {
-              const gap = 12.0;
-              final twoColumns = constraints.maxWidth >= 620;
-              final cardWidth = twoColumns
-                  ? (constraints.maxWidth - gap) / 2
-                  : constraints.maxWidth;
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: [
-                  for (final selection in selections)
-                    _CardChrome(
-                      card: selection.card,
-                      width: cardWidth,
-                      child: selection.card.build(context, selection.data),
-                    ),
-                ],
-              );
-            },
+            builder: (context, constraints) => InsightGrid(
+              selections: selections,
+              width: constraints.maxWidth,
+            ),
           ),
         );
       },
@@ -81,52 +82,102 @@ class _InsightsSectionState extends State<InsightsSection> {
   }
 }
 
-/// Uniform card frame: fixed height, small uppercase header row, then the
-/// card's own graphic.
-class _CardChrome extends StatelessWidget {
-  final InsightCard<dynamic> card;
+/// Lays the first fitting [selections] out in equal-width rows. A card whose
+/// build throws is logged and replaced by the next selection.
+class InsightGrid extends StatelessWidget {
+  final List<InsightSelection<dynamic>> selections;
   final double width;
-  final Widget child;
 
-  const _CardChrome({
-    required this.card,
-    required this.width,
-    required this.child,
-  });
+  const InsightGrid({super.key, required this.selections, required this.width});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      height: 150,
-      child: DionContainer(
-        color: context.theme.colorScheme.surfaceContainer,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, DionSpacing.md, 14, 14),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    card.icon,
-                    size: 13,
-                    color: context.theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    card.label.toUpperCase(),
-                    style: DionTypography.sectionHeader(
-                      context.theme.colorScheme.onSurfaceVariant,
-                    ),
+    final columns = insightColumnsFor(width);
+    final wanted = columns == 1 ? 2 : columns;
+    final cards = <Widget>[];
+    for (final selection in selections) {
+      if (cards.length >= wanted) break;
+      try {
+        cards.add(
+          InsightCardFrame(
+            card: selection.card,
+            child: selection.build(context),
+          ),
+        );
+      } catch (e, stack) {
+        logger.e(
+          'Insight card ${selection.card.id} failed to build',
+          error: e,
+          stackTrace: stack,
+        );
+      }
+    }
+    if (cards.isEmpty) return const SizedBox.shrink();
+
+    // Rows keep the column width even when short of cards: a lone card
+    // stretched across a desktop window is mostly empty space.
+    final perRow = columns;
+    final height = insightCardHeight(MediaQuery.textScalerOf(context));
+    return Column(
+      children: [
+        for (var start = 0; start < cards.length; start += perRow) ...[
+          if (start > 0) const SizedBox(height: _cardGap),
+          SizedBox(
+            height: height,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = start; i < start + perRow; i++) ...[
+                  if (i > start) const SizedBox(width: _cardGap),
+                  Expanded(
+                    child: i < cards.length ? cards[i] : const SizedBox(),
                   ),
                 ],
-              ),
-              const SizedBox(height: 10),
-              Expanded(child: child),
-            ],
+              ],
+            ),
           ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Uniform card frame: small uppercase header row, then the card's body in
+/// the remaining space.
+class InsightCardFrame extends StatelessWidget {
+  final InsightCard<dynamic> card;
+  final Widget child;
+
+  const InsightCardFrame({super.key, required this.card, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = context.theme.colorScheme.onSurfaceVariant;
+    return DionContainer(
+      color: context.theme.colorScheme.surfaceContainer,
+      alignment: Alignment.topLeft,
+      child: Padding(
+        padding: const EdgeInsets.all(DionSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(card.icon, size: 13, color: muted),
+                const SizedBox(width: DionSpacing.xs + 2),
+                Flexible(
+                  child: Text(
+                    card.label.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DionTypography.sectionHeader(muted),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: DionSpacing.sm + 2),
+            Expanded(child: child),
+          ],
         ),
       ),
     );

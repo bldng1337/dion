@@ -47,10 +47,11 @@ class TotalTrackedCard extends InsightCard<TotalTrackedData> {
     var episodes = 0;
     for (final activity in context.activities) {
       titles.add(activity.entry.id.uid);
-      episodes += activity.toepisode - activity.fromepisode + 1;
+      // Ranges are sometimes recorded backwards.
+      episodes += (activity.toepisode - activity.fromepisode).abs() + 1;
     }
 
-    final today = InsightContext.dayKeyOf(context.now);
+    final today = context.today;
     final last30 = List.generate(
       30,
       (i) =>
@@ -67,25 +68,31 @@ class TotalTrackedCard extends InsightCard<TotalTrackedData> {
 
   @override
   Widget build(BuildContext context, TotalTrackedData data) {
-    final scheme = context.theme.colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InsightHero(
-          value: formatDurationCompact(data.total),
-          caption: 'tracked in the last year',
-        ),
-        Text(
-          '${data.titles} titles · ${data.episodes.abs()} '
-          '${data.episodes == 1 ? 'episode' : 'episodes'} in the last 6 months',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: context.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        const Spacer(),
-        BarStrip(values: data.last30Days, accent: scheme.primary),
-      ],
+    return InsightBody(
+      fillBottom: true,
+      top: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InsightHero(
+            value: formatDurationCompact(data.total),
+            caption: 'tracked in the last year',
+            captionLines: 1,
+          ),
+          Text(
+            '${data.titles} ${pluralize(data.titles, 'title')} · '
+            '${data.episodes} ${pluralize(data.episodes, 'episode')} '
+            'in 6 months',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: InsightStyles.label(context),
+          ),
+        ],
+      ),
+      bottom: BarStrip.durations(
+        values: data.last30Days,
+        accent: context.theme.colorScheme.primary,
+      ),
     );
   }
 }

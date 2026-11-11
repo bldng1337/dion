@@ -1,4 +1,5 @@
 import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
+import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/views/activity/insights/insight_card.dart';
 import 'package:dionysos/views/activity/insights/insight_widgets.dart';
 import 'package:flutter/material.dart';
@@ -8,10 +9,15 @@ class StreakData {
   final int longest;
   final bool activeToday;
 
+  /// Whether each of the last 30 days had activity, oldest first; the last
+  /// element is today.
+  final List<bool> recent;
+
   const StreakData({
     required this.current,
     required this.longest,
     required this.activeToday,
+    required this.recent,
   });
 }
 
@@ -35,7 +41,7 @@ class StreakCard extends InsightCard<StreakData> {
     };
     if (activeDays.isEmpty) return null;
 
-    final today = InsightContext.dayKeyOf(context.now);
+    final today = context.today;
     // Today not logged yet does not break a streak running through yesterday.
     var cursor = activeDays.contains(today)
         ? today
@@ -62,35 +68,45 @@ class StreakCard extends InsightCard<StreakData> {
       current: current,
       longest: longest,
       activeToday: activeDays.contains(today),
+      recent: [
+        for (var i = 29; i >= 0; i--)
+          activeDays.contains(today.subtract(Duration(days: i))),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context, StreakData data) {
-    final leading = data.current > 0 ? data.current : data.longest;
-    final caption = data.current > 0 ? 'current streak' : 'longest streak';
-    final foot = data.current > 0
-        ? 'Longest streak: ${data.longest} ${data.longest == 1 ? 'day' : 'days'}'
+    final running = data.current > 0;
+    final leading = running ? data.current : data.longest;
+    final caption = !running
+        ? 'longest streak'
+        : data.activeToday
+        ? 'current streak'
+        : 'current streak · keep it going today';
+    final foot = running
+        ? 'Longest: ${data.longest} ${pluralize(data.longest, 'day')}'
         : 'Do something today to start a new one';
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InsightHero(
-          value: '$leading',
-          unit: leading == 1 ? 'day' : 'days',
-          caption: caption,
-        ),
-        const Spacer(),
-        Text(
-          foot,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: context.labelMedium?.copyWith(
-            color: context.theme.colorScheme.onSurfaceVariant,
+    return InsightBody(
+      top: InsightHero(
+        value: '$leading',
+        unit: pluralize(leading, 'day'),
+        caption: caption,
+      ),
+      bottom: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DayDots(days: data.recent, accent: context.theme.colorScheme.primary),
+          const SizedBox(height: DionSpacing.xs + 2),
+          Text(
+            foot,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: InsightStyles.label(context),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

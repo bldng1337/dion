@@ -57,27 +57,26 @@ class TotalTimeCard extends InsightCard<TotalTimeData> {
         ? 'tracked this week'
         : '${_delta(data.currentTotal, data.previousTotal)} vs last week '
               '(${formatDurationCompact(data.previousTotal)})';
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InsightHero(
-          value: formatDurationCompact(data.currentTotal),
-          caption: caption,
-        ),
-        const Spacer(),
-        SegmentBar(segments: segments),
-        const SizedBox(height: DionSpacing.sm),
-        SegmentLegend(segments: segments),
-      ],
+    return InsightBody(
+      top: InsightHero(
+        value: formatDurationCompact(data.currentTotal),
+        caption: caption,
+      ),
+      bottom: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SegmentBar(segments: segments),
+          const SizedBox(height: DionSpacing.sm),
+          SegmentLegend(segments: segments),
+        ],
+      ),
     );
   }
 
   String _delta(Duration current, Duration previous) {
     final percent =
-        ((current.inMilliseconds - previous.inMilliseconds) /
-                previous.inMilliseconds *
-                100)
+        ((current.inSeconds - previous.inSeconds) / previous.inSeconds * 100)
             .round();
     return percent >= 0 ? '+$percent%' : '$percent%';
   }

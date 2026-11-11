@@ -1,6 +1,4 @@
-import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
-import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/views/activity/insights/insight_card.dart';
 import 'package:dionysos/views/activity/insights/insight_widgets.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +6,7 @@ import 'package:flutter/material.dart';
 class BusiestDayData {
   final DateTime day;
   final Duration total;
-  final Entry? entry;
+  final Entry entry;
   final Duration entryDuration;
 
   const BusiestDayData({
@@ -40,64 +38,59 @@ class BusiestDayCard extends InsightCard<BusiestDayData> {
     // UTC day so a session never crosses a grouping boundary.
     final byDay = <DateTime, Duration>{};
     final byDayByUid = <DateTime, Map<String, Duration>>{};
+    final entryByUid = <String, Entry>{};
     for (final activity in context.activities) {
       final day = InsightContext.dayKeyOf(activity.time);
       byDay[day] = (byDay[day] ?? Duration.zero) + activity.duration;
       final perUid = byDayByUid.putIfAbsent(day, () => {});
       final uid = activity.entry.id.uid;
       perUid[uid] = (perUid[uid] ?? Duration.zero) + activity.duration;
+      entryByUid[uid] ??= context.entryFor(activity);
     }
     if (byDay.isEmpty) return null;
     final day = byDay.entries.reduce((a, b) => b.value > a.value ? b : a).key;
     // Below half an hour, "busiest" says nothing worth a card.
     if (byDay[day]! < const Duration(minutes: 30)) return null;
 
-    final perUid = byDayByUid[day]!;
-    var topUid = '';
-    var topDuration = Duration.zero;
-    for (final MapEntry(key: uid, :value) in perUid.entries) {
-      if (value > topDuration) {
-        topUid = uid;
-        topDuration = value;
-      }
-    }
+    final top = byDayByUid[day]!.entries.reduce(
+      (a, b) => b.value > a.value ? b : a,
+    );
     return BusiestDayData(
       day: day,
       total: byDay[day]!,
-      entry: context.entriesByUid[topUid],
-      entryDuration: topDuration,
+      entry: entryByUid[top.key]!,
+      entryDuration: top.value,
     );
   }
 
   @override
   Widget build(BuildContext context, BusiestDayData data) {
-    return Row(
-      children: [
-        InsightCover(entry: data.entry, width: 86),
-        const SizedBox(width: DionSpacing.md),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              InsightHero(
-                value: formatDurationCompact(data.total),
-                caption: formatDayLabel(data.day),
-              ),
-              const Spacer(),
-              Text(
-                'Mostly ${data.entry?.title.trim() ?? 'unknown entry'}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: context.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: context.theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+    return InsightCoverLayout(
+      entry: data.entry,
+      child: InsightBody(
+        top: InsightHero(
+          value: formatDurationCompact(data.total),
+          caption: formatDayLabel(data.day),
         ),
-      ],
+        bottom: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              data.entry.title.trim(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: InsightStyles.emphasis(context),
+            ),
+            Text(
+              '${formatDurationCompact(data.entryDuration)} of it',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: InsightStyles.label(context),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -59,6 +59,18 @@ class InsightContext {
     );
   }
 
+  /// UTC day key of [now].
+  DateTime get today => dayKeyOf(now);
+
+  /// The saved library row for [activity]'s entry when there is one,
+  /// otherwise the snapshot stored with the activity.
+  Entry entryFor(EpisodeActivity activity) =>
+      entriesByUid[activity.entry.id.uid] ?? activity.entry;
+
+  /// Activities at or after [start].
+  Iterable<EpisodeActivity> activitiesSince(DateTime start) =>
+      activities.where((a) => !a.time.isBefore(start));
+
   /// UTC-midnight key of a point in time, matching how [dailyTotals] and the
   /// heatmap group days.
   static DateTime dayKeyOf(DateTime time) {
@@ -100,7 +112,14 @@ class InsightContext {
 /// One insight card type. [compute] turns the shared [InsightContext] into
 /// the card's statistic, returning null when there is not enough data to say
 /// anything interesting; [build] renders it. Adding a card type is one class
-/// plus one line in `registry.dart`.
+/// plus one line in `registry.dart` (and a sample in
+/// `test/insight_card_layout_test.dart`).
+///
+/// [build] gets a bounded box whose size depends on the window and the text
+/// scale (roughly 150-600 wide, 100-250 tall), so it must not assume fixed
+/// dimensions: compose the helpers in `insight_widgets.dart`
+/// (`InsightBody`, `InsightCoverLayout`, `InsightAside`, ...), which scale
+/// content down instead of overflowing.
 abstract class InsightCard<T> {
   const InsightCard();
 
@@ -130,4 +149,6 @@ class InsightSelection<T> {
   final T data;
 
   const InsightSelection(this.card, this.data);
+
+  Widget build(BuildContext context) => card.build(context, data);
 }
