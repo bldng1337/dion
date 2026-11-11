@@ -2,9 +2,11 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/activity/activity.dart';
 import 'package:dionysos/data/activity/episode.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/media_type.dart';
+import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/views/activity.dart';
 import 'package:dionysos/views/dialog/next_release.dart';
@@ -15,6 +17,7 @@ import 'package:dionysos/widgets/progress.dart';
 import 'package:flutter/material.dart' show IconButton, Icons, VisualDensity;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 /// A scheduled release shown on the calendar: the saved entry the date
 /// belongs to and the concrete release time.
@@ -23,6 +26,30 @@ class DayRelease {
   final DateTime release;
 
   const DayRelease(this.entry, this.release);
+}
+
+/// Releases of unfinished saved entries scheduled in [start] (inclusive)
+/// … [end] (exclusive), earliest first.
+Future<List<DayRelease>> loadReleasesBetween(
+  DateTime start,
+  DateTime end,
+) async {
+  const pageSize = 100;
+  final db = locate<Database>();
+  final releases = <DayRelease>[];
+  for (var page = 0; ; page++) {
+    final pageEntries = await db.getCalendarEntries(page, pageSize).toList();
+    for (final entry in pageEntries) {
+      final release = entry.nextRelease;
+      if (release == null || entry.status == rust.ReleaseStatus.complete) {
+        continue;
+      }
+      if (release.isBefore(start) || !release.isBefore(end)) continue;
+      releases.add(DayRelease(entry, release));
+    }
+    if (pageEntries.length < pageSize) break;
+  }
+  return releases..sort((a, b) => a.release.compareTo(b.release));
 }
 
 /// Day popup for the calendar: the day's releases, its listening / reading

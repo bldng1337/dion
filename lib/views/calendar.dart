@@ -11,6 +11,7 @@ import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/time.dart';
 import 'package:dionysos/views/dialog/day_details.dart';
+import 'package:dionysos/views/dialog/month_overview.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -21,7 +22,6 @@ import 'package:flutter/material.dart' show Colors, Icons, Tooltip;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:intl/intl.dart';
-import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 /// Month-per-page release calendar: releases render as a cover treemap per
 /// day, time spent as a heatmap tint on days without covers.
@@ -34,8 +34,6 @@ class ReleaseCalendarView extends StatefulWidget {
 
 class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
     with StateDisposeScopeMixin {
-  static const _pageSize = 100;
-
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   Future<_MonthData>? _future;
 
@@ -67,20 +65,23 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
 
   bool get _isCurrentMonth => _sameMonth(_month, DateTime.now());
 
-  void _shiftMonth(int delta) {
+  void _setMonth(DateTime month) {
+    if (_sameMonth(month, _month)) return;
     setState(() {
-      _month = DateTime(_month.year, _month.month + delta);
+      _month = DateTime(month.year, month.month);
       _future = _loadMonth(_month);
     });
   }
 
-  void _goToCurrentMonth() {
-    if (_isCurrentMonth) return;
-    final now = DateTime.now();
-    setState(() {
-      _month = DateTime(now.year, now.month);
-      _future = _loadMonth(_month);
-    });
+  void _shiftMonth(int delta) =>
+      _setMonth(DateTime(_month.year, _month.month + delta));
+
+  void _goToCurrentMonth() => _setMonth(DateTime.now());
+
+  Future<void> _pickMonth() async {
+    final picked = await showMonthOverview(context, selected: _month);
+    if (picked == null || !mounted) return;
+    _setMonth(picked);
   }
 
   Future<_MonthData> _loadMonth(DateTime month) async {
@@ -89,23 +90,11 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
     final monthEnd = DateTime(month.year, month.month + 1);
     // Entry paging and the activities range scan are independent; run them
     // concurrently so the month costs the slower of the two, not the sum.
-    final activitiesFuture = db.getActivitiesBetween(monthStart, monthEnd);
-    final releases = <DayRelease>[];
-    for (var page = 0; ; page++) {
-      final pageEntries = await db.getCalendarEntries(page, _pageSize).toList();
-      for (final entry in pageEntries) {
-        final release = entry.nextRelease;
-        if (release == null || entry.status == rust.ReleaseStatus.complete) {
-          continue;
-        }
-        if (release.isBefore(monthStart) || !release.isBefore(monthEnd)) {
-          continue;
-        }
-        releases.add(DayRelease(entry, release));
-      }
-      if (pageEntries.length < _pageSize) break;
-    }
-    return _MonthData.build(monthStart, releases, await activitiesFuture);
+    final (releases, activities) = await (
+      loadReleasesBetween(monthStart, monthEnd),
+      db.getActivitiesBetween(monthStart, monthEnd),
+    ).wait;
+    return _MonthData.build(monthStart, releases, activities);
   }
 
   void _openDay(DateTime day) {
@@ -158,6 +147,7 @@ class _ReleaseCalendarViewState extends State<ReleaseCalendarView>
                             month: _month,
                             onPrevious: () => _shiftMonth(-1),
                             onNext: () => _shiftMonth(1),
+                            onPick: _pickMonth,
                             showToday: !_isCurrentMonth,
                             onToday: _goToCurrentMonth,
                           ),
@@ -266,6 +256,7 @@ class _MonthSelector extends StatelessWidget {
   final DateTime month;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
+  final VoidCallback onPick;
 
   /// Whether [month] differs from the month the device clock is in; while
   /// false the jump-to-current button hides but keeps its slot so the title
@@ -277,6 +268,7 @@ class _MonthSelector extends StatelessWidget {
     required this.month,
     required this.onPrevious,
     required this.onNext,
+    required this.onPick,
     required this.showToday,
     required this.onToday,
   });
@@ -294,11 +286,37 @@ class _MonthSelector extends StatelessWidget {
           ),
           Expanded(
             child: Center(
-              child: Text(
-                DateFormat('MMMM y').format(month),
-                style: context.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.5,
+              child: Tooltip(
+                message: 'Browse months',
+                waitDuration: const Duration(milliseconds: 500),
+                child: Clickable(
+                  onTap: onPick,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DionSpacing.sm,
+                      vertical: DionSpacing.xs,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            DateFormat('MMMM y').format(month),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: context.textTertiary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
