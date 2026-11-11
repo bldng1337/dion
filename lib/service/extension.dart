@@ -1134,6 +1134,11 @@ class ExtensionService with ChangeNotifier {
       'mihon',
       () async => rust.ProxyAdapter.initMihon(client: await getClient('mihon')),
     );
+    await _registerAdapter(
+      'lnreader',
+      () async =>
+          rust.ProxyAdapter.initLnreader(client: await getClient('lnreader')),
+    );
     for (final adapter in _adapters.values) {
       adapter.addListener(() {
         notifyListeners();
@@ -1270,9 +1275,20 @@ class ExtensionService with ChangeNotifier {
       }
       return await adapter.getRepo(url);
     }
+    if (url.endsWith('plugins.min.json')) {
+      final adapter = _adapters['lnreader'];
+      if (adapter == null) {
+        throw Exception(
+          'Failed to get repo from $url: the lnreader adapter is unavailable '
+          '(it failed to initialize at startup)',
+        );
+      }
+      return await adapter.getRepo(url);
+    }
     final candidates = [
       if (_adapters['mihon'] != null) _adapters['mihon']!,
       if (_adapters['dion'] != null) _adapters['dion']!,
+      if (_adapters['lnreader'] != null) _adapters['lnreader']!,
     ];
     Object? lastError;
     for (final adapter in candidates) {
@@ -1300,6 +1316,15 @@ class ExtensionService with ChangeNotifier {
     if (location.endsWith('.apk')) {
       logger.i('Installing mihon extension from $location');
       final adapter = _adapters['mihon'];
+      if (adapter != null) {
+        await adapter.install(location);
+        return;
+      }
+    }
+    // LNReader plugins are plain `.js` files; the `.dion.js` case is matched above, so any other `.js` location belongs to the lnreader adapter.
+    if (location.endsWith('.js')) {
+      logger.i('Installing lnreader extension from $location');
+      final adapter = _adapters['lnreader'];
       if (adapter != null) {
         await adapter.install(location);
         return;
