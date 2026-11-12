@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dionysos/service/applinks.dart';
+import 'package:dionysos/service/backup.dart';
 import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
@@ -142,6 +143,12 @@ class LoadingView extends StatelessWidget {
           'PeriodicService',
           () async {
             await PeriodicService.ensureInitialized();
+          },
+        ),
+        (
+          'BackupService',
+          () async {
+            await BackupService.ensureInitialized();
           },
         ),
       ],

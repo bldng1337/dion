@@ -280,6 +280,27 @@ final settings = (
       const PreferenceBoolMetaData('autodownload.extensionicons'),
     )..addCollection(preferenceCollection),
   ),
+  backup: (
+    auto: (
+      enabled: Setting(
+        false,
+        const PreferenceBoolMetaData('backup.auto.enabled'),
+      )..addCollection(preferenceCollection),
+      // In days, unlike the hour-based intervals of the other periodic jobs.
+      interval: Setting(7, const PreferenceIntMetaData('backup.auto.interval'))
+        ..addCollection(preferenceCollection),
+    ),
+    beforeUpdate: Setting(
+      true,
+      const PreferenceBoolMetaData('backup.beforeupdate'),
+    )..addCollection(preferenceCollection),
+    keep: Setting(5, const PreferenceIntMetaData('backup.keep'))
+      ..addCollection(preferenceCollection),
+    path: Setting(
+      null as Directory?,
+      const PreferenceDirectoryMetaData('backup.path'),
+    )..addCollection(preferenceCollection),
+  ),
   extension: (
     repositories: Setting(
       <String>[],

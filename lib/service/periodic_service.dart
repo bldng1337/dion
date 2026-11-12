@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/service/auto_refresh.dart';
+import 'package:dionysos/service/backup.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/extension.dart';
@@ -29,9 +30,12 @@ class PeriodicJobContext {
 
   final int _notificationId;
   final String displayName;
+
+  /// Whether the user started this run explicitly rather than a scheduler.
+  final bool manual;
   DateTime _lastSent = DateTime.fromMillisecondsSinceEpoch(0);
 
-  PeriodicJobContext({required String taskName})
+  PeriodicJobContext({required String taskName, this.manual = false})
     : _notificationId = taskName.hashCode,
       displayName = taskName.humanized;
 
@@ -101,10 +105,15 @@ abstract class PeriodicJob {
   Setting<bool, dynamic> get enabledSetting;
   Setting<int, dynamic> get intervalSetting;
 
+  /// [intervalSetting] counts hours unless a job overrides this.
+  Duration get interval => Duration(hours: intervalSetting.value);
+
+  bool get requiresNetwork => true;
+
   Future<void> run(PeriodicJobContext ctx);
 
-  Future<bool> runAndRecord() async {
-    final ctx = PeriodicJobContext(taskName: taskName);
+  Future<bool> runAndRecord({bool manual = false}) async {
+    final ctx = PeriodicJobContext(taskName: taskName, manual: manual);
     try {
       await run(ctx);
       final preferences = locate<PreferenceService>();
@@ -132,6 +141,7 @@ abstract class PeriodicJob {
 final Map<String, PeriodicJob> _jobs = {
   AutoRefreshJob().taskName: AutoRefreshJob(),
   ExtensionUpdateJob().taskName: ExtensionUpdateJob(),
+  AutoBackupJob().taskName: AutoBackupJob(),
 };
 
 class PeriodicService {
@@ -170,16 +180,16 @@ class PeriodicService {
         logger.i('Cancelled periodic task ${job.taskName}');
         return;
       }
-      final intervalHours = job.intervalSetting.value;
+      final interval = job.interval;
       await Workmanager().registerPeriodicTask(
         job.taskName,
         job.taskName,
-        frequency: Duration(hours: intervalHours),
-        constraints: _constraints(),
+        frequency: interval,
+        constraints: _constraints(job),
         existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
       );
       logger.i(
-        'Scheduled periodic task ${job.taskName} every $intervalHours hours',
+        'Scheduled periodic task ${job.taskName} every ${interval.inHours} hours',
       );
     } catch (e, stack) {
       logger.e(
@@ -193,8 +203,10 @@ class PeriodicService {
   // Unlike BackgroundPolicy, WorkManager sees the OS metered flag natively
   // (including user-marked metered Wi-Fi), so this is the authority for
   // deferred Android jobs.
-  Constraints _constraints() => Constraints(
-    networkType: settings.background.unmeteredOnly.value
+  Constraints _constraints(PeriodicJob job) => Constraints(
+    networkType: !job.requiresNetwork
+        ? NetworkType.notRequired
+        : settings.background.unmeteredOnly.value
         ? NetworkType.unmetered
         : NetworkType.connected,
     requiresCharging: settings.background.chargingOnly.value,

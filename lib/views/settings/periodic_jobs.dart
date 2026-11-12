@@ -107,7 +107,7 @@ class _PeriodicJobsSettingsState extends State<PeriodicJobsSettings> {
     setState(() => _running.add(job.taskName));
     final messenger = ScaffoldMessenger.maybeOf(context);
     try {
-      final ok = await job.runAndRecord();
+      final ok = await job.runAndRecord(manual: true);
       if (!mounted) return;
       messenger?.hideCurrentSnackBar();
       messenger?.showSnackBar(
@@ -143,7 +143,12 @@ class _JobRow extends StatelessWidget {
   });
 
   String get _schedule {
-    final hours = job.intervalSetting.value;
+    final interval = job.interval;
+    if (interval.inHours >= 24 && interval.inHours % 24 == 0) {
+      final days = interval.inDays;
+      return 'Every $days day${days == 1 ? '' : 's'}';
+    }
+    final hours = interval.inHours;
     return 'Every $hours hour${hours == 1 ? '' : 's'}';
   }
 

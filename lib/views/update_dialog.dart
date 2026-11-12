@@ -1,7 +1,10 @@
 import 'package:awesome_extensions/awesome_extensions.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/service/backup.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/update.dart';
+import 'package:dionysos/views/dialog/backup_access.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/errordisplay.dart';
@@ -19,17 +22,84 @@ class UpdateDialog extends StatefulWidget {
 
 class _UpdateDialogState extends State<UpdateDialog> {
   bool loading = false;
-  double progress = 0;
+  double? progress = 0;
   String message = '';
   Object? error;
+  Object? backupError;
 
-  @override
-  void initState() {
-    super.initState();
+  Future<void> _install({bool backup = true}) async {
+    setState(() {
+      loading = true;
+      backupError = null;
+    });
+    if (backup && settings.backup.beforeUpdate.value) {
+      if (!await _backup()) return;
+    }
+    try {
+      await downloadUpdate(
+        widget.update,
+        onReceiveProgress: (progress, phase) {
+          safeSetState(() {
+            this.progress = progress;
+            message = phase;
+          });
+        },
+      );
+    } catch (e, stack) {
+      logger.e(e, stackTrace: stack);
+      error = e;
+    }
+    safeSetState(() {
+      loading = false;
+    });
+  }
+
+  Future<bool> _backup() async {
+    setState(() {
+      progress = null;
+      message = 'Backing up your library';
+    });
+    try {
+      if (!await ensureBackupAccess(context)) {
+        throw StateError('Storage access was not granted');
+      }
+      final version = await getVersion();
+      await writeBackup(label: 'pre-update-v${version.canonicalizedVersion}');
+      return true;
+    } catch (e, stack) {
+      logger.e('Backup before update failed', error: e, stackTrace: stack);
+      safeSetState(() {
+        backupError = e;
+        loading = false;
+      });
+      return false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (backupError != null) {
+      return DionAlertDialog(
+        title: const Text('Backup Failed'),
+        content: Text(
+          'Your library could not be backed up before the update '
+          '(${errorText(backupError)}). Install anyway?',
+          style: context.bodyMedium,
+        ),
+        actions: [
+          DionTextbutton(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          DionTextbutton(
+            child: const Text('Install anyway'),
+            onPressed: () => _install(backup: false),
+          ),
+        ],
+      );
+    }
     if (error != null) {
       return DionAlertDialog(
         title: const Text('Error Installing Update'),
@@ -61,34 +131,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         ),
         content: Text(widget.update.body, style: context.bodyMedium),
         actions: [
-          DionTextbutton(
-            onPressed: () async {
-              setState(() {
-                loading = true;
-              });
-              try {
-                await downloadUpdate(
-                  widget.update,
-                  onReceiveProgress: (progress, phase) {
-                    safeSetState(() {
-                      this.progress = progress ?? -1;
-                      message = phase;
-                    });
-                  },
-                );
-              } catch (e, stack) {
-                logger.e(e, stackTrace: stack);
-                error = e;
-              }
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                loading = false;
-              });
-            },
-            child: const Text('Install'),
-          ),
+          DionTextbutton(onPressed: _install, child: const Text('Install')),
           DionTextbutton(
             onPressed: () {
               Navigator.of(context).pop();

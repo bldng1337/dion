@@ -23,7 +23,7 @@ Future<String?> pickDirectoryPath(
     final path = await getDirectoryPath(initialDirectory: initialDirectory);
     return (path == null || path.isEmpty) ? null : path;
   }
-  if (!await _ensureAndroidStorageAccess(context, write: write)) return null;
+  if (!await ensureAndroidStorageAccess(context, write: write)) return null;
   if (!context.mounted) return null;
   try {
     final path = await getDirectoryPath(initialDirectory: initialDirectory);
@@ -39,9 +39,11 @@ Future<String?> pickDirectoryPath(
   }
 }
 
-Future<bool> _ensureAndroidStorageAccess(
+/// Asks for raw-path storage access on Android, explaining why with [purpose] (completing "To ..."). Always true on other platforms.
+Future<bool> ensureAndroidStorageAccess(
   BuildContext context, {
   required bool write,
+  String purpose = 'pick a directory',
 }) async {
   if (await AndroidStorage.hasStorageAccess(write: write)) return true;
   final sdkInt = await AndroidStorage.sdkInt;
@@ -53,9 +55,9 @@ Future<bool> _ensureAndroidStorageAccess(
       title: const Text('Storage Access Required'),
       content: Text(
         sdkInt >= 30
-            ? 'To pick a directory, dion needs access to your device storage. '
+            ? 'To $purpose, dion needs access to your device storage. '
                   'Enable "All files access" for dion on the screen that opens next.'
-            : 'To pick a directory, dion needs permission to access your '
+            : 'To $purpose, dion needs permission to access your '
                   'device storage.',
         style: dialogContext.bodyMedium,
       ),

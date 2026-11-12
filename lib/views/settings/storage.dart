@@ -1,264 +1,40 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
-import 'package:dionysos/data/activity/activity.dart';
-import 'package:dionysos/data/category.dart';
-import 'package:dionysos/data/entry/entry_saved.dart';
-import 'package:dionysos/data/extension.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/service/backup.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/log.dart';
+import 'package:dionysos/utils/observer.dart';
 import 'package:dionysos/utils/platform.dart';
-import 'package:dionysos/utils/release_prediction.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/share.dart';
 import 'package:dionysos/utils/storage.dart';
+import 'package:dionysos/utils/time.dart';
+import 'package:dionysos/utils/toast.dart';
+import 'package:dionysos/views/dialog/backup_access.dart';
+import 'package:dionysos/views/dialog/directory_picker.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/buttons/loadable.dart';
 import 'package:dionysos/widgets/dialog.dart';
 import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
+import 'package:dionysos/widgets/settings/setting_numberbox.dart';
+import 'package:dionysos/widgets/settings/setting_tile_wrapper.dart';
 import 'package:dionysos/widgets/settings/setting_title.dart';
 import 'package:dionysos/widgets/settings/setting_toggle.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:go_router/go_router.dart';
-import 'package:metis/metis.dart';
 import 'package:path_provider/path_provider.dart';
-
-const archiveVersion = 3;
-
-Map<String, dynamic> _readJsonMap(Archive archive, String name) =>
-    json.decode(utf8.decode(archive.findFile(name)!.content))
-        as Map<String, dynamic>;
-
-List<dynamic> _readJsonList(Archive archive, String name) =>
-    json.decode(utf8.decode(archive.findFile(name)!.content)) as List<dynamic>;
-
-// The settings tree is a lazy top-level final; referencing it builds every
-// preference-backed Setting and registers it in preferenceCollection.
-void _ensureSettingsBuilt() => settings.toString();
-
-Future<void> applyBackup(Archive archive) async {
-  final db = locate<Database>();
-  final meta = _readJsonMap(archive, 'dionmeta.json');
-  final categoriesByName = {
-    for (final category in await db.getCategories()) category.name: category,
-  };
-  switch (meta['version'] as int) {
-    case 1:
-      await _restoreEntries(archive, db, categoriesByName);
-    case 2:
-      // V2 backups carry no category definitions; entry-referenced names are
-      // recreated instead of being silently dropped.
-      await _restoreEntries(archive, db, categoriesByName);
-      await _restoreActivities(archive, db);
-    case 3:
-      await _restoreCategories(archive, db, categoriesByName);
-      await _restoreEntries(archive, db, categoriesByName);
-      await _restoreActivities(archive, db);
-      await _restoreExtensions(archive, db);
-      _ensureSettingsBuilt();
-      await _restoreSettings(archive);
-    default:
-      logger.w('Unknown backup version: ${meta['version']}');
-      return;
-  }
-}
-
-/// Restores category definitions before entries so entry references resolve.
-/// A locally existing category with the same name keeps its record id
-/// (entries resolve by name) but adopts the backup's sort order.
-Future<void> _restoreCategories(
-  Archive archive,
-  Database db,
-  Map<String, Category> categoriesByName,
-) async {
-  for (final raw in _readJsonList(archive, 'categorydata.json')) {
-    final json = Map<String, dynamic>.from(raw as Map);
-    json['id'] = DBRecord.fromJson(json['id'] as Map<String, dynamic>);
-    final category = Category.fromJson(json);
-    final existing = categoriesByName[category.name];
-    if (existing == null) {
-      await db.updateCategory(category);
-      categoriesByName[category.name] = category;
-    } else if (existing.index != category.index) {
-      final updated = existing.copyWith(index: category.index);
-      await db.updateCategory(updated);
-      categoriesByName[category.name] = updated;
-    }
-  }
-}
-
-/// Resolves an entry's serialized categories to [Category] objects, creating
-/// missing ones. V1 backups stored record references, later versions store
-/// names; both are matched against local categories by name.
-Future<List<Category>> _resolveEntryCategories(
-  Database db,
-  dynamic raw,
-  Map<String, Category> categoriesByName,
-) async {
-  if (raw is! List) return [];
-  final categories = <Category>[];
-  for (final item in raw) {
-    if (item is Map) {
-      final json = Map<String, dynamic>.from(item);
-      json['id'] = DBRecord.fromJson(json['id'] as Map<String, dynamic>);
-      final category = Category.fromJson(json);
-      final resolved = categoriesByName.putIfAbsent(
-        category.name,
-        () => category,
-      );
-      if (identical(resolved, category)) {
-        await db.updateCategory(category);
-      }
-      categories.add(resolved);
-    } else if (item is String) {
-      var category = categoriesByName[item];
-      if (category == null) {
-        category = Category.construct(item, categoriesByName.length);
-        await db.updateCategory(category);
-        categoriesByName[item] = category;
-      }
-      categories.add(category);
-    }
-  }
-  return categories;
-}
-
-Future<void> _restoreEntries(
-  Archive archive,
-  Database db,
-  Map<String, Category> categoriesByName,
-) async {
-  for (final raw in _readJsonList(archive, 'entrydata.json')) {
-    final entry = Map<String, dynamic>.from(raw as Map);
-    // Archives written before the runtime update kept raw source timestamp
-    // strings; repair them to the ISO form the runtime now strict-parses.
-    repairLegacyTimestamps(entry);
-    entry['categories'] = await _resolveEntryCategories(
-      db,
-      entry['categories'],
-      categoriesByName,
-    );
-    final entryData = await EntrySaved.fromJson(entry);
-    await db.updateEntry(entryData);
-  }
-}
-
-Future<void> _restoreActivities(Archive archive, Database db) async {
-  for (final raw in _readJsonList(archive, 'activitydata.json')) {
-    final activity = Map<String, dynamic>.from(raw as Map);
-    activity['time'] = DateTime.parse(activity['time'] as String);
-    await db.addActivity(Activity.fromJson(activity));
-  }
-}
-
-Future<void> _restoreExtensions(Archive archive, Database db) async {
-  for (final raw in _readJsonList(archive, 'extensiondata.json')) {
-    final json = Map<String, dynamic>.from(raw as Map);
-    json['id'] = DBRecord.fromJson(json['id'] as Map<String, dynamic>);
-    await db.setExtensionMetaData(ExtensionMetaData.fromJson(json));
-  }
-}
-
-/// Applies backed-up setting values to the live settings; each Setting's
-/// onChange persists the value. Directory settings are skipped: absolute
-/// paths do not transfer between devices or platforms.
-Future<void> _restoreSettings(Archive archive) async {
-  final data = _readJsonMap(archive, 'settingsdata.json');
-  final settingsById = {
-    for (final setting in preferenceCollection.settings)
-      setting.metadata.id: setting,
-  };
-  for (final MapEntry(:key, :value) in data.entries) {
-    final setting = settingsById[key];
-    if (setting == null) continue;
-    final parsed = setting.metadata.parse(value as String);
-    if (parsed != null) setting.value = parsed;
-  }
-}
-
-Future<Archive> createBackup() async {
-  final db = locate<Database>();
-  _ensureSettingsBuilt();
-  final archive = Archive();
-  final entries = [];
-  int ind = 0;
-  while (entries.length % 100 == 0) {
-    // If we don't get 100 entries, we are at the end
-    final entriesdb = await db.getEntries(ind++, 100).toList();
-    if (entriesdb.isEmpty) break;
-    entries.addAll(
-      entriesdb.map((e) {
-        final json = e.toJson();
-        json['categories'] = e.categories.map((c) => c.name).toList();
-        return json;
-      }),
-    );
-  }
-  archive.addFile(ArchiveFile.string('entrydata.json', json.encode(entries)));
-  archive.addFile(
-    ArchiveFile.string(
-      'categorydata.json',
-      json.encode((await db.getCategories()).map((c) => c.toJson()).toList()),
-    ),
-  );
-  final activities = [];
-  int actInd = 0;
-  while (activities.length % 100 == 0) {
-    final activitiesdb = await db.getActivities(actInd++, 100).toList();
-    if (activitiesdb.isEmpty) break;
-    activities.addAll(
-      activitiesdb.map((e) {
-        final json = e.toDBJson();
-        json['time'] = (json['time'] as DateTime).toIso8601String(); // Maybe we should do something that is robuster to schema changes here
-        return json;
-      }),
-    );
-  }
-  archive.addFile(
-    ArchiveFile.string('activitydata.json', json.encode(activities)),
-  );
-  archive.addFile(
-    ArchiveFile.string(
-      'extensiondata.json',
-      json.encode(
-        (await db.getExtensionsMetadata()).map((e) => e.toDBJson()).toList(),
-      ),
-    ),
-  );
-  final settingsData = <String, String>{};
-  for (final setting in preferenceCollection.settings) {
-    final metadata = setting.metadata;
-    if (metadata is PreferenceDirectoryMetaData) continue;
-    settingsData[metadata.id] = metadata.stringify(setting.value);
-  }
-  archive.addFile(
-    ArchiveFile.string('settingsdata.json', json.encode(settingsData)),
-  );
-  archive.addFile(
-    ArchiveFile.string(
-      'dionmeta.json',
-      json.encode({
-        'version': archiveVersion,
-        'content': [
-          'entries',
-          'categories',
-          'activities',
-          'extensions',
-          'settings',
-        ],
-      }),
-    ),
-  );
-  return archive;
-}
+import 'package:rdion_runtime/rdion_runtime.dart' show ToastKind;
 
 class Storage extends StatelessWidget {
   const Storage({super.key});
@@ -293,8 +69,7 @@ class Storage extends StatelessWidget {
                 icon: Icons.backup_outlined,
                 onTap: () async {
                   final archive = await createBackup();
-                  final fileName =
-                      'dion-${DateTime.now().toIso8601String().replaceAll(':', '-')}.dpkg';
+                  final fileName = exportFileName();
                   if (getPlatform() == CPlatform.ios ||
                       getPlatform() == CPlatform.android) {
                     final dir = await getTemporaryDirectory();
@@ -319,8 +94,12 @@ class Storage extends StatelessWidget {
                     label: 'Dion Package',
                     extensions: <String>['dpkg'],
                   );
+                  final backupDir = await backupDirectory();
                   final List<XFile> files = await openFiles(
                     acceptedTypeGroups: <XTypeGroup>[typeGroup],
+                    initialDirectory: await backupDir.exists()
+                        ? backupDir.path
+                        : null,
                   );
                   for (final file in files) {
                     final archive = ZipDecoder().decodeBytes(
@@ -329,6 +108,38 @@ class Storage extends StatelessWidget {
                     await applyBackup(archive);
                   }
                 },
+              ),
+            ],
+          ),
+          SettingTitle(
+            title: 'Automatic Backups',
+            subtitle:
+                'Keep a rotating set of backups in a folder on this device',
+            children: [
+              const _BackupStatus(),
+              SettingToggle(
+                title: 'Back Up Periodically',
+                description: 'Create a backup every few days',
+                setting: settings.backup.auto.enabled,
+                confirm: (value) async =>
+                    !value || await ensureBackupAccess(context),
+              ),
+              SettingNumberbox<int>(
+                title: 'Interval (days)',
+                setting: settings.backup.auto.interval,
+              ),
+              SettingToggle(
+                title: 'Back Up Before Updating',
+                description: 'Create a backup before installing an app update',
+                setting: settings.backup.beforeUpdate,
+                confirm: (value) async =>
+                    !value || await ensureBackupAccess(context),
+              ),
+              SettingNumberbox<int>(
+                title: 'Backups to Keep',
+                description:
+                    'Older backups are deleted whenever a new one is created',
+                setting: settings.backup.keep,
               ),
             ],
           ),
@@ -837,6 +648,114 @@ class _StorageStatsSection extends StatelessWidget {
       cacheSize: cacheSize,
       databaseSize: databaseSize,
       extensionsSize: extensionsSize,
+    );
+  }
+}
+
+class _BackupStatus extends StatefulWidget {
+  const _BackupStatus();
+
+  @override
+  State<_BackupStatus> createState() => _BackupStatusState();
+}
+
+class _BackupStatusState extends State<_BackupStatus>
+    with StateDisposeScopeMixin {
+  late Future<(Directory, List<BackupFile>)> _info = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    Observer(
+      _reload,
+      Listenable.merge([settings.backup.path, settings.backup.keep]),
+      callOnInit: false,
+    ).disposedBy(scope);
+  }
+
+  Future<(Directory, List<BackupFile>)> _load() async {
+    final dir = await backupDirectory();
+    return (dir, await listBackups(dir));
+  }
+
+  void _reload() => safeSetState(() => _info = _load());
+
+  Future<void> _pickFolder(Directory current) async {
+    final path = await pickDirectoryPath(
+      context,
+      write: true,
+      initialDirectory: current.path,
+    );
+    if (path == null) return;
+    settings.backup.path.value = Directory(path);
+  }
+
+  Future<void> _backupNow() async {
+    if (!await ensureBackupAccess(context)) return;
+    try {
+      await writeBackup();
+      showToast('Backup created', ToastKind.success);
+    } catch (e, stack) {
+      logger.e('Manual backup failed', error: e, stackTrace: stack);
+      showToast('Backup failed: $e', ToastKind.error);
+    }
+    _reload();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LoadingBuilder(
+      future: _info,
+      loading: (context) => const Padding(
+        padding: EdgeInsets.all(DionSpacing.lg),
+        child: Center(child: DionProgressBar(size: 20)),
+      ),
+      builder: (context, info) {
+        final (dir, backups) = info;
+        final custom = settings.backup.path.value != null;
+        final latest = backups.firstOrNull;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DionSpacing.lg,
+                vertical: DionSpacing.md,
+              ),
+              child: SettingRow(
+                icon: Icons.folder_outlined,
+                title: custom ? 'Backup Folder' : 'Backup Folder (default)',
+                subtitle: dir.path,
+                control: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (custom)
+                      DionIconbutton(
+                        tooltip: 'Use Default Folder',
+                        onPressed: () => settings.backup.path.value = null,
+                        icon: const Icon(Icons.restart_alt),
+                      ),
+                    DionIconbutton(
+                      tooltip: 'Choose Folder',
+                      onPressed: () => _pickFolder(dir),
+                      icon: const Icon(Icons.drive_folder_upload_outlined),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _StorageAction(
+              title: 'Back Up Now',
+              description: latest == null
+                  ? 'No backups in this folder yet'
+                  : 'Last backup ${latest.time.formatrelative()} • '
+                        '${backups.length} of $backupsToKeep kept',
+              icon: Icons.save_outlined,
+              onTap: _backupNow,
+            ),
+          ],
+        );
+      },
     );
   }
 }

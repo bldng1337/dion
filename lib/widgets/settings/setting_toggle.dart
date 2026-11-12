@@ -13,13 +13,22 @@ class SettingToggle extends StatelessWidget {
   final IconData? icon;
   final Setting<bool, dynamic> setting;
 
+  final Future<bool> Function(bool value)? confirm;
+
   const SettingToggle({
     super.key,
     required this.title,
     required this.setting,
     this.description,
     this.icon,
+    this.confirm,
   });
+
+  Future<void> _toggle() async {
+    final value = !setting.value;
+    if (confirm != null && !await confirm!(value)) return;
+    setting.value = value;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +40,7 @@ class SettingToggle extends StatelessWidget {
           description: description,
           icon: icon,
           value: setting.value,
-          onChanged: () => setting.value = !setting.value,
+          onChanged: _toggle,
         );
 
         if (description != null) {
