@@ -7,8 +7,8 @@ version: 2.0.0-beta.61
 
 environment:
   # pdfrx 2.6 requires recent toolchains (native assets).
-  sdk: ">=3.13.0 <4.0.0"
-  flutter: ">=3.47.0"
+  sdk: ">=3.14.0 <4.0.0"
+  flutter: ">=3.50.0"
 
 dependencies:
   flutter:
@@ -26,7 +26,7 @@ dependencies:
   uuid: ^4.5.1
   archive: ^4.0.9
   logger: ^2.4.0
-  rhttp: ^0.13.0
+  rhttp: ^0.18.0
   path: ^1.9.0
   flutter_cache_manager: ^3.4.1
   inline_result: ^2.0.0
@@ -78,14 +78,12 @@ dependencies:
   metis:
     git:
       url: https://github.com/bldng1337/metis.git
-      ref: 328a261154ef267de93b45dd56a1e62f18b96f92
+      ref: 6dde14151e09157aa0c93671e61c4d3f1659b63f
   rdion_runtime:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 8751421b769cebc8dff4682664371bce451cad15
-  # Builds its native library from Go at build time: needs Go 1.26+ and, on
-  # Windows, a MinGW-w64 gcc or zig on PATH.
+      ref: 03d4379293ec92eec608c0fcb220ef273437189d
   tailscale:
     git:
       url: https://github.com/bldng1337/tailscale_dart.git
@@ -93,7 +91,7 @@ dependencies:
 
   epub_view: ^3.3.0
   pdfrx: ^2.6.1
-  flutter_inappwebview: ^6.1.5
+  flutter_inappwebview: ^6.2.0-beta.3
   connectivity_plus: ^7.3.1
   battery_plus: ^7.1.1
   flutter_markdown_plus: 1.0.12
