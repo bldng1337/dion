@@ -50,6 +50,21 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /opt/hostedtoolcache/CodeQL /usr/local/.ghcup /usr/share/swift
+          df -h /
+      # A cold (uncached) release build of the cargokit plugins runs several
+      # rustc processes next to the Gradle and Kotlin daemons and exhausts the
+      # runner's RAM; the runner then dies with only a "shutdown signal".
+      - name: Add swap (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo swapoff -a
+          sudo rm -f /mnt/swapfile /swapfile
+          sudo fallocate -l 12G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -h
 
       - uses: actions/checkout@v4
         with:
