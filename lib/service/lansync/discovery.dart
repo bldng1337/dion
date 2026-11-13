@@ -16,6 +16,8 @@ String lanSyncHttpUrl(InternetAddress address, int port) {
   return 'https://$host:$port';
 }
 
+enum PeerTransport { lan, tailnet }
+
 class DiscoveredPeer {
   final String deviceId;
   final String name;
@@ -23,17 +25,22 @@ class DiscoveredPeer {
   final String fingerprint;
   final InternetAddress address;
   final int port;
+  final PeerTransport transport;
 
-  const DiscoveredPeer({
+  /// Where this device's sync server is reached. For tailnet peers this is a
+  /// local forwarder, not [address].
+  final String httpUrl;
+
+  DiscoveredPeer({
     required this.deviceId,
     required this.name,
     required this.protocolVersion,
     required this.fingerprint,
     required this.address,
     required this.port,
-  });
-
-  String get httpUrl => lanSyncHttpUrl(address, port);
+    this.transport = PeerTransport.lan,
+    String? httpUrl,
+  }) : httpUrl = httpUrl ?? lanSyncHttpUrl(address, port);
 
   @override
   bool operator ==(Object other) =>

@@ -11,6 +11,7 @@ import 'package:dionysos/service/lansync/pairing_store.dart';
 import 'package:dionysos/service/lansync/protocol.dart';
 import 'package:dionysos/service/lansync/sync_client.dart';
 import 'package:dionysos/service/lansync/sync_server.dart';
+import 'package:dionysos/service/lansync/tailnet.dart';
 import 'package:dionysos/service/mock_extension.dart';
 import 'package:dionysos/service/mock_tracker_extension.dart';
 import 'package:dionysos/service/preference.dart';
@@ -30,12 +31,17 @@ class LanSyncService extends ChangeNotifier {
   late final LanSyncServer server;
   late final LanSyncClient client;
   late final LiveSync liveSync;
+  late final TailnetTransport tailnet;
+
+  final ValueNotifier<List<DiscoveredPeer>> peers =
+      ValueNotifier<List<DiscoveredPeer>>(const []);
 
   bool _running = false;
   final SyncLock _syncLock = SyncLock();
   final SyncLock _bringUpLock = SyncLock();
   final SyncLock _lifecycleLock = SyncLock();
   Debouncer? _autoSyncDebouncer;
+  late final Debouncer _tailnetRestartDebouncer;
 
   LanSyncService();
 
@@ -73,6 +79,11 @@ class LanSyncService extends ChangeNotifier {
     server.extensionInstaller = _installRequestedByPeer;
     client = LanSyncClient(identity);
     discovery = LanDiscovery(identity: identity, port: 0);
+    tailnet = TailnetTransport(
+      identity: identity,
+      client: client,
+      localPort: () => server.port,
+    );
 
     liveSync = LiveSync(
       changes: crdt.watchChanges(),
@@ -100,19 +111,34 @@ class LanSyncService extends ChangeNotifier {
       callIndirectly: false,
     );
     Observer(
-      _onPeersChanged,
-      discovery.peers,
+      _mergePeers,
+      Listenable.merge([discovery.peers, tailnet.peers]),
+      callOnInit: false,
+      callIndirectly: false,
+    );
+    Observer(_onPeersChanged, peers, callOnInit: false, callIndirectly: false);
+    Observer(
+      () => unawaited(_applyTailnet()),
+      settings.sync.lan.tailscale.enabled,
+      callOnInit: false,
+      callIndirectly: false,
+    );
+    // The control server is fixed for a running node, so a new one needs a
+    // fresh start; debounced since the setting is typed in.
+    _tailnetRestartDebouncer = Debouncer(
+      duration: const Duration(seconds: 2),
+      action: () => unawaited(_restartTailnet()),
+    );
+    Observer(
+      _tailnetRestartDebouncer.run,
+      settings.sync.lan.tailscale.controlUrl,
       callOnInit: false,
       callIndirectly: false,
     );
 
     Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
 
-    Observer(
-      _applySyncMode,
-      settings.sync.mode,
-      callIndirectly: false,
-    );
+    Observer(_applySyncMode, settings.sync.mode, callIndirectly: false);
     pairingStore.addListener(_onPairingChanged);
   }
 
@@ -136,6 +162,7 @@ class LanSyncService extends ChangeNotifier {
     await _applyBringUp();
     _updateLiveSync();
     notifyListeners();
+    unawaited(_applyTailnet());
   });
 
   Future<void> disable() => _lifecycleLock.run(() async {
@@ -145,17 +172,47 @@ class LanSyncService extends ChangeNotifier {
     _autoSyncDebouncer?.cancel();
     await discovery.stopAdvertising();
     await discovery.stopScanning();
+    await tailnet.stop();
     await server.stop();
     notifyListeners();
   });
 
-  /// Whether [deviceId] is currently visible on the LAN.
-  bool isOnline(String deviceId) =>
-      discovery.peers.value.any((p) => p.deviceId == deviceId);
+  Future<void> _applyTailnet() {
+    if (_running && settings.sync.lan.tailscale.enabled.value) {
+      return connectTailnet();
+    }
+    return tailnet.stop();
+  }
 
-  /// All paired devices that are currently visible on the LAN.
+  Future<void> connectTailnet({String? authKey}) {
+    final controlUrl = settings.sync.lan.tailscale.controlUrl.value.trim();
+    return tailnet.start(
+      authKey: authKey,
+      controlUrl: controlUrl.isEmpty ? null : Uri.tryParse(controlUrl),
+    );
+  }
+
+  Future<void> _restartTailnet() async {
+    if (!tailnet.isActive) return;
+    await tailnet.stop();
+    await _applyTailnet();
+  }
+
+  void _mergePeers() {
+    final byId = <String, DiscoveredPeer>{
+      for (final peer in tailnet.peers.value) peer.deviceId: peer,
+      for (final peer in discovery.peers.value) peer.deviceId: peer,
+    };
+    peers.value = byId.values.toList(growable: false);
+  }
+
+  PeerTransport? onlineVia(String deviceId) =>
+      peers.value.where((p) => p.deviceId == deviceId).firstOrNull?.transport;
+
+  bool isOnline(String deviceId) => onlineVia(deviceId) != null;
+
   List<OnlinePeer> onlinePeers() => [
-    for (final p in discovery.peers.value)
+    for (final p in peers.value)
       if (pairingStore.byId(p.deviceId) case final PairedDevice paired)
         OnlinePeer(device: paired, httpUrl: p.httpUrl),
   ];
@@ -173,6 +230,9 @@ class LanSyncService extends ChangeNotifier {
   void _onConnectivityChanged(List<ConnectivityResult> results) {
     if (!results.hasConnectivity) return;
     unawaited(_applyBringUp());
+    if (tailnet.state.value.phase == TailnetPhase.failed) {
+      unawaited(_applyTailnet());
+    }
   }
 
   /// Initiate pairing with a discovered peer (we act as A, the initiator).
@@ -203,8 +263,8 @@ class LanSyncService extends ChangeNotifier {
   }
 
   /// Sync with a paired device by id. Resolves the peer address from the
-  /// current discovery results; if the peer isn't currently visible, the sync
-  /// fails fast.
+  /// current discovery results (LAN or tailnet); if the peer isn't currently
+  /// visible, the sync fails fast.
   Future<void> syncNow(
     String deviceId, {
     void Function(int, int)? onProgress,
@@ -213,11 +273,9 @@ class LanSyncService extends ChangeNotifier {
     if (paired == null) {
       throw LanSyncException('not paired with $deviceId');
     }
-    final peer = discovery.peers.value
-        .where((p) => p.deviceId == deviceId)
-        .firstOrNull;
+    final peer = peers.value.where((p) => p.deviceId == deviceId).firstOrNull;
     if (peer == null) {
-      throw LanSyncException('device $deviceId not on the LAN');
+      throw LanSyncException('device $deviceId is not reachable');
     }
     await _syncDeviceNow(
       OnlinePeer(device: paired, httpUrl: peer.httpUrl),

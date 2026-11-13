@@ -31,9 +31,17 @@ class LanSyncClient {
 
   LanSyncClient(this._identity);
 
-  Future<DeviceInfo> fetchInfo(DiscoveredPeerOrAddress peer) async {
-    final client = _pairingHttpClient();
-    try {
+  Future<DeviceInfo> fetchInfo(
+    DiscoveredPeerOrAddress peer, {
+    Duration timeout = _connectTimeout,
+  }) async {
+    final client = _pairingHttpClient()..connectionTimeout = timeout;
+    String? peerFp;
+    client.badCertificateCallback = (cert, host, port) {
+      peerFp = fingerprintOf(cert.pem);
+      return true;
+    };
+    Future<DeviceInfo> fetch() async {
       final req = await client.getUrl(Uri.parse('${peer.httpUrl}/info'));
       req.headers.set(protocolVersionHeader, '$dionSyncProtocolVersion');
       final res = await req.close();
@@ -41,7 +49,17 @@ class LanSyncClient {
       if (res.statusCode != HttpStatus.ok) {
         throw LanSyncException('info failed: ${res.statusCode} $body');
       }
-      return DeviceInfo.fromJson(jsonDecode(body) as Map<String, dynamic>);
+      final info = DeviceInfo.fromJson(
+        jsonDecode(body) as Map<String, dynamic>,
+      );
+      if (peerFp == null || peerFp != info.fingerprint) {
+        throw LanSyncException('peer cert fingerprint mismatch');
+      }
+      return info;
+    }
+
+    try {
+      return await fetch().timeout(timeout);
     } finally {
       client.close(force: true);
     }
@@ -308,6 +326,9 @@ class DiscoveredPeerOrAddress {
 
   factory DiscoveredPeerOrAddress.fromPeer(DiscoveredPeer peer) =>
       DiscoveredPeerOrAddress._(peer.httpUrl);
+
+  factory DiscoveredPeerOrAddress.fromUrl(String httpUrl) =>
+      DiscoveredPeerOrAddress._(httpUrl);
 
   factory DiscoveredPeerOrAddress.fromAddress(
     InternetAddress address,

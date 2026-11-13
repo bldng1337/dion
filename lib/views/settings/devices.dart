@@ -119,7 +119,7 @@ class _DevicesSettingsState extends State<DevicesSettings> {
             listenable: _service.pairingStore,
             builder: (context, _) {
               return ListenableBuilder(
-                listenable: _service.discovery.peers,
+                listenable: _service.peers,
                 builder: (context, _) {
                   return SingleChildScrollView(
                     child: Column(
@@ -164,13 +164,15 @@ class _DevicesSettingsState extends State<DevicesSettings> {
   }
 
   Widget _discoveredSection(BuildContext context) {
-    final peers = _service.discovery.peers.value
+    final peers = _service.peers.value
         .where((p) => p.deviceId != _service.identity.deviceId)
         .toList();
 
     return SettingTitle(
       title: 'Discovered Devices',
-      subtitle: peers.isEmpty ? 'No devices found on the network' : null,
+      subtitle: peers.isEmpty
+          ? 'No devices found on the network or tailnet'
+          : null,
       children: peers.isEmpty
           ? null
           : [
@@ -180,7 +182,12 @@ class _DevicesSettingsState extends State<DevicesSettings> {
                     leading: const Icon(Icons.devices, size: 40),
                     title: Text(peer.name, style: context.titleMedium),
                     subtitle: Text(
-                      '${peer.address.address} • v${peer.protocolVersion}',
+                      [
+                        peer.address.address,
+                        if (peer.transport == PeerTransport.tailnet)
+                          'Tailscale',
+                        'v${peer.protocolVersion}',
+                      ].join(' • '),
                       style: context.bodySmall,
                     ),
                     trailing: _busy[peer.deviceId] == true
@@ -223,7 +230,8 @@ class _DevicesSettingsState extends State<DevicesSettings> {
   }
 
   DionListTile _pairedTile(BuildContext context, PairedDevice device) {
-    final online = _service.isOnline(device.deviceId);
+    final via = _service.onlineVia(device.deviceId);
+    final online = via != null;
     return DionListTile(
       leading: Icon(
         Icons.check_circle,
@@ -233,7 +241,11 @@ class _DevicesSettingsState extends State<DevicesSettings> {
       title: Text(device.name, style: context.titleMedium),
       subtitle: Text(
         [
-          if (online) 'Online' else 'Offline',
+          switch (via) {
+            PeerTransport.lan => 'Online',
+            PeerTransport.tailnet => 'Online via Tailscale',
+            null => 'Offline',
+          },
           if (device.lastSyncedAt != null) 'Last synced ${device.lastSyncedAt}',
         ].join(' • '),
         style: context.bodySmall,

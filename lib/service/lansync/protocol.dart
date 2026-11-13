@@ -9,6 +9,14 @@ const String dionSyncMdnsService = '_dionsync._tcp';
 
 const String protocolVersionHeader = 'Dion-Protocol-Version';
 
+/// Every dion node listens for sync on this tailnet port; there is no mDNS on
+/// a tailnet to advertise a random one.
+const int dionSyncTailnetPort = 47630;
+
+/// Hostname prefix of dion's embedded tailnet nodes. Discovery only probes
+/// nodes carrying it so it never knocks on unrelated devices of the tailnet.
+const String dionTailnetHostPrefix = 'dion-';
+
 class MdnsTxt {
   static const String id = 'id';
   static const String name = 'name';

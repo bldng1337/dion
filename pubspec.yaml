@@ -84,6 +84,12 @@ dependencies:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
       ref: 8751421b769cebc8dff4682664371bce451cad15
+  # Builds its native library from Go at build time: needs Go 1.26+ and, on
+  # Windows, a MinGW-w64 gcc or zig on PATH.
+  tailscale:
+    git:
+      url: https://github.com/bldng1337/tailscale_dart.git
+      ref: 608a64e07c2d1b0263db28fd39dd2d72e3373808
 
   epub_view: ^3.3.0
   pdfrx: ^2.6.1

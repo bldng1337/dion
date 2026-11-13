@@ -463,6 +463,16 @@ final settings = (
         ..addCollection(preferenceCollection),
       livesync: Setting(true, const PreferenceBoolMetaData('sync.lan.livesync'))
         ..addCollection(preferenceCollection),
+      tailscale: (
+        enabled: Setting(
+          false,
+          const PreferenceBoolMetaData('sync.lan.tailscale.enabled'),
+        )..addCollection(preferenceCollection),
+        controlUrl: Setting(
+          '',
+          const PreferenceStringMetaData('sync.lan.tailscale.controlurl'),
+        )..addCollection(preferenceCollection),
+      ),
     ),
   ),
   readerSettings: (
