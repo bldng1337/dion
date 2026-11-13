@@ -778,11 +778,13 @@ packages:
     source: hosted
     version: "4.1.0"
   flutter_surrealdb:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "../flutter_surrealdb"
-      relative: true
-    source: path
+      path: "."
+      ref: "8c29187c07a52aadf54addf6a0bb3fc79870e328"
+      resolved-ref: "8c29187c07a52aadf54addf6a0bb3fc79870e328"
+      url: "https://github.com/bldng1337/flutter_surrealdb.git"
+    source: git
     version: "0.0.1"
   flutter_svg:
     dependency: "direct main"
@@ -1520,9 +1522,11 @@ packages:
   rdion_runtime:
     dependency: "direct main"
     description:
-      path: "../dion-runtime/dart/rdion_runtime"
-      relative: true
-    source: path
+      path: "dart/rdion_runtime"
+      ref: "03d4379293ec92eec608c0fcb220ef273437189d"
+      resolved-ref: "03d4379293ec92eec608c0fcb220ef273437189d"
+      url: "https://github.com/bldng1337/dion-runtime.git"
+    source: git
     version: "0.1.0"
   record_use:
     dependency: transitive

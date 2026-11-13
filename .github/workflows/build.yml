@@ -102,11 +102,11 @@ jobs:
       # - name: Install ninja-build
       #   if: (matrix.os == 'ubuntu-latest')
       #   run: sudo apt-get update && sudo apt-get install ninja-build
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         if: (matrix.os == 'ubuntu-latest')
         uses: actions/setup-java@v3
         with:
-          java-version: "17"
+          java-version: "21"
           distribution: "temurin"
           cache: gradle
       # - name: Setup Android SDK

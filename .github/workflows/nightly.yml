@@ -111,11 +111,11 @@ jobs:
           # changed instead of the full ~45 min tree.
           restore-keys: |
             cargokit-${{ runner.os }}-${{ steps.rust.outputs.cachekey }}-
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         if: (matrix.os == 'ubuntu-latest')
         uses: actions/setup-java@v3
         with:
-          java-version: "17"
+          java-version: "21"
           distribution: "temurin"
           cache: gradle
       - name: Install build tools
