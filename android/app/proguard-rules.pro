@@ -77,6 +77,15 @@
 -dontwarn kotlinx.coroutines.slf4j.MDCContext
 -dontwarn kotlinx.coroutines.slf4j.**
 
+# Room instantiates its generated `*_Impl` databases (e.g. WorkManager's
+# androidx.work.impl.WorkDatabase_Impl) reflectively via the no-arg
+# constructor. room-runtime 2.6.x only ships `-keep class * extends
+# RoomDatabase` without members, and the R8 bundled with AGP 9 no longer
+# implicitly keeps the default constructor for such rules, so startup crashes
+# in androidx.startup.InitializationProvider with
+#   NoSuchMethodException: androidx.work.impl.WorkDatabase_Impl.<init> []
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+
 # OkHttp (pulled in transitively by the rhttp package) ships GraalVM
 # native-image integration under okhttp3.internal.graal.*, which references
 # GraalVM/SubstrateVM classes that are not present on Android. R8 full mode
