@@ -93,13 +93,16 @@ class Storage extends StatelessWidget {
                     'LNReader backup',
                 icon: Icons.restore_outlined,
                 onTap: () async {
-                  const XTypeGroup typeGroup = XTypeGroup(
-                    label: 'Backup',
-                    extensions: restorableBackupExtensions,
-                  );
                   final backupDir = await backupDirectory();
                   final List<XFile> files = await openFiles(
-                    acceptedTypeGroups: <XTypeGroup>[typeGroup],
+                    acceptedTypeGroups: Platform.isAndroid
+                        ? const <XTypeGroup>[]
+                        : const <XTypeGroup>[
+                            XTypeGroup(
+                              label: 'Backup',
+                              extensions: restorableBackupExtensions,
+                            ),
+                          ],
                     initialDirectory: await backupDir.exists()
                         ? backupDir.path
                         : null,
