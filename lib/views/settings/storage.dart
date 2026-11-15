@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/service/backup.dart';
+import 'package:dionysos/service/backup_import.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/utils/async.dart';
@@ -87,12 +88,14 @@ class Storage extends StatelessWidget {
               ),
               _StorageAction(
                 title: 'Restore Backup',
-                description: 'Import from a backup file',
+                description:
+                    'Import from a dion, Mihon, Aniyomi, Tsundoku or '
+                    'LNReader backup',
                 icon: Icons.restore_outlined,
                 onTap: () async {
                   const XTypeGroup typeGroup = XTypeGroup(
-                    label: 'Dion Package',
-                    extensions: <String>['dpkg'],
+                    label: 'Backup',
+                    extensions: restorableBackupExtensions,
                   );
                   final backupDir = await backupDirectory();
                   final List<XFile> files = await openFiles(
@@ -102,10 +105,29 @@ class Storage extends StatelessWidget {
                         : null,
                   );
                   for (final file in files) {
-                    final archive = ZipDecoder().decodeBytes(
-                      await file.readAsBytes(),
-                    );
-                    await applyBackup(archive);
+                    try {
+                      final result = await importBackup(
+                        await file.readAsBytes(),
+                      );
+                      if (result.app == 'dion') continue;
+                      showToast(
+                        result.summary,
+                        result.skipped.isEmpty &&
+                                result.missingExtensions.isEmpty
+                            ? ToastKind.success
+                            : ToastKind.warning,
+                      );
+                    } catch (e, stack) {
+                      logger.e(
+                        'Failed to restore ${file.name}',
+                        error: e,
+                        stackTrace: stack,
+                      );
+                      showToast(
+                        'Could not restore ${file.name}: $e',
+                        ToastKind.error,
+                      );
+                    }
                   }
                 },
               ),
