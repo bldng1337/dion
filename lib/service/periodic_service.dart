@@ -237,7 +237,7 @@ class PeriodicService {
 Future<bool> seedBackgroundDependencies() async {
   try {
     await PreferenceService.ensureInitialized();
-    await DirectoryProvider.ensureInitialized();
+    await DirectoryProvider.ensureInitialized(clearTemp: false);
     await Database.ensureInitialized();
     await ExtensionService.ensureInitialized();
     await NotificationService.ensureInitialized();

@@ -24,13 +24,13 @@ class DirectoryProvider {
     required this.logspath,
   });
 
-  static Future<void> ensureInitialized() async {
+  static Future<void> ensureInitialized({bool clearTemp = true}) async {
     final basepath = await getBasePath();
     logger.i('Initializing DirectoryProvider to $basepath');
 
     final temppath = (await getTemporaryDirectory()).sub('dion');
     try {
-      if (await temppath.exists()) {
+      if (clearTemp && await temppath.exists()) {
         await temppath.delete(recursive: true);
       }
       await temppath.create(recursive: true);
