@@ -28,9 +28,16 @@ abstract class DataSource<T> {
   void reset();
 
   int _generation = 0;
+  Completer<void>? _pending;
 
   /// Bumps the generation, invalidating any in-flight request.
   void bumpGeneration() => _generation++;
+
+  void _releasePending() {
+    final pending = _pending;
+    _pending = null;
+    if (pending != null && !pending.isCompleted) pending.complete();
+  }
 
   void fail(Object e, StackTrace? stack) {
     final exception = e is Exception ? e : Exception(e.toString());
@@ -58,7 +65,7 @@ class StreamSource<T> extends DataSource<T> {
     if (streamController == null) return;
     requesting = true;
     final generation = _generation;
-    final completer = Completer<void>();
+    final completer = _pending = Completer<void>();
     _subscription = loadmore(index++).listen(
       (e) {
         if (generation != _generation) return;
@@ -74,6 +81,8 @@ class StreamSource<T> extends DataSource<T> {
           fail(e, stack is StackTrace ? stack : null);
         } finally {
           isfinished = true;
+          requesting = false;
+          if (!completer.isCompleted) completer.complete();
         }
       },
       cancelOnError: true,
@@ -91,6 +100,7 @@ class StreamSource<T> extends DataSource<T> {
     bumpGeneration();
     _subscription?.cancel();
     _subscription = null;
+    _releasePending();
     index = 0;
     isfinished = false;
     requesting = false;
@@ -137,7 +147,7 @@ class SingleStreamSource<T> extends DataSource<T> {
     final generation = _generation;
     var hasdelivered = false;
     var delivered = 0;
-    final completer = Completer<void>();
+    final completer = _pending = Completer<void>();
     _subscription = loadmore(index++).listen(
       (e) {
         if (generation != _generation) return;
@@ -151,6 +161,8 @@ class SingleStreamSource<T> extends DataSource<T> {
           fail(e, stack is StackTrace ? stack : null);
         } finally {
           isfinished = true;
+          requesting = false;
+          if (!completer.isCompleted) completer.complete();
         }
       },
       cancelOnError: true,
@@ -172,6 +184,7 @@ class SingleStreamSource<T> extends DataSource<T> {
     bumpGeneration();
     _subscription?.cancel();
     _subscription = null;
+    _releasePending();
     index = 0;
     isfinished = false;
     requesting = false;
@@ -216,7 +229,7 @@ class AsyncStreamSource<T> extends DataSource<T> {
     if (streamController == null) return;
     requesting = true;
     final generation = _generation;
-    final completer = Completer<void>();
+    final completer = _pending = Completer<void>();
     final stream = await loadmore(index++);
     // A reset() may have happened while awaiting the stream.
     if (generation != _generation) {
@@ -238,6 +251,8 @@ class AsyncStreamSource<T> extends DataSource<T> {
           fail(e, stack is StackTrace ? stack : null);
         } finally {
           isfinished = true;
+          requesting = false;
+          if (!completer.isCompleted) completer.complete();
         }
       },
       cancelOnError: true,
@@ -255,6 +270,7 @@ class AsyncStreamSource<T> extends DataSource<T> {
     bumpGeneration();
     _subscription?.cancel();
     _subscription = null;
+    _releasePending();
     index = 0;
     isfinished = false;
     requesting = false;
@@ -459,6 +475,10 @@ class DataSourceController<T> extends ChangeNotifier {
   int index = 0;
   bool loading = false;
   bool finished = false;
+
+  bool get refreshing => _refreshBuffer != null;
+  List<Result<T>>? _refreshBuffer;
+  int _generation = 0;
   late final StreamSubscription<List<Result<T>>> _streamSub;
   DataSourceController(this.sources) {
     for (final source in sources) {
@@ -466,6 +486,11 @@ class DataSourceController<T> extends ChangeNotifier {
     }
     _streamSub = streamController.stream.listen(
       (items) {
+        final buffer = _refreshBuffer;
+        if (buffer != null) {
+          buffer.addAll(items);
+          return;
+        }
         this.items.addAll(items);
         notifyListeners();
       },
@@ -478,27 +503,59 @@ class DataSourceController<T> extends ChangeNotifier {
   Future<void> requestMore() async {
     if (loading || finished) return;
     loading = true;
+    final generation = _generation;
     final futures = Future.wait(sources.map((source) => source.requestMore()));
     notifyListeners();
     await futures;
+    if (generation != _generation) return;
     loading = false;
     finished = sources.every((e) => e.isfinished);
     notifyListeners();
   }
 
-  void reset() {
+  void _resetSources() {
+    _generation++;
+    _refreshBuffer = null;
     for (final source in sources) {
       source.reset();
     }
     index = 0;
     finished = false;
     loading = false;
+  }
+
+  void reset() {
+    _resetSources();
     items.clear();
+    notifyListeners();
+  }
+
+  Future<void> refresh() async {
+    final wasFinished = finished;
+    _resetSources();
+    final generation = _generation;
+    final target = items.length;
+    final buffer = _refreshBuffer = [];
+    finished = wasFinished;
+    loading = true;
+    notifyListeners();
+    do {
+      await Future.wait(sources.map((source) => source.requestMore()));
+      await Future<void>.delayed(Duration.zero);
+      if (generation != _generation) return;
+    } while (buffer.length < target && !sources.every((e) => e.isfinished));
+    _refreshBuffer = null;
+    items
+      ..clear()
+      ..addAll(buffer);
+    loading = false;
+    finished = sources.every((e) => e.isfinished);
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _resetSources();
     _streamSub.cancel();
     streamController.close();
     super.dispose();

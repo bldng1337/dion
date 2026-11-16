@@ -21,6 +21,7 @@ import 'package:dionysos/widgets/progress.dart';
 import 'package:dionysos/widgets/scaffold.dart';
 import 'package:dionysos/widgets/searchbar.dart';
 import 'package:dionysos/widgets/tabbar.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart' show Colors, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
@@ -56,6 +57,11 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     key: settings.library.sortKey.value,
     descending: settings.library.sortDescending.value,
   );
+
+  final Map<EntryScope, ValueNotifier<bool>> _refreshing = {};
+
+  ValueNotifier<bool> _refreshingFor(EntryScope tabScope) => _refreshing
+      .putIfAbsent(tabScope, () => ValueNotifier(false)..disposedBy(scope));
 
   bool _searching = false;
   String _query = '';
@@ -257,12 +263,14 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
                 scope: tab.scope,
                 filters: _filters,
                 sort: _sort,
+                refreshing: _refreshingFor(tab.scope),
               ),
               tab: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(tab.label),
                   _CountBadge(count: counts[tab.scope]).paddingOnly(left: 5),
+                  _RefreshIndicator(refreshing: _refreshingFor(tab.scope)),
                 ],
               ),
             ),
@@ -284,11 +292,14 @@ class EntryGrid extends StatefulWidget {
   final LibraryFilters filters;
   final LibrarySort sort;
 
+  final ValueNotifier<bool>? refreshing;
+
   const EntryGrid({
     super.key,
     required this.scope,
     this.filters = LibraryFilters.empty,
     this.sort = const LibrarySort(),
+    this.refreshing,
   });
 
   @override
@@ -299,6 +310,7 @@ class _EntryGridState extends State<EntryGrid>
     with StateDisposeScopeMixin, AutomaticKeepAliveClientMixin {
   DataSourceController<EntrySaved>? controller;
   late Debouncer _reloadDebounce;
+  Observer? _refreshingObserver;
 
   @override
   bool get wantKeepAlive => true;
@@ -308,12 +320,13 @@ class _EntryGridState extends State<EntryGrid>
     _reloadDebounce = Debouncer(
       duration: const Duration(milliseconds: 50),
       action: () {
-        if (!mounted || controller == null) return;
-        controller!.reset();
-        controller!.requestMore();
+        if (!mounted) return;
+        controller?.refresh();
       },
     )..disposedBy(scope);
     _rebuildController();
+    _refreshingObserver = Observer(_syncRefreshing, controller!)
+      ..disposedBy(scope);
     Observer(
       () {
         _reloadDebounce.run();
@@ -334,8 +347,13 @@ class _EntryGridState extends State<EntryGrid>
     }
   }
 
+  void _syncRefreshing() {
+    if (!mounted) return;
+    widget.refreshing?.value = controller?.refreshing ?? false;
+  }
+
   void _rebuildController() {
-    controller?.dispose();
+    final old = controller;
     controller = DataSourceController<EntrySaved>([
       SingleStreamSource(
         (i) => locate<Database>().queryEntries(
@@ -347,6 +365,8 @@ class _EntryGridState extends State<EntryGrid>
         pageSize: 25,
       ),
     ]);
+    _refreshingObserver?.swapListener(controller!);
+    old?.dispose();
     controller!.requestMore();
   }
 
@@ -369,6 +389,31 @@ class _EntryGridState extends State<EntryGrid>
       itemBuilder: (BuildContext context, item) =>
           EntryDisplay(entry: item, showSaved: false),
       controller: controller,
+    );
+  }
+}
+
+class _RefreshIndicator extends StatelessWidget {
+  final ValueListenable<bool> refreshing;
+
+  const _RefreshIndicator({required this.refreshing});
+
+  static const double _size = 12;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: refreshing,
+      builder: (context, refreshing, _) => AnimatedSwitcher(
+        duration: DionDuration.normal,
+        child: refreshing
+            ? const Padding(
+                key: ValueKey(true),
+                padding: EdgeInsets.only(left: DionSpacing.xs),
+                child: DionProgressBar(size: _size),
+              )
+            : const SizedBox.shrink(key: ValueKey(false)),
+      ),
     );
   }
 }

@@ -20,9 +20,11 @@ class Observer implements Disposable {
 
   void _call() {
     if (callIndirectly) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      final binding = WidgetsBinding.instance;
+      binding.addPostFrameCallback((_) {
         callback();
       });
+      binding.ensureVisualUpdate();
     } else {
       callback();
     }

@@ -154,6 +154,12 @@ class _EntryDisplayState extends State<EntryDisplay>
   }
 
   @override
+  void didUpdateWidget(covariant EntryDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.entry, oldWidget.entry)) item = widget.entry;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ContextMenu(
       contextItems: [
