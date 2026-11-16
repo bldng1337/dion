@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- audio_service resolves its notification icon (AudioServiceConfig's
+     default mipmap/ic_launcher) and the media control icons by name from
+     Dart via getIdentifier. Release resource shrinking cannot see those
+     references and strips them, so the playback notification gets icon 0
+     and starting playback kills the app with a bad-notification error. -->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@mipmap/ic_launcher,@drawable/audio_service_*"
+/>
