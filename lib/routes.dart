@@ -432,6 +432,6 @@ class _MyExtraEncoder extends Converter<Object?, Object?> {
   const _MyExtraEncoder();
   @override
   Object? convert(Object? input) {
-    return input;
+    return null;
   }
 }
