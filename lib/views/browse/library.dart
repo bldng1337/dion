@@ -10,6 +10,7 @@ import 'package:dionysos/service/database.dart';
 import 'package:dionysos/utils/debounce.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
+import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/views/browse/browse.dart';
 import 'package:dionysos/views/browse/library_filter_panel.dart';
@@ -84,19 +85,14 @@ class _LibraryState extends State<Library> with StateDisposeScopeMixin {
     super.initState();
   }
 
-  void _refreshCounts() {
-    for (final tab in _visibleTabs) {
-      _countScope(tab.scope);
-    }
-  }
-
-  Future<void> _countScope(EntryScope scope) async {
-    final count = await locate<Database>().countEntries(
-      scope: scope,
+  Future<void> _refreshCounts() async {
+    final scopes = [for (final tab in _visibleTabs) tab.scope];
+    if (scopes.isEmpty) return;
+    final result = await locate<Database>().countEntriesByScope(
+      scopes,
       filters: _filters,
     );
-    if (!mounted) return;
-    setState(() => counts[scope] = count);
+    safeSetState(() => counts.addAll(result));
   }
 
   List<_LibraryTab> get _visibleTabs {

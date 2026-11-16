@@ -45,6 +45,15 @@ class Database extends KeyedChangeNotifier<DBEvent> {
 
   DBDataClassAdapter get adapter => db.getAdapter();
 
+  /// Wall time of each [init] phase, for startup diagnostics.
+  final Map<String, Duration> initTimings = {};
+  final _initLap = Stopwatch();
+
+  void _lap(String phase) {
+    initTimings[phase] = _initLap.elapsed;
+    _initLap.reset();
+  }
+
   static Future<void> ensureInitialized() async {
     final db = Database();
     await db.init();
@@ -64,6 +73,9 @@ class Database extends KeyedChangeNotifier<DBEvent> {
   }
 
   Future<void> initDB(AdapterSurrealDB db) async {
+    _initLap
+      ..reset()
+      ..start();
     await db.use(db: 'default', ns: 'app');
     await db.query('''
 DEFINE TABLE IF NOT EXISTS entry;
@@ -96,6 +108,7 @@ DEFINE INDEX IF NOT EXISTS entry_search_v2_ft ON TABLE entry FIELDS search_text 
 DEFINE INDEX IF NOT EXISTS activity_time_idx ON TABLE activity FIELDS time;
 DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry.entry.id.uid;
       ''');
+    _lap('schema');
     final dataclass = await db.setDataClassAdapter();
     dataclass.registerDataClass(categoryTable, Category.fromJson);
     dataclass.registerDataClass(entryTable, EntrySaved.fromJson);
@@ -126,6 +139,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
         ),
       },
     );
+    _lap('crdt');
     await db.setMigrationAdapter(
       version: dbVersion,
       migrationName: 'app',
@@ -169,6 +183,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       }),
       onCreate: (db) {},
     );
+    _lap('migration');
     this.db = db;
   }
 
@@ -244,8 +259,12 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     }
   }
 
+  static Future<void>? _bridgeInit;
+
   Future<void> init({bool inMemory = false}) async {
-    await SurrealDB.ensureInitialized();
+    final total = Stopwatch()..start();
+    // The bridge refuses a second initialization in the same process.
+    await (_bridgeInit ??= SurrealDB.ensureInitialized());
     late final AdapterSurrealDB currentdb;
     if (inMemory) {
       currentdb = await AdapterSurrealDB.connect('memory://');
@@ -258,8 +277,13 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
         ),
         shareTag: dbShareTag,
       );
+      initTimings['connect'] = total.elapsed;
     }
     await initDB(currentdb);
+    initTimings['total'] = total.elapsed;
+    logger.i(
+      'Database init: ${[for (final MapEntry(:key, :value) in initTimings.entries) '$key ${value.inMilliseconds}ms'].join(', ')}',
+    );
   }
 
   // Category
@@ -314,7 +338,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
   Future<int> getNumEntriesInCategory(Category? category) async {
     if (category == null) {
       return await _countSQL(
-        query: 'SELECT count() FROM type::table(\$entry) WHERE array::is_empty(categories??[]) GROUP ALL;',
+        query: 'SELECT count() FROM type::table(\$entry) WHERE categories = [] GROUP ALL;',
         vars: {'entry': entryTable.tb},
       );
     }
@@ -326,18 +350,34 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
 
   Stream<EntrySaved> getEntries(int page, int limit) {
     return _getEntriesSQL(
-      'SELECT * FROM type::table(\$entry) ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
+      'SELECT * FROM type::table(\$entry) ORDER BY id LIMIT \$limit START \$offset*\$limit',
       {'limit': limit, 'offset': page, 'entry': entryTable.tb},
     );
   }
 
+  Stream<EntrySaved> getAllEntries({int batchSize = 100}) async* {
+    DBRecord? after;
+    while (true) {
+      final [rows as List<dynamic>] = await db.query(
+        'SELECT * FROM type::table(\$entry)'
+        '${after == null ? '' : ' WHERE id > \$after'} '
+        'ORDER BY id LIMIT \$limit',
+        vars: {'entry': entryTable.tb, 'limit': batchSize, 'after': after},
+      );
+      yield* _hydrateEntries(rows);
+      if (rows.length < batchSize) return;
+      // The stored id, not the instance's: a cached instance with unsaved
+      // edits to its identity would move the cursor.
+      after = (rows.last as Map)['id'] as DBRecord;
+    }
+  }
+
   Stream<EntrySaved> getCalendarEntries(int page, int limit) {
-    return adapter.queryDataClasses<EntrySaved>(
-      query:
-          'SELECT * FROM type::table(\$entry) '
-          "WHERE entry.status != 'Complete' "
-          'ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
-      vars: {'entry': entryTable.tb, 'limit': limit, 'offset': page},
+    return _getEntriesSQL(
+      'SELECT * FROM type::table(\$entry) '
+      "WHERE entry.status != 'Complete' "
+      'ORDER BY id LIMIT \$limit START \$offset*\$limit',
+      {'entry': entryTable.tb, 'limit': limit, 'offset': page},
     );
   }
 
@@ -348,12 +388,12 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
   ) {
     if (category == null) {
       return _getEntriesSQL(
-        'SELECT * FROM type::table(\$entry) WHERE count(categories) = 0 ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
+        'SELECT * FROM type::table(\$entry) WHERE categories = [] ORDER BY id LIMIT \$limit START \$offset*\$limit',
         {'limit': limit, 'offset': page, 'entry': entryTable.tb},
       );
     }
     return _getEntriesSQL(
-      'SELECT * FROM type::table(\$entry) WHERE categories CONTAINS \$category ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
+      'SELECT * FROM type::table(\$entry) WHERE categories CONTAINS \$category ORDER BY id LIMIT \$limit START \$offset*\$limit',
       {
         'limit': limit,
         'offset': page,
@@ -370,7 +410,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     // query string is analyzed with the index's analyzer.
     return _getEntriesSQL(
       'SELECT * FROM type::table(\$entry) WHERE search_text @1@ \$query '
-      'ORDER BY id LIMIT \$limit START \$offset*\$limit FETCH categories',
+      'ORDER BY id LIMIT \$limit START \$offset*\$limit',
       {'entry': entryTable.tb, 'query': query, 'limit': limit, 'offset': page},
     );
   }
@@ -385,7 +425,7 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     final (where, vars) = await _buildEntryWhere(scope, filters);
     yield* _getEntriesSQL(
       'SELECT * FROM type::table(\$entry)$where${sort.orderClause} '
-      'LIMIT \$limit START \$offset*\$limit FETCH categories',
+      'LIMIT \$limit START \$offset*\$limit',
       {'entry': entryTable.tb, 'limit': limit, 'offset': page, ...vars},
     );
   }
@@ -399,6 +439,43 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       query: 'SELECT count() FROM type::table(\$entry)$where GROUP ALL;',
       vars: {'entry': entryTable.tb, ...vars},
     );
+  }
+
+  /// [countEntries] for several scopes at once, from a single grouped scan
+  /// instead of one scan per scope.
+  Future<Map<EntryScope, int>> countEntriesByScope(
+    Iterable<EntryScope> scopes, {
+    LibraryFilters filters = LibraryFilters.empty,
+  }) async {
+    final (where, vars) = await _buildEntryWhere(
+      const EntryScopeAll(),
+      filters,
+    );
+    final [groups as List<dynamic>] = await db.query(
+      'SELECT categories, count() AS n FROM type::table(\$entry)$where '
+      'GROUP BY categories;',
+      vars: {'entry': entryTable.tb, ...vars},
+    );
+    var total = 0;
+    var uncategorized = 0;
+    final byCategory = <DBRecord, int>{};
+    for (final group in groups.cast<Map<dynamic, dynamic>>()) {
+      final n = group['n'] as int;
+      final ids = {...?(group['categories'] as List?)?.whereType<DBRecord>()};
+      total += n;
+      if (ids.isEmpty) uncategorized += n;
+      for (final id in ids) {
+        byCategory[id] = (byCategory[id] ?? 0) + n;
+      }
+    }
+    return {
+      for (final scope in scopes)
+        scope: switch (scope) {
+          EntryScopeAll() => total,
+          EntryScopeUncategorized() => uncategorized,
+          EntryScopeCategory(:final category) => byCategory[category.id] ?? 0,
+        },
+    };
   }
 
   Future<(String, Map<String, dynamic>)> _buildEntryWhere(
@@ -429,22 +506,48 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
       return cached;
     }
     final keys = await locate<DownloadService>().downloadedEntryKeys();
-    final uids = <String>{};
-    var page = 0;
-    while (true) {
-      final batch = await getEntries(page++, 100).toList();
-      if (batch.isEmpty) break;
-      for (final entry in batch) {
-        if (keys.contains(
-          '${pathEncode(entry.boundExtensionId)}/${pathEncode(entry.id.uid)}',
-        )) {
-          uids.add(entry.id.uid);
-        }
-      }
-    }
+    final uids = <String>{
+      for (final (extensionId, uid) in await getEntryKeys())
+        if (keys.contains('${pathEncode(extensionId)}/${pathEncode(uid)}'))
+          uid,
+    };
     _downloadedUidsCache = uids;
     _downloadedUidsRevision = revision;
     return uids;
+  }
+
+  /// `(bound extension id, entry uid)` of every saved entry. A projection,
+  /// so the library is not hydrated for it.
+  Future<List<(String, String)>> getEntryKeys() async {
+    final [rows as List<dynamic>] = await db.query(
+      'SELECT VALUE [extensionid, entry.id.uid] FROM type::table(\$entry);',
+      vars: {'entry': entryTable.tb},
+    );
+    return [
+      for (final [extensionId as String, uid as String] in rows.cast<List>())
+        (extensionId, uid),
+    ];
+  }
+
+  /// The image urls every saved entry references (cover, poster, saved
+  /// quote images; see ImageStoreService.entryImageUrls), keyed by record
+  /// id. A projection, so the library is not hydrated for it.
+  Future<Map<DBRecord, List<String>>> getEntryImageUrls() async {
+    final [rows as List<dynamic>] = await db.query(
+      'SELECT VALUE [id, entry.cover.url, entry.poster.url, '
+      'array::flatten(object::values(episodedata ?? {}).images).url] '
+      'FROM type::table(\$entry);',
+      vars: {'entry': entryTable.tb},
+    );
+    return {
+      for (final [id as DBRecord, cover, poster, images as List?]
+          in rows.cast<List>())
+        id: [
+          ?cover as String?,
+          ?poster as String?,
+          ...?images?.whereType<String>(),
+        ],
+    };
   }
 
   Future<int> _countSQL({
@@ -456,11 +559,38 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
     return res[0]['count'] as int;
   }
 
+  /// Runs an entry query and hydrates its rows. Category links are resolved
+  /// from one lookup of the (small) category table instead of `FETCH
+  /// categories`, which resolves every link of every row separately and
+  /// costs more than the rest of the query.
   Stream<EntrySaved> _getEntriesSQL(
     String sqlfilter,
     Map<String, dynamic>? vars,
-  ) {
-    return adapter.queryDataClasses<EntrySaved>(query: sqlfilter, vars: vars);
+  ) async* {
+    final [rows as List<dynamic>, ...] = await db.query(sqlfilter, vars: vars);
+    yield* _hydrateEntries(rows);
+  }
+
+  Stream<EntrySaved> _hydrateEntries(List<dynamic> rows) async* {
+    if (rows.isEmpty) return;
+    final linked = rows.any(
+      (row) => ((row as Map)['categories'] as List?)?.isNotEmpty ?? false,
+    );
+    final categories = linked
+        ? {for (final c in await getCategories()) c.id: c}
+        : const <DBRecord, Category>{};
+    yield* adapter.loadDataClasses<EntrySaved>([
+      for (final row in rows.cast<Map<dynamic, dynamic>>())
+        {
+          ...row,
+          // Dangling links (category removed elsewhere) drop out, as they
+          // did with FETCH.
+          'categories': [
+            for (final id in (row['categories'] as List?) ?? const [])
+              ?categories[id],
+          ],
+        },
+    ]);
   }
 
   Future<Activity?> getLastActivity() async {
@@ -638,12 +768,10 @@ ORDER BY total DESC
     if (order.isEmpty) return [];
 
     final byUid = <String, Entry>{};
-    final saved = await adapter
-        .queryDataClasses<EntrySaved>(
-          query: 'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids FETCH categories',
-          vars: {'entry': entryTable.tb, 'uids': order},
-        )
-        .toList();
+    final saved = await _getEntriesSQL(
+      'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids',
+      {'entry': entryTable.tb, 'uids': order},
+    ).toList();
     for (final e in saved) {
       byUid[e.id.uid] = e;
     }
@@ -695,12 +823,10 @@ ORDER BY total DESC
     };
     if (uids.isEmpty) return byUid;
 
-    final saved = await adapter
-        .queryDataClasses<EntrySaved>(
-          query: 'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids FETCH categories',
-          vars: {'entry': entryTable.tb, 'uids': uids.toList()},
-        )
-        .toList();
+    final saved = await _getEntriesSQL(
+      'SELECT * FROM type::table(\$entry) WHERE entry.id.uid IN \$uids',
+      {'entry': entryTable.tb, 'uids': uids.toList()},
+    ).toList();
     for (final entry in saved) {
       byUid[entry.id.uid] = entry;
     }
@@ -712,12 +838,10 @@ ORDER BY total DESC
   }
 
   Future<EntrySaved?> getSavedById(EntryId entry) async {
-    return await adapter
-        .queryDataClasses<EntrySaved>(
-          query: 'SELECT * FROM type::table(\$entry) WHERE entry.id.uid = \$id',
-          vars: {'entry': entryTable.tb, 'id': entry.uid},
-        )
-        .firstOrNull;
+    return await _getEntriesSQL(
+      'SELECT * FROM type::table(\$entry) WHERE entry.id.uid = \$id',
+      {'entry': entryTable.tb, 'id': entry.uid},
+    ).firstOrNull;
   }
 
   Future<EntrySaved?> isSaved(Entry entry) async {

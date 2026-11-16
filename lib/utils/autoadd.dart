@@ -77,19 +77,7 @@ Future<void> attachAutoAddExtensions(EntrySaved entry) async {
 Future<List<EntrySaved>> _entriesWhere(
   bool Function(EntrySaved entry) test,
 ) async {
-  final db = locate<Database>();
-  final result = <EntrySaved>[];
-  var page = 0;
-  while (true) {
-    var any = false;
-    await for (final entry in db.getEntries(page, 100)) {
-      any = true;
-      if (test(entry)) result.add(entry);
-    }
-    if (!any) break;
-    page++;
-  }
-  return result;
+  return locate<Database>().getAllEntries().where(test).toList();
 }
 
 Future<List<EntrySaved>> newlyMatchingEntries(

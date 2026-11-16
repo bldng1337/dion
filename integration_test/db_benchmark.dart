@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:dionysos/data/activity/fake_activity.dart';
-import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/library/library_query.dart';
 import 'package:dionysos/routes.dart';
 import 'package:dionysos/service/database.dart';
+import 'package:dionysos/service/image_store.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/theme.dart';
@@ -18,6 +18,7 @@ import 'package:metis/metis.dart' show DBRecord;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 import 'utils/bench.dart';
+import 'utils/bench_seed.dart';
 import 'utils/screenshot_harness.dart';
 
 /// Library / database benchmark harness.
@@ -40,7 +41,6 @@ const _readIters = int.fromEnvironment('BENCH_ITERS', defaultValue: 25);
 const _writeIters = int.fromEnvironment('BENCH_WRITE_ITERS', defaultValue: 8);
 const _pageSize = 25;
 
-const _sourceIds = ['bench.source.a', 'bench.source.b'];
 const _sourceA = 'bench.source.a';
 
 Future<void> main() async {
@@ -195,6 +195,95 @@ Future<void> main() async {
     });
   });
 
+  testWidgets('optimized query paths match the hydrated library', (
+    tester,
+  ) async {
+    final db = locate<Database>();
+    final categories = await db.getCategories();
+    final scopes = <EntryScope>[
+      const EntryScopeAll(),
+      const EntryScopeUncategorized(),
+      for (final c in categories) EntryScopeCategory(c),
+    ];
+
+    // Grouped counts must equal the per-scope counts, filtered or not.
+    for (final filters in const [
+      LibraryFilters.empty,
+      LibraryFilters(mediaTypes: {rust.MediaType.comic}),
+      LibraryFilters(extensionIds: {_sourceA}),
+    ]) {
+      final grouped = await db.countEntriesByScope(scopes, filters: filters);
+      for (final scope in scopes) {
+        expect(
+          grouped[scope],
+          await db.countEntries(scope: scope, filters: filters),
+          reason: 'grouped count for $scope / $filters',
+        );
+      }
+    }
+    samples.add(
+      await bench(
+        'count_grouped_all_tabs',
+        _readIters,
+        () => db.countEntriesByScope(scopes),
+      ),
+    );
+
+    // Category links are resolved without FETCH.
+    final inCategory = await db
+        .queryEntries(scope: EntryScopeCategory(categories.first), page: 0)
+        .toList();
+    expect(inCategory, isNotEmpty);
+    for (final e in inCategory) {
+      expect(e.categories.map((c) => c.id), contains(categories.first.id));
+      expect(e.categories.first.name, isNotEmpty);
+    }
+
+    // Keyset scan returns every entry exactly once.
+    final all = await db.getAllEntries().toList();
+    expect(all.length, await db.getNumEntries());
+    expect({for (final e in all) e.dbId}.length, all.length);
+    final keys = await db.getEntryKeys();
+    expect(
+      {for (final (ext, uid) in keys) '$ext/$uid'},
+      {for (final e in all) '${e.boundExtensionId}/${e.id.uid}'},
+    );
+
+    // The image projection must see exactly what the image store derives
+    // from a hydrated entry.
+    final withImages = benchEntry(
+      _entryCount + 20000,
+      categories: [],
+      cover: const rust.Link(url: 'https://bench.example/cover.png'),
+      poster: const rust.Link(url: 'https://bench.example/poster.png'),
+    );
+    withImages.getEpisodeDataById('quote-ep').images.addAll([
+      SavedImage(url: 'https://bench.example/q1.png', savedAt: DateTime(2026)),
+      SavedImage(url: 'https://bench.example/q2.png', savedAt: DateTime(2026)),
+    ]);
+    await db.addEntry(withImages);
+    try {
+      final projected = await db.getEntryImageUrls();
+      expect(projected.length, await db.getNumEntries());
+      for (final e in [...all, withImages]) {
+        expect(
+          projected[e.dbId]?.toSet(),
+          ImageStoreService.entryImageUrls(e).nonNulls.toSet(),
+          reason: 'image urls of ${e.dbId}',
+        );
+      }
+      expect(projected[withImages.dbId], hasLength(4));
+    } finally {
+      await db.removeEntry(withImages);
+    }
+
+    samples.add(await bench('scan_full_keyset', 5, () => db.getAllEntries().toList()));
+    samples.add(await bench('scan_entry_keys', _readIters, db.getEntryKeys));
+    samples.add(
+      await bench('scan_entry_image_urls', _readIters, db.getEntryImageUrls),
+    );
+  });
+
   testWidgets('library screen reload benchmark', (tester) async {
     final db = locate<Database>();
     // The victim must live in the first (initially visible) tab, or its
@@ -313,7 +402,7 @@ Future<void> main() async {
       ),
       'extension_filter': await explain(
         'SELECT * FROM type::table(\$entry) WHERE extensionid IN \$ids',
-        {'entry': entryTable.tb, 'ids': [_sourceIds[0]]},
+        {'entry': entryTable.tb, 'ids': [benchSourceIds[0]]},
       ),
       'activity_order_time': await explain(
         'SELECT * FROM activity ORDER BY time DESC LIMIT \$limit START \$offset*\$limit',
@@ -346,7 +435,7 @@ Future<void> main() async {
     expect(plans['activity_order_time'], contains('activity_time_idx'));
     expect(plans['activity_uid_lookup'], contains('activity_entry_uid_idx'));
     expect(plans['sorted_title'], contains('entry_sort_title_idx'));
-    expect(plans['search_fulltext'], contains('entry_search_ft'));
+    expect(plans['search_fulltext'], contains('entry_search_v2_ft'));
   });
 
   testWidgets('array-element index does not corrupt CONTAINS', (tester) async {
@@ -479,87 +568,3 @@ void addSingleSample(List<BenchSample> samples, String name, int micros) {
     ),
   );
 }
-
-/// Creates and persists [entryCount] synthetic entries spread over
-/// [_sourceIds] and generated categories; every fifth entry stays
-/// uncategorized so the "No Category" scope is populated too.
-Future<void> seedBenchLibrary(
-  Database db, {
-  required int entryCount,
-  int categoryCount = 6,
-}) async {
-  final categories = [
-    for (var i = 0; i < categoryCount; i++) Category.construct('Bench $i', i),
-  ];
-  for (final category in categories) {
-    await db.updateCategory(category);
-  }
-  for (var i = 0; i < entryCount; i++) {
-    final entry = benchEntry(
-      i,
-      categories: i % 5 == 0 ? [] : [categories[i % categoryCount]],
-    );
-    await db.adapter.save(entry);
-  }
-}
-
-EntrySaved benchEntry(int i, {required List<Category> categories}) {
-  final mediaType = switch (i % 4) {
-    0 => rust.MediaType.book,
-    1 => rust.MediaType.comic,
-    2 => rust.MediaType.video,
-    _ => rust.MediaType.audio,
-  };
-  final status = switch (i % 3) {
-    0 => rust.ReleaseStatus.releasing,
-    1 => rust.ReleaseStatus.complete,
-    _ => rust.ReleaseStatus.unknown,
-  };
-  final episodeCount = 10 + i % 20;
-  final detailed = rust.EntryDetailed(
-    id: rust.EntryId(uid: 'bench-$i'),
-    url: 'https://bench.example/entry/$i',
-    titles: ['Bench Entry ${i.toString().padLeft(5, '0')} ${_titleWord(i)}'],
-    author: ['Author ${i % 37}'],
-    mediaType: mediaType,
-    status: status,
-    description: 'Synthetic benchmark entry $i. '
-        'The description is padded so row sizes resemble real entries with a '
-        'few hundred bytes of metadata per record. '
-        'Seed ${i * 2654435761 % 99991}.',
-    language: 'en',
-    episodes: [
-      for (var e = 0; e < episodeCount; e++)
-        rust.Episode(
-          id: rust.EpisodeId(uid: 'bench-$i-ep-$e'),
-          name: 'Episode ${e + 1}',
-          url: 'https://bench.example/entry/$i/episode/$e',
-        ),
-    ],
-    genres: ['bench', mediaType.name],
-    rating: 3 + (i % 20) / 10,
-    views: ((i * 137) % 100000).toDouble(),
-    length: 100 + i % 900,
-  );
-  final readCount = i % episodeCount;
-  return EntrySaved(
-    entry: detailed,
-    original: detailed,
-    categories: categories,
-    episodedata: {
-      for (var e = 0; e < readCount; e++)
-        'bench-$i-ep-$e': EpisodeData(bookmark: e % 7 == 0, finished: true),
-    },
-    boundExtensionId: _sourceIds[i % _sourceIds.length],
-    episode: max(0, readCount - 1),
-    savedSettings: EntrySavedSettings.defaultSettings(),
-    extensionSettings: const {},
-  );
-}
-
-const _titleWords = [
-  'Chronicles', 'Protocol', 'Symphony', 'Voyage', 'Codex',
-  'Requiem', 'Garden', 'Circuit', 'Harbor', 'Mirage',
-];
-
-String _titleWord(int i) => _titleWords[i % _titleWords.length];

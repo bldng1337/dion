@@ -173,24 +173,17 @@ class ImageStoreService {
   Future<Set<String>> _collectReferences() async {
     final hashes = <String>{};
     if (!has<Database>() || !has<ExtensionService>()) return hashes;
-    final db = locate<Database>();
     final seenEntries = <String>{};
-    var page = 0;
-    while (true) {
-      var any = false;
-      await for (final entry in db.getEntries(page, 100)) {
-        any = true;
-        final dbId = entry.dbId.toString();
-        seenEntries.add(dbId);
-        final entryHashes = entryImageHashes(entry);
-        hashes.addAll(entryHashes);
-        // Keeps the change-detection signatures exact, and drops signatures
-        // of entries removed without going through forgetEntry (e.g. remote
-        // sync deletions).
-        _entrySignatures[dbId] = imageSignature(entryHashes);
-      }
-      if (!any) break;
-      page++;
+    final urlsByEntry = await locate<Database>().getEntryImageUrls();
+    for (final MapEntry(key: id, value: urls) in urlsByEntry.entries) {
+      final dbId = id.toString();
+      seenEntries.add(dbId);
+      final entryHashes = imageHashes(urls);
+      hashes.addAll(entryHashes);
+      // Keeps the change-detection signatures exact, and drops signatures
+      // of entries removed without going through forgetEntry (e.g. remote
+      // sync deletions).
+      _entrySignatures[dbId] = imageSignature(entryHashes);
     }
     _entrySignatures.removeWhere((dbId, _) => !seenEntries.contains(dbId));
     for (final ext in locate<ExtensionService>().getExtensions()) {
@@ -199,7 +192,9 @@ class ImageStoreService {
     return hashes;
   }
 
-  /// Urls of an entry that may have a stored copy.
+  /// Urls of an entry that may have a stored copy. Database
+  /// .getEntryImageUrls projects the same set from the stored rows; keep the
+  /// two in sync.
   static Iterable<String?> entryImageUrls(EntrySaved entry) {
     return [
       entry.cover?.url,

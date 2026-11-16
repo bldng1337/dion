@@ -171,20 +171,11 @@ Future<Archive> createBackup() async {
   final db = locate<Database>();
   _ensureSettingsBuilt();
   final archive = Archive();
-  final entries = [];
-  int ind = 0;
-  while (entries.length % 100 == 0) {
-    // If we don't get 100 entries, we are at the end
-    final entriesdb = await db.getEntries(ind++, 100).toList();
-    if (entriesdb.isEmpty) break;
-    entries.addAll(
-      entriesdb.map((e) {
-        final json = e.toJson();
-        json['categories'] = e.categories.map((c) => c.name).toList();
-        return json;
-      }),
-    );
-  }
+  final entries = await db.getAllEntries().map((e) {
+    final json = e.toJson();
+    json['categories'] = e.categories.map((c) => c.name).toList();
+    return json;
+  }).toList();
   archive.addFile(ArchiveFile.string('entrydata.json', json.encode(entries)));
   archive.addFile(
     ArchiveFile.string(

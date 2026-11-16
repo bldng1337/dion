@@ -20,7 +20,7 @@ class EntryScopeUncategorized extends EntryScope {
   const EntryScopeUncategorized();
   @override
   void writeCondition(List<String> conditions, Map<String, dynamic> vars) {
-    conditions.add('count(categories) = 0');
+    conditions.add('categories = []');
   }
 }
 

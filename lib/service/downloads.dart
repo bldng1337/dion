@@ -867,17 +867,11 @@ class DownloadService {
     // Directory names are sanitised one-way, so entries can only be matched
     // by re-encoding their ids, never by decoding the directory name.
     final entriesByKey = <String, EntrySaved>{};
-    final db = locate<Database>();
-    var page = 0;
-    while (true) {
-      final batch = await db.getEntries(page++, 100).toList();
-      if (batch.isEmpty) break;
-      for (final entry in batch) {
-        entriesByKey.putIfAbsent(
-          '${pathEncode(entry.boundExtensionId)}/${pathEncode(entry.id.uid)}',
-          () => entry,
-        );
-      }
+    await for (final entry in locate<Database>().getAllEntries()) {
+      entriesByKey.putIfAbsent(
+        '${pathEncode(entry.boundExtensionId)}/${pathEncode(entry.id.uid)}',
+        () => entry,
+      );
     }
 
     final result = <DownloadedEntry>[];

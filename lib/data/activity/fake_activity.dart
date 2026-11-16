@@ -133,16 +133,8 @@ Future<int> generateFakeActivity({int days = 365, Random? random}) async {
   );
 }
 
-Future<List<EntrySaved>> _allEntries(Database db) async {
-  final entries = <EntrySaved>[];
-  for (var page = 0; ; page++) {
-    final batch = await db.getEntries(page, 100).toList();
-    if (batch.isEmpty) break;
-    entries.addAll(batch);
-    if (batch.length < 100) break;
-  }
-  return entries;
-}
+Future<List<EntrySaved>> _allEntries(Database db) =>
+    db.getAllEntries().toList();
 
 /// Picks an hour of day biased toward evening leisure hours, with weekends
 /// getting extra weight. Returns null when the resulting time would be in the
