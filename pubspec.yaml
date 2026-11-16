@@ -26,7 +26,11 @@ dependencies:
   uuid: ^4.5.1
   archive: ^4.0.9
   logger: ^2.4.0
-  rhttp: ^0.18.0
+  rhttp:
+    git:
+      url: https://codeberg.org/Tienisto/rhttp.git
+      path: rhttp
+      ref: 39a3d76
   path: ^1.9.0
   flutter_cache_manager: ^3.4.1
   inline_result: ^2.0.0
