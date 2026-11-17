@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dionysos/data/font.dart';
 import 'package:dionysos/data/library/library_query.dart';
+import 'package:dionysos/data/search_profile.dart';
 import 'package:dionysos/data/settings/binding.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/text_replacement.dart';
@@ -190,6 +191,21 @@ class PreferenceReplaceListMetaData
       json.encode(value.map((r) => r.toJson()).toList());
 }
 
+class PreferenceSearchProfileListMetaData
+    extends PreferenceMetaData<List<SearchProfile>> {
+  const PreferenceSearchProfileListMetaData(super.id);
+
+  @override
+  List<SearchProfile>? parse(String value) =>
+      (json.decode(value) as List<dynamic>)
+          .map((e) => SearchProfile.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+  @override
+  String stringify(List<SearchProfile> value) =>
+      json.encode(value.map((p) => p.toJson()).toList());
+}
+
 enum ReaderMode { paginated, infinite }
 
 enum UpdateChannel { stable, beta, nightly }
@@ -305,6 +321,14 @@ final settings = (
     repositories: Setting(
       <String>[],
       const StringListMetaData('extension.repositories'),
+    )..addCollection(preferenceCollection),
+    searchProfiles: Setting(
+      <SearchProfile>[],
+      const PreferenceSearchProfileListMetaData('extension.searchprofiles'),
+    )..addCollection(preferenceCollection),
+    activeSearchProfile: Setting(
+      '',
+      const PreferenceStringMetaData('extension.searchprofile.active'),
     )..addCollection(preferenceCollection),
     autoUpdate: (
       enabled: Setting(
