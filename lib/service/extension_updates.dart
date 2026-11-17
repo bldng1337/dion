@@ -11,6 +11,8 @@ import 'package:flutter/foundation.dart';
 
 const int _maxPagesPerRepo = 5;
 
+const int _maxSearchPagesPerRepo = 20;
+
 class ExtensionUpdateJob extends PeriodicJob {
   @override
   String get taskName => 'extensionUpdates';
@@ -135,6 +137,39 @@ class ExtensionUpdateService {
     }
 
     return found;
+  }
+
+  Future<RemoteExtension?> findInRepos(String id) async {
+    final sourceExt = locate<ExtensionService>();
+    final repos = settings.extension.repositories.value;
+    final matches = await Future.wait([
+      for (final url in repos) _findInRepo(sourceExt, url, id),
+    ]);
+    final found = matches.nonNulls.toList()
+      ..sort((a, b) {
+        if (a.compatible != b.compatible) return a.compatible ? -1 : 1;
+        return parseVersion(b.version).compareTo(parseVersion(a.version));
+      });
+    return found.firstOrNull;
+  }
+
+  Future<RemoteExtension?> _findInRepo(
+    ExtensionService sourceExt,
+    String url,
+    String id,
+  ) async {
+    try {
+      final repo = await sourceExt.getRepo(url);
+      for (var page = 1; page <= _maxSearchPagesPerRepo; page++) {
+        final res = await repo.browse(page: page);
+        if (res.isEmpty) break;
+        final match = res.where((e) => e.id == id).firstOrNull;
+        if (match != null) return match;
+      }
+    } catch (e) {
+      logger.w('Searching $url for extension $id failed', error: e);
+    }
+    return null;
   }
 
   void dispose() {

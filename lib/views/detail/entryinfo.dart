@@ -4,12 +4,14 @@ import 'package:awesome_extensions/awesome_extensions.dart' hide NavigatorExt;
 import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/settings/appsettings.dart';
 import 'package:dionysos/data/source.dart';
 import 'package:dionysos/service/database.dart';
 import 'package:dionysos/service/directoryprovider.dart';
 import 'package:dionysos/service/downloads.dart';
 import 'package:dionysos/service/extension.dart'
-    show CustomUI, Extension, ExtensionService;
+    show CustomUI, Extension, ExtensionService, RemoteExtension, ToastKind;
+import 'package:dionysos/service/extension_updates.dart';
 import 'package:dionysos/utils/color.dart';
 import 'package:dionysos/utils/custom_ui.dart';
 import 'package:dionysos/utils/design_tokens.dart';
@@ -23,14 +25,15 @@ import 'package:dionysos/utils/service.dart';
 import 'package:dionysos/utils/storage.dart';
 import 'package:dionysos/utils/string.dart';
 import 'package:dionysos/utils/time.dart';
+import 'package:dionysos/utils/toast.dart';
 import 'package:dionysos/views/customui.dart';
 import 'package:dionysos/views/detail/library_picker.dart';
 import 'package:dionysos/views/dialog/next_release.dart';
+import 'package:dionysos/views/extension/permission_dialog.dart';
 import 'package:dionysos/views/note/wiki_link.dart';
 import 'package:dionysos/widgets/bounds.dart';
 import 'package:dionysos/widgets/buttons/clickable.dart';
 import 'package:dionysos/widgets/buttons/textbutton.dart';
-
 import 'package:dionysos/widgets/foldabletext.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/note_markdown.dart';
@@ -53,7 +56,7 @@ class EntryInfo extends StatelessWidget {
       children: [
         if (entry is EntryDetailed &&
             ((entry as EntryDetailed).extension == null))
-          _buildWarningBox(context, message: 'Extension not found'),
+          _MissingExtensionWarning(extensionId: entry.boundExtensionId),
         if (entry is EntryDetailed &&
             !((entry as EntryDetailed).extension?.isenabled ?? true))
           _buildWarningBox(
@@ -351,6 +354,7 @@ class EntryInfo extends StatelessWidget {
             }
             return Foldabletext(
               maxLines: 5,
+              spoilers: true,
               entry.description.trim(),
               style: context.bodyMedium?.copyWith(
                 height: 1.7,
@@ -975,6 +979,105 @@ class _EntryNoteSection extends StatelessWidget {
         ).paddingOnly(bottom: DionSpacing.xl);
       },
     );
+  }
+}
+
+sealed class _RepoSearch {
+  const _RepoSearch();
+}
+
+class _RepoSearchIdle extends _RepoSearch {
+  const _RepoSearchIdle();
+}
+
+class _RepoSearchRunning extends _RepoSearch {
+  const _RepoSearchRunning();
+}
+
+class _RepoSearchFound extends _RepoSearch {
+  final RemoteExtension remote;
+  final bool installing;
+  const _RepoSearchFound(this.remote, {this.installing = false});
+}
+
+class _RepoSearchMissing extends _RepoSearch {
+  const _RepoSearchMissing();
+}
+
+class _MissingExtensionWarning extends StatefulWidget {
+  final String extensionId;
+
+  const _MissingExtensionWarning({required this.extensionId});
+
+  @override
+  State<_MissingExtensionWarning> createState() =>
+      _MissingExtensionWarningState();
+}
+
+class _MissingExtensionWarningState extends State<_MissingExtensionWarning> {
+  _RepoSearch _search = const _RepoSearchIdle();
+
+  Future<void> _runSearch() async {
+    setState(() => _search = const _RepoSearchRunning());
+    final remote = await locate<ExtensionUpdateService>().findInRepos(
+      widget.extensionId,
+    );
+    safeSetState(() {
+      _search = remote == null
+          ? const _RepoSearchMissing()
+          : _RepoSearchFound(remote);
+    });
+  }
+
+  Future<void> _install(RemoteExtension remote) async {
+    setState(() => _search = _RepoSearchFound(remote, installing: true));
+    try {
+      await installExtensionWithConsent(context, extension: remote);
+    } catch (e, stack) {
+      logger.e(
+        'Failed to install extension ${remote.id}',
+        error: e,
+        stackTrace: stack,
+      );
+      showToast("Failed to install '${remote.name}'", ToastKind.error);
+    }
+    safeSetState(() => _search = _RepoSearchFound(remote));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasRepos = settings.extension.repositories.value.isNotEmpty;
+    return switch (_search) {
+      _RepoSearchIdle() => _buildWarningBox(
+        context,
+        message: 'Extension not found',
+        buttonText: hasRepos ? 'Search repos' : null,
+        onTap: _runSearch,
+      ),
+      _RepoSearchRunning() => _buildWarningBox(
+        context,
+        message: 'Extension not found',
+        buttonText: 'Searching…',
+      ),
+      _RepoSearchMissing() => _buildWarningBox(
+        context,
+        message: 'Extension not found in any connected repository',
+        buttonText: 'Search again',
+        onTap: _runSearch,
+      ),
+      _RepoSearchFound(:final remote, :final installing) => _buildWarningBox(
+        context,
+        message: remote.compatible
+            ? "Extension not installed — '${remote.name}' v${remote.version} is available"
+            : "Extension not installed — '${remote.name}' v${remote.version} was found but is incompatible",
+        buttonText: !remote.compatible
+            ? null
+            : installing
+            ? 'Installing…'
+            : 'Install',
+        onTap: installing ? null : () => _install(remote),
+      ),
+    };
   }
 }
 

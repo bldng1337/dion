@@ -344,6 +344,12 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
         builder: (context, child) => buildDetailScreen(context),
       );
     }
+    if (entry is EntryDetailed) {
+      return ListenableBuilder(
+        listenable: locate<ExtensionService>(),
+        builder: (context, child) => buildDetailScreen(context),
+      );
+    }
     return buildDetailScreen(context);
   }
 
