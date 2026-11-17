@@ -354,7 +354,6 @@ class EntryInfo extends StatelessWidget {
             }
             return Foldabletext(
               maxLines: 5,
-              spoilers: true,
               entry.description.trim(),
               style: context.bodyMedium?.copyWith(
                 height: 1.7,
