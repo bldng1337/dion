@@ -1,4 +1,5 @@
 import 'package:dionysos/data/entry/entry_saved.dart';
+import 'package:dionysos/data/search_settings.dart';
 import 'package:dionysos/data/settings/settings.dart' as appsettings;
 import 'package:dionysos/service/extension.dart';
 import 'package:dionysos/utils/service.dart';
@@ -16,6 +17,7 @@ extension SettingExtension on rust.Setting {
       visible: visible ?? this.visible,
       default_: default_ ?? this.default_,
       value: value ?? this.value,
+      ui: ui,
     );
   }
 }
@@ -131,6 +133,52 @@ class ExtensionSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
     super.onChange(t);
     extension.settingChanges.notify(id);
   }
+}
+
+class SearchSettingMetaData<T> extends DionRuntimeSettingMetaData<T> {
+  @override
+  final String extId;
+
+  SearchSettingMetaData(
+    this.extId,
+    super.id,
+    super.label,
+    super.visible,
+    super.ui,
+  );
+
+  @override
+  void onChange(T t) {
+    final current = activeSearchSettings(extId);
+    final setting = current[id];
+    if (setting == null) return;
+    setActiveSearchSettings(extId, {
+      ...current,
+      id: setting.copyWith(value: setting.value.updateWith(t)),
+    });
+    super.onChange(t);
+  }
+}
+
+List<appsettings.Setting<dynamic, SearchSettingMetaData<dynamic>>>
+searchSettingViews(String extensionId) {
+  return [
+    for (final MapEntry(:key, :value) in activeSearchSettings(
+      extensionId,
+    ).entries)
+      if (value.visible)
+        appsettings.Setting.fromValue(
+          value.default_.data as dynamic,
+          value.value.data,
+          SearchSettingMetaData(
+            extensionId,
+            key,
+            value.label,
+            value.visible,
+            value.ui,
+          ),
+        ),
+  ];
 }
 
 class EntrySettingMetaData<T> extends DionRuntimeSettingMetaData<T> {

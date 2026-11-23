@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:awesome_extensions/awesome_extensions.dart';
 import 'package:dionysos/data/search_profile.dart';
+import 'package:dionysos/data/search_settings.dart';
 import 'package:dionysos/data/settings/appsettings.dart';
+import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/service/extension.dart'
     hide
         ButtonType,
@@ -66,8 +68,7 @@ class _SettingsPopupState extends State<SettingsPopup>
   final _profiles = settings.extension.searchProfiles;
   final _activeProfileId = settings.extension.activeSearchProfile;
 
-  SearchProfile? get activeProfile =>
-      _profiles.value.where((p) => p.id == _activeProfileId.value).firstOrNull;
+  SearchProfile? get activeProfile => activeSearchProfile;
 
   void selectProfile(SearchProfile? profile) {
     setState(() {
@@ -112,6 +113,7 @@ class _SettingsPopupState extends State<SettingsPopup>
         for (final e in allExtensions)
           if (e.searchEnabled) e.id,
       },
+      settings: snapshotSearchSettings(allExtensions.map((e) => e.id)),
     );
     setState(() {
       _profiles.value = [..._profiles.value, profile];
@@ -258,8 +260,8 @@ class _SettingsPopupState extends State<SettingsPopup>
     if (e.loading || !e.isenabled) {
       return null;
     }
-    final hasSearchSettings =
-        e.settings[SettingKind.search]?.isNotEmpty ?? false;
+    final searchSettings = searchSettingViews(e.id);
+    final hasSearchSettings = searchSettings.isNotEmpty;
     final isExpanded = expanded.contains(e.id);
     return Column(
       children: [
@@ -316,8 +318,13 @@ class _SettingsPopupState extends State<SettingsPopup>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final setting in e.settings[SettingKind.search]!)
-                  DionRuntimeSettingView(setting: setting),
+                for (final setting in searchSettings)
+                  DionRuntimeSettingView(
+                    key: ValueKey(
+                      '${activeProfile?.id}/${e.id}/${setting.metadata.id}',
+                    ),
+                    setting: setting,
+                  ),
               ],
             ),
           ),

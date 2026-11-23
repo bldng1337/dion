@@ -4,6 +4,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
+import 'package:dionysos/data/search_settings.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
@@ -108,6 +109,13 @@ class MockExtension with ChangeNotifier implements Extension {
       meta = _meta.copyWith(searchEnabled: value);
     }
   }
+
+  @override
+  Map<String, rust.Setting> get searchSettings => activeSearchSettings(id);
+
+  @override
+  set searchSettings(Map<String, rust.Setting> value) =>
+      setActiveSearchSettings(id, value);
 
   @override
   Version get version => parseVersion(data.version);

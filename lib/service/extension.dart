@@ -5,6 +5,7 @@ import 'package:dionysos/data/entry/entry.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
 import 'package:dionysos/data/entry/entry_saved.dart';
 import 'package:dionysos/data/extension.dart';
+import 'package:dionysos/data/search_settings.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/source.dart';
@@ -226,11 +227,23 @@ class Extension extends ChangeNotifier {
     return data.extensionType.whereType<T>().firstOrNull;
   }
 
+  Map<String, rust.Setting> get searchSettings => activeSearchSettings(id);
+
+  set searchSettings(Map<String, rust.Setting> value) =>
+      setActiveSearchSettings(id, value);
+
   DataSource<Entry> browse({rust.CancelToken? token}) {
     final db = locate<Database>();
     var fetched = 0;
     return PageAsyncSource((page) async {
-        final res = await _proxy.browse(page: page, token: token);
+        final sent = searchSettings;
+        final result = await _proxy.browse(
+          page: page,
+          settings: sent,
+          token: token,
+        );
+        storeReturnedSearchSettings(id, sent, result.settings);
+        final res = result.entries;
         final entries = await Future.wait(
           res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
             final saved = await db.isSaved(entry);
@@ -535,11 +548,15 @@ class Extension extends ChangeNotifier {
     final db = locate<Database>();
     var fetched = 0;
     return PageAsyncSource((page) async {
-        final res = await _proxy.search(
+        final sent = searchSettings;
+        final result = await _proxy.search(
           page: page,
           filter: filter,
+          settings: sent,
           token: token,
         );
+        storeReturnedSearchSettings(id, sent, result.settings);
+        final res = result.entries;
         final entries = await Future.wait(
           res.content.map((entry) => EntryImpl(entry, id)).map((entry) async {
             final saved = await db.isSaved(entry);

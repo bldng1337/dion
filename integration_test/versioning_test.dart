@@ -382,7 +382,7 @@ final rust.CustomUI comprehensiveCustomUI = rust.CustomUI.column(
     ),
     rust.CustomUI.inlineSetting(
       settingId: 'inline-setting',
-      settingKind: rust.SettingKind.search,
+      settingKind: rust.SettingKind.extension_,
       onCommit: rust.Interaction.invoke(handler: 'commit', payload: 'x'),
     ),
     rust.CustomUI.textInput(

@@ -206,6 +206,19 @@ class PreferenceSearchProfileListMetaData
       json.encode(value.map((p) => p.toJson()).toList());
 }
 
+class PreferenceSearchSettingsMetaData
+    extends PreferenceMetaData<SearchSettings> {
+  const PreferenceSearchSettingsMetaData(super.id);
+
+  @override
+  SearchSettings? parse(String value) =>
+      searchSettingsFromJson(json.decode(value));
+
+  @override
+  String stringify(SearchSettings value) =>
+      json.encode(searchSettingsToJson(value));
+}
+
 enum ReaderMode { paginated, infinite }
 
 enum UpdateChannel { stable, beta, nightly }
@@ -329,6 +342,10 @@ final settings = (
     activeSearchProfile: Setting(
       '',
       const PreferenceStringMetaData('extension.searchprofile.active'),
+    )..addCollection(preferenceCollection),
+    searchSettings: Setting<SearchSettings, PreferenceSearchSettingsMetaData>(
+      const {},
+      const PreferenceSearchSettingsMetaData('extension.searchsettings'),
     )..addCollection(preferenceCollection),
     autoUpdate: (
       enabled: Setting(
