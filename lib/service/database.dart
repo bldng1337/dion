@@ -535,16 +535,26 @@ DEFINE INDEX IF NOT EXISTS activity_entry_uid_idx ON TABLE activity FIELDS entry
   Future<Map<DBRecord, List<String>>> getEntryImageUrls() async {
     final [rows as List<dynamic>] = await db.query(
       'SELECT VALUE [id, entry.cover.url, entry.poster.url, '
+      'overrides.cover.url, overrides.poster.url, '
       'array::flatten(object::values(episodedata ?? {}).images).url] '
       'FROM type::table(\$entry);',
       vars: {'entry': entryTable.tb},
     );
     return {
-      for (final [id as DBRecord, cover, poster, images as List?]
+      for (final [
+            id as DBRecord,
+            cover,
+            poster,
+            coverOverride,
+            posterOverride,
+            images as List?,
+          ]
           in rows.cast<List>())
         id: [
           ?cover as String?,
           ?poster as String?,
+          ?coverOverride as String?,
+          ?posterOverride as String?,
           ...?images?.whereType<String>(),
         ],
     };

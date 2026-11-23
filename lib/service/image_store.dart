@@ -14,6 +14,7 @@ import 'package:dionysos/utils/internetfile.dart';
 import 'package:dionysos/utils/keyed_mutex.dart';
 import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/utils/service.dart';
+import 'package:path/path.dart' as p;
 import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 
 /// What an image is stored for; selects the enabling setting.
@@ -197,8 +198,10 @@ class ImageStoreService {
   /// two in sync.
   static Iterable<String?> entryImageUrls(EntrySaved entry) {
     return [
-      entry.cover?.url,
-      entry.poster?.url,
+      entry.entry.cover?.url,
+      entry.entry.poster?.url,
+      entry.overrides.cover?.url,
+      entry.overrides.poster?.url,
       for (final data in entry.episodedata.values)
         for (final image in data.images) image.url,
     ];
@@ -257,6 +260,34 @@ class ImageStoreService {
       }
       logger.w('Failed to download image $url', error: e, stackTrace: stack);
       return null;
+    }
+  }
+
+  Directory get customDir => dir.sub('custom');
+
+  bool isCustomImage(String url) =>
+      isFileUrl(url) &&
+      p.isWithin(customDir.absolute.path, fileFromUrl(url).absolute.path);
+
+  Future<String> importCustomImage(File source) async {
+    await customDir.create(recursive: true);
+    final name =
+        '${DateTime.now().microsecondsSinceEpoch}${p.extension(source.path)}';
+    final copy = await source.copy(customDir.getFile(name).path);
+    return copy.fileURL;
+  }
+
+  Future<void> deleteCustomImage(String? url) async {
+    if (url == null || !isCustomImage(url)) return;
+    try {
+      final file = fileFromUrl(url);
+      if (await file.exists()) await file.delete();
+    } catch (e, stack) {
+      logger.w(
+        'Failed to delete custom image $url',
+        error: e,
+        stackTrace: stack,
+      );
     }
   }
 

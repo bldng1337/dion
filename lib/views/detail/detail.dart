@@ -29,6 +29,7 @@ import 'package:dionysos/views/detail/entryinfo.dart';
 import 'package:dionysos/views/detail/episodelist.dart';
 import 'package:dionysos/views/detail/saved_quotes.dart';
 import 'package:dionysos/views/detail/settings.dart';
+import 'package:dionysos/views/dialog/edit_entry.dart';
 import 'package:dionysos/views/dialog/migrate.dart';
 import 'package:dionysos/widgets/buttons/actionbutton.dart';
 import 'package:dionysos/widgets/buttons/iconbutton.dart';
@@ -378,6 +379,18 @@ class _DetailState extends State<Detail> with StateDisposeScopeMixin {
               icon: const Icon(Icons.format_quote, size: 18),
             );
           },
+        ),
+      if (entry is EntrySaved)
+        DionIconbutton(
+          tooltip: 'Edit Info',
+          onPressed: () async {
+            final changed = await showEntryEditor(
+              context,
+              entry! as EntrySaved,
+            );
+            if (changed) safeSetState();
+          },
+          icon: const Icon(Icons.edit_outlined, size: 18),
         ),
       if (entry is EntrySaved && (entry!.extension?.isenabled ?? false))
         DionIconbutton(

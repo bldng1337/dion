@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:dionysos/data/category.dart';
 import 'package:dionysos/data/entry/entry_detailed.dart';
+import 'package:dionysos/data/entry/entry_overrides.dart';
 import 'package:dionysos/data/settings/extension_setting.dart';
 import 'package:dionysos/data/settings/settings.dart';
 import 'package:dionysos/data/text_replacement.dart';
@@ -311,6 +312,7 @@ const entrySyncFields = FieldCrdt(
     'note': null,
     'episode': 0,
     'nextReleaseOverride': null,
+    'overrides': null,
     'savedSettings': null,
     'extensionSettings': null,
   },
@@ -341,7 +343,12 @@ const entrySyncFields = FieldCrdt(
 Map<String, dynamic> recomputeEntryColumns(Map<String, dynamic> row) {
   final entry = row['entry'] as Map;
   final episodes = entry['episodes'] as List;
-  final titles = entry['titles'] as List;
+  final overrides = EntryOverrides.fromJson(row['overrides']);
+  final titles = overrides.applyTitles(
+    (entry['titles'] as List).cast<String>(),
+  );
+  final authors =
+      overrides.author ?? (entry['author'] as List?)?.cast<String>();
   final data = row['episodedata'] as Map? ?? const {};
   final readCount = episodes.where((episode) {
     final item = data[(episode as Map)['id']['uid']];
@@ -354,7 +361,7 @@ Map<String, dynamic> recomputeEntryColumns(Map<String, dynamic> row) {
     'sort_chapters_read': readCount,
     'sort_chapters_unread': max(0, episodes.length - readCount),
     'sort_rating': entry['rating'] ?? 0,
-    'search_text': [...titles, ...?(entry['author'] as List?)].join(' '),
+    'search_text': [...titles, ...?authors].join(' '),
   };
 }
 
@@ -396,6 +403,8 @@ class EntrySaved
 
   DateTime? nextReleaseOverride;
 
+  EntryOverrides overrides;
+
   DateTime? get nextRelease => nextReleaseOverride ?? predictedNextRelease;
 
   @override
@@ -418,6 +427,7 @@ class EntrySaved
     this.predictedNextRelease,
     this.releaseInterval,
     this.nextReleaseOverride,
+    this.overrides = EntryOverrides.none,
     required this._episodedata,
   });
 
@@ -480,21 +490,21 @@ class EntrySaved
   }
 
   @override
-  Link? get poster => entry.poster;
+  Link? get poster => overrides.poster ?? entry.poster;
   @override
   EntryId get id => entry.id;
   @override
   String get url => entry.url;
   @override
-  String get title => entry.titles.first;
+  String get title => overrides.title ?? entry.titles.first;
   @override
-  List<String>? get titles => entry.titles;
+  List<String>? get titles => overrides.applyTitles(entry.titles);
   @override
   MediaType get mediaType => entry.mediaType;
   @override
-  Link? get cover => entry.cover;
+  Link? get cover => overrides.cover ?? entry.cover;
   @override
-  List<String>? get author => entry.author;
+  List<String>? get author => overrides.author ?? entry.author;
   @override
   double? get rating => entry.rating;
   @override
@@ -506,13 +516,13 @@ class EntrySaved
   @override
   rust.ReleaseStatus get status => entry.status;
   @override
-  String get description => entry.description;
+  String get description => overrides.description ?? entry.description;
   @override
   String get language => entry.language;
   @override
   List<Episode> get episodes => entry.episodes;
   @override
-  List<String>? get genres => entry.genres;
+  List<String>? get genres => overrides.genres ?? entry.genres;
   @override
   Extension? get extension =>
       locate<ExtensionService>().tryGetExtension(boundExtensionId);
@@ -600,6 +610,7 @@ class EntrySaved
       predictedNextRelease = fresh.predictedNextRelease;
       releaseInterval = fresh.releaseInterval;
       nextReleaseOverride = fresh.nextReleaseOverride;
+      overrides = fresh.overrides;
       userRating = fresh.userRating;
       note = fresh.note;
       _persistedCategoryIds = fresh._persistedCategoryIds;
@@ -668,6 +679,7 @@ class EntrySaved
       'predictedNextRelease': predictedNextRelease?.toIso8601String(),
       'releaseInterval': releaseInterval?.inMilliseconds,
       'nextReleaseOverride': nextReleaseOverride?.toIso8601String(),
+      'overrides': overrides.toJson(),
       'extensionSettings': extensionSettings.map((key, value) {
         return MapEntry(key, value.toJson());
       }),
@@ -827,6 +839,7 @@ class EntrySaved
       nextReleaseOverride: DateTime.tryParse(
         json['nextReleaseOverride'] as String? ?? '',
       ),
+      overrides: EntryOverrides.fromJson(json['overrides']),
     )..notePersistedScope();
   }
 
@@ -839,10 +852,10 @@ class EntrySaved
       'entry': rust.Entry(
         id: entry.id,
         url: entry.url,
-        title: entry.titles.first,
+        title: title,
         mediaType: entry.mediaType,
-        cover: entry.cover,
-        author: entry.author,
+        cover: cover,
+        author: author,
         rating: entry.rating,
         views: entry.views,
         length: entry.length,

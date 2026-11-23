@@ -75,6 +75,7 @@ Future<EntrySaved> migrateEntry(EntrySaved source, Entry target) async {
     predictedNextRelease: source.predictedNextRelease,
     releaseInterval: source.releaseInterval,
     nextReleaseOverride: source.nextReleaseOverride,
+    overrides: source.overrides,
   );
   await db.addEntry(migrated);
   if (!samePlace) {
