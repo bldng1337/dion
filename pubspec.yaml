@@ -87,7 +87,7 @@ dependencies:
     git:
       url: https://github.com/bldng1337/dion-runtime.git
       path: dart/rdion_runtime/
-      ref: 7491e1dce94cbeb560c0c70d330f1bbaea4a14f5
+      ref: 4e4af4ab277eada6ea931e56fdd906e46ff91ea6
   tailscale:
     git:
       url: https://github.com/bldng1337/tailscale_dart.git

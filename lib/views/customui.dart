@@ -75,6 +75,21 @@ class CustomUIElement {
   }
 }
 
+/// Makes [CustomUI_Image]s below it open in a fullscreen viewer, with
+/// [actions] added to the viewer's buttons.
+class CustomUIImageViewer extends InheritedWidget {
+  final List<Widget> Function(BuildContext context, rust.Link image)? actions;
+
+  const CustomUIImageViewer({super.key, this.actions, required super.child});
+
+  static CustomUIImageViewer? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<CustomUIImageViewer>();
+
+  @override
+  bool updateShouldNotify(CustomUIImageViewer oldWidget) =>
+      actions != oldWidget.actions;
+}
+
 class CustomUIWidget extends StatelessWidget {
   final CustomUIElement element;
   final CustomUI? ui;
@@ -90,17 +105,27 @@ class CustomUIWidget extends StatelessWidget {
     );
   }
 
+  Widget _image(BuildContext context, CustomUI_Image img) {
+    final viewer = CustomUIImageViewer.maybeOf(context);
+    final actions = viewer?.actions;
+    return DionImage(
+      imageUrl: img.image.url,
+      httpHeaders: img.image.header,
+      height: img.height?.toDouble(),
+      width: img.width?.toDouble(),
+      hasPopup: viewer != null,
+      popupActions: actions == null
+          ? null
+          : (context) => actions(context, img.image),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return switch (ui) {
       null => nil,
       final CustomUI_Text text => Text(text.text),
-      final CustomUI_Image img => DionImage(
-        imageUrl: img.image.url,
-        httpHeaders: img.image.header,
-        height: img.height?.toDouble(),
-        width: img.width?.toDouble(),
-      ),
+      final CustomUI_Image img => _image(context, img),
       final CustomUI_Link link => Text(
         link.label ?? link.link,
         style: context.bodyMedium?.copyWith(

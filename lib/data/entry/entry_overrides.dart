@@ -27,6 +27,24 @@ class EntryOverrides {
       cover == null &&
       poster == null;
 
+  EntryOverrides withCover(rust.Link? cover) => EntryOverrides(
+    title: title,
+    author: author,
+    description: description,
+    genres: genres,
+    cover: cover,
+    poster: poster,
+  );
+
+  EntryOverrides withPoster(rust.Link? poster) => EntryOverrides(
+    title: title,
+    author: author,
+    description: description,
+    genres: genres,
+    cover: cover,
+    poster: poster,
+  );
+
   List<String> applyTitles(List<String> titles) {
     final title = this.title;
     if (title == null) return titles;

@@ -50,7 +50,7 @@ import 'package:rdion_runtime/rdion_runtime.dart' as rust;
 import 'package:url_launcher/url_launcher.dart';
 
 export 'package:rdion_runtime/rdion_runtime.dart'
-    hide Account, Entry, EntryDetailed, Row, RustLib, Setting;
+    hide Account, Entry, EntryDetailed, Row, RustLib, Setting, resolveProxyUrl;
 
 extension on rust.Source {
   rust.SourceType get type {
@@ -1313,7 +1313,10 @@ class ExtensionService with ChangeNotifier {
         return await adapter.getRepo(url);
       } catch (e) {
         lastError = e;
-        logger.w('${adapter.name} adapter failed to get repo from $url', error: e);
+        logger.w(
+          '${adapter.name} adapter failed to get repo from $url',
+          error: e,
+        );
       }
     }
     // Surface the underlying cause so the UI can show why a repo is broken

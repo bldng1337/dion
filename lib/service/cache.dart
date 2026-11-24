@@ -24,7 +24,9 @@ class CacheService {
         ), //TODO: Save this in the database
         fileSystem: IOFileSystem('imgcache'),
         fileService: HttpFileService(
-          httpClient: await RhttpCompatibleClient.create(),
+          httpClient: await RhttpCompatibleClient.create(
+            interceptors: [proxyUrlInterceptor],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:dionysos/data/source.dart';
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/utils/service.dart';
 import 'package:flutter_dispose_scope/flutter_dispose_scope.dart';
 import 'package:media_kit/media_kit.dart';
@@ -119,7 +120,7 @@ class AudioPlayerHandler extends BaseAudioHandler implements Disposable {
         album: eppath.entry.title,
         artist: eppath.entry.author?.firstOrNull,
         duration: player.state.duration,
-        artUri: cover != null ? Uri.tryParse(cover.url) : null,
+        artUri: cover != null ? Uri.tryParse(resolveProxyUrl(cover.url)) : null,
         artHeaders: cover?.header,
       ),
     );

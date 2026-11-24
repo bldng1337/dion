@@ -17,6 +17,7 @@ import 'package:dionysos/service/extension.dart'
         TextStyle,
         WrapAlignment;
 import 'package:dionysos/service/image_store.dart';
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
@@ -90,7 +91,7 @@ class _SimpleImageListReaderState extends State<SimpleImageListReader>
     }
     player!.open(
       Media(
-        audio.link.url,
+        resolveProxyUrl(audio.link.url),
         httpHeaders: audio.link.header,
         extras: {'from': audio.from, 'to': audio.to, 'link': audio.link},
       ),

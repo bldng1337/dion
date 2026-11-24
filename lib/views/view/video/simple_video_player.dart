@@ -17,6 +17,7 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/file_utils.dart';
@@ -68,7 +69,9 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
   int _loadGeneration = 0;
 
   SubtitleTrack _subtitleTrack(Subtitles sub) => SubtitleTrack.uri(
-    isFileUrl(sub.url.url) ? fileFromUrl(sub.url.url).path : sub.url.url,
+    isFileUrl(sub.url.url)
+        ? fileFromUrl(sub.url.url).path
+        : resolveProxyUrl(sub.url.url),
     title: sub.title,
   );
 
@@ -144,7 +147,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         final stream = currentVideo!.sources[getStreamIndex()];
         await player.open(
           Media(
-            stream.url.url,
+            resolveProxyUrl(stream.url.url),
             httpHeaders: stream.url.header,
             start: startduration,
           ),
@@ -176,7 +179,7 @@ class _SimpleVideoPlayerState extends State<SimpleVideoPlayer>
         final stream = video.sources[getStreamIndex()];
         await player.open(
           Media(
-            stream.url.url,
+            resolveProxyUrl(stream.url.url),
             httpHeaders: stream.url.header,
             start: startduration,
           ),

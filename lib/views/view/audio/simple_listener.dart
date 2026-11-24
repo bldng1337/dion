@@ -16,6 +16,7 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/log.dart';
@@ -142,7 +143,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         logger.d('Opening audio stream at position $startduration');
         await player.open(
           Media(
-            stream.url.url,
+            resolveProxyUrl(stream.url.url),
             httpHeaders: stream.url.header,
             start: startduration,
           ),
@@ -174,7 +175,7 @@ class _SimpleAudioListenerState extends State<SimpleAudioListener>
         final stream = audio.sources[getStreamIndex()];
         await player.open(
           Media(
-            stream.url.url,
+            resolveProxyUrl(stream.url.url),
             httpHeaders: stream.url.header,
             start: startduration,
           ),

@@ -59,6 +59,25 @@ void main() {
     );
   });
 
+  test('image setters replace one image and keep the other fields', () {
+    const image = rust.Link(
+      url: 'https://example.com/chapter.png',
+      header: {'Referer': 'https://example.com'},
+    );
+    final withCover = overrides.withCover(image);
+    expect(withCover.cover, image);
+    expect(withCover.poster, overrides.poster);
+    expect(withCover.withCover(null), overrides.withCover(null));
+    expect(withCover.withCover(null).cover, isNull);
+    expect(withCover.title, overrides.title);
+    expect(withCover.genres, overrides.genres);
+
+    final withPoster = EntryOverrides.none.withPoster(image);
+    expect(withPoster.poster, image);
+    expect(withPoster.cover, isNull);
+    expect(withPoster.withPoster(null).isEmpty, isTrue);
+  });
+
   test('saved entry shows overrides and falls back to the source', () {
     final saved = _saved(
       overrides: const EntryOverrides(title: 'My Title', genres: []),

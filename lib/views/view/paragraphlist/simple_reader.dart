@@ -14,6 +14,7 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/service/player.dart';
 import 'package:dionysos/utils/design_tokens.dart';
 import 'package:dionysos/utils/observer.dart';
@@ -163,7 +164,7 @@ class _SimpleParagraphlistReaderState extends State<SimpleParagraphlistReader>
     }
     player.open(
       Media(
-        span.link.url,
+        resolveProxyUrl(span.link.url),
         httpHeaders: span.link.header,
         extras: {'url': span.link.url},
       ),

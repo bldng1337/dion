@@ -26,6 +26,59 @@ Future<bool> showEntryEditor(BuildContext context, EntrySaved entry) async {
   return changed ?? false;
 }
 
+Future<bool> saveEntryOverrides(
+  EntrySaved entry,
+  EntryOverrides overrides,
+) async {
+  final previous = entry.overrides;
+  final persisted = overrides
+      .withCover(await _persistLink(overrides.cover))
+      .withPoster(await _persistLink(overrides.poster));
+  if (persisted == previous) return false;
+  entry.overrides = persisted;
+  await entry.save();
+  final store = locate<ImageStoreService>();
+  for (final (old, now) in [
+    (previous.cover, persisted.cover),
+    (previous.poster, persisted.poster),
+  ]) {
+    if (old?.url != now?.url) await store.deleteCustomImage(old?.url);
+  }
+  return true;
+}
+
+enum EntryImageSlot {
+  cover('Cover'),
+  banner('Banner');
+
+  final String label;
+  const EntryImageSlot(this.label);
+}
+
+Future<bool> setEntryImage(
+  EntrySaved entry,
+  EntryImageSlot slot,
+  rust.Link image,
+) {
+  final source = switch (slot) {
+    EntryImageSlot.cover => entry.entry.cover,
+    EntryImageSlot.banner => entry.entry.poster,
+  };
+  final link = image.url == source?.url ? null : image;
+  return saveEntryOverrides(entry, switch (slot) {
+    EntryImageSlot.cover => entry.overrides.withCover(link),
+    EntryImageSlot.banner => entry.overrides.withPoster(link),
+  });
+}
+
+Future<rust.Link?> _persistLink(rust.Link? link) async {
+  if (link == null || !isFileUrl(link.url)) return link;
+  final store = locate<ImageStoreService>();
+  if (store.isCustomImage(link.url)) return link;
+  final url = await store.importCustomImage(fileFromUrl(link.url));
+  return rust.Link(url: url);
+}
+
 class _EntryEditorDialog extends StatefulWidget {
   final EntrySaved entry;
 
@@ -116,42 +169,14 @@ class _EntryEditorDialogState extends State<_EntryEditorDialog> {
     );
   }
 
-  Future<rust.Link?> _persistLink(rust.Link? link) async {
-    if (link == null || !isFileUrl(link.url)) return link;
-    final store = locate<ImageStoreService>();
-    if (store.isCustomImage(link.url)) return link;
-    final url = await store.importCustomImage(fileFromUrl(link.url));
-    return rust.Link(url: url);
-  }
-
   Future<void> _save() async {
     setState(() => _saving = true);
-    final entry = widget.entry;
-    final previous = entry.overrides;
     try {
-      final draft = _buildOverrides();
-      final overrides = EntryOverrides(
-        title: draft.title,
-        author: draft.author,
-        genres: draft.genres,
-        description: draft.description,
-        cover: await _persistLink(draft.cover),
-        poster: await _persistLink(draft.poster),
+      final changed = await saveEntryOverrides(
+        widget.entry,
+        _buildOverrides(),
       );
-      if (overrides == previous) {
-        if (mounted) Navigator.of(context).pop(false);
-        return;
-      }
-      entry.overrides = overrides;
-      await entry.save();
-      final store = locate<ImageStoreService>();
-      for (final (old, now) in [
-        (previous.cover, overrides.cover),
-        (previous.poster, overrides.poster),
-      ]) {
-        if (old?.url != now?.url) await store.deleteCustomImage(old?.url);
-      }
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) Navigator.of(context).pop(changed);
     } catch (e, stack) {
       logger.e('Failed to save entry edits', error: e, stackTrace: stack);
       if (mounted) setState(() => _saving = false);

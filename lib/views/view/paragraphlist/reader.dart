@@ -18,9 +18,12 @@ import 'package:dionysos/service/extension.dart'
         StackFit,
         TextStyle,
         WrapAlignment;
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/utils/async.dart';
 import 'package:dionysos/utils/design_tokens.dart';
+import 'package:dionysos/utils/log.dart';
 import 'package:dionysos/views/customui.dart';
+import 'package:dionysos/views/dialog/edit_entry.dart';
 import 'package:dionysos/views/dialog/text_replacement.dart';
 import 'package:dionysos/views/view/paragraphlist/infinite_reader.dart';
 import 'package:dionysos/views/view/paragraphlist/simple_reader.dart';
@@ -28,6 +31,7 @@ import 'package:dionysos/views/view/paragraphlist/tts_controller.dart';
 import 'package:dionysos/views/view/session.dart';
 import 'package:dionysos/views/view/view.dart';
 import 'package:dionysos/views/view/wrapper.dart';
+import 'package:dionysos/widgets/buttons/iconbutton.dart';
 import 'package:dionysos/widgets/context_menu.dart';
 import 'package:dionysos/widgets/image.dart';
 import 'package:dionysos/widgets/progress.dart';
@@ -139,7 +143,7 @@ TtsMediaInfo ttsMediaInfoFor(EpisodePath ep) {
     title: ep.name,
     album: ep.entry.title,
     artist: ep.entry.author?.isNotEmpty == true ? ep.entry.author!.first : null,
-    artUri: cover != null ? Uri.tryParse(cover.url) : null,
+    artUri: cover != null ? Uri.tryParse(resolveProxyUrl(cover.url)) : null,
     artHeaders: cover?.header,
   );
 }
@@ -212,6 +216,16 @@ class ReaderRenderParagraph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final saved = _savedEntry(entry);
+    return CustomUIImageViewer(
+      actions: saved == null
+          ? null
+          : (context, image) => _imageActions(context, saved, image),
+      child: _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     return ListenableBuilder(
       listenable: psettings.text.paragraphspacing,
       builder: (context, child) =>
@@ -772,6 +786,45 @@ TextSpan renderSpan(
         style: basicStyle,
       ),
     ],
+  );
+}
+
+List<Widget> _imageActions(
+  BuildContext context,
+  EntrySaved entry,
+  runtime.Link image,
+) => [
+  for (final (slot, icon) in [
+    (EntryImageSlot.cover, Icons.portrait_outlined),
+    (EntryImageSlot.banner, Icons.panorama_outlined),
+  ])
+    DionIconbutton(
+      tooltip: 'Set as ${slot.label}',
+      onPressed: () => _setEntryImage(context, entry, slot, image),
+      icon: Icon(icon),
+    ),
+];
+
+Future<void> _setEntryImage(
+  BuildContext viewerContext,
+  EntrySaved entry,
+  EntryImageSlot slot,
+  runtime.Link image,
+) async {
+  // The viewer has no Scaffold of its own, so a snackbar shown while it is
+  // open would land behind its barrier.
+  final messenger = ScaffoldMessenger.of(viewerContext);
+  Navigator.of(viewerContext).pop();
+  String message;
+  try {
+    await setEntryImage(entry, slot, image);
+    message = '${slot.label} updated';
+  } catch (e, stack) {
+    logger.e('Failed to set entry ${slot.name}', error: e, stackTrace: stack);
+    message = 'Failed to set ${slot.label.toLowerCase()}';
+  }
+  messenger.showSnackBar(
+    SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
   );
 }
 

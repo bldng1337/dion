@@ -7,6 +7,7 @@ import 'package:dionysos/service/cache.dart';
 import 'package:dionysos/service/extension.dart'
     hide Alignment, CrossAxisAlignment, MainAxisSize, StackFit;
 import 'package:dionysos/service/image_store.dart';
+import 'package:dionysos/service/network.dart';
 import 'package:dionysos/utils/file_utils.dart';
 import 'package:dionysos/utils/safe_set_state.dart';
 import 'package:dionysos/utils/service.dart';
@@ -103,6 +104,7 @@ class DionImage extends StatefulWidget {
     boxFit: boxFit,
     shouldAnimate: shouldAnimate,
     hasPopup: hasPopup,
+    popupActions: popupActions,
     onTap: onTap,
     borderRadius: borderRadius,
     errorWidget: errorWidget,
@@ -308,7 +310,9 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                           DionIconbutton(
                             tooltip: 'Open in Browser',
                             onPressed: () async {
-                              await launchUrl(Uri.parse(widget.imageUrl!));
+                              await launchUrl(
+                                Uri.parse(resolveProxyUrl(widget.imageUrl!)),
+                              );
                             },
                             icon: const Icon(Icons.open_in_browser),
                           ),
