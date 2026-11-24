@@ -39,6 +39,8 @@ class DionImage extends StatefulWidget {
   final BoxFit? boxFit;
   final bool shouldAnimate;
   final bool hasPopup;
+
+  final List<Widget> Function(BuildContext context)? popupActions;
   final Function()? onTap;
   final BorderRadiusGeometry? borderRadius;
   // final String? cacheKey;
@@ -65,6 +67,7 @@ class DionImage extends StatefulWidget {
     this.shouldAnimate = true,
     this.borderRadius,
     this.hasPopup = false,
+    this.popupActions,
     this.onTap,
     this.semanticLabel,
   }) : assert(
@@ -81,6 +84,7 @@ class DionImage extends StatefulWidget {
     BoxFit? boxFit,
     bool shouldAnimate = true,
     bool hasPopup = false,
+    List<Widget> Function(BuildContext context)? popupActions,
     Function()? onTap,
     BorderRadiusGeometry? borderRadius,
     Widget? errorWidget,
@@ -308,6 +312,7 @@ class _DionImageState extends State<DionImage> with StateDisposeScopeMixin {
                             },
                             icon: const Icon(Icons.open_in_browser),
                           ),
+                          ...?widget.popupActions?.call(context),
                         ],
                       ),
                     ).paddingOnly(bottom: 5),
